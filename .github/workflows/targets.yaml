@@ -33,7 +33,7 @@ name: targets
 
 jobs:
   targets:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     container: rocker/geospatial:latest
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
@@ -58,7 +58,7 @@ jobs:
           Rscript -e "install.packages('remotes', repos = 'https://demo.rstudiopm.com/all/__linux__/bionic/latest')"
           Rscript -e "remotes::install_deps(dependencies = TRUE, repos = 'https://demo.rstudiopm.com/all/__linux__/bionic/latest')"
           Rscript -e "install.packages(c('testthat','RCurl','questionr'))"
-          Rscript -e "questionr::qscan(list.files(pattern='*.R',recursive=T), load = TRUE, detail = FALSE)"
+          Rscript -e "questionr::qscan(list.files(pattern='*.R',recursive=T), load = TRUE, detail = FALSE)" # this scans all scripts and installs any needed packages
       - name: Cache packages
         uses: actions/cache@v1
         with:
