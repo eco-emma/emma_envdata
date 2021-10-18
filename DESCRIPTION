@@ -1,0 +1,22 @@
+Package: EMMAv1
+Type: Project
+Title: EMMA Targets Workflow
+Version: 0.1.0
+Author: Adam M. Wilson <adamw@buffalo.edu>
+  Maintainer: Adam M. Wilson <adamw@buffalo.edu>
+  Description: Example targets workflow for GitHub actions
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Imports:
+  rmarkdown,
+tidyverse,
+viridis,
+colourvalues,
+sf,
+raster,
+testthat,
+kableExtra,
+knitr,
+Suggests:
+  RoxygenNote: 7.1.1
