@@ -3,13 +3,6 @@ EMMA Prototype
 true
 10-13-2021
 
-``` r
-library(targets)
-library(tidyverse)
-# load data saved in the pipeline
-tar_load(c(model,  model_output, posterior_summary)) #data, stan_data,
-```
-
 The details are given in
 \[@slingsby\_near-real\_2020;@wilson\_climatic\_2015\], but in short
 what we do is estimate the age of a site by calculating the years since
