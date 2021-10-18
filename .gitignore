@@ -37,3 +37,8 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+
+# targets related workflow stuff
+_targets/*
+model.Rds
+firemodel_predict
