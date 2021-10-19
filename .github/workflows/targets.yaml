@@ -53,10 +53,10 @@ jobs:
           sudo apt-get install libzmq3-dev
       - name: Install R Package Dependencies
         run: |-
-#          Rscript -e "install.packages('remotes', repos = 'https://demo.rstudiopm.com/all/__linux__/bionic/latest')"
-#          Rscript -e "remotes::install_deps(dependencies = TRUE, repos = 'https://demo.rstudiopm.com/all/__linux__/bionic/latest')"
           Rscript -e "install.packages(c('testthat','RCurl','questionr'))"
           Rscript -e "questionr::qscan(list.files(pattern='*.R',recursive=T), load = TRUE, detail = FALSE)" # this scans all scripts and installs any needed packages
+#          Rscript -e "install.packages('remotes', repos = 'https://demo.rstudiopm.com/all/__linux__/bionic/latest')"
+#          Rscript -e "remotes::install_deps(dependencies = TRUE, repos = 'https://demo.rstudiopm.com/all/__linux__/bionic/latest')"
       - name: Cache packages
         uses: actions/cache@v1
         with:
