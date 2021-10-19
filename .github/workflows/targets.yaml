@@ -121,10 +121,10 @@ jobs:
           git add --all -- ':!renv'
           for file in $(git ls-files -mo --exclude=renv)
           do
-            git add $file
+            git add -f $file
           done
-          git commit -f -am "Run pipeline"
-          git push -f origin targets-runs
+          git commit -am "Run pipeline"
+          git push origin targets-runs
 
       - name: Prepare failure artifact
         if: failure()
