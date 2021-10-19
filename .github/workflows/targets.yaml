@@ -119,10 +119,10 @@ jobs:
           git config --local user.email "actions@github.com"
           rm -r .gitignore .github/workflows
           git add --all -- ':!renv'
-          for file in $(git ls-files -mo --exclude=renv)
-          do
-            git add -f $file
-          done
+#          for file in $(git ls-files -mo --exclude=renv)
+#          do
+#            git add -f $file
+#          done
           git commit -am "Run pipeline"
           git push origin targets-runs
 
