@@ -124,7 +124,7 @@ jobs:
             git add $file
           done
           git commit -am "Run pipeline"
-          git push origin targets-runs
+          git push -f origin targets-runs
 
       - name: Prepare failure artifact
         if: failure()
