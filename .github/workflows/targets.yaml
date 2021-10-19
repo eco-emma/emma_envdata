@@ -53,7 +53,7 @@ jobs:
           sudo apt-get install libzmq3-dev
       - name: Install R Package Dependencies
         run: |-
-          Rscript -e "install.packages(c('testthat','RCurl','questionr'))"
+          Rscript -e "install.packages(c('testthat','RCurl','questionr','bayesplot'))"
           Rscript -e "install.packages('cmdstanr', repos = c('https://mc-stan.org/r-packages/', getOption('repos')))"
           Rscript -e "questionr::qscan(list.files(pattern='*.R',recursive=T), load = TRUE, detail = FALSE)" # this scans all scripts and installs any needed packages
 #          Rscript -e "install.packages('remotes', repos = 'https://demo.rstudiopm.com/all/__linux__/bionic/latest')"
