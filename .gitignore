@@ -39,5 +39,5 @@ vignettes/*.pdf
 .Renviron
 
 # targets related workflow stuff
-model.Rds
-firemodel_predict
+#model.Rds
+#firemodel_predict
