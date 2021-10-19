@@ -18,5 +18,8 @@ raster,
 testthat,
 kableExtra,
 knitr,
+cmdstanr, 
+posterior, 
+bayesplot
 Suggests:
   RoxygenNote: 7.1.1
