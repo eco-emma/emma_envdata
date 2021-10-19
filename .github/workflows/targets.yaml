@@ -123,7 +123,7 @@ jobs:
           do
             git add $file
           done
-          git commit -am "Run pipeline"
+          git commit -f -am "Run pipeline"
           git push -f origin targets-runs
 
       - name: Prepare failure artifact
