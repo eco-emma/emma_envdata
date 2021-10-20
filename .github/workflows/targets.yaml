@@ -125,9 +125,10 @@ jobs:
           git add --all -- ':!renv'
           for file in $(git ls-files -mo --exclude=renv) # move up 2!
           do
-            git lfs track -f $file
-            git lfs add -f $file
+            git lfs track $file
+            git add -f $file
           done
+          git add .gitattributes
           git commit -am "Run pipeline"
           git push origin targets-runs
 # Move the loop below up two lines (after git add) to commit large files.
