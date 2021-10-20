@@ -2,7 +2,7 @@
 clean_data <- function(raw_data_file){
   raw_data_file %>%
   filter(ND>0) %>% #remove impossible NDVI values
-#  filter(nid %in% as.numeric(sample(levels(as.factor(raw_data_file$nid)),50))) %>% #subset plots
+  filter(nid %in% as.numeric(sample(levels(as.factor(raw_data_file$nid)),50))) %>% #subset plots
   mutate(age=DA/365.23) %>% #convert age from days to years
   select(age=age,nd=ND,pid=nid,x,y,env1=map,env2=tmax01) %>%
   mutate(pid = as.numeric(as.factor(pid))) %>%
@@ -40,14 +40,13 @@ fit_model<- function(model,data,file){
     eta=0.1,
     tol_rel_obj = 0.001,
     seed = 123)
-  model_results$save_object(file,compression=9)
+  model_results$save_object(file)
   return(file)
 }
 
 
 # Summarize posteriors
-summarize_posteriors <- function(model_fit,data){
-  model_output=readRDS(model_fit)
+summarize_posteriors <- function(model_output,data){
     #posterior predictive
   tdata<- model_output$summary("nd_new","mean","quantile2") %>%
 #    mutate(pid=gsub("[]]","",gsub(".*[[]","",variable))) %>%  #extract pid from parameter names

@@ -39,19 +39,19 @@ it is nice and readable and works fine on this example dataset
 model_output$print()
 ```
 
-    ##     variable      mean    median     sd    mad        q5       q95
-    ##  lp__        193260.38 193312.00 338.23 111.19 193021.95 193459.00
-    ##  lp_approx__   -632.95   -631.33  24.93  25.67   -676.25   -595.35
-    ##  alpha[1]        -1.47     -1.47   0.02   0.02     -1.51     -1.44
-    ##  alpha[2]        -1.27     -1.27   0.02   0.02     -1.31     -1.24
-    ##  alpha[3]        -2.22     -2.22   0.04   0.04     -2.29     -2.15
-    ##  alpha[4]        -1.08     -1.08   0.01   0.01     -1.10     -1.06
-    ##  alpha[5]        -1.24     -1.24   0.02   0.02     -1.28     -1.20
-    ##  alpha[6]        -1.23     -1.23   0.01   0.01     -1.26     -1.21
-    ##  alpha[7]        -1.45     -1.45   0.02   0.02     -1.48     -1.43
-    ##  alpha[8]        -0.76     -0.76   0.01   0.01     -0.78     -0.75
+    ##     variable     mean   median    sd   mad       q5      q95
+    ##  lp__        25741.47 25752.35 92.50 29.50 25687.13 25794.10
+    ##  lp_approx__   -79.60   -79.35  8.74  8.87   -94.59   -65.92
+    ##  alpha[1]       -1.50    -1.50  0.02  0.02    -1.53    -1.47
+    ##  alpha[2]       -1.53    -1.53  0.02  0.02    -1.56    -1.51
+    ##  alpha[3]       -1.21    -1.21  0.01  0.01    -1.24    -1.19
+    ##  alpha[4]       -0.98    -0.98  0.01  0.01    -1.00    -0.96
+    ##  alpha[5]       -1.35    -1.35  0.03  0.03    -1.39    -1.31
+    ##  alpha[6]       -1.33    -1.33  0.02  0.02    -1.36    -1.31
+    ##  alpha[7]       -1.09    -1.09  0.01  0.01    -1.11    -1.08
+    ##  alpha[8]       -0.55    -0.55  0.01  0.01    -0.56    -0.54
     ## 
-    ##  # showing 10 of 275466 rows (change via 'max_rows' argument or 'cmdstanr_max_rows' option)
+    ##  # showing 10 of 36155 rows (change via 'max_rows' argument or 'cmdstanr_max_rows' option)
 
 How long did that take?
 
@@ -59,7 +59,7 @@ How long did that take?
 model_output$time()$total
 ```
 
-    ## [1] 243.9702
+    ## [1] 31.70943
 
 ``` r
 params=c("tau","alpha_mu","gamma_b2","gamma_b1","lambda_b1","lambda_b2")
@@ -88,6 +88,10 @@ posterior_summary %>%
   labs(x="time since fire (years)",y="NDVI") +
   theme_bw()
 ```
+
+    ## Warning: Removed 245 row(s) containing missing values (geom_path).
+
+    ## Warning: Removed 245 row(s) containing missing values (geom_path).
 
 ![](index_files/figure-gfm/plot-1.png)<!-- -->
 

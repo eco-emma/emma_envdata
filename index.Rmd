@@ -15,7 +15,7 @@ output:
 library(targets)
 library(tidyverse)
 # load data saved in the pipeline
-tar_load(c(model,  model_output, posterior_summary)) #data, stan_data,
+tar_load(c(model,  model_fit, model_output, posterior_summary)) #data, stan_data,
 ```
 
 The details are given in [@slingsby_near-real_2020;@wilson_climatic_2015], but in short what we do is estimate the age of a site by calculating the years since the last fire. We then fit a curve to model the recovery of vegetation (measured using NDVI) as a function of it's age. For this we use a negative exponential curve with the following form:
