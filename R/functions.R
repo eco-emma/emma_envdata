@@ -40,14 +40,15 @@ fit_model<- function(model,data,file){
     eta=0.1,
     tol_rel_obj = 0.001,
     seed = 123)
-  model_results$save_object(file)
+  model_results$save_object(file,compression=9)
   return(file)
 }
 
 
 # Summarize posteriors
-summarize_posteriors <- function(model_output,data){
-  #posterior predictive
+summarize_posteriors <- function(model_fit,data){
+  model_output=readRDS(model_fit)
+    #posterior predictive
   tdata<- model_output$summary("nd_new","mean","quantile2") %>%
 #    mutate(pid=gsub("[]]","",gsub(".*[[]","",variable))) %>%  #extract pid from parameter names
     bind_cols(select(data,x,y,pid,age,nd))  # be careful - this just binds and not a full join - don't change row order!!!!!
