@@ -51,9 +51,8 @@ jobs:
           sudo apt-get install libcurl4-openssl-dev
           sudo apt-get install libssl-dev
           sudo apt-get install libzmq3-dev
-          sudo apt-get install gpg
           curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash #from https://github.com/git-lfs/git-lfs/blob/main/INSTALLING.md
-          sudo apt-get install git-lfs
+          sudo apt-get install -f git-lfs
           git lfs install
       - name: Install R Package Dependencies
         run: |-
