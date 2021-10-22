@@ -122,10 +122,14 @@ jobs:
           git config --local user.name "GitHub Actions"
           git config --local user.email "actions@github.com"
           rm -r .gitignore .github/workflows
-          git add --all -- ':!renv'
-          for file in $(git ls-files -mo --exclude=renv) # move up 2!
+          for file in $(git ls-files -mo --exclude=renv _targets/objects) # git lfs for large objects
           do
             git lfs track $file
+            git add -f $file
+          done
+          git add --all -- ':!renv'
+          for file in $(git ls-files -mo --exclude=renv)
+          do
             git add -f $file
           done
           git add .gitattributes
