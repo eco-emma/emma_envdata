@@ -122,17 +122,13 @@ jobs:
           git config --local user.name "GitHub Actions"
           git config --local user.email "actions@github.com"
           rm -r .gitignore .github/workflows
-          for file in $(git ls-files -mo --exclude=renv _targets/objects) # git lfs for large objects
-          do
-            git lfs track $file
-            git add -f $file
-          done
+          git lfs track _targets/objects/*
+          git add .gitattributes
           git add --all -- ':!renv'
           for file in $(git ls-files -mo --exclude=renv)
           do
             git add -f $file
           done
-          git add .gitattributes
           git commit -am "Run pipeline"
           git push origin targets-runs
 # Move the loop below up two lines (after git add) to commit large files.
