@@ -2,7 +2,7 @@
 clean_data <- function(raw_data_file){
   raw_data_file %>%
   filter(ND>0) %>% #remove impossible NDVI values
-  filter(nid %in% as.numeric(sample(levels(as.factor(raw_data_file$nid)),50))) %>% #subset plots
+#  filter(nid %in% as.numeric(sample(levels(as.factor(raw_data_file$nid)),50))) %>% #subset plots
   mutate(age=DA/365.23) %>% #convert age from days to years
   select(age=age,nd=ND,pid=nid,x,y,env1=map,env2=tmax01) %>%
   mutate(pid = as.numeric(as.factor(pid))) %>%
@@ -40,7 +40,8 @@ fit_model<- function(model,data){
     eta=0.1,
     tol_rel_obj = 0.001,
     seed = 123)
-
+  # the next few lines ensure all the data is actually read into RAM (and not stored in temp files)
+  # from https://github.com/stan-dev/cmdstanr/blob/622fa94e31e677878f7d3ed8d79a186edb7e0d6b/R/fit.R#L99-L103
   model_results$draws()
   try(model_results$sampler_diagnostics(), silent = TRUE)
   try(model_results$init(), silent = TRUE)

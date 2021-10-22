@@ -27,7 +27,8 @@ vignettes/*.pdf
 # R Environment Variables
 .Renviron
 # targets related workflow stuff
-model.Rds
-firemodel_predict
 _targets/*
 ~/.boxr-oauth
+index.md
+index_files/*
+firemodel_predict
