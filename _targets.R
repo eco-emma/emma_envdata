@@ -37,12 +37,13 @@ list(
              cmdstan_model('firemodel_predict.stan',
                            compile = TRUE)),
 
-  tar_target(model_fit, fit_model(model, stan_data,  "model.rds"),format="file"),
+  #tar_target(model_fit, fit_model(model, stan_data,  "model.rds"),format="file"),
+  tar_target(model_fit, fit_model(model, stan_data)),
 
-  tar_target(model_output, readRDS(model_fit)),
+#  tar_target(model_output, readRDS(model_fit)),
 
   tar_target(posterior_summary,
-           summarize_posteriors(model_output,data)),
+           summarize_posteriors(model_fit,data)),
 
 
   tar_render(report, "index.Rmd")

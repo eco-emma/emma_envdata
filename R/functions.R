@@ -32,7 +32,7 @@ stan_data_function <- function(data,group_data){
 
 
 # fit model
-fit_model<- function(model,data,file){
+fit_model<- function(model,data){
   model_results=
     model$variational(
     data = data,
@@ -40,8 +40,13 @@ fit_model<- function(model,data,file){
     eta=0.1,
     tol_rel_obj = 0.001,
     seed = 123)
-  model_results$save_object(file)
-  return(file)
+
+  model_results$draws()
+  try(model_results$sampler_diagnostics(), silent = TRUE)
+  try(model_results$init(), silent = TRUE)
+  try(model_results$profiles(), silent = TRUE)
+#  model_results$save_object(file)
+  return(model_results)
 }
 
 

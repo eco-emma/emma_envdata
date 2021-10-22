@@ -15,7 +15,7 @@ output:
 library(targets)
 library(tidyverse)
 # load data saved in the pipeline
-tar_load(c(model,  model_fit, model_output, posterior_summary)) #data, stan_data,
+tar_load(c(model,  model_fit, posterior_summary)) #data, stan_data,
 ```
 
 The details are given in [@slingsby_near-real_2020;@wilson_climatic_2015], but in short what we do is estimate the age of a site by calculating the years since the last fire. We then fit a curve to model the recovery of vegetation (measured using NDVI) as a function of it's age. For this we use a negative exponential curve with the following form:
@@ -35,21 +35,17 @@ We have `age` in years, a plot identifier `pid`. the observed ndvi `nd` and two 
 
 Lets load up our Stan model which codes the model described above. This is not a particularly clever or efficient way of coding the model, but it is nice and readable and works fine on this example dataset  
 
-```{r model_def, echo=T, eval=T, message=FALSE}
-model_output$print()
-```
-
 
 How long did that take?
 
 ```{r vb_time, echo=T, eval=T, message=FALSE}
-model_output$time()$total
+model_fit$time()$total
 ```
 
 
 ```{r p1, echo=T, eval=T, message=FALSE}
 params=c("tau","alpha_mu","gamma_b2","gamma_b1","lambda_b1","lambda_b2")
-posteriors=model_output$draws(params) %>% 
+posteriors=model_fit$draws(params) %>% 
   as_tibble() %>% 
   gather(parameter)
 ggplot(posteriors,aes(x=value))+
