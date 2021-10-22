@@ -123,6 +123,7 @@ jobs:
           git config --local user.email "actions@github.com"
           rm -r .gitignore .github/workflows
           git lfs track _targets/objects/*
+          git lfs track model.Rds
           git add .gitattributes
           git add --all -- ':!renv'
           for file in $(git ls-files -mo --exclude=renv)
