@@ -56,9 +56,9 @@ jobs:
       #     curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash #from https://github.com/git-lfs/git-lfs/blob/main/INSTALLING.md
       #     sudo apt-get install -f git-lfs
       #     git lfs install
-      - name: Install R Package Dependencies
-         run: |-
-           Rscript -e "set_cmdstan_path(dir='/usr/local/cmdstan')"
+#      - name: Install R Package Dependencies
+#         run: |-
+#           Rscript -e "set_cmdstan_path(dir='/usr/local/cmdstan')"
 #          Rscript -e "install.packages(c('testthat','RCurl','questionr','bayesplot'))"
 #          Rscript -e "install.packages('cmdstanr', repos = c('https://mc-stan.org/r-packages/', getOption('repos')))"
 #          Rscript -e "cmdstanr::install_cmdstan()"
