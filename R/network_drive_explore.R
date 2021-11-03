@@ -1,34 +1,62 @@
 # box code not working
+library(boxr)
+library(tidyverse)
 
 # library(fs)
 # dir_create("~/.boxr-auth")
 
 # from https://github.com/r-box/boxr/issues/166
-options(boxr.retry.times = 10)
+# options(boxr.retry.times = 10)
 
-library(boxr)
-library(tidyverse)
-box_auth()
+#box_auth()
+
+# sometimes this fails for no apparent reason - must just wait for it to work again!
+# https://github.com/r-box/boxr/issues/166
 box_auth_service()
-box_auth_service(token_text = unlist(read_lines('~/.boxr-auth/token.json')))
+#box_auth_service(token_text = unlist(read_lines('~/.boxr-auth/token.json')))
+
+# root directory
+
+
+box_setwd()
+
+
+# create new directory to hold results
+dir_name="emmabox"
+box_dir_create(dir_name = dir_name)
+
+eid <- box_ls() %>% as.data.frame() %>% filter(name==dir_name)
+
+# Share folder with
+uid=271686873  # adamw@buffalo.edu
+
+
+box_collab_create(
+  dir_id = eid$id,
+  user_id = uid,
+  role = "co-owner",
+  can_view_path = TRUE
+)
+
+# set box working directory
+box_setwd(eid$id)
+box_setwd("..")
+
+boxr_options()
+box_ls()
+
+# test writing to folder
+box_write(
+  iris,
+  "iris.csv")
+
+files <- box_ls() %>% as.data.frame
+
+files %>%
+  filter(name=="iris.csv") %>%
+  select(id) %>% unlist() %>%
+  box_delete_file()
 
 
 
 
-
-
-# FTP - code below not working
-
-# url <- "ftps://ftp.box.com"
-# opts = curlOptions(header = TRUE, userpwd = userpwd, netrc = TRUE)
-# filenames1 <- getURL(url, .opts=opts,
-#                     ftp.use.epsv=FALSE, crlf = TRUE,dirlistonly = TRUE)
-# filenames <-paste(url, strsplit(filenames, "\r*\n")[[1]], sep = "")
-#
-# data=data.frame(x=1:10)
-# save(data,file="data.Rds")
-# ftpUpload("data.Rds", paste0(userpwd,"@",url,"/data.Rda"), .opts=opts)#curl = getCurlHandle())
-#
-# ftpUpload(I("Some text to be uploaded into a file\nwith several lines"),
-#           to=paste0(userpwd,"@",url,"/data"),
-# )

@@ -54,6 +54,7 @@ ggplot(posteriors,aes(x=value))+
 ```
 
 
+## Plot
 
 When we make this comparison, the posterior predictive intervals from ADVI and MCMC are almost identical
 
