@@ -4,9 +4,9 @@ source("R/functions.R")
 options(tidyverse.quiet = TRUE)
 options(clustermq.scheduler = "multicore")
 
-#install.packages("cmdstanr", repos = c("https://mc-stan.org/r-packages/", getOption("repos")))
-
 tar_option_set(packages = c("cmdstanr", "posterior", "bayesplot", "tidyverse", "stringr","knitr"))
+library(cmdstanr)
+set_cmdstan_path(file.path(Sys.getenv("HOME"),".cmdstanr"))
 
 list(
   tar_target(
