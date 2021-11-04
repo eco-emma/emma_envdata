@@ -47,7 +47,6 @@ jobs:
 #      - name: Install Mac system dependencies
 #          if: runner.os == 'macOS'
 #          run: brew install zeromq
-
       - name: Install Linux system dependencies
          if: runner.os == 'Linux'
          run: |
@@ -55,32 +54,27 @@ jobs:
            sudo apt-get install libcurl4-openssl-dev
            sudo apt-get install libssl-dev
            sudo apt-get install libzmq3-dev
-
       - name: Install R Package Dependencies
          run: |-
+          Rscript -e "install.packages(c('questionr'))"
           Rscript -e "questionr::qscan(list.files(pattern='*.R',recursive=T), load = TRUE, detail = FALSE)" # this scans all scripts and installs any needed packages
-#          Rscript -e "install.packages(c('testthat','RCurl'))"
 #          Rscript -e "install.packages('remotes', repos = 'https://demo.rstudiopm.com/all/__linux__/bionic/latest')"
 #          Rscript -e "remotes::install_deps(dependencies = TRUE, repos = 'https://demo.rstudiopm.com/all/__linux__/bionic/latest')"
-
       - name: Cache packages
         uses: actions/cache@v1
         with:
           path: ${{ env.RENV_PATHS_ROOT }}
           key: ${{ runner.os }}-renv-${{ hashFiles('**/renv.lock') }}
           restore-keys: ${{ runner.os }}-renv-
-
       - name: Restore packages
         shell: Rscript {0}
         run: |
           if (!requireNamespace("renv", quietly = TRUE)) install.packages("renv")
           renv::restore()
-
       - name: Check if previous runs exists
         id: runs-exist
         run: git ls-remote --exit-code --heads origin targets-runs
         continue-on-error: true
-
       - name: Checkout previous run
         if: steps.runs-exist.outcome == 'success'
         uses: actions/checkout@v2
@@ -88,7 +82,6 @@ jobs:
           ref: targets-runs
           fetch-depth: 1
           path: .targets-runs
-
       - name: Restore output files from the previous run
         if: steps.runs-exist.outcome == 'success'
         run: |
@@ -98,25 +91,20 @@ jobs:
             if (file.exists(source)) file.rename(source, dest)
           }
         shell: Rscript {0}
-
       - name: Run targets pipeline
         run: targets::tar_make()
         shell: Rscript {0}
-
       - name: Identify files that the targets pipeline produced
         run: git ls-files -mo --exclude=renv > .targets-files
-
       - name: Create the runs branch if it does not already exist
         if: steps.runs-exist.outcome != 'success'
         run: git checkout --orphan targets-runs
-
       - name: Put the worktree in the runs branch if the latter already exists
         if: steps.runs-exist.outcome == 'success'
         run: |
           rm -r .git
           mv .targets-runs/.git .
           rm -r .targets-runs
-
       - name: Upload latest run
         run: |
           git config --local user.name "GitHub Actions"
@@ -132,11 +120,9 @@ jobs:
           git commit -am "Run pipeline"
           git push origin targets-runs
 # Move the loop below up two lines (after git add) to commit large files.
-
       - name: Prepare failure artifact
         if: failure()
         run: rm -rf .git .github .targets-files .targets-runs
-
       - name: Post failure artifact
         if: failure()
         uses: actions/upload-artifact@main
