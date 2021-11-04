@@ -49,6 +49,7 @@ jobs:
           sudo apt-get install libcurl4-openssl-dev
           sudo apt-get install libssl-dev
           sudo apt-get install libzmq3-dev
+          sudo apt-get install libtbb2
       - name: Install R Package Dependencies
         run: |-
           Rscript -e "install.packages(c('questionr'))"
