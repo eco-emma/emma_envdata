@@ -5,8 +5,7 @@ options(tidyverse.quiet = TRUE)
 options(clustermq.scheduler = "multicore")
 
 tar_option_set(packages = c("cmdstanr", "posterior", "bayesplot", "tidyverse", "stringr","knitr"))
-library(cmdstanr)
-set_cmdstan_path(file.path(Sys.getenv("HOME"),".cmdstanr"))
+cmdstanr::set_cmdstan_path(file.path(Sys.getenv("HOME"),".cmdstanr"))
 
 list(
   tar_target(
