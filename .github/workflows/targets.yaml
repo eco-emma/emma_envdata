@@ -46,10 +46,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install libcurl4-openssl-dev
-          sudo apt-get install libssl-dev
-          sudo apt-get install libzmq3-dev
-          sudo apt-get install libtbb2
+#          sudo apt-get install libcurl4-openssl-dev
       - name: Install R Package Dependencies
         run: |-
           Rscript -e "install.packages(c('questionr'))"
@@ -92,7 +89,7 @@ jobs:
           Sys.setenv(HOME="/home/rstudio")
           cmdstanr::set_cmdstan_path("/home/rstudio/.cmdstanr/cmdstan-2.28.1")
           cmdstanr::check_cmdstan_toolchain()
-          cmdstanr::install_cmdstan()
+#          cmdstanr::install_cmdstan()
           targets::tar_make()
         shell: Rscript {0}
       - name: Identify files that the targets pipeline produced
