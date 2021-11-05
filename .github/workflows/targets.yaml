@@ -89,7 +89,7 @@ jobs:
           Sys.setenv(HOME="/home/rstudio")
           cmdstanr::set_cmdstan_path("/home/rstudio/.cmdstanr/cmdstan-2.28.1")
           cmdstanr::check_cmdstan_toolchain()
-#          cmdstanr::install_cmdstan()
+          #cmdstanr::install_cmdstan()
           targets::tar_make()
         shell: Rscript {0}
       - name: Identify files that the targets pipeline produced
