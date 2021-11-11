@@ -8,6 +8,7 @@
   install.packages("bibtex")
   install.packages("https://gitlab.rrz.uni-hamburg.de/helgejentsch/climdatdownloadr/-/archive/master/climdatdownloadr-master.tar.gz", repos = NULL, type = "source")
   install.packages("raster")
+  install.packages("rdryad")
 
 library(rgee)
 library(ClimDatDownloadR)

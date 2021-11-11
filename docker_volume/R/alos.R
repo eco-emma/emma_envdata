@@ -65,15 +65,15 @@
 # mTPI
   get_alos_data(image_text = "CSP/ERGo/1_0/Global/ALOS_mTPI")
   
-#CHILI
+# CHILI
 
   get_alos_data(image_text = "CSP/ERGo/1_0/Global/ALOS_CHILI")
   
-#landforms
+# landforms
   
   get_alos_data(image_text = 'CSP/ERGo/1_0/Global/ALOS_landforms')
   
-#topo diversity
+# topo diversity
   
   get_alos_data(image_text = 'CSP/ERGo/1_0/Global/ALOS_topoDiversity')
   
