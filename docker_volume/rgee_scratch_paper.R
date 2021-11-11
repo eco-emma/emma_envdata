@@ -1,4 +1,8 @@
-#script for learning rgee
+#Code for downloading raw data used by the EMMA project
+  #This code was written to work with a particular docker instance, to set it up (modifying your directory accordingly):
+  #docker run -d -e DISABLE_AUTH=true -p 8787:8787 -v C:/Users/"Brian Maitner"/Desktop/current_projects/emma_targets/docker_volume:/home/rstudio/docker_volume adamwilsonlab/emma_docker:latest
+
+
 
 #devtools::install_github("matthewkling/chelsaDL")
 install.packages(c("gdalUtils","qpdf","RefManageR","svMisc"))
