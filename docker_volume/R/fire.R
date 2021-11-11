@@ -31,4 +31,8 @@ filterDate('2019-01-01', '2019-12-31')
 #Get metadata
 cci_info <- fire_cci %>% ee$Image$getInfo()
 
+##################################################
+
+#SA fire data
+
 
