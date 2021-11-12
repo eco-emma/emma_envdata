@@ -1,5 +1,4 @@
-#brian's attempt at synthesizing the other ndvi files
-  #built from code by Adam and Qinwen
+#' @author Brian Maitner, but built from code by Qinwen and Adam
 
 library(cptcity)
 library(raster)
@@ -35,7 +34,7 @@ if(!dir.exists("docker_volume/raw_data/modis_ndvi")){
     proj = "EPSG:4326",
     geodesic = FALSE
   )
-  
+
 
   #Set Visualization parameters
 
@@ -44,40 +43,40 @@ if(!dir.exists("docker_volume/raw_data/modis_ndvi")){
     max = info$properties$visualization_0_max,
     palette = c('00FFFF','FF00FF')
   )
-  
-  
+
+
 
 #MODIS makes it simple to filter out poor quality pixels thanks to a quality control bits band (DetailedQA). The following function helps us to distinct between good data (bit == …00) and marginal data (bit != …00).
-  
+
   getQABits <- function(image, qa) {
     # Convert binary (character) to decimal (little endian)
     qa <- sum(2^(which(rev(unlist(strsplit(as.character(qa), "")) == 1))-1))
     # Return a mask band image, giving the qa value.
     image$bitwiseAnd(qa)$lt(1)
-  }  
-  
+  }
+
 #Using getQABits we construct a single-argument function (mod13A2_clean) that is used to map over all the images of the collection (modis_ndvi).
   mod13A2_clean <- function(img) {
     # Extract the NDVI band
     ndvi_values <- img$select("NDVI")
-  
+
     # Extract the quality band
     ndvi_qa <- img$select("SummaryQA")
-  
+
     # Select pixels to mask
     quality_mask <- getQABits(ndvi_qa, "11")
-  
+
     # Mask pixels with value zero.
     ndvi_values$updateMask(quality_mask)
-  }  
-  
-  
+  }
+
+
 #Make clean the dataset
-  
+
   ndvi_clean <- modis_ndvi$map(mod13A2_clean)
-  
+
 #What has been downloaded already?
-  
+
   images_downloaded <- list.files("docker_volume/raw_data/modis_ndvi/",full.names = F,pattern = ".tif")
   images_downloaded <- gsub(pattern = ".tif",replacement = "",x = images_downloaded,fixed = T)
 
@@ -90,5 +89,5 @@ if(!dir.exists("docker_volume/raw_data/modis_ndvi")){
 #Download
   ee_imagecollection_to_local(ic = ndvi_clean_and_new,
                             region = sabb,
-                            dsn = "docker_volume/raw_data/modis_ndvi/")  
+                            dsn = "docker_volume/raw_data/modis_ndvi/")
 

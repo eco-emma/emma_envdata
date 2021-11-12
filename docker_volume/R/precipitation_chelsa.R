@@ -1,7 +1,9 @@
 #Precipitation
+  # download the version 1.2 precipitation data
+  # January and July for the CFR region as *.grd files? (c(1,7))
 
-# download the version 1.2 precipitation data
-# January and July for the CFR region as *.grd files? (c(1,7))
+#' @author Brian Maitner
+
 
 library(ClimDatDownloadR)
 
@@ -14,7 +16,7 @@ library(ClimDatDownloadR)
 #Adjust the download timeout duration (this needs to be large enough to allow the download to complete)
 
   if(getOption('timeout') < 1000){
-    options(timeout = 1000)  
+    options(timeout = 1000)
   }
 
 # Download the data
@@ -48,7 +50,7 @@ library(ClimDatDownloadR)
   rm(dirs)
 
 #Make .grd version
-  
+
   sapply(X = list.files(path = "docker_volume/raw_data/chelsa/prec/",full.names = T,recursive = T,pattern = ".tif"),
          FUN = function(x){
            writeRaster(x = raster(x),

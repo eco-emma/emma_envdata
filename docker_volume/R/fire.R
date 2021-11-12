@@ -1,5 +1,7 @@
 #Fire Data
 
+#' @author Brian Maitner
+
 
 
 
@@ -8,7 +10,7 @@ ee_Initialize()
 
 #CCI not working
 
-# Load the image 
+# Load the image
   fire_cci <- ee$ImageCollection("ESA/CCI/FireCCI/5_1")
   # fire_cci <- ee$ImageCollection$Dataset$ESA_CCI_FireCCI_5_1 #This is equivalent to the above
 
@@ -19,8 +21,8 @@ ee_Initialize()
   cci_features[[1]]$properties
 
   fire_cci[[1]] %>% ee$Date()
-  
-    
+
+
 fire_cci$Dataset$ESA_CCI_FireCCI_5_1()
 fire_cci %>% filte
 

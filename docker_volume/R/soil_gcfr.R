@@ -1,5 +1,7 @@
 #GCFR soil layers (Cramer et al. 2019) - https://doi.org/10.5061/dryad.37qc017
 
+#' @author Brian Maitner
+
 library(rvest)
 library(rdryad)
 

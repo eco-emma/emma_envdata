@@ -1,5 +1,6 @@
 #Code for extracting elevation data from google earth engine
 
+#' @author Brian Maitner
 
 #NASADEM
 
