@@ -1,4 +1,5 @@
 #brian's attempt at synthesizing the other ndvi files
+  #built from code by Adam and Qinwen
 
 library(cptcity)
 library(raster)
