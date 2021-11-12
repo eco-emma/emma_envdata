@@ -6,7 +6,6 @@ library(stars)
 library(rgee)
 library(sf)
 library(rgdal)
-library(tiff)
 library(googledrive)
 library(stringr)
 
@@ -79,9 +78,19 @@ if(!dir.exists("docker_volume/raw_data/modis_ndvi")){
 
   images_downloaded <- list.files("docker_volume/raw_data/modis_ndvi/",full.names = F,pattern = ".tif")
   images_downloaded <- gsub(pattern = ".tif",replacement = "",x = images_downloaded,fixed = T)
+  
+  #check to see if any images have been downloaded already
+  if(length(images_downloaded)==0){
+    
+    newest <- lubridate::as_date(-1) #if nothing is downloaded, start in 1970
+    
+  }else{
+    
+    newest <- max(lubridate::as_date(images_downloaded)) #if there are images, start with the most recent
+    
+  }
 
-  newest <- max(lubridate::as_date(images_downloaded))
-
+  
 #Filter the data to exclude anything you've already downloaded (or older)
   ndvi_clean_and_new <- ndvi_clean$filterDate(start = paste(as.Date(newest+1),sep = ""),
                                               opt_end = paste(format(Sys.time(), "%Y-%m-%d"),sep = "") ) #I THINK I can just pull the most recent date, and then use this to download everything since then
