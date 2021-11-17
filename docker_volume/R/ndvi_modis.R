@@ -14,7 +14,7 @@ library(stringr)
 if(!dir.exists("docker_volume/raw_data/modis_ndvi")){
   dir.create("docker_volume/raw_data/modis_ndvi")
 }
-
+  
   ee_Initialize(drive = TRUE)
   #ee_check()
 
@@ -45,7 +45,8 @@ if(!dir.exists("docker_volume/raw_data/modis_ndvi")){
 
 
 
-#MODIS makes it simple to filter out poor quality pixels thanks to a quality control bits band (DetailedQA). The following function helps us to distinct between good data (bit == …00) and marginal data (bit != …00).
+#MODIS makes it simple to filter out poor quality pixels thanks to a quality control bits band (DetailedQA). 
+    #The following function helps us to distinct between good data (bit == …00) and marginal data (bit != …00).
 
   getQABits <- function(image, qa) {
     # Convert binary (character) to decimal (little endian)
@@ -54,7 +55,9 @@ if(!dir.exists("docker_volume/raw_data/modis_ndvi")){
     image$bitwiseAnd(qa)$lt(1)
   }
 
-#Using getQABits we construct a single-argument function (mod13A2_clean) that is used to map over all the images of the collection (modis_ndvi).
+#Using getQABits we construct a single-argument function (mod13A2_clean) 
+  #that is used to map over all the images of the collection (modis_ndvi).
+  
   mod13A2_clean <- function(img) {
     # Extract the NDVI band
     ndvi_values <- img$select("NDVI")
