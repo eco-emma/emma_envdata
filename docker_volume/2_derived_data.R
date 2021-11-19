@@ -5,5 +5,7 @@
 # Setup
 
 
+# Get the modis dates
+
 
 # Update the fire layers

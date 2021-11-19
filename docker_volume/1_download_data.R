@@ -21,17 +21,14 @@ library(rgee)
 
 #To run once
   #Again, would be better to make these part of the docker
-  reticulate::install_miniconda() #note that there is a misnamed component file in ncurses
-  reticulate::install_python()
-
-#Old (works in docker_image as a volume)
   ee_install(confirm = FALSE) #note: would probably be faster to update the image to contain python, numpy, etc
   .rs.restartR() #this is needed to restart R after the installations that comes in the preceding line of code
   ee_clean_pyenv()
 
   ee_install_upgrade()
-  ee_clean_pyenv()
-  .rs.restartR()
+
+  ee_Initialize(drive = TRUE)
+
 
 #Elevation (NASADEM)
   #source("docker_volume/R/elevation.R") #this will take a while
