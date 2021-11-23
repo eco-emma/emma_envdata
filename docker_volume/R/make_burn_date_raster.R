@@ -3,87 +3,85 @@ library(lubridate)
 library(sf)
 library(fasterize)
 
-  l1 <- raster("docker_volume/raw_data/fire_modis/2000_11_01.tif")
-  l2 <- raster("docker_volume/raw_data/fire_modis/2000_12_01.tif")
-  plot(l1)
-  unique(getValues(l1))
+#This script should:
+  #1) mask bad fire dates
+  #2) adjust burn date to the corresponding NDVI date
 
-#First, we grab the historical fire data
-  fire_sanbi <- st_read(dsn = "docker_volume/raw_data/fire_sanbi")
-fire_sanbi$DATESTART
+#Get corresponding NDVI data
 
+  source("docker_volume/R/ndvi_modis_dates.R")
 
-#Next, we need to make a list of all available files and the timestamps
+#Grab fire data
+  source("docker_volume/R/fire_modis.R")
 
-  #Get the files
-    fire_files <- list.files("docker_volume/raw_data/fire_modis/",pattern = ".tif",full.names = TRUE)
+#The two collections we care about are:
 
-  #Make a lookup table for convenience
-    fire_table <- data.frame(fire_file = fire_files,
-                             date = gsub(pattern = ".tif",
-                                         replacement = "",
-                                         x = sapply(X = fire_files,FUN = function(x){strsplit(x,"/")[[1]][4]})))
-
-    fire_table$date <- as_date(fire_table$date)
-
-  #Ensure the table order is correct. This is probably not necessary, but it never hurts to be safe.
-    fire_table <- fire_table[order(fire_table$date),]
-
-#Process SANBI data to match modis format
-
-  #The SA fire data are polygons, so I'll rasterize them to match the modis rasters
-
-    sanbi_month <- fasterize(sf = st_transform(x = fire_sanbi,crs = crs(raster(fire_table$fire_file[1]))),
-                             raster = raster(fire_table$fire_file[1]),
-                             field = "MONTH",
-                             fun = "max")
-
-    sanbi_year <- fasterize(sf = st_transform(x = fire_sanbi,crs = crs(raster(fire_table$fire_file[1]))),
-                             raster = raster(fire_table$fire_file[1]),
-                             field = "YEAR",
-                             fun = "max")
-
-    #Make lookup table
-      sanbi_stack <- stack(sanbi_month,sanbi_year)
-
-      sanbi_values <- unique(getValues(sanbi_stack))
-      sanbi_values <- as.data.frame(sanbi_values)
-      sanbi_values$sanbi_integer_my <- apply(X = sanbi_values[,1:2],
-                                             MARGIN = 1,
-                                             FUN = function(x,...){ #Note that the ... doesn't do anything, but is needed for stackApply
-                                               if(identical(as.numeric(x[1]),0)){
-                                                 return(as.numeric(my(paste(c(1,x[2]),collapse = "/"))))
-                                                 }
-                                               suppressWarnings(as.numeric(my(paste(x,collapse = "/"))))
-                                               })
+  #1) fire_clean  (QA checked fire data)
+  #2) ndvi_integer_dates (dates relative to UNIX era corresponding to NDVI sample)
 
 
+adjust_burndate_to_modis <- function(burn_collection,modis_collection){
 
-    #Use merge to convert the month-year data into integer. I use merge vs. stackApply since it seems to be faster given the relatively few unique values.
+  #1) convert dates to integer date since unix era
 
-      #Get month and year data
-      sanbi_ym_df <- data.frame(ID= 1:ncell(sanbi_month),
-                                month=getValues(sanbi_month),
-                                year = getValues(sanbi_year))
+        get_integer_date_fire <-function(img) {
 
-      #Use merge to combine raster values with the lookup table
-      sanbi_ym_df <-
-        merge(x = sanbi_ym_df,
-              y = sanbi_values,
-              by.x = c("month","year"),
-              by.y = c("layer.1","layer.2"),
-              sort = F)
+          # 1. Extract the DayOfYear band
+          day_values <- img$select("BurnDate")
 
-      #Ensure the order is correct
-      sanbi_ym_df <- sanbi_ym_df[order(sanbi_ym_df$ID),]
+          # 2. Get the first day of the year and the UNIX base date.
+          first_doy <- ee$Date(day_values$get("system:time_start"))$format("Y")
+          base_date <- ee$Date("1970-01-01")
 
-      #Create the new raster
-      sanbi_integer_my <- setValues(x = sanbi_month,
-                                    values = sanbi_ym_df$sanbi_integer_my)
 
-      #plot(sanbi_integer_my)
+          # 3. Get the day diff between year start_date and UNIX date
+          daydiff <- ee$Date(first_doy)$difference(base_date,"day")
 
-      #cleanup
-      rm(fire_sanbi,fire_table,sanbi_month,sanbi_year,sanbi_ym_df,sanbi_values,sanbi_stack)
+          # 4. Mask to only values greater than zero.
+          mask <- day_values$gt(0)
+          day_values <- day_values$updateMask(mask)
 
-  #The modis fire products have the day of the year they burned on (or zero if they didn't burn)
+          # Now, I just need to add the origin to the map
+          #Note the use of "copyProperties", which copies over the start and end times
+          day_values$
+            add(daydiff)$
+            copyProperties(img, c('system:id', 'system:time_start','system:time_end'))
+
+        }
+
+
+    fire_integer <- fire_clean$map(get_integer_date_fire)
+
+  #2) convert date to date of last burn
+      #filter by date(e.g. include only dates before the focal date), and then take max
+
+    #test image
+    last_fire_date <- function(img){
+
+        #A) Get the date of the image (so we can pull older stuff)
+
+
+
+            focal_data <- img$select("BurnDate")
+            start_date <- ee$Date(focal_data$get("system:time_start"))
+            end_date <- ee$Date(focal_data$get("system:time_end"))
+
+        #B) Select the older rasters
+            focal_dataset <- fire_integer$filterDate(start = "1900-01-01",
+                                                     opt_end = start_date)
+
+
+            focal_dataset$getInfo()
+            focal_dataset$aggregate_max()
+
+
+    }
+
+
+  #3) Convert date of last burn to time since last burn
+      #corresponding modis NDVI date - burn date for corresponding image
+
+
+}#end fx
+
+#################

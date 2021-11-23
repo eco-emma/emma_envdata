@@ -13,7 +13,7 @@ if(!dir.exists("docker_volume/raw_data/modis_ndvi_dates")){
   dir.create("docker_volume/raw_data/modis_ndvi_dates")
 }
 
-ee_Initialize(drive = TRUE)
+#ee_Initialize(drive = TRUE)
 
 modis_ndvi <- ee$ImageCollection("MODIS/006/MOD13A2")
 
@@ -60,10 +60,18 @@ modis_ndvi <- ee$ImageCollection("MODIS/006/MOD13A2")
   }
 
 ############################################
+#Download to local
+  #Note this should be modified to only download new data
+  #Or not downloaded at all if we can do everything on the google side of things
 
 ndvi_integer_dates <- modis_ndvi$map(get_integer_date)
 
-ee_imagecollection_to_local(ic = ndvi_integer_dates,
-                            region = sabb,
-                            dsn = "docker_volume/raw_data/modis_ndvi_dates/")
+# ee_imagecollection_to_local(ic = ndvi_integer_dates,
+#                             region = sabb,
+#                             dsn = "docker_volume/raw_data/modis_ndvi_dates/")
+
+#############################################
+
+#Next bit: figuring out fire codes
+
 
