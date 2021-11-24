@@ -35,7 +35,7 @@ name: targets
 
 jobs:
   targets:
-    runs-on: self-hosted #ubuntu-18.04
+    runs-on: ubuntu-18.04
     container: adamwilsonlab/emma_docker:latest
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
