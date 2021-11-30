@@ -2,12 +2,6 @@
 
 #' @author Brian Maitner
 
-
-
-
-ee_Initialize()
-
-
 #CCI not working
 
 # Load the image

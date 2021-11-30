@@ -105,7 +105,3 @@ if(!dir.exists("docker_volume/raw_data/modis_ndvi")){
   ee_imagecollection_to_local(ic = ndvi_clean_and_new,
                             region = sabb,
                             dsn = "docker_volume/raw_data/modis_ndvi/")
-
-
-
-

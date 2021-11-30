@@ -66,9 +66,9 @@ modis_ndvi <- ee$ImageCollection("MODIS/006/MOD13A2")
 
 ndvi_integer_dates <- modis_ndvi$map(get_integer_date)
 
-# ee_imagecollection_to_local(ic = ndvi_integer_dates,
-#                             region = sabb,
-#                             dsn = "docker_volume/raw_data/modis_ndvi_dates/")
+ee_imagecollection_to_local(ic = ndvi_integer_dates,
+                            region = sabb,
+                            dsn = "docker_volume/raw_data/modis_ndvi_dates/")
 
 #############################################
 
