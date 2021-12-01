@@ -2,6 +2,9 @@
 
 
 #' @author Brian Maitner, with tips from csaybar
+#' @description This code is designed to modify the MODIS "DayOfYear" band to a "days relative to Jan 01 1970" band to facilitate comparisons with fire data and across years.
+#' @note This code assumes that data are downloaded in order, which is usually the case.  In the case that a raster is lost, it won't be replaced automatically unless it happens to be at the very end.
+#' Probably not going to cause a problem, but worth noting out of caution.
 
 #Load packages
 library(rgee)
@@ -59,19 +62,52 @@ modis_ndvi <- ee$ImageCollection("MODIS/006/MOD13A2")
       day_values$add(daydiff)
   }
 
+
+  ndvi_integer_dates <- modis_ndvi$map(get_integer_date)
+
+  #ndvi_integer_dates$getInfo()
+
 ############################################
 #Download to local
-  #Note this should be modified to only download new data
-  #Or not downloaded at all if we can do everything on the google side of things
 
-ndvi_integer_dates <- modis_ndvi$map(get_integer_date)
+  #What has been downloaded already?
 
-ee_imagecollection_to_local(ic = ndvi_integer_dates,
-                            region = sabb,
-                            dsn = "docker_volume/raw_data/modis_ndvi_dates/")
+  images_downloaded <- list.files("docker_volume/raw_data/modis_ndvi_dates/",
+                                  full.names = F,
+                                  pattern = ".tif")
+
+  images_downloaded <- gsub(pattern = ".tif",
+                            replacement = "",
+                            x = images_downloaded,
+                            fixed = T)
+
+
+  #check to see if any images have been downloaded already
+  if(length(images_downloaded)==0){
+
+    newest <- lubridate::as_date(-1) #if nothing is downloaded, start in 1970
+
+  }else{
+
+    newest <- max(lubridate::as_date(images_downloaded)) #if there are images, start with the most recent
+
+  }
+
+
+  #Filter the data to exclude anything you've already downloaded
+    ndvi_integer_dates_new <-
+      ndvi_integer_dates$
+        filter(ee$Filter$gt("system:index",
+                            gsub(pattern = "-",replacement = "_",x = newest)
+                            )
+               )
+
+
+#Download the new stuff
+  ee_imagecollection_to_local(ic = ndvi_integer_dates_new,
+                              region = sabb,
+                              dsn = "docker_volume/raw_data/modis_ndvi_dates/")
 
 #############################################
-
-#Next bit: figuring out fire codes
 
 
