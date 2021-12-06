@@ -18,7 +18,7 @@ if(!dir.exists("docker_volume/raw_data/modis_ndvi_dates")){
 
 #ee_Initialize(drive = TRUE)
 
-modis_ndvi <- ee$ImageCollection("MODIS/006/MOD13A2")
+modis_ndvi <- ee$ImageCollection("MODIS/006/MOD13A1")
 
 #Make a bounding box of the extent we want
 

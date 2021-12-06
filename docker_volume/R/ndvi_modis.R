@@ -18,8 +18,8 @@ if(!dir.exists("docker_volume/raw_data/modis_ndvi")){
   ee_Initialize(drive = TRUE)
   #ee_check()
 
-  modis_ndvi <- ee$ImageCollection("MODIS/006/MOD13A2")
-
+  #modis_ndvi <- ee$ImageCollection("MODIS/006/MOD13A2") #1 km
+  modis_ndvi <- ee$ImageCollection("MODIS/006/MOD13A1") #500 m
 
 #get metadata
 
@@ -61,7 +61,7 @@ if(!dir.exists("docker_volume/raw_data/modis_ndvi")){
 #Using getQABits we construct a single-argument function (mod13A2_clean)
   #that is used to map over all the images of the collection (modis_ndvi).
 
-  mod13A2_clean <- function(img) {
+  mod13A1_clean <- function(img) {
     # Extract the NDVI band
     ndvi_values <- img$select("NDVI")
 
@@ -78,7 +78,7 @@ if(!dir.exists("docker_volume/raw_data/modis_ndvi")){
 
 #Make clean the dataset
 
-  ndvi_clean <- modis_ndvi$map(mod13A2_clean)
+  ndvi_clean <- modis_ndvi$map(mod13A1_clean)
 
 #What has been downloaded already?
 
