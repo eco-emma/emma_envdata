@@ -42,15 +42,13 @@ match_ndvi_and_fire_modis_dates <- function(ndvi_date_folder = "docker_volume/ra
   ndvi_files <- ndvi_files[order(ndvi_files$number),]
 
 
-
-
-
-
-
   #Get a list of fire stuff that has been processed
 
     # code will go here to get the dates from the fire_output_folder and use them to prune the ndvi files
-    message("Brian write code")
+      processed_ndvi_files <- list.files(fire_output_folder,pattern = ".tif")
+      processed_ndvi_files <- gsub(pattern = ".tif",replacement = "",x = processed_ndvi_files)
+      processed_ndvi_files <- gsub(pattern = "_",replacement = "-",x = processed_ndvi_files)
+      ndvi_files <- ndvi_files[which(!ndvi_files$date %in% as.Date(processed_ndvi_files)),]
 
 
   #Iterate through each NDVI layer (that hasn't been processed) and generate a corresponding set of fire dates
