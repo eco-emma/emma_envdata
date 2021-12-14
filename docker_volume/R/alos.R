@@ -2,14 +2,25 @@
 
 #' @author Brian Maitner
 
-#Initialize
-  ee_Initialize()
 
 #make a directory if one doesn't exist yet
 
-  if(!dir.exists("docker_volume/raw_data/alos")){
-    dir.create("docker_volume/raw_data/alos")
+  if(!dir.exists("data/raw_data/alos")){
+    dir.create("data/raw_data/alos")
   }
+
+#Make a bounding box of the extent we want
+
+  ext <- readRDS(file = "data/other_data/domain_extent.RDS")
+
+  sabb <- ee$Geometry$Rectangle(
+    coords = c(ext@xmin,ext@ymin,ext@xmax,ext@ymax),
+    proj = "EPSG:4326",
+    geodesic = FALSE
+  )
+
+  rm(ext)
+
 
 
 #make a function to reduce code duplication
@@ -27,26 +38,18 @@
     #get CRS
     crs <- focal_image$getInfo()$bands[[1]]$crs
 
-    #Make a bounding box of South Africa so we can download just the relevant data
-    # Note: it would be better to use a polygon of just the focal regions instead
-    sabb <- ee$Geometry$Rectangle(
-      coords = c(16.3449768409, -34.8191663551, 32.830120477, -22.0913127581),
-      proj = crs,
-      geodesic = FALSE
-    )
-
     #Set Visualization parameters
 
-    focalviz <- list(
-      min = focal_image$getInfo()$properties$visualization_0_min,
-      max = focal_image$getInfo()$properties$visualization_0_max,
-      palette = c('00FFFF','FF00FF')
-    )
-
-
-    # Display the image.
-    Map$centerObject(focal_image)
-    Map$addLayer(focal_image,visParams = focalviz)
+    # focalviz <- list(
+    #   min = focal_image$getInfo()$properties$visualization_0_min,
+    #   max = focal_image$getInfo()$properties$visualization_0_max,
+    #   palette = c('00FFFF','FF00FF')
+    # )
+    #
+    #
+    # # Display the image.
+    # Map$centerObject(focal_image)
+    # Map$addLayer(focal_image,visParams = focalviz)
 
     #Get name
 
@@ -55,7 +58,7 @@
     ee_as_raster(image = focal_image,
                  region = sabb,
                  #scale = 100, #used to adjust the scale. commenting out uses the default
-                 dsn = paste("docker_volume/raw_data/alos/",focal_name,sep = ""),
+                 dsn = paste("data/raw_data/alos/",focal_name,sep = ""),
                  maxPixels = 10000000000)
 
 

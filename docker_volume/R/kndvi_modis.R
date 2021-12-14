@@ -141,6 +141,8 @@ kndvi_cleaned <- kndvi$map(kndvi_clean)
 
 stop("Add code here for temporal aggregation to 16 days")
 
+  #requires an ee reducer
+    #reducers use mask for weighting by default, but can use other things  (i.e. metrics of quality)
 
 # Finally, download what is needed
 
