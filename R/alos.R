@@ -81,7 +81,8 @@ get_alos <- function(directory = "data/raw_data/alos/"){
   }
 
 
-
+  message("Finished downloading ALOS layers")
+  return(invisible(NULL))
 
 }
 
