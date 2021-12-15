@@ -4,10 +4,12 @@
 
 library(rgee)
 
+directory <- "data/raw_data/kndvi_modis_daily/"
+
 #make a directory if one doesn't exist yet
 
-  if(!dir.exists("data/raw_data/kndvi_modis")){
-    dir.create("data/raw_data/kndvi_modis")
+  if(!dir.exists(directory)){
+    dir.create(directory)
   }
 
 
@@ -149,7 +151,7 @@ stop("Add code here for temporal aggregation to 16 days")
 
 #What has been downloaded already?
 
-images_downloaded <- list.files("data/raw_data/kndvi_modis",full.names = F,pattern = ".tif")
+images_downloaded <- list.files(directory,full.names = F,pattern = ".tif")
 images_downloaded <- gsub(pattern = ".tif",replacement = "",x = images_downloaded,fixed = T)
 
 #check to see if any images have been downloaded already
@@ -171,7 +173,7 @@ kndvi_clean_and_new <- kndvi_cleaned$filterDate(start = paste(as.Date(newest+1),
 #Download
 ee_imagecollection_to_local(ic = kndvi_clean_and_new,
                             region = sabb,
-                            dsn = "data/raw_data/kndvi_modis/")
+                            dsn = directory)
 
 
 ###############################################
