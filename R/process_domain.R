@@ -14,6 +14,16 @@ library(units)
 
 process_domain <- function(remnants_file = "data/RLE_2021_Remnants/RLE_Terr_2021_June2021_Remnants_ddw.shp") {
   
+  domain_files <- list.files("data/other_data/")
+  if( length(grep(pattern = "domain.shp", x = domain_files)) > 0 &
+      length(grep(pattern = "domain_extent.RDS", x = domain_files)) > 0
+  ) {
+    
+    message("Domain and extent found, skipping processing.")
+    return(invisible(NULL))
+    
+  }
+  
   # V1
   
   # Load remnants file
@@ -40,7 +50,10 @@ process_domain <- function(remnants_file = "data/RLE_2021_Remnants/RLE_Terr_2021
   
     #rgee can take in sf or raster files using sf_as_ee or raster_as_ee
   
-  
+    st_write(obj = remnants_union,dsn = "data/other_data/domain.shp")
+    saveRDS(object = st_bbox(obj = remnants_union),
+            file = "data/other_data/domain_extent.RDS")
+    
   
   # V2
   
@@ -55,7 +68,8 @@ process_domain <- function(remnants_file = "data/RLE_2021_Remnants/RLE_Terr_2021
   # 
   
   
-  
+  message("Finished processing domain")
+  return(invisible(NULL))
   
   
   
