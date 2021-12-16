@@ -34,3 +34,4 @@ index_files/*
 firemodel_predict
 data/*
 .DS_Store
+raw_data/
