@@ -7,8 +7,8 @@ library(ClimDatDownloadR)
 
 #make a directory if one doesn't exist yet
 
-  if(!dir.exists("docker_volume/raw_data/chelsa")){
-    dir.create("docker_volume/raw_data/chelsa")
+  if(!dir.exists("data/raw_data/chelsa")){
+    dir.create("data/raw_data/chelsa")
   }
 
 #Adjust the download timeout duration (this needs to be large enough to allow the download to complete)
