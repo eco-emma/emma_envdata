@@ -13,8 +13,8 @@ list(
     format = "file"
   ),
   tar_target(
-    alos,
-    get_alos()
+    raw_data,
+    read_csv(raw_data_file)[-1,]
   ),
   tar_target(
     data,
