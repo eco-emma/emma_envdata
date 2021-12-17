@@ -1,5 +1,6 @@
 
 library(rgee)
+source("R/get_domain.R")
 
 #' @description This function will download kndvi layers (derived from MODIS 16 day products), skipping any that have been downloaded already.
 #' @author Brian Maitner, but built from code by Qinwen, Adam, and the KNDVI ms authors
@@ -137,11 +138,22 @@ get_kndvi <- function(directory = "data/raw_data/kndvi_modis/") {
                                               opt_end = paste(format(Sys.time(), "%Y-%m-%d"),sep = "") ) #I THINK I can just pull the most recent date, and then use this to download everything since then
 
 
+  #Adjust gain and offset
+  adjust_gain_and_offset <- function(img){
+    img$add(1)$multiply(100)$round()
+
+
+
+  }
+
+
+  kndvi_clean_and_new <- kndvi_clean_and_new$map(adjust_gain_and_offset)
+
   #Download
   ee_imagecollection_to_local(ic = kndvi_clean_and_new,
                               region = domain,
-                              dsn = directory)
-
+                              dsn = directory,
+                              formatOptions = c(cloudOptimized = true)) #not sure the cloudOptimized is specified correctly
 
 
 

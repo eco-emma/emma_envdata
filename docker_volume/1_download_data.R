@@ -32,14 +32,20 @@ library(rgee)
 
 #Elevation (NASADEM)
   #source("docker_volume/R/elevation.R") #this will take a while
-  sadem <- raster("docker_volume/raw_data/NASADEM.tif")
+  #sadem <- raster("docker_volume/raw_data/NASADEM.tif")
+
 
 #Climate (CHELSA)
   #source("docker_volume/R/climate.R")
+  source("R/get_climate_chelsa.R")
+  get_climate_chelsa()
 
 #Precipitation
   #source("docker_volume/R/precipitation_chelsa.R")
 
+#KNDVI
+  source("R/get_kndvi_modis.R")
+  get_kndvi()
 
 #ALOS variables from GEE - TPI, insolation, landforms, mTPI, diversity, CHILI
 

@@ -3,6 +3,7 @@
 
 library(lubridate)
 library(raster)
+source("R/get_domain.R")
 
 match_ndvi_and_fire_modis_dates <- function(ndvi_date_folder = "docker_volume/raw_data/modis_ndvi_dates/",
                                             fire_date_folder = "docker_volume/raw_data/fire_modis_most_recent_burn_date/",

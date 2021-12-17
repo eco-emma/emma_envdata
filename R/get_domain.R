@@ -2,7 +2,8 @@
 
 #Define the regions we want (polygon if possible, bounding box otherwise)
 
-#'@description This function gets a domain for use in rgee.  It preferentially looks for a shapefile, and failing that uses a boundinbox.
+#'@description This function gets a domain for use in rgee.  It preferentially looks for a shapefile, and failing that uses a boundingbox.
+#'@return earth engine geometry
 get_domain <- function(){
 
   if(file.exists("data/other_data/domain.shp")) {
