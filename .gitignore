@@ -27,7 +27,6 @@ vignettes/*.pdf
 # R Environment Variables
 .Renviron
 # targets related workflow stuff
-_targets/*
 ~/.boxr-oauth
 index.md
 index_files/*

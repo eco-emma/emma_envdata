@@ -5,7 +5,8 @@
 
 domain_map <- function(domain, remnant){
 
-  domain_rast = read_stars(remnant_distance,NA_value = 0)
+  domain_rast = read_stars(remnant_distance,NA_value = 0) %>%
+        filter(values>1000)
 
 
 ggplot(domain)+
