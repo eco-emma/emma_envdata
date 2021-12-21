@@ -22,16 +22,7 @@ get_vegmap <- function(vegmap_shp,  biomes = c("Fynbos","Succulent Karoo","Alban
     filter(biome_18 %in%  biomes ) %>% #filter to list above
     st_make_valid()   #some polygons had errors - this fixes them
 
-  # # just fynbos
-  # fynbos=vegmap_za %>%
-  #   filter(biome_18== "Fynbos" ) %>% #filter to fynbos
-  #   st_union() %>%    # union all polygons into one multipolygon, dissolving internal boundaries
-  #   st_make_valid()   #some polygons had errors - this fixes them
-  #
-  # st_write(fynbos,dsn = "data/fynbos.gpkg",append=F)
-
-
-  st_write(vegmap,dsn = "data/vegmap.gpkg",append=F)
+#  st_write(vegmap,dsn = "data/vegmap.gpkg",append=F)
 
   return(vegmap)
 

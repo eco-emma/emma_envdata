@@ -9,10 +9,9 @@ library(terra)
 #' @author Adam Wilson & Brian Maitner
 #' @description This code cleans up the RLE Remnants file to yield a simpler polygon that we can use as a domain.
 #' @param remnants_shp The file location of the remnants shapefile.  Defaults to "data/RLE_2021_Remnants/RLE_Terr_2021_June2021_Remnants_ddw.shp"
-#' @param za Country polygon
 
 
-domain_remnants <- function(domain, remnants_shp,za,file="data/remnants.tif") {
+domain_remnants <- function(domain, remnants_shp) {
 
   # Define which biome(s) to keep
   biome_keep <- c("Fynbos")
@@ -47,23 +46,23 @@ domain_remnants <- function(domain, remnants_shp,za,file="data/remnants.tif") {
     vect() %>%
     terra::rasterize(x=.,y=rast(domain_template),field="remnant",touches=T,cover=T)
 
+  #writeRaster(remnants_raster,file=file,overwrite=T)
 
-  writeRaster(remnants_raster,file=file,overwrite=T)
-
-return(file)
+return(remnants_raster)
 
 }
 
-domain_distance<- function(remnants_raster, file="data/remnant_distance.tif"){
+domain_distance<- function(remnants_raster){#}, file="data/remnant_distance.tif"){
 
   distance_raster <-
-    rast(remnants_raster) %>%
-    terra::app(fun=function(x) ifelse(is.na(x),1,NA)) %>%
-    terra::distance(x=., grid=T)
+    remnants_raster %>%
+    terra::app(fun=function(x) ifelse(is.na(x),1,NA))
+
+    terra::distance(distance_raster, grid=T)
 
 
-  writeRaster(distance_raster,file=file,overwrite=T)
+#  writeRaster(distance_raster,file=file,overwrite=T)
 
-  return(file)
+#  return(distance_raster)
 
 }

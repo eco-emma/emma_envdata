@@ -17,7 +17,8 @@ domain_rasterize <- function(domain,dx = 500, dy = 500){
     dplyr::select(biomeid_18) %>%
     st_rasterize(template = domain_template)
 
-  writeRaster(domain_raster,file="data/domain.tif")
+   domain_raster
+  #writeRaster(domain_raster,file="data/domain.tif")
 
 
 }

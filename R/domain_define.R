@@ -9,7 +9,7 @@
 #' @param vegmap_shp is the path to the 2018 national vegetation map - used to get national boundary
 #' @param buffer size of domain buffer (in m)
 
-domain_define <- function(vegmap, za, buffer=20000){
+domain_define <- function(vegmap, country){
 
   biomes = c("Fynbos")#,"Succulent Karoo")#,"Albany Thicket")
 
@@ -27,13 +27,13 @@ domain_define <- function(vegmap, za, buffer=20000){
 
   domain <-
     vegmap_buffer %>%
-    st_intersection(st_transform(st_read(za),crs=st_crs(vegmap))) %>%  #only keep land areas of buffer - no ocean
+    st_intersection(st_transform(country,crs=st_crs(vegmap))) %>%  #only keep land areas of buffer - no ocean
     st_as_sf() %>%
     mutate(domain=1)
 
   # save the files
 
-  st_write(domain,dsn="data/domain.gpkg",append=F)
+ # st_write(domain,dsn="data/domain.gpkg",append=F)
 
   return(domain)
 

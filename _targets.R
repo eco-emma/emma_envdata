@@ -24,7 +24,7 @@ list(
     format = "file"
   ),
   tar_target(
-    za,
+    country,
     national_boundary()
   ),
   tar_target(
@@ -33,17 +33,15 @@ list(
   ),
   tar_target(
     domain,
-    domain_define(vegmap=vegmap, za=za, buffer=20000)
+    domain_define(vegmap=vegmap, country)
   ),
   tar_target(
     remnants,
-    domain_remnants(domain, remnants_shp=remnants_shp,za=za),
-    format="file"
+    domain_remnants(domain, remnants_shp=remnants_shp)
   ),
   tar_target(
     remnant_distance,
-    domain_distance(remnants),
-    format="file"
+    domain_distance(remnants)
   )
 
 )

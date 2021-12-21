@@ -13,9 +13,10 @@ national_boundary <- function(file="data/south_africa.gpkg"){
     unzip(tmpfile1,exdir=tmpdir1)
 
     country=st_read(file.path(tmpdir1,"zaf_adm_sadb_ocha_20201109_SHP/zaf_admbnda_adm0_sadb_ocha_20201109.shp"))
-    st_write(country,dsn=file,append=F)
+#    st_write(country,dsn=file,append=F)
+#      return(file)
 
-      return(file)
+    return(country)
 }
 # end function
 
