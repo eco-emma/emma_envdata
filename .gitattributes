@@ -18,3 +18,4 @@ data/zaf_adm_sadb_ocha_20201109_SHP filter=lfs diff=lfs merge=lfs -text
 data/domain.gpkg filter=lfs diff=lfs merge=lfs -text
 data/other_data filter=lfs diff=lfs merge=lfs -text
 data/south_africa.gpkg filter=lfs diff=lfs merge=lfs -text
+data/fynbos.gpkg filter=lfs diff=lfs merge=lfs -text

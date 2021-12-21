@@ -10,17 +10,26 @@
 
 get_vegmap <- function(vegmap_shp,  biomes = c("Fynbos","Succulent Karoo","Albany Thicket")){
 
-  # Must manually download the following and put in the data folder
+  # Must manually download the following and put in the raw_data folder
   # 2018 National Vegetation Map
   # http://bgis.sanbi.org/SpatialDataset/Detail/1674
 
   vegmap_za=st_read(vegmap_shp) %>%
+    janitor::clean_names() %>%
     st_make_valid()
 
   vegmap <- vegmap_za %>%
-    janitor::clean_names() %>%
     filter(biome_18 %in%  biomes ) %>% #filter to list above
     st_make_valid()   #some polygons had errors - this fixes them
+
+  # # just fynbos
+  # fynbos=vegmap_za %>%
+  #   filter(biome_18== "Fynbos" ) %>% #filter to fynbos
+  #   st_union() %>%    # union all polygons into one multipolygon, dissolving internal boundaries
+  #   st_make_valid()   #some polygons had errors - this fixes them
+  #
+  # st_write(fynbos,dsn = "data/fynbos.gpkg",append=F)
+
 
   st_write(vegmap,dsn = "data/vegmap.gpkg",append=F)
 

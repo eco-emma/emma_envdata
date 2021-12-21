@@ -11,7 +11,7 @@
 
 domain_define <- function(vegmap, za, buffer=20000){
 
-  biomes = c("Fynbos","Succulent Karoo")#,"Albany Thicket")
+  biomes = c("Fynbos")#,"Succulent Karoo")#,"Albany Thicket")
 
 
    vegmap_union=vegmap %>%
@@ -21,13 +21,13 @@ domain_define <- function(vegmap, za, buffer=20000){
   #buffer domain biomes
   vegmap_buffer= vegmap_union %>%
     st_simplify(dTolerance=500) %>%
-    st_buffer(20000) %>%
+    st_buffer(30000) %>%
     st_simplify(dTolerance=100)
 
 
   domain <-
     vegmap_buffer %>%
-    st_intersection(st_transform(za,crs=st_crs(vegmap))) %>%  #only keep land areas of buffer - no ocean
+    st_intersection(st_transform(st_read(za),crs=st_crs(vegmap))) %>%  #only keep land areas of buffer - no ocean
     st_as_sf() %>%
     mutate(domain=1)
 
