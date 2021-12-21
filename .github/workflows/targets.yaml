@@ -49,7 +49,7 @@ jobs:
 #          sudo apt-get install libcurl4-openssl-dev
       - name: Install R Package Dependencies
         run: |-
-          Rscript -e "install.packages(c('questionr'))"
+          Rscript -e "install.packages(c('questionr','cubelyr'))"
           Rscript -e "questionr::qscan(list.files(pattern='*.R',recursive=T), load = TRUE, detail = FALSE)" # this scans all scripts and installs any needed packages
           Rscript -e "install.packages('remotes', repos = 'https://demo.rstudiopm.com/all/__linux__/bionic/latest')"
 #          Rscript -e "remotes::install_deps(dependencies = TRUE, repos = 'https://demo.rstudiopm.com/all/__linux__/bionic/latest')"
@@ -109,6 +109,7 @@ jobs:
           git config --local user.email "actions@github.com"
           rm -r .gitignore .github/workflows
           git lfs track _targets/objects/* #use git LFS to track the targets output (larger files)
+          git lfs track data/* #use git LFS to track the targets output (larger files)
           git add .gitattributes
           git add --all -- ':!renv'
           for file in $(git ls-files -mo --exclude=renv)

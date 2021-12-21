@@ -4,14 +4,14 @@
 
 #  Rasterize domain to common grid to define the raster domain
 
-#' @param vegmap is the path to the subsetted 2018 national vegetation map
-#' @param remnants is the path to the most recent remnants shapefile
-#' @param buffer size of domain buffer (in m)
+#' @param domain vector file of study domain
+#' @param dx x resolution
+#' @param dy y resolution
 
-domain_rasterize <- function(domain){
+domain_rasterize <- function(domain,dx = 500, dy = 500){
 
   # generate raster version of domain
-  domain_template=st_as_stars(st_bbox(domain), dx = 500, dy = 500)
+  domain_template=st_as_stars(st_bbox(domain), dx = dx, dy = dy)
 
   domain_raster <- domain %>%
     dplyr::select(biomeid_18) %>%

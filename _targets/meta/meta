@@ -2,8 +2,6 @@ name|type|data|command|depend|seed|path|time|size|bytes|format|iteration|parent|
 alos|stem||f4d6e7cb641dce22|898b6b3e35d5b301|1794838964||t18978.8246172284s||0|rds|vector|||1.025||could not find function get_alos
 define_domain|function|0b94ffd79402925f||||||||||||||
 rasterize_domain|function|875039500aad9c48||||||||||||||
-vegmap_shp|stem|d3744d69c8da6bb2|e9ecf33792226772|ef46db3751d8e999|-232248272|data/VEGMAP2018_AEA_16082019Final/NVM2018_AEA_V22_7_16082019_final.shp|t18977.7951949704s|9cc1ad1c26fc3f86|493121012|file|vector|||0.442||
-remnants_shp|stem|9dc0c644eedf6430|912f3ca0a03cd574|ef46db3751d8e999|1961884837|data/RLE_2021_Remnants/RLE_Terr_2021_June2021_Remnants_ddw.shp|t18977.7962072854s|9fd0b3ef5a76431f|726393404|file|vector|||0.001||
 process_domain|function|9e5d8685ea7baa74||||||||||||||
 vegmap|stem|b502445ec7320d62|1811b4a0f90e1688|a075fe6f6e2749b4|602754364||t18981.7244750516s|d2ddbb368a516aaa|79094695|rds|vector|||128.004||
 get_national_boundary|function|99fa5ffc020cbd63||||||||||||||
@@ -12,7 +10,9 @@ domain|stem|d384c406e8bff5ae|757e1c95aa4c4dfb|75859dfe879dbfeb|640757417||t18981
 domain_edgedistance|stem||401d57c2fb24d7dc|df145d2b69e6d3fc|2127448252||t18981.9115219128s||0|file|vector|||0.002||could not find function domain_distance
 remnants|stem|8ddce40c4231c7dc|4c363910311cb140|edda711770119552|630969701|data/remnants.tif|t18981.9185463402s|d60ce294554df55f|910948|file|vector|||85.765||
 remnant_distance|stem|f352803f59a0d99e|9326018404110314|d53969d799c5c90c|-1777723304|data/remnant_distance.tif|t18981.9192180497s|8ca8b0a2c30e4777|790999|file|vector|||2.895||
-domain_rasterize|function|875039500aad9c48||||||||||||||
+vegmap_shp|stem|d3744d69c8da6bb2|e25235a0b8cd4967|ef46db3751d8e999|-232248272|raw_data/VEGMAP2018_AEA_16082019Final/NVM2018_AEA_V22_7_16082019_final.shp|t18977.7951949704s|9cc1ad1c26fc3f86|493121012|file|vector|||1.014||
+remnants_shp|stem|9dc0c644eedf6430|18bad651361ef047|ef46db3751d8e999|1961884837|raw_data/RLE_2021_Remnants/RLE_Terr_2021_June2021_Remnants_ddw.shp|t18977.7962072854s|9fd0b3ef5a76431f|726393404|file|vector|||0.001||
+domain_rasterize|function|c552298e0aecf817||||||||||||||
 fit_model|function|d0d4e0ea8d7f400c||||||||||||||
 domain_remnants|function|d8c5b43822bfa890||||||||||||||
 clean_data|function|484d9c4667cbdd4d||||||||||||||
@@ -22,7 +22,7 @@ get_climate_chelsa|function|4565e728f7cab028||||||||||||||
 domain_distance|function|e0314b8eea9aa245||||||||||||||
 get_alos_data|function|c293d140134bf4c9||||||||||||||
 national_boundary|function|99fa5ffc020cbd63||||||||||||||
-.Random.seed|object|7eb03529317e7d3b||||||||||||||
+.Random.seed|object|ac8da6d91b9c7495||||||||||||||
 stan_data_function|function|60507201f11a2ffe||||||||||||||
 domain_map|function|d58bfaa5056630fc||||||||||||||
 domain_define|function|e0d0881f9f3cd7b4||||||||||||||
