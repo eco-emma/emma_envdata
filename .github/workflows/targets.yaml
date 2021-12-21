@@ -36,7 +36,7 @@ name: targets
 jobs:
   targets:
     runs-on: ubuntu-18.04
-    container: adamwilsonlab/emma_docker:latest
+    container: adamwilsonlab/emma:latest
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       RENV_PATHS_ROOT: ~/.local/share/renv
