@@ -44,7 +44,7 @@ domain_remnants <- function(domain, remnants_shp) {
   remnants_raster <- remnants %>%
     mutate(remnant=1) %>%
     vect() %>%
-    terra::rasterize(x=.,y=rast(domain_template),field="remnant",touches=T,cover=T)
+    rasterize(x=.,y=rast(domain_template),field="remnant",touches=T,cover=T)
 
   #writeRaster(remnants_raster,file=file,overwrite=T)
 
