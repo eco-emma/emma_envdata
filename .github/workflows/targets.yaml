@@ -109,7 +109,8 @@ jobs:
           git config --local user.email "actions@github.com"
           rm -r .gitignore .github/workflows
           git lfs track _targets/objects/* #use git LFS to track the targets output (larger files)
-          git lfs track data/* #use git LFS to track the targets output (larger files)
+          git lfs track data/* #use git LFS to track the data output (larger files)
+          git lfs track "raw_data/**" #use git LFS to track raw_data output (larger files)
           git add .gitattributes
           git add --all -- ':!renv'
           for file in $(git ls-files -mo --exclude=renv)
