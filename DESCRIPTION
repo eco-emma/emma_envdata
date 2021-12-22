@@ -10,16 +10,16 @@ Encoding: UTF-8
 LazyData: true
 Imports:
   rmarkdown,
-tidyverse,
-viridis,
-colourvalues,
-sf,
-raster,
-testthat,
-kableExtra,
-knitr,
-cmdstanr, 
-posterior, 
-bayesplot
+  tidyverse,
+  viridis,
+  colourvalues,
+  sf,
+  raster,
+  testthat,
+  kableExtra,
+  knitr,
+  cmdstanr, 
+  posterior, 
+  bayesplot
 Suggests:
   RoxygenNote: 7.1.1
