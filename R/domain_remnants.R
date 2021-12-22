@@ -11,7 +11,7 @@ library(terra)
 #' @param remnants_shp The file location of the remnants shapefile.  Defaults to "data/RLE_2021_Remnants/RLE_Terr_2021_June2021_Remnants_ddw.shp"
 
 
-domain_remnants <- function(domain, remnants_shp) {
+domain_remnants <- function(domain, remnants_shp, file="data/remnants.tif") {
 
   # Define which biome(s) to keep
   biome_keep <- c("Fynbos")
@@ -46,23 +46,22 @@ domain_remnants <- function(domain, remnants_shp) {
     vect() %>%
     rasterize(x=.,y=rast(domain_template),field="remnant",touches=T,cover=T)
 
-  #writeRaster(remnants_raster,file=file,overwrite=T)
+  writeRaster(remnants_raster,file=file,overwrite=T)
 
-return(remnants_raster)
+return(file)
 
 }
 
-domain_distance<- function(remnants_raster){#}, file="data/remnant_distance.tif"){
+domain_distance<- function(remnants, file="data/remnant_distance.tif"){
 
   distance_raster <-
-    remnants_raster %>%
-    terra::app(fun=function(x) ifelse(is.na(x),1,NA))
+    rast(remnants) %>%
+    terra::app(fun=function(x) ifelse(is.na(x),1,NA)) %>%
+    terra::distance(grid=T)/1000
 
-    terra::distance(distance_raster, grid=T)
 
+  writeRaster(distance_raster,file=file,overwrite=T)
 
-#  writeRaster(distance_raster,file=file,overwrite=T)
-
-#  return(distance_raster)
+  return(file)
 
 }

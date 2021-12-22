@@ -4,9 +4,8 @@
 
 #  Process 2018 Vegetation dataset to define project domain
 
-#' @param image_text is the text string used by gee to refer to an image, e.g. "CSP/ERGo/1_0/Global/ALOS_mTPI"
-#' @param sabb Bounding Box to constrain area downloaded
-#' @note This code is only deisnged to work with a handful of images by CSP/ERGo
+#' @param vegmap_shp is the path to the vegetation shapefile
+#' @biomes list of biomes to keep
 
 get_vegmap <- function(vegmap_shp,  biomes = c("Fynbos","Succulent Karoo","Albany Thicket")){
 

@@ -37,11 +37,13 @@ list(
   ),
   tar_target(
     remnants,
-    domain_remnants(domain, remnants_shp=remnants_shp)
+    domain_remnants(domain, remnants_shp=remnants_shp),
+    format = "file"
   ),
   tar_target(
     remnant_distance,
-    domain_distance(remnants)
+    domain_distance(remnants),
+    format = "file"
   )
 
 )
