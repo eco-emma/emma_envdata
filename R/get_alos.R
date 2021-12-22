@@ -7,7 +7,7 @@
 #' @param image_text is the text string used by gee to refer to an image, e.g. "CSP/ERGo/1_0/Global/ALOS_mTPI"
 #' @param sabb Bounding Box to constrain area downloaded
 #' @note This code is only deisnged to work with a handful of images by CSP/ERGo
-get_alos_data <- function(image_text,sabb){
+get_alos_data <- function(image_text,ext){
 
 
   focal_image <- ee$Image(image_text)
@@ -23,9 +23,9 @@ get_alos_data <- function(image_text,sabb){
 
   #Download the raster
   ee_as_raster(image = focal_image,
-               region = sabb,
+               region = ext,
                #scale = 100, #used to adjust the scale. commenting out uses the default
-               dsn = paste("data/raw_data/alos/",focal_name,sep = ""),
+               dsn = paste("data/alos/",focal_name,sep = ""),
                maxPixels = 10000000000)
 
 
@@ -34,7 +34,7 @@ get_alos_data <- function(image_text,sabb){
 
 
 #' @description This function makes use of the previous helper function to download data
-get_alos <- function(directory = "data/raw_data/alos/"){
+get_alos <- function(directory = "data/alos/", domain){
 
   #make a directory if one doesn't exist yet
 
@@ -44,15 +44,16 @@ get_alos <- function(directory = "data/raw_data/alos/"){
 
   #Make a bounding box of the extent we want
 
-  ext <- readRDS(file = "data/other_data/domain_extent.RDS")
+  ext <- st_transform(domain,crs=4326) %>%
+    st_bbox()
+    #readRDS(file = "data/other_data/domain_extent.RDS")
 
-  sabb <- ee$Geometry$Rectangle(
-    coords = c(ext@xmin,ext@ymin,ext@xmax,ext@ymax),
+  ee_ext <- ee$Geometry$Rectangle(
+    coords = c(ext$xmin,ext$ymin,ext$xmax,ext$ymax),
     proj = "EPSG:4326",
     geodesic = FALSE
   )
 
-  rm(ext)
 
   # Get files that have been downloaded
   alos_files <- list.files(directory,pattern = ".tif$")
@@ -61,28 +62,29 @@ get_alos <- function(directory = "data/raw_data/alos/"){
 
   # mTPI
   if(!length(grep(pattern = "mtpi",x = alos_files)) > 0){
-    get_alos_data(image_text = "CSP/ERGo/1_0/Global/ALOS_mTPI")
+    get_alos_data(image_text = "CSP/ERGo/1_0/Global/ALOS_mTPI",ext=ee_ext)
   }
 
   # CHILI
   if(!length(grep(pattern = "chili",x = alos_files)) > 0){
-    get_alos_data(image_text = "CSP/ERGo/1_0/Global/ALOS_CHILI")
+    get_alos_data(image_text = "CSP/ERGo/1_0/Global/ALOS_CHILI",ext=ee_ext)
   }
 
 
   # landforms
   if(!length(grep(pattern = "landforms",x = alos_files)) > 0){
-    get_alos_data(image_text = 'CSP/ERGo/1_0/Global/ALOS_landforms')
+    get_alos_data(image_text = 'CSP/ERGo/1_0/Global/ALOS_landforms',ext=ee_ext)
   }
 
   # topo diversity
   if(!length(grep(pattern = "topographic",x = alos_files)) > 0){
-    get_alos_data(image_text = 'CSP/ERGo/1_0/Global/ALOS_topoDiversity')
+    get_alos_data(image_text = 'CSP/ERGo/1_0/Global/ALOS_topoDiversity',ext=ee_ext)
   }
 
 
   message("Finished downloading ALOS layers")
-  return(invisible(NULL))
+
+    return(directory)
 
 }
 

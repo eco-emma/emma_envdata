@@ -21,8 +21,10 @@ domain_define <- function(vegmap, country){
   #buffer domain biomes
   vegmap_buffer= vegmap_union %>%
     st_simplify(dTolerance=500) %>%
-    st_buffer(30000) %>%
+    st_buffer(50000) %>%
     st_simplify(dTolerance=100)
+
+
 
 
   domain <-

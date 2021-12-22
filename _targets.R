@@ -12,6 +12,12 @@ tar_option_set(packages = c("cmdstanr", "posterior", "bayesplot", "tidyverse",
                             "stringr","knitr","sf","stars","units",
                             "cubelyr"))
 
+# ee authentication
+library(rgee)
+ee$Initialize()
+
+
+
 list(
   tar_target(
     vegmap_shp, # 2018 National Vegetation Map http://bgis.sanbi.org/SpatialDataset/Detail/1674
@@ -43,6 +49,16 @@ list(
   tar_target(
     remnant_distance,
     domain_distance(remnants),
+    format = "file"
+  ),
+  tar_target(
+    alos,
+    get_alos(domain=domain),
+    format = "file"
+  ),
+  tar_target(
+    model_data,
+    get_model_data(remnant_distance),
     format = "file"
   )
 

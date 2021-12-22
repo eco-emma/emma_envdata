@@ -7,7 +7,10 @@ if(F){
 
 
 update_git <- function(){
-  system("git lfs track data/*")
+
+  for(x in list.files("data",recursive=T,full=T))
+    system(paste0("git lfs track ",x))
+
 }
 
 
