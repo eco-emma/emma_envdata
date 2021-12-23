@@ -40,10 +40,12 @@ jobs:
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       RENV_PATHS_ROOT: ~/.local/share/renv
+
     steps:
+      - name: Checkout repo
         uses: actions/checkout@v2
         with:
-          lfs: true
+          lfs: 'true'
       - name: Install Linux system dependencies
         if: runner.os == 'Linux'
         run: |
