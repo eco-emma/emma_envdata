@@ -142,8 +142,6 @@ get_kndvi <- function(directory = "data/raw_data/kndvi_modis/") {
   adjust_gain_and_offset <- function(img){
     img$add(1)$multiply(100)$round()
 
-
-
   }
 
 
