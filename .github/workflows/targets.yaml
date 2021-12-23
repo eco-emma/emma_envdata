@@ -42,7 +42,6 @@ jobs:
       RENV_PATHS_ROOT: ~/.local/share/renv
 
     steps:
-      - name: Checkout repo
         uses: actions/checkout@v2
       - name: Install Linux system dependencies
         if: runner.os == 'Linux'
