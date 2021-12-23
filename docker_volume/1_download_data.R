@@ -41,7 +41,8 @@ library(rgee)
   get_climate_chelsa()
 
 #Precipitation
-  #source("docker_volume/R/precipitation_chelsa.R")
+  source("R/get_precipitation_chelsa.R")
+  get_precipitation_chelsa()
 
 #NDVI
   source("R/get_ndvi_modis.R")
