@@ -47,10 +47,10 @@ jobs:
           lfs:  'true'
       - name: Checkout LFS objects
         run: git lfs checkout
-      # - name: Install Linux system dependencies
-      #   if: runner.os == 'Linux'
-      #   run: |
-      #     sudo apt-get update
+#      # - name: Install Linux system dependencies
+#      #   if: runner.os == 'Linux'
+#      #   run: |
+#      #     sudo apt-get update
       - name: Install R Package Dependencies
         run: |-
 #          Rscript -e "install.packages(c('questionr','cubelyr'))"
