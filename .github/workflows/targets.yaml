@@ -42,8 +42,9 @@ jobs:
       RENV_PATHS_ROOT: ~/.local/share/renv
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v2
+        with:
+          lfs:  'true'
       - name: Checkout LFS objects
         run: git lfs checkout
       - name: Install Linux system dependencies
