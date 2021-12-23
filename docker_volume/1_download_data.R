@@ -16,6 +16,7 @@
 #Install packages not in docker image
   #install.packages(c("gdalUtils","qpdf","RefManageR","svMisc","bibtex","raster","rdryad","geojsonio"))
   #install.packages("https://gitlab.rrz.uni-hamburg.de/helgejentsch/climdatdownloadr/-/archive/master/climdatdownloadr-master.tar.gz", repos = NULL, type = "source")
+  install.packages("bibtex")
 
 library(rgee)
 
@@ -36,7 +37,6 @@ library(rgee)
 
 
 #Climate (CHELSA)
-  #source("docker_volume/R/climate.R")
   source("R/get_climate_chelsa.R")
   get_climate_chelsa()
 
