@@ -32,9 +32,8 @@ library(rgee)
 
 
 #Elevation (NASADEM)
-  #source("docker_volume/R/elevation.R") #this will take a while
-  #sadem <- raster("docker_volume/raw_data/NASADEM.tif")
-
+  source("R/get_elevation_nasadem.R")
+  get_elevation_nasadem()
 
 #Climate (CHELSA)
   source("R/get_climate_chelsa.R")

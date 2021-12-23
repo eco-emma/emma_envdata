@@ -23,7 +23,7 @@ get_climate_chelsa <- function(directory = "data/raw_data/climate_chelsa/"){
   #Get the extent
   ext <- readRDS(file = "data/other_data/domain_extent.RDS")
 
-  if( length(list.files(directory, recursive = T)) == 19){
+  if( length(list.files(directory,pattern = ".tif", recursive = T)) == 19){
     message("CHELSA files found, skipping download")
     return(invisible(NULL))
     }
