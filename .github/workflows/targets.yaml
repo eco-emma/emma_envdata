@@ -40,11 +40,14 @@ jobs:
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       RENV_PATHS_ROOT: ~/.local/share/renv
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v2
         with:
-          lfs: true
+          lfs:  'true'
+      - name: Checkout LFS objects
+        run: git lfs checkout
       - name: Install Linux system dependencies
         if: runner.os == 'Linux'
         run: |
@@ -53,8 +56,6 @@ jobs:
         run: |-
 #          Rscript -e "install.packages(c('questionr','cubelyr'))"
           Rscript -e "questionr::qscan(list.files(pattern='*.R',recursive=T), load = TRUE, detail = FALSE)" # this scans all scripts and installs any needed packages
-#          Rscript -e "install.packages('remotes', repos = 'https://demo.rstudiopm.com/all/__linux__/bionic/latest')"
-#          Rscript -e "remotes::install_deps(dependencies = TRUE, repos = 'https://demo.rstudiopm.com/all/__linux__/bionic/latest')"
       - name: Cache packages
         uses: actions/cache@v1
         with:
