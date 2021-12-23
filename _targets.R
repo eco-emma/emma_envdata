@@ -13,9 +13,10 @@ tar_option_set(packages = c("cmdstanr", "posterior", "bayesplot", "tidyverse",
                             "cubelyr"))
 
 # ee authentication
-library(rgee)
-ee$Initialize()
-
+if(F) {
+  library(rgee)
+  ee$Initialize()
+}
 
 
 list(
