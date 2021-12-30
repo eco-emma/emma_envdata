@@ -16,7 +16,7 @@
 #Install packages not in docker image
   #install.packages(c("gdalUtils","qpdf","RefManageR","svMisc","bibtex","raster","rdryad","geojsonio"))
   #install.packages("https://gitlab.rrz.uni-hamburg.de/helgejentsch/climdatdownloadr/-/archive/master/climdatdownloadr-master.tar.gz", repos = NULL, type = "source")
-  install.packages("bibtex")
+  install.packages("bibtex","rdryad")
 
 library(rgee)
 
@@ -51,7 +51,11 @@ library(rgee)
   source("R/get_kndvi_modis.R")
   get_kndvi()
 
-#ALOS variables from GEE - TPI, insolation, landforms, mTPI, diversity, CHILI
+#Clouds
+  source("R/get_clouds_wilson.R")
+  get_clouds_wilson()
 
+#ALOS variables from GEE - TPI, insolation, landforms, mTPI, diversity, CHILI
+ #need to update the alos code to use stored stuff
 
 
