@@ -55,7 +55,12 @@ library(rgee)
   source("R/get_clouds_wilson.R")
   get_clouds_wilson()
 
+#Landcover from ZA
+  source("R/get_landcover_za.R")
+  get_landcover_za()
+
 #ALOS variables from GEE - TPI, insolation, landforms, mTPI, diversity, CHILI
  #need to update the alos code to use stored stuff
 
+#update Get_domain to optionally return domain as a sf object (vs ee)
 
