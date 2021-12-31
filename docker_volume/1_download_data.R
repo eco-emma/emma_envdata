@@ -59,8 +59,13 @@ library(rgee)
   source("R/get_landcover_za.R")
   get_landcover_za()
 
+#Fire from MODI
+  source("R/get_fire_modis.R")
+  get_fire_modis()
+
 #ALOS variables from GEE - TPI, insolation, landforms, mTPI, diversity, CHILI
  #need to update the alos code to use stored stuff
 
 #update Get_domain to optionally return domain as a sf object (vs ee)
 
+  # add polygon data to modis fire product

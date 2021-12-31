@@ -1,49 +1,8 @@
 #MCD64A1 v006
 
-# library(cptcity)
-# library(raster)
-# library(stars)
 library(rgee)
-# library(sf)
-# library(rgdal)
-# library(googledrive)
-# library(stringr)
 
-#make a directory if one doesn't exist yet
-
-if(!dir.exists("docker_volume/raw_data/fire_modis")){
-  dir.create("docker_volume/raw_data/fire_modis")
-}
-
-#ee_check()
-
-modis_fire <- ee$ImageCollection("MODIS/006/MCD64A1")
-
-#get metadata
-
-  # ee_print(modis_fire)
-  info <- modis_fire$getInfo()
-  ee_print((modis_fire))
-#Make a bounding box of the extent we want
-
-ext <- readRDS(file = "docker_volume/other_data/domain_extent.RDS")
-
-sabb <- ee$Geometry$Rectangle(
-  coords = c(ext@xmin,ext@ymin,ext@xmax,ext@ymax),
-  proj = "EPSG:4326",
-  geodesic = FALSE
-)
-
-rm(ext)
-
-#Set Visualization parameters
-
-fireviz <- list(
-  min = info$properties$visualization_0_min,
-  max = info$properties$visualization_0_max,
-  palette = c('00FFFF','FF00FF')
-)
-
+source("R/get_domain.R")
 
 #Below I've modified some existing code to mask any data that isn't land data with sufficient information available
 #There are additional filters we can apply using the QA data if we like, but this seems like a good start
@@ -52,7 +11,6 @@ fireviz <- list(
 #' @param image a QA image
 #' @param qa binary numeric (e.g. 111 or 01) corresponding the QA settings to use. Note that this assumes you're starting with bit zero and doesn't handle shifts
 #' @return an image resulting from the bitwiseAnd.  This can be transformed into a binary mask using $eq() or similar rgee functions
-
 getQABits_match <- function(image, qa) {
 
   # Convert binary (character) to integer
@@ -88,44 +46,97 @@ MCD64A1_clean <- function(img) {
   #Map$addLayer(fire_values)
 }
 
-fire_clean <- modis_fire$map(MCD64A1_clean)
 
+#' @description This function will download fire layers (derived from MODIS 16 day products), skipping any that have been downloaded already.
+#' @author Brian Maitner
+#' @param directory The directory the fire layers should be saved to, defaults to "data/raw_data/fire_modis/"
+#' @import rgee
+get_fire_modis <- function(directory = "data/raw_data/fire_modis/") {
 
-#What has been downloaded already?
+  # make a directory if one doesn't exist yet
 
-images_downloaded <- list.files("docker_volume/raw_data/fire_modis/",
-                                full.names = F,
-                                pattern = ".tif")
+    if(!dir.exists(directory)){
+      dir.create(directory)
+    }
 
-images_downloaded <- gsub(pattern = ".tif",
-                          replacement = "",
-                          x = images_downloaded,
-                          fixed = T)
+  # Load ee image collection
 
+    modis_fire <- ee$ImageCollection("MODIS/006/MCD64A1")
 
-#check to see if any images have been downloaded already
-  if(length(images_downloaded)==0){
+  # Get domain
 
-    newest <- lubridate::as_date(-1) #if nothing is downloaded, start in 1970
+    domain <- get_domain()
+
+  # get metadata
+
+    info <- modis_fire$getInfo()
+
+  # Set Visualization parameters
+
+    fireviz <- list(
+      min = info$properties$visualization_0_min,
+      max = info$properties$visualization_0_max,
+      palette = c('00FFFF','FF00FF')
+    )
+
+  # Clean data using QA
+
+    fire_clean <- modis_fire$map(MCD64A1_clean)
+
+  #What has been downloaded already?
+
+    images_downloaded <- list.files(directory,
+                                    full.names = F,
+                                    pattern = ".tif")
+
+    images_downloaded <- gsub(pattern = ".tif",
+                              replacement = "",
+                              x = images_downloaded,
+                              fixed = T)
+
+  # check to see if any images have been downloaded already
+
+    if(length(images_downloaded) == 0){
+
+      newest <- lubridate::as_date(-1) #if nothing is downloaded, start in 1970
 
     }else{
 
       newest <- max(lubridate::as_date(images_downloaded)) #if there are images, start with the most recent
 
-      }
+    }
 
 
-#Filter the data to exclude anything you've already downloaded (or older)
-fire_new_and_clean <- fire_clean$filterDate(start = paste(as.Date(newest+1),sep = ""),
-                                            opt_end = paste(format(Sys.time(), "%Y-%m-%d"),sep = "") )
+  # Filter the data to exclude anything you've already downloaded (or older)
+    fire_new_and_clean <- fire_clean$filterDate(start = paste(as.Date(newest+1),sep = ""),
+                                                opt_end = paste(format(Sys.time(), "%Y-%m-%d"),sep = "") )
 
-#Download
-ee_imagecollection_to_local(ic = fire_new_and_clean,
-                            region = sabb,
-                            dsn = "docker_volume/raw_data/fire_modis/")
+  # Download
+    ee_imagecollection_to_local(ic = fire_new_and_clean,
+                                region = domain,
+                                dsn = directory)
+
+    ee_imagecollection_to_local(ic = fire_new_and_clean,
+                                region = domain,
+                                dsn = directory,
+                                formatOptions = c(cloudOptimized = true))
+
+    # Cleanup
+
+      rm(fireviz, info, modis_fire)
+
+    # End
+
+      message("\nFinished download MODIS fire layers")
+      return(invisible(NULL))
 
 
-rm(fireviz,info,modis_fire)
+
+} #end fx
+
+
+
+
 
 ###################################
 
