@@ -31,43 +31,60 @@ library(rgee)
   ee_Initialize(drive = TRUE)
 
 
-#Elevation (NASADEM)
-  source("R/get_elevation_nasadem.R")
-  get_elevation_nasadem()
+  #Elevation (NASADEM)
+    source("R/get_elevation_nasadem.R")
+    get_elevation_nasadem()
 
-#Climate (CHELSA)
-  source("R/get_climate_chelsa.R")
-  get_climate_chelsa()
+  #Climate (CHELSA)
+    source("R/get_climate_chelsa.R")
+    get_climate_chelsa()
 
-#Precipitation
-  source("R/get_precipitation_chelsa.R")
-  get_precipitation_chelsa()
+  #Precipitation
+    source("R/get_precipitation_chelsa.R")
+    get_precipitation_chelsa()
 
-#NDVI
-  source("R/get_ndvi_modis.R")
-  get_ndvi()
+  #NDVI
+    source("R/get_ndvi_modis.R")
+    get_ndvi()
 
-#KNDVI
-  source("R/get_kndvi_modis.R")
-  get_kndvi()
+  #KNDVI
+    source("R/get_kndvi_modis.R")
+    get_kndvi()
 
-#Clouds
-  source("R/get_clouds_wilson.R")
-  get_clouds_wilson()
 
-#Landcover from ZA
-  source("R/get_landcover_za.R")
-  get_landcover_za()
+  #MODIS dates
+    source("R/get_ndvi_dates_modis.R")
+    get_ndvi_dates_modis()
 
-#Fire from MODI
-  source("R/get_fire_modis.R")
-  get_fire_modis()
+  #Clouds
+    source("R/get_clouds_wilson.R")
+    get_clouds_wilson()
 
-#ALOS variables from GEE - TPI, insolation, landforms, mTPI, diversity, CHILI
- #need to update the alos code to use stored stuff
+  #Landcover from ZA
+    source("R/get_landcover_za.R")
+    get_landcover_za()
 
-#update Get_domain to optionally return domain as a sf object (vs ee)
+  #Fire from MODIS
+    source("R/get_fire_modis.R")
+    get_fire_modis()
 
-  # add polygon data to modis fire product
+  #ALOS variables from GEE - TPI, insolation, landforms, mTPI, diversity, CHILI
+   #need to update the alos code to use stored stuff
 
-#add a function to remove the files from the rgee backup folder
+  #update Get_domain to optionally return domain as a sf object (vs ee)
+
+    # add polygon data to modis fire product
+
+  #add a function to remove the files from the rgee backup folder
+
+#Convert data
+
+    #should append convert_... to the file/fx names names
+
+    #the order matters a bit here
+
+      # -convert fire doy to unix date
+      # -convert fire unix date to most recent burn
+      # -convert most recent burn to days since most recent burn (relative to NDVI dates)
+
+    #Note: are the above intermediates useful or should things be rolled together?  It would probably be slower but require less space

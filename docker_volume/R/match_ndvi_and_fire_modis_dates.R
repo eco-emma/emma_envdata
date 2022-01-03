@@ -1,5 +1,5 @@
 #' @author Brian Maitner
-#' @description The goal of this script is to deal with the mismatch between MODIS fire and NDVI dates, producing time-since-fire raster that is pair with a NDVI raster
+#' @description The goal of this script is to deal with the mismatch between MODIS fire and NDVI dates, producing time-since-fire raster that is paired with a NDVI raster
 
 library(lubridate)
 library(raster)
