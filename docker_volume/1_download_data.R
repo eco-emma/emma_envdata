@@ -69,3 +69,5 @@ library(rgee)
 #update Get_domain to optionally return domain as a sf object (vs ee)
 
   # add polygon data to modis fire product
+
+#add a function to remove the files from the rgee backup folder
