@@ -1,46 +1,47 @@
 #' @author Brian Maitner
-#' @description The goal of this script is to deal with the mismatch between MODIS fire and NDVI dates, producing time-since-fire raster that is paired with a NDVI raster
+#' @description The goal of this script is to deal with the mismatch between MODIS fire and NDVI dates,
+#' producing a time-since-fire raster that relative to a paired with an NDVI raster
 
 library(lubridate)
 library(raster)
 source("R/get_domain.R")
 
-match_ndvi_and_fire_modis_dates <- function(ndvi_date_folder = "docker_volume/raw_data/modis_ndvi_dates/",
-                                            fire_date_folder = "docker_volume/raw_data/fire_modis_most_recent_burn_date/",
-                                            fire_output_folder = "docker_volume/raw_data/days_since_burn_matched_to_ndvi/"){
+process_ndvi_relative_days_since_fire <- function(ndvi_date_folder = "data/raw_data/ndvi_dates_modis/",
+                                            fire_date_folder = "data/processed_data/most_recent_burn_dates/",
+                                            fire_output_folder = "data/processed_data/ndvi_relative_time_since_fire/"){
 
   #Make folder if needed
     if(! dir.exists(fire_output_folder)){ dir.create(fire_output_folder) }
 
 
   #Get a list of files with different formats
-  fire_files <- list.files(fire_date_folder, full.names = T,pattern = ".tif")
-  ndvi_files <- list.files(ndvi_date_folder, full.names = T,pattern = ".tif")
+    fire_files <- list.files(fire_date_folder, full.names = T,pattern = ".tif")
+    ndvi_files <- list.files(ndvi_date_folder, full.names = T,pattern = ".tif")
 
 
-  fire_no_dir <- gsub(pattern = fire_date_folder,replacement = "",x = fire_files)
-  ndvi_no_dir <- gsub(pattern = ndvi_date_folder,replacement = "",x = ndvi_files)
+    fire_no_dir <- gsub(pattern = fire_date_folder,replacement = "",x = fire_files)
+    ndvi_no_dir <- gsub(pattern = ndvi_date_folder,replacement = "",x = ndvi_files)
 
-  fire_files <- data.frame(input_file = fire_files,
-                            date = as_date(gsub(pattern = ".tif",
-                                                replacement = "",
-                                                x = gsub(pattern = "/",
-                                                         replacement = "",
-                                                         x = fire_no_dir))))
-  ndvi_files <- data.frame(input_file = ndvi_files,
-                           date = as_date(gsub(pattern = ".tif",
-                                               replacement = "",
-                                               x = gsub(pattern = "/",
-                                                        replacement = "",
-                                                        x = ndvi_no_dir))))
+    fire_files <- data.frame(input_file = fire_files,
+                              date = as_date(gsub(pattern = ".tif",
+                                                  replacement = "",
+                                                  x = gsub(pattern = "/",
+                                                           replacement = "",
+                                                           x = fire_no_dir))))
+    ndvi_files <- data.frame(input_file = ndvi_files,
+                             date = as_date(gsub(pattern = ".tif",
+                                                 replacement = "",
+                                                 x = gsub(pattern = "/",
+                                                          replacement = "",
+                                                          x = ndvi_no_dir))))
 
-  fire_files$number <- as.numeric(fire_files$date)
-  fire_files$end_date <- ceiling_date(x = fire_files$date,unit = "month") %m-% days(1)
-  fire_files$end_number <- as.numeric(fire_files$end_date)
-  fire_files <- fire_files[order(fire_files$number),]
+    fire_files$number <- as.numeric(fire_files$date)
+    fire_files$end_date <- ceiling_date(x = fire_files$date,unit = "month") %m-% days(1)
+    fire_files$end_number <- as.numeric(fire_files$end_date)
+    fire_files <- fire_files[order(fire_files$number),]
 
-  ndvi_files$number <- as.numeric(ndvi_files$date)
-  ndvi_files <- ndvi_files[order(ndvi_files$number),]
+    ndvi_files$number <- as.numeric(ndvi_files$date)
+    ndvi_files <- ndvi_files[order(ndvi_files$number),]
 
 
   #Get a list of fire stuff that has been processed
@@ -63,7 +64,7 @@ match_ndvi_and_fire_modis_dates <- function(ndvi_date_folder = "docker_volume/ra
         end_date_numeric_i <- ndvi_files$number[i]+16
 
       #Get the next fire date raster that occurs after
-        fire_index <- min(which(fire_files$end_number >= end_date_numeric_i))
+        suppressWarnings(fire_index <- min(which(fire_files$end_number >= end_date_numeric_i)))
 
       #If there isn't a next fire layer, stop processing
         if(is.infinite(fire_index)) {
@@ -128,6 +129,9 @@ match_ndvi_and_fire_modis_dates <- function(ndvi_date_folder = "docker_volume/ra
     }#for ndvi loop
 
 
+  #End function
+    message("Done processing NDVI dates")
+    return(invisible(NULL))
 
 
 }

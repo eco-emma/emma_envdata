@@ -84,9 +84,12 @@ library(rgee)
     process_fire_doy_to_unix_date()
 
   #Fire UNIX date to most recent burn date
+    source("R/process_burn_date_to_last_burned_date.R")
+    process_burn_date_to_last_burned_date()
 
   #Most recent burn date to days since most recent burn (relative to NDVI dates)
-
+    source("R/process_ndvi_relative_days_since_fire.R")
+    process_ndvi_relative_days_since_fire()
 
 
 ################################################################################
