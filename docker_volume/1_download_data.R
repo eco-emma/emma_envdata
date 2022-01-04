@@ -54,7 +54,6 @@ library(rgee)
     source("R/get_kndvi_modis.R")
     get_kndvi()
 
-
   #MODIS dates
     source("R/get_ndvi_dates_modis.R")
     get_ndvi_dates_modis()
@@ -78,29 +77,30 @@ library(rgee)
   #ALOS variables from GEE - TPI, insolation, landforms, mTPI, diversity, CHILI
    #need to update the alos code to use stored stuff
 
-  #update Get_domain to optionally return domain as a sf object (vs ee)
-
-    # add polygon data to modis fire product
-
-  #add a function to remove the files from the rgee backup folder
-
-#Process data
+#Process data (order matters)
 
   #Fire day-of-year to UNIX date
     source("R/process_fire_doy_to_unix_date.R")
     process_fire_doy_to_unix_date()
 
-  #
+  #Fire UNIX date to most recent burn date
 
-    #should append convert_... to the file/fx names names
+  #Most recent burn date to days since most recent burn (relative to NDVI dates)
 
-    #the order matters a bit here
 
-  #
-      # -convert fire doy to unix date
-      # -convert fire unix date to most recent burn
-      # -convert most recent burn to days since most recent burn (relative to NDVI dates)
 
-    #Note: are the above intermediates useful or should things be rolled together?  It would probably be slower but require less space
+################################################################################
 
-    #Note: if we need to save space and don't need the fire DOY layers or other intermediates, we can clear out all but the last layer (since the ee downloads are based on the most recent layer)
+    # Notes:
+
+      # Note: should update code that processes unix date into most recent burn to optionally take in the SA burn polygons
+
+      # Note: are the above intermediates useful or should things be rolled together?  It would probably be slower but require less space
+
+      # Note: if we need to save space and don't need the fire DOY layers or other intermediates, we can clear out all but the last layer (since the ee downloads are based on the most recent layer)
+
+      # update Get_domain to optionally return domain as a sf object (vs ee)
+
+      # add polygon data to modis fire product
+
+      # add a function to remove the files from the rgee backup folder
