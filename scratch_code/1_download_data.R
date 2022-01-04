@@ -3,42 +3,34 @@
   #' @author Brian Maitner
 
 
-  #This code was written to work with a particular docker instance, to set it up (modifying your directory accordingly):
-  #docker run -d -e DISABLE_AUTH=true -p 8787:8787 -v C:/Users/"Brian Maitner"/Desktop/current_projects/emma_targets:/home/rstudio/emma_targets adamwilsonlab/emma:latest
+  # This code was written to work with a particular docker instance, to set it up (modifying your directory accordingly):
+    # docker run -d -e DISABLE_AUTH=true -p 8787:8787 -v C:/Users/"Brian Maitner"/Desktop/current_projects/emma_targets:/home/rstudio/emma_targets adamwilsonlab/emma:latest
 
   #the code below would be more useful (wouldn't require the change in wd), but causes problem for installation
-  ##docker run -d -e DISABLE_AUTH=true -p 8787:8787 -v C:/Users/"Brian Maitner"/Desktop/current_projects/emma_targets:/home/rstudio adamwilsonlab/emma_docker:latest
+    ## docker run -d -e DISABLE_AUTH=true -p 8787:8787 -v C:/Users/"Brian Maitner"/Desktop/current_projects/emma_targets:/home/rstudio adamwilsonlab/emma_docker:latest
 
-# Code to ensure the directory in docer matches the directory in the github project in rstudio
+# Code to ensure the directory in docker matches the directory in the github project in rstudio
   if(getwd() == "/home/rstudio"){setwd("/home/rstudio/emma_targets/")}
 
-
 #Install packages not in docker image
-  #install.packages(c("gdalUtils","qpdf","RefManageR","svMisc","bibtex","raster","rdryad","geojsonio"))
-  #install.packages("https://gitlab.rrz.uni-hamburg.de/helgejentsch/climdatdownloadr/-/archive/master/climdatdownloadr-master.tar.gz", repos = NULL, type = "source")
-  install.packages("bibtex","rdryad")
+  install.packages("bibtex", "rdryad")
 
-library(rgee)
+#Load packages
+  library(rgee)
 
-#To run once
-  #Again, would be better to make these part of the docker
-#  ee_install(confirm = FALSE) #note: would probably be faster to update the image to contain python, numpy, etc
- # .rs.restartR() #this is needed to restart R after the installations that comes in the preceding line of code
-  #ee_clean_pyenv()
-
-  #ee_install_upgrade()
-
-  ee_Initialize(drive = TRUE)
+  #Initialize rgee
+    ee_Initialize(drive = TRUE)
 
   #set up directories if needed
+
     if(!dir.exists("data/raw_data/")){dir.create("data/raw_data/")}
     if(!dir.exists("data/processed_data/")){dir.create("data/processed_data/")}
 
-# Infrequent (~ annual?) downloads
+# Infrequent (~ annual?) updates
 
   #Elevation (NASADEM)
-  source("R/get_elevation_nasadem.R")
-  get_elevation_nasadem()
+    source("R/get_elevation_nasadem.R")
+    get_elevation_nasadem()
 
   #Climate (CHELSA)
     source("R/get_climate_chelsa.R")
@@ -60,7 +52,7 @@ library(rgee)
     source("R/get_alos.R")
     get_alos()
 
-# Frequent (~ weekly - monthly)
+# Frequent (~ weekly - monthly) updates
 
   #NDVI
     source("R/get_ndvi_modis.R")
