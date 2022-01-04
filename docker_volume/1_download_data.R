@@ -30,6 +30,9 @@ library(rgee)
 
   ee_Initialize(drive = TRUE)
 
+  #set up directories if needed
+    if(!dir.exists("data/raw_data/")){dir.create("data/raw_data/")}
+    if(!dir.exists("data/processed_data/")){dir.create("data/processed_data/")}
 
   #Elevation (NASADEM)
     source("R/get_elevation_nasadem.R")
@@ -68,6 +71,10 @@ library(rgee)
     source("R/get_fire_modis.R")
     get_fire_modis()
 
+  #NDVI dates from MODIS
+    source("R/get_ndvi_dates_modis.R")
+    get_ndvi_dates_modis()
+
   #ALOS variables from GEE - TPI, insolation, landforms, mTPI, diversity, CHILI
    #need to update the alos code to use stored stuff
 
@@ -77,14 +84,23 @@ library(rgee)
 
   #add a function to remove the files from the rgee backup folder
 
-#Convert data
+#Process data
+
+  #Fire day-of-year to UNIX date
+    source("R/process_fire_doy_to_unix_date.R")
+    process_fire_doy_to_unix_date()
+
+  #
 
     #should append convert_... to the file/fx names names
 
     #the order matters a bit here
 
+  #
       # -convert fire doy to unix date
       # -convert fire unix date to most recent burn
       # -convert most recent burn to days since most recent burn (relative to NDVI dates)
 
     #Note: are the above intermediates useful or should things be rolled together?  It would probably be slower but require less space
+
+    #Note: if we need to save space and don't need the fire DOY layers or other intermediates, we can clear out all but the last layer (since the ee downloads are based on the most recent layer)

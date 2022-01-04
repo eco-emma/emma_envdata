@@ -96,7 +96,7 @@ get_ndvi_dates_modis <- function(directory = "data/raw_data/ndvi_dates_modis/") 
                                   dsn = directory)
     #End function
 
-      message("Download of MODIS NDVI date files complete")
+      message("\nDownload of MODIS NDVI date files complete")
 
       return(invisible(NULL))
 
