@@ -90,6 +90,8 @@
 
     # Notes:
 
+      # Modify ndvi per kndvi to be smaller files
+
       # Note: should update code that processes unix date into most recent burn to optionally take in the SA burn polygons
 
       # Note: are the "process_data" intermediates useful or should things be rolled together?  It would probably be slower but require less space
