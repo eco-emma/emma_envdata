@@ -36,23 +36,25 @@ name: targets
 jobs:
   targets:
     runs-on: ubuntu-18.04
-    container: adamwilsonlab/emma_docker:latest
+    container: adamwilsonlab/emma:latest
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       RENV_PATHS_ROOT: ~/.local/share/renv
+
     steps:
       - uses: actions/checkout@v2
-      - name: Install Linux system dependencies
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-#          sudo apt-get install libcurl4-openssl-dev
+        with:
+          lfs:  'true'
+      - name: Checkout LFS objects
+        run:
+          git lfs checkout
+#      # - name: Install Linux system dependencies
+#      #   if: runner.os == 'Linux'
+#      #   run: |
+#      #     sudo apt-get update
       - name: Install R Package Dependencies
         run: |-
-          Rscript -e "install.packages(c('questionr'))"
           Rscript -e "questionr::qscan(list.files(pattern='*.R',recursive=T), load = TRUE, detail = FALSE)" # this scans all scripts and installs any needed packages
-          Rscript -e "install.packages('remotes', repos = 'https://demo.rstudiopm.com/all/__linux__/bionic/latest')"
-#          Rscript -e "remotes::install_deps(dependencies = TRUE, repos = 'https://demo.rstudiopm.com/all/__linux__/bionic/latest')"
       - name: Cache packages
         uses: actions/cache@v1
         with:
@@ -109,6 +111,8 @@ jobs:
           git config --local user.email "actions@github.com"
           rm -r .gitignore .github/workflows
           git lfs track _targets/objects/* #use git LFS to track the targets output (larger files)
+          git lfs track data/* #use git LFS to track the data output (larger files)
+          git lfs track "raw_data/**" #use git LFS to track raw_data output (larger files)
           git add .gitattributes
           git add --all -- ':!renv'
           for file in $(git ls-files -mo --exclude=renv)
