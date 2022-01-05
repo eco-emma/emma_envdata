@@ -85,8 +85,5 @@ get_alos <- function(directory = "data/raw_data/alos/"){
 
 
 
-
-
-
 ##################################
 
