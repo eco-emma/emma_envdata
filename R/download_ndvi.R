@@ -5,6 +5,7 @@ library(rgee)
 library(sf)
 library(rgdal)
 
+get_ndvi <- function () {
 ee_Initialize(drive = TRUE)
 
 #ee_install_upgrade()
@@ -109,6 +110,6 @@ mod_ndvi <- ee_as_raster(
   via = 'drive'
 )
 
-#?raster
+}
 
 ##https://gist.github.com/csaybar/3f2f95790bf645a2da3ad82879bf8c39
