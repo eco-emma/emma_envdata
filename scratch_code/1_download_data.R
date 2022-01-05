@@ -90,6 +90,8 @@
 
     # Notes:
 
+      # update fxs to use Adam's domain?
+
       # Modify ndvi per kndvi to be smaller files
 
       # Note: should update code that processes unix date into most recent burn to optionally take in the SA burn polygons
@@ -103,3 +105,6 @@
       # add polygon data to modis fire product
 
       # add a function to remove the files from the rgee backup folder
+
+
+
