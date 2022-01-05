@@ -31,4 +31,6 @@ vignettes/*.pdf
 index.md
 index_files/*
 firemodel_predict
+data/*
+*/other_data/*
 .DS_Store

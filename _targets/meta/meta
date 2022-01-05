@@ -12,7 +12,6 @@ vegmap|stem|b502445ec7320d62|1811b4a0f90e1688|26cd61d94db2b5bd|602754364||t18982
 domain|stem|655dea841d382d95|7a783623d7c8b012|26e423e0c1a9d2be|640757417||t18983.6278830186s|c233e5bdd1ddd8a9|2171832|rds|vector|||75.2||
 remnants|stem|69d4225f3763addb|7d78ea0be657b6ea|a45d26b42f8abebe|630969701|data/remnants.tif|t18983.6288393025s|9e5c852f0832e47b|915859|file|vector|||82.567||
 remnant_distance|stem|f2baefe7161f7453|9326018404110314|dc6f6cfa0b47fd6a|-1777723304|data/remnant_distance.tif|t18983.6288453036s|cdcc17971c8665ee|721827|file|vector|||0.479||
-model_data|stem|4b47a4fede880056|8223ad42e5e049cb|cb98d8400b22a264|-495503059|data/model_data.csv|t18983.8702053361s|2166b4d5a598ebf2|132850454|file|vector|||8.468||
 domain_rasterize|function|44797f03c1431513||||||||||||||
 fit_model|function|d0d4e0ea8d7f400c||||||||||||||
 domain_remnants|function|199dfa8f66690059||||||||||||||
@@ -20,12 +19,12 @@ clean_data|function|484d9c4667cbdd4d||||||||||||||
 group_data_function|function|cf81a22df7ca8418||||||||||||||
 get_kndvi|function|cb1f1178029c2f51||||||||||||||
 get_climate_chelsa|function|4565e728f7cab028||||||||||||||
-update_git|function|540ce23e0f2c79a8||||||||||||||
-get_model_data|function|de59373261f33630||||||||||||||
+update_git|function|f837db84a6c90d8a||||||||||||||
+get_model_data|function|9e05be8a27aace67||||||||||||||
 domain_distance|function|e0b30c1a161fe043||||||||||||||
 get_alos_data|function|50ff1ff7cd519f80||||||||||||||
 national_boundary|function|98c948356a6f3853||||||||||||||
-.Random.seed|object|84e2c98a8c049098||||||||||||||
+.Random.seed|object|10907e0a65a3b23b||||||||||||||
 stan_data_function|function|60507201f11a2ffe||||||||||||||
 domain_map|function|b3a8249eb2758de6||||||||||||||
 domain_define|function|d64c95da6773fe74||||||||||||||
@@ -34,4 +33,5 @@ spatial_outputs|function|4c1a11d0b9579d31||||||||||||||
 get_ndvi|function|7748a64461edb4ec||||||||||||||
 summarize_posteriors|function|92d2f12f0d1f6071||||||||||||||
 get_alos|function|1040da2b12452d1e||||||||||||||
-alos|stem|3ae505606be9ddd9|a73bb6286224cc7c|e357f198ea290d82|1794838964|data/alos/|t18983.9197705453s|4509972553956cd7|124470184|file|vector|||1.797||
+alos|stem|3ae505606be9ddd9|a73bb6286224cc7c|e357f198ea290d82|1794838964|data/alos/|t18983.9196692861s|a75e104011428481|4096|file|vector|||1.797||
+model_data|stem|4b47a4fede880056|8223ad42e5e049cb|f92b99e321a7c2ab|-495503059|data/model_data.csv|t18997.6696188887s|2166b4d5a598ebf2|132850454|file|vector|||4.594||
