@@ -5,12 +5,12 @@ library(ClimDatDownloadR)
 #' @author Brian Maitner
 #' @description This function will download CHELSA climate data if it isn't present, and (invisibly) return a NULL if it is present
 #' @import ClimDatDownloadR
-get_climate_chelsa <- function(){
+get_climate_chelsa <- function(directory = "data/raw_data/climate_chelsa/"){
 
   #make a directory if one doesn't exist yet
 
-    if(!dir.exists("data/raw_data/chelsa")){
-      dir.create("data/raw_data/chelsa")
+    if(!dir.exists(directory)){
+      dir.create(directory)
     }
 
   #Adjust the download timeout duration (this needs to be large enough to allow the download to complete)
@@ -23,7 +23,7 @@ get_climate_chelsa <- function(){
   #Get the extent
   ext <- readRDS(file = "data/other_data/domain_extent.RDS")
 
-  if( length(list.files("data/raw_data/chelsa/",recursive = T)) == 19){
+  if( length(list.files(directory,pattern = ".tif", recursive = T)) == 19){
     message("CHELSA files found, skipping download")
     return(invisible(NULL))
     }
@@ -35,14 +35,16 @@ get_climate_chelsa <- function(){
   # It would also be useful if only the relevant data could be downloaded (rather than downloading and THEN pruning)
 
 
-  ClimDatDownloadR::Chelsa.Clim.download(save.location = "data/raw_data/chelsa/",
+  ClimDatDownloadR::Chelsa.Clim.download(save.location = directory,
                                          parameter = "bio",
-                                         clip.extent = ext[1:4],
+                                         clip.extent = ext[c(1,3,2,4)],
                                          clipping = TRUE,
                                          delete.raw.data = TRUE
   )
 
-  dirs <- list.dirs("data/raw_data/chelsa/bio/",
+
+
+  dirs <- list.dirs(paste(directory,"bio/",sep = ""),
                     recursive = T,
                     full.names = T)
 
@@ -57,7 +59,7 @@ get_climate_chelsa <- function(){
   rm(dirs)
 
 
-  message("CHELSA files downloaded")
+  message("CHELSA climate files downloaded")
   return(invisible(NULL))
 
 

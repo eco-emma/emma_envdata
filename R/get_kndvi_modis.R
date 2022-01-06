@@ -1,5 +1,6 @@
 
 library(rgee)
+source("R/get_domain.R")
 
 #' @description This function will download kndvi layers (derived from MODIS 16 day products), skipping any that have been downloaded already.
 #' @author Brian Maitner, but built from code by Qinwen, Adam, and the KNDVI ms authors
@@ -19,18 +20,7 @@ get_kndvi <- function(directory = "data/raw_data/kndvi_modis/") {
     # modis_ndvi <- ee$ImageCollection("MODIS/006/MOD13A2") #1 km
 
 
-  #Make a bounding box of the extent we want
-
-    ext <- readRDS(file = "data/other_data/domain_extent.RDS")
-
-    sabb <- ee$Geometry$Rectangle(
-      coords = c(ext@xmin,ext@ymin,ext@xmax,ext@ymax),
-      proj = "EPSG:4326",
-      geodesic = FALSE
-    )
-
-    rm(ext)
-
+  domain <- get_domain()
 
   #Set Visualization parameters
 
@@ -110,7 +100,7 @@ get_kndvi <- function(directory = "data/raw_data/kndvi_modis/") {
       quality_mask <- getQABits(ndvi_qa, "11")
 
       # Mask pixels with value zero.
-      ndvi_values$updateMask(quality_mask)
+      kndvi_values$updateMask(quality_mask)
 
 
     }
@@ -144,13 +134,25 @@ get_kndvi <- function(directory = "data/raw_data/kndvi_modis/") {
 
 
   #Filter the data to exclude anything you've already downloaded (or older)
-  ndvi_clean_and_new <- ndvi_clean$filterDate(start = paste(as.Date(newest+1),sep = ""),
+  kndvi_clean_and_new <- kndvi_clean$filterDate(start = paste(as.Date(newest+1),sep = ""),
                                               opt_end = paste(format(Sys.time(), "%Y-%m-%d"),sep = "") ) #I THINK I can just pull the most recent date, and then use this to download everything since then
 
+
+  #Adjust gain and offset
+  adjust_gain_and_offset <- function(img){
+    img$add(1)$multiply(100)$round()
+
+  }
+
+
+  kndvi_clean_and_new <- kndvi_clean_and_new$map(adjust_gain_and_offset)
+
   #Download
-  ee_imagecollection_to_local(ic = ndvi_clean_and_new,
-                              region = sabb,
-                              dsn = directory)
+  ee_imagecollection_to_local(ic = kndvi_clean_and_new,
+                              region = domain,
+                              dsn = directory,
+                              formatOptions = c(cloudOptimized = true)) #not sure the cloudOptimized is specified correctly
+
 
 
   message("Finished Downloading KNDVI layers")
