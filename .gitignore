@@ -33,3 +33,6 @@ index_files/*
 firemodel_predict
 raw_data/
 processed_data/
+data/*
+*/other_data/*
+.DS_Store
