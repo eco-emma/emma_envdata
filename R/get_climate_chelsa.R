@@ -5,7 +5,7 @@ library(ClimDatDownloadR)
 #' @author Brian Maitner
 #' @description This function will download CHELSA climate data if it isn't present, and (invisibly) return a NULL if it is present
 #' @param directory Where to save the files, defaults to "data/raw_data/climate_chelsa/"
-#' @param domain domain (spatialpolygons* object) used for masking
+#' @param domain domain (sf polygon) used for masking
 #' @import ClimDatDownloadR
 get_climate_chelsa <- function(directory = "data/raw_data/climate_chelsa/", domain){
 

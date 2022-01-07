@@ -26,6 +26,9 @@
     if(!dir.exists("data/raw_data/")){dir.create("data/raw_data/")}
     if(!dir.exists("data/processed_data/")){dir.create("data/processed_data/")}
 
+# Set up domain
+
+
 # Infrequent (~ annual?) updates
 
   #Elevation (NASADEM)
@@ -33,7 +36,7 @@
     get_elevation_nasadem()
 
   #Climate (CHELSA)
-    source("R/get_climate_chelsa.R")
+    source("R/get_climate_chelsa.R") #updated with domain
     get_climate_chelsa()
 
   #Precipitation
@@ -49,7 +52,7 @@
     get_landcover_za()
 
   #ALOS variables from GEE - TPI, insolation, landforms, mTPI, diversity, CHILI
-    source("R/get_alos.R")
+    source("R/get_alos.R") #updated with domain
     get_alos()
 
 # Frequent (~ weekly - monthly) updates

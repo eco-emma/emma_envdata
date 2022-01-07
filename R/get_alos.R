@@ -6,7 +6,7 @@
 
 #' @param image_text is the text string used by gee to refer to an image, e.g. "CSP/ERGo/1_0/Global/ALOS_mTPI"
 #' @param dir directory to save data in
-#' @param domain domain (spatialpolygons* object) used for masking
+#' @param domain domain (sf polygon) used for masking
 #' @note This code is only designed to work with a handful of images by CSP/ERGo
 get_alos_data <- function(image_text, dir, domain){
 
@@ -40,7 +40,7 @@ get_alos_data <- function(image_text, dir, domain){
 
 
 #' @description This function makes use of the previous helper function to download data
-#' @param domain domain (spatialpolygons* object) used for masking
+#' @param domain domain (sf polygon) used for masking
 #' @param directory Where to save the files, defaults to "data/raw_data/alos/"
 get_alos <- function(directory = "data/raw_data/alos/", domain){
 

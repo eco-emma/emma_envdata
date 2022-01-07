@@ -3,13 +3,17 @@
 #' @author Brian Maitner
 #' @description This function will download NASADEM elevation data if it isn't present, and (invisibly) return a NULL if it is present
 #' @import rgee
-get_elevation_nasadem <- function(directory = "data/raw_data/elevation_nasadem/"){
+#' @param directory directory to save data in. Defaults to "data/raw_data/elevation_nasadem/"
+#' @param domain domain (spatialpolygons* object) used for masking
+get_elevation_nasadem <- function(directory = "data/raw_data/elevation_nasadem/", domain){
 
   # Make a directory if one doesn't exist yet
 
-  if(!dir.exists(directory)){
-    dir.create(directory)
-  }
+    if(!dir.exists(directory)){
+      dir.create(directory)
+    }
+
+  #Check if files exist already
 
   if(file.exists(paste(directory,"nasadem.tif",sep = ""))){
     message("NASADEM found, skipping download")
@@ -18,14 +22,14 @@ get_elevation_nasadem <- function(directory = "data/raw_data/elevation_nasadem/"
   }
 
   # Load the image
-  dem <- ee$Image("NASA/NASADEM_HGT/001")
+    dem <- ee$Image("NASA/NASADEM_HGT/001")
 
-  #Get the domain
-  domain <- get_domain()
+  #Format the domain
+    domain <- sf_as_ee(x = domain)
+    domain <- domain$geometry()
 
   #Cut down to the one band we need
-  dem <- dem$select("elevation")
-
+    dem <- dem$select("elevation")
 
 
   # #Download the raster
@@ -39,7 +43,7 @@ get_elevation_nasadem <- function(directory = "data/raw_data/elevation_nasadem/"
   ee_as_raster(image = dem,
                region = domain,
                #scale = 100, #used to adjust the scale. commenting out uses the default
-               dsn = paste(directory,"nasadem.tif",sep = ""),
+               dsn = paste(directory, "nasadem.tif", sep = ""),
                maxPixels = 10000000000)
 
 
