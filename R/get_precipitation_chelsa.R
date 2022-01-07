@@ -6,8 +6,10 @@
 
 library(ClimDatDownloadR)
 
-
-get_precipitation_chelsa <- function(directory = "data/raw_data/precipitation_chelsa/") {
+#' @param directory Where to save the files, defaults to "data/raw_data/precipitation_chelsa/"
+#' @param domain domain (sf polygon) used for masking
+#' @import ClimDatDownloadR
+get_precipitation_chelsa <- function(directory = "data/raw_data/precipitation_chelsa/", domain) {
 
   #make a directory if one doesn't exist yet
 
@@ -29,6 +31,12 @@ get_precipitation_chelsa <- function(directory = "data/raw_data/precipitation_ch
     return(invisible(NULL))
   }
 
+  #Transform domain to wgs84 to get the coordinates
+
+  domain_extent <- sf::sf_project(from = crs(domain)@projargs,
+                                  to =   crs("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")@projargs,
+                                  pts = t(as.matrix(extent(domain))))
+
   # Download the data
   # Note that it would be useful to clip these to a polygon to save space
   # It would also be useful if only the relevant data could be downloaded (rather than downloading and THEN pruning)
@@ -37,7 +45,7 @@ get_precipitation_chelsa <- function(directory = "data/raw_data/precipitation_ch
                                          parameter = "prec",
                                          month.var = c(1,7),
                                          version.var = c("1.2"),
-                                         clip.extent = ext[c(1,3,2,4)],
+                                         clip.extent = domain_extent[c(1,2,3,4)],
                                          clipping = TRUE,
                                          delete.raw.data = TRUE
   )

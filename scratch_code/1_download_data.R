@@ -32,15 +32,15 @@
 # Infrequent (~ annual?) updates
 
   #Elevation (NASADEM)
-    source("R/get_elevation_nasadem.R")
-    get_elevation_nasadem()
+    source("R/get_elevation_nasadem.R") #updated with domain
+    get_elevation_nasadem(domain = domain)
 
   #Climate (CHELSA)
     source("R/get_climate_chelsa.R") #updated with domain
-    get_climate_chelsa()
+    get_climate_chelsa(domain = domain)
 
   #Precipitation
-    source("R/get_precipitation_chelsa.R")
+    source("R/get_precipitation_chelsa.R") #updated with domain
     get_precipitation_chelsa()
 
   #Clouds
@@ -58,12 +58,12 @@
 # Frequent (~ weekly - monthly) updates
 
   #NDVI
-    source("R/get_ndvi_modis.R")
-    get_ndvi()
+    source("R/get_ndvi_modis.R") #updated with domain
+    get_ndvi(domain = domain)
 
   #KNDVI
-    source("R/get_kndvi_modis.R")
-    get_kndvi()
+    source("R/get_kndvi_modis.R") #updated with domain
+    get_kndvi(domain = domain)
 
   #Fire from MODIS
     source("R/get_fire_modis.R")
