@@ -33,9 +33,12 @@ get_integer_date <-function(img) {
 
 #' @author Brian Maitner, with tips from csaybar
 #' @description This code is designed to modify the MODIS "DayOfYear" band to a "days relative to Jan 01 1970" band to facilitate comparisons with fire data and across years.
+#' @param directory The directory the ndvi date layers should be saved to, defaults to "data/raw_data/ndvi_dates_modis/"
+#' @param domain domain (sf polygon) used for masking
 #' @note This code assumes that data are downloaded in order, which is usually the case.  In the case that a raster is lost, it won't be replaced automatically unless it happens to be at the very end.
 #' Probably not going to cause a problem, but worth noting out of caution.
-get_ndvi_dates_modis <- function(directory = "data/raw_data/ndvi_dates_modis/") {
+#'
+get_ndvi_dates_modis <- function(directory = "data/raw_data/ndvi_dates_modis/", domain) {
 
   #Make a directory
 
@@ -47,9 +50,10 @@ get_ndvi_dates_modis <- function(directory = "data/raw_data/ndvi_dates_modis/") 
 
     modis_ndvi <- ee$ImageCollection("MODIS/006/MOD13A1")
 
-  #get domain
+  #Format the domain
 
-    domain <- get_domain()
+    domain <- sf_as_ee(x = domain)
+    domain <- domain$geometry()
 
   # convert date to UNIX standard (ie days from 1-1-1970)
 

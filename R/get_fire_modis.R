@@ -50,8 +50,9 @@ MCD64A1_clean <- function(img) {
 #' @description This function will download fire layers (derived from MODIS 16 day products), skipping any that have been downloaded already.
 #' @author Brian Maitner
 #' @param directory The directory the fire layers should be saved to, defaults to "data/raw_data/fire_modis/"
+#' @param domain domain (sf polygon) used for masking
 #' @import rgee
-get_fire_modis <- function(directory = "data/raw_data/fire_modis/") {
+get_fire_modis <- function(directory = "data/raw_data/fire_modis/", domain) {
 
   # make a directory if one doesn't exist yet
 
@@ -63,9 +64,10 @@ get_fire_modis <- function(directory = "data/raw_data/fire_modis/") {
 
     modis_fire <- ee$ImageCollection("MODIS/006/MCD64A1")
 
-  # Get domain
+  #Format the domain
 
-    domain <- get_domain()
+    domain <- sf_as_ee(x = domain)
+    domain <- domain$geometry()
 
   # get metadata
 
@@ -116,10 +118,10 @@ get_fire_modis <- function(directory = "data/raw_data/fire_modis/") {
                                 region = domain,
                                 dsn = directory)
 
-    ee_imagecollection_to_local(ic = fire_new_and_clean,
-                                region = domain,
-                                dsn = directory,
-                                formatOptions = c(cloudOptimized = true))
+    # ee_imagecollection_to_local(ic = fire_new_and_clean,
+    #                             region = domain,
+    #                             dsn = directory,
+    #                             formatOptions = c(cloudOptimized = true))
 
     # Cleanup
 

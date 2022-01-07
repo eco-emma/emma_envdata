@@ -66,12 +66,12 @@
     get_kndvi(domain = domain)
 
   #Fire from MODIS
-    source("R/get_fire_modis.R")
-    get_fire_modis()
+    source("R/get_fire_modis.R") #updated with domain
+    get_fire_modis(domain = domain)
 
   #NDVI dates from MODIS
-    source("R/get_ndvi_dates_modis.R")
-    get_ndvi_dates_modis()
+    source("R/get_ndvi_dates_modis.R") #updated with domain
+    get_ndvi_dates_modis(domain = domain)
 
 
 #Process data (order matters)
