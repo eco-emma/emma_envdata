@@ -5,7 +5,7 @@ library(ClimDatDownloadR)
 #' @author Brian Maitner
 #' @description This function will download CHELSA climate data if it isn't present, and (invisibly) return a NULL if it is present
 #' @import ClimDatDownloadR
-get_climate_chelsa <- function(directory = "data/raw_data/climate_chelsa/"){
+get_climate_chelsa <- function(directory = "data/raw_data/climate_chelsa/",domain){
 
   #make a directory if one doesn't exist yet
 
@@ -21,7 +21,7 @@ get_climate_chelsa <- function(directory = "data/raw_data/climate_chelsa/"){
 
 
   #Get the extent
-  ext <- readRDS(file = "data/other_data/domain_extent.RDS")
+#  ext <- readRDS(file = "data/other_data/domain_extent.RDS")
 
   if( length(list.files(directory,pattern = ".tif", recursive = T)) == 19){
     message("CHELSA files found, skipping download")
@@ -37,7 +37,7 @@ get_climate_chelsa <- function(directory = "data/raw_data/climate_chelsa/"){
 
   ClimDatDownloadR::Chelsa.Clim.download(save.location = directory,
                                          parameter = "bio",
-                                         clip.extent = ext[c(1,3,2,4)],
+                                         clip.extent = st_bbox(domain)[c(1,3,2,4)],
                                          clipping = TRUE,
                                          delete.raw.data = TRUE
   )
@@ -60,7 +60,7 @@ get_climate_chelsa <- function(directory = "data/raw_data/climate_chelsa/"){
 
 
   message("CHELSA climate files downloaded")
-  return(invisible(NULL))
+  return(directory)
 
 
 } # end fx

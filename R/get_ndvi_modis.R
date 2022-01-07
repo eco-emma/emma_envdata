@@ -100,7 +100,7 @@ get_ndvi <- function(directory = "data/raw_data/ndvi_modis/") {
                               formatOptions = c(cloudOptimized = true))
 
 
-
+return(directory)
 
 }
 

@@ -5,9 +5,9 @@
 #make a function to reduce code duplication
 
 #' @param image_text is the text string used by gee to refer to an image, e.g. "CSP/ERGo/1_0/Global/ALOS_mTPI"
-#' @param directory Bounding Box to constrain area downloaded
+#' @param domain Bounding Box to constrain area downloaded
 #' @note This code is only designed to work with a handful of images by CSP/ERGo
-get_alos_data <- function(image_text,dir){
+get_alos_data <- function(image_text,dir, domain){
 
   #Load the image
 
@@ -38,7 +38,7 @@ get_alos_data <- function(image_text,dir){
 
 
 #' @description This function makes use of the previous helper function to download data
-get_alos <- function(directory = "data/raw_data/alos/"){
+get_alos <- function(directory = "data/raw_data/alos/",domain){
 
   #make a directory if one doesn't exist yet
 
@@ -55,31 +55,32 @@ get_alos <- function(directory = "data/raw_data/alos/"){
   # mTPI
     if(!length(grep(pattern = "mtpi",x = alos_files)) > 0){
       get_alos_data(image_text = "CSP/ERGo/1_0/Global/ALOS_mTPI",
-                    dir = directory)
+                    dir = directory, domain=domain)
     }
 
   # CHILI
     if(!length(grep(pattern = "chili",x = alos_files)) > 0){
       get_alos_data(image_text = "CSP/ERGo/1_0/Global/ALOS_CHILI",
-                    dir = directory)
+                    dir = directory, domain=domain)
     }
 
 
   # landforms
     if(!length(grep(pattern = "landforms",x = alos_files)) > 0){
       get_alos_data(image_text = 'CSP/ERGo/1_0/Global/ALOS_landforms',
-                    dir = directory)
+                    dir = directory, domain=domain)
     }
 
   # topo diversity
     if(!length(grep(pattern = "topographic",x = alos_files)) > 0){
       get_alos_data(image_text = 'CSP/ERGo/1_0/Global/ALOS_topoDiversity',
-                    dir = directory)
+                    dir = directory, domain=domain)
     }
 
 
   message("Finished downloading ALOS layers")
-  return(invisible(NULL))
+
+  return(directory)
 
 }
 
