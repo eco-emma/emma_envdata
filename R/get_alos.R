@@ -5,9 +5,10 @@
 #make a function to reduce code duplication
 
 #' @param image_text is the text string used by gee to refer to an image, e.g. "CSP/ERGo/1_0/Global/ALOS_mTPI"
-#' @param directory Bounding Box to constrain area downloaded
+#' @param dir directory to save data in
+#' @param domain domain (spatialpolygons* object) used for masking
 #' @note This code is only designed to work with a handful of images by CSP/ERGo
-get_alos_data <- function(image_text,dir){
+get_alos_data <- function(image_text, dir, domain){
 
   #Load the image
 
@@ -19,8 +20,9 @@ get_alos_data <- function(image_text,dir){
 
     focal_name <-gsub(pattern = " ", replacement = "_", x = focal_name)
 
-  #get the domain
-    domain <- get_domain()
+  #Format the domain
+    domain <- sf_as_ee(x = domain)
+    domain <- domain$geometry()
 
   #get CRS
     crs <- focal_image$getInfo()$bands[[1]]$crs
@@ -38,7 +40,9 @@ get_alos_data <- function(image_text,dir){
 
 
 #' @description This function makes use of the previous helper function to download data
-get_alos <- function(directory = "data/raw_data/alos/"){
+#' @param domain domain (spatialpolygons* object) used for masking
+#' @param directory Where to save the files, defaults to "data/raw_data/alos/"
+get_alos <- function(directory = "data/raw_data/alos/", domain){
 
   #make a directory if one doesn't exist yet
 
@@ -55,26 +59,30 @@ get_alos <- function(directory = "data/raw_data/alos/"){
   # mTPI
     if(!length(grep(pattern = "mtpi",x = alos_files)) > 0){
       get_alos_data(image_text = "CSP/ERGo/1_0/Global/ALOS_mTPI",
-                    dir = directory)
+                    dir = directory,
+                    domain = domain)
     }
 
   # CHILI
     if(!length(grep(pattern = "chili",x = alos_files)) > 0){
       get_alos_data(image_text = "CSP/ERGo/1_0/Global/ALOS_CHILI",
-                    dir = directory)
+                    dir = directory,
+                    domain = domain)
     }
 
 
   # landforms
     if(!length(grep(pattern = "landforms",x = alos_files)) > 0){
       get_alos_data(image_text = 'CSP/ERGo/1_0/Global/ALOS_landforms',
-                    dir = directory)
+                    dir = directory,
+                    domain = domain)
     }
 
   # topo diversity
     if(!length(grep(pattern = "topographic",x = alos_files)) > 0){
       get_alos_data(image_text = 'CSP/ERGo/1_0/Global/ALOS_topoDiversity',
-                    dir = directory)
+                    dir = directory,
+                    domain = domain)
     }
 
 
