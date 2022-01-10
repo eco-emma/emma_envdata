@@ -51,6 +51,9 @@ get_alos <- function(directory = "data/raw_data/alos/", domain){
     }
 
 
+  #Initialize earth engine (for targets works better if called here)
+  ee_Initialize()
+
   # Get files that have been downloaded
     alos_files <- list.files(directory,pattern = ".tif$")
 
