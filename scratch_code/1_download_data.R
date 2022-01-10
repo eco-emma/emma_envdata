@@ -45,7 +45,7 @@
 
   #Clouds
     source("R/get_clouds_wilson.R")
-    get_clouds_wilson()
+    get_clouds_wilson(domain = domain) #updated with domain
 
   #Landcover from ZA
     source("R/get_landcover_za.R")
