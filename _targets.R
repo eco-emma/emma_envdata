@@ -40,11 +40,11 @@ list(
   ),
   tar_target(
     domain,
-    domain_define(vegmap=vegmap, country)
+    domain_define(vegmap = vegmap, country)
   ),
   tar_target(
     remnants,
-    domain_remnants(domain, remnants_shp=remnants_shp),
+    domain_remnants(domain, remnants_shp = remnants_shp),
     format = "file"
   ),
   tar_target(
@@ -52,14 +52,38 @@ list(
     domain_distance(remnants),
     format = "file"
   ),
+
+  #Infrequent downloads
+
   tar_target(
     alos,
-    get_alos(domain=domain)
+    get_alos(domain = domain)
   ),
   tar_target(
     climate_chelsa,
-    get_climate_chelsa(domain=domain),
-    format = "file"
+    get_climate_chelsa(domain = domain)
+  ),
+  tar_target(
+    clouds_wilson,
+    get_clouds_wilson(domain = domain)
+  ),
+  tar_target(
+    elevation_nasadem,
+    get_elevation_nasadem(domain = domain)
+  ),
+  tar_target(
+    landcover_za,
+    get_landcover_za(domain = domain)
+  ),
+  tar_target(
+    precipitation_chelsa,
+    get_precipitation_chelsa(domain = domain)
+  ),
+
+#Frequent updates
+  tar_target(
+    ndvi_modis,
+    get_ndvi_modis(domain = domain)
   ),
   tar_target(
     model_data,

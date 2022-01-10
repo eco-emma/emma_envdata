@@ -15,6 +15,15 @@ get_climate_chelsa <- function(directory = "data/raw_data/climate_chelsa/", doma
       dir.create(directory)
     }
 
+  #check for files
+
+  if( length(list.files(directory,pattern = "clipped.tif", recursive = T)) == 19){
+    message("CHELSA files found, skipping download")
+    return(invisible(NULL))
+  }
+
+
+
   #Adjust the download timeout duration (this needs to be large enough to allow the download to complete)
 
     if(getOption('timeout') < 1000){
@@ -27,12 +36,6 @@ get_climate_chelsa <- function(directory = "data/raw_data/climate_chelsa/", doma
   domain_extent <- sf::sf_project(from = crs(domain)@projargs,
                                   to =   crs("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")@projargs,
                  pts = t(as.matrix(extent(domain))))
-
-  if( length(list.files(directory,pattern = ".tif", recursive = T)) == 19){
-    message("CHELSA files found, skipping download")
-    return(invisible(NULL))
-    }
-
 
 
 # Download the data

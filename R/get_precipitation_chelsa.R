@@ -23,8 +23,7 @@ get_precipitation_chelsa <- function(directory = "data/raw_data/precipitation_ch
     options(timeout = 1000)
   }
 
-  #Get the extent
-  ext <- readRDS(file = "data/other_data/domain_extent.RDS")
+ #Check whether the files already exist
 
   if( length(list.files(directory,pattern = ".tif",recursive = T)) == 2){
     message("CHELSA precipitation files found, skipping download")

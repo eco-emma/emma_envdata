@@ -1,3 +1,5 @@
+
+
 #Code for extracting elevation data from google earth engine
 
 #' @author Brian Maitner
@@ -20,6 +22,9 @@ get_elevation_nasadem <- function(directory = "data/raw_data/elevation_nasadem/"
     return(invisible(NULL))
 
   }
+
+  #Initialize rgee (if not done within the function won't work with targets for some reason)
+  ee_Initialize()
 
   # Load the image
     dem <- ee$Image("NASA/NASADEM_HGT/001")
