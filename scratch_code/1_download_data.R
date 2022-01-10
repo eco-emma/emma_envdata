@@ -48,7 +48,7 @@
     get_clouds_wilson(domain = domain) #updated with domain
 
   #Landcover from ZA
-    source("R/get_landcover_za.R")
+    source("R/get_landcover_za.R") #updated with domain
     get_landcover_za()
 
   #ALOS variables from GEE - TPI, insolation, landforms, mTPI, diversity, CHILI
