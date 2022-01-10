@@ -82,6 +82,18 @@ list(
 
 #Frequent updates
   tar_target(
+    fire_modis,
+    get_fire_modis(domain = domain)
+  ),
+  tar_target(
+    kndvi_modis,
+    get_kndvi_modis(domain = domain)
+  ),
+  tar_target(
+    ndvi_dates_modis,
+    get_ndvi_dates_modis(domain = domain)
+  ),
+  tar_target(
     ndvi_modis,
     get_ndvi_modis(domain = domain)
   ),

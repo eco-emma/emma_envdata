@@ -46,8 +46,10 @@ get_ndvi_dates_modis <- function(directory = "data/raw_data/ndvi_dates_modis/", 
       dir.create(directory)
     }
 
-  #ee_Initialize(drive = TRUE)
+  # Initialize earth engine (for targets works better if called here)
+    ee_Initialize()
 
+  # Load the collection
     modis_ndvi <- ee$ImageCollection("MODIS/006/MOD13A1")
 
   #Format the domain

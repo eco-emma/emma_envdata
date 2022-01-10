@@ -60,6 +60,9 @@ get_fire_modis <- function(directory = "data/raw_data/fire_modis/", domain) {
       dir.create(directory)
     }
 
+  # Initialize earth engine (for targets works better if called here)
+    ee_Initialize()
+
   # Load ee image collection
 
     modis_fire <- ee$ImageCollection("MODIS/006/MCD64A1")

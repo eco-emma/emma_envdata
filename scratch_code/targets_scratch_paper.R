@@ -13,3 +13,10 @@
 #run the pipeline
   tar_make()
 
+test <- raster::raster("data/raw_data/ndvi_modis/2000_02_18.tif")
+raster::plot(test)
+library(raster)
+unique(getValues(test))
+
+# Note:
+  # download speed for e.g. ndvi layers much slower now.  Possibly due to new, more complex, domain?

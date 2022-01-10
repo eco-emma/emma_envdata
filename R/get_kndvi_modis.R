@@ -7,7 +7,7 @@ source("R/get_domain.R")
 #' @param directory The directory the kndvi layers should be saved to, defaults to "data/raw_data/kndvi_modis/"
 #' @param domain domain (sf polygon) used for masking
 #' @import rgee
-get_kndvi <- function(directory = "data/raw_data/kndvi_modis/", domain) {
+get_kndvi_modis <- function(directory = "data/raw_data/kndvi_modis/", domain) {
 
 
   # Make a directory if one doesn't exist yet
@@ -15,6 +15,9 @@ get_kndvi <- function(directory = "data/raw_data/kndvi_modis/", domain) {
     if(!dir.exists(directory)){
       dir.create(directory)
     }
+
+  #Initialize earth engine (for targets works better if called here)
+    ee_Initialize()
 
   # Load the image collection
     modis_ndvi <- ee$ImageCollection("MODIS/006/MOD13A1") #500 m
