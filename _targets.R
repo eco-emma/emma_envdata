@@ -54,7 +54,11 @@ list(
   ),
   tar_target(
     alos,
-    get_alos(domain=domain),
+    get_alos(domain=domain)
+  ),
+  tar_target(
+    climate_chelsa,
+    get_climate_chelsa(domain=domain),
     format = "file"
   ),
   tar_target(
