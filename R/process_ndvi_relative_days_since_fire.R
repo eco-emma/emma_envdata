@@ -8,7 +8,8 @@ source("R/get_domain.R")
 
 process_ndvi_relative_days_since_fire <- function(ndvi_date_folder = "data/raw_data/ndvi_dates_modis/",
                                             fire_date_folder = "data/processed_data/most_recent_burn_dates/",
-                                            fire_output_folder = "data/processed_data/ndvi_relative_time_since_fire/"){
+                                            fire_output_folder = "data/processed_data/ndvi_relative_time_since_fire/",
+                                            ...){
 
   #Make folder if needed
     if(! dir.exists(fire_output_folder)){ dir.create(fire_output_folder) }

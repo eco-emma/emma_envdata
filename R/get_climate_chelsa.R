@@ -4,6 +4,8 @@ library(ClimDatDownloadR)
 
 #' @author Brian Maitner
 #' @description This function will download CHELSA climate data if it isn't present, and (invisibly) return a NULL if it is present
+#' @param directory Where to save the files, defaults to "data/raw_data/climate_chelsa/"
+#' @param domain domain (sf polygon) used for masking
 #' @import ClimDatDownloadR
 get_climate_chelsa <- function(directory = "data/raw_data/climate_chelsa/",domain){
 
@@ -13,6 +15,15 @@ get_climate_chelsa <- function(directory = "data/raw_data/climate_chelsa/",domai
       dir.create(directory)
     }
 
+  #check for files
+
+  if( length(list.files(directory,pattern = "clipped.tif", recursive = T)) == 19){
+    message("CHELSA files found, skipping download")
+    return(invisible(NULL))
+  }
+
+
+
   #Adjust the download timeout duration (this needs to be large enough to allow the download to complete)
 
     if(getOption('timeout') < 1000){
@@ -20,14 +31,11 @@ get_climate_chelsa <- function(directory = "data/raw_data/climate_chelsa/",domai
     }
 
 
-  #Get the extent
-#  ext <- readRDS(file = "data/other_data/domain_extent.RDS")
+  #Transform domain to wgs84 to get the coordinates
 
-  if( length(list.files(directory,pattern = ".tif", recursive = T)) == 19){
-    message("CHELSA files found, skipping download")
-    return(invisible(NULL))
-    }
-
+  domain_extent <- sf::sf_project(from = crs(domain)@projargs,
+                                  to =   crs("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")@projargs,
+                 pts = t(as.matrix(extent(domain))))
 
 
 # Download the data
@@ -37,10 +45,10 @@ get_climate_chelsa <- function(directory = "data/raw_data/climate_chelsa/",domai
 
   ClimDatDownloadR::Chelsa.Clim.download(save.location = directory,
                                          parameter = "bio",
-                                         clip.extent = st_bbox(domain)[c(1,3,2,4)],
+                                         clip.extent = domain_extent[c(1,2,3,4)],
                                          clipping = TRUE,
                                          delete.raw.data = TRUE
-  )
+                                         )
 
 
 

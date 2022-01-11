@@ -26,49 +26,52 @@
     if(!dir.exists("data/raw_data/")){dir.create("data/raw_data/")}
     if(!dir.exists("data/processed_data/")){dir.create("data/processed_data/")}
 
+# Set up domain
+
+
 # Infrequent (~ annual?) updates
 
   #Elevation (NASADEM)
-    source("R/get_elevation_nasadem.R")
-    get_elevation_nasadem()
+    source("R/get_elevation_nasadem.R") #updated with domain
+    get_elevation_nasadem(domain = domain)
 
   #Climate (CHELSA)
-    source("R/get_climate_chelsa.R")
-    get_climate_chelsa()
+    source("R/get_climate_chelsa.R") #updated with domain
+    get_climate_chelsa(domain = domain)
 
   #Precipitation
-    source("R/get_precipitation_chelsa.R")
+    source("R/get_precipitation_chelsa.R") #updated with domain
     get_precipitation_chelsa()
 
   #Clouds
     source("R/get_clouds_wilson.R")
-    get_clouds_wilson()
+    get_clouds_wilson(domain = domain) #updated with domain
 
   #Landcover from ZA
-    source("R/get_landcover_za.R")
+    source("R/get_landcover_za.R") #updated with domain
     get_landcover_za()
 
   #ALOS variables from GEE - TPI, insolation, landforms, mTPI, diversity, CHILI
-    source("R/get_alos.R")
+    source("R/get_alos.R") #updated with domain
     get_alos()
 
 # Frequent (~ weekly - monthly) updates
 
   #NDVI
-    source("R/get_ndvi_modis.R")
-    get_ndvi()
+    source("R/get_ndvi_modis.R") #updated with domain
+    get_ndvi(domain = domain)
 
   #KNDVI
-    source("R/get_kndvi_modis.R")
-    get_kndvi()
+    source("R/get_kndvi_modis.R") #updated with domain
+    get_kndvi(domain = domain)
 
   #Fire from MODIS
-    source("R/get_fire_modis.R")
-    get_fire_modis()
+    source("R/get_fire_modis.R") #updated with domain
+    get_fire_modis(domain = domain)
 
   #NDVI dates from MODIS
-    source("R/get_ndvi_dates_modis.R")
-    get_ndvi_dates_modis()
+    source("R/get_ndvi_dates_modis.R") #updated with domain
+    get_ndvi_dates_modis(domain = domain)
 
 
 #Process data (order matters)
