@@ -5,8 +5,9 @@ source("R/get_domain.R")
 #' @description This function will download kndvi layers (derived from MODIS 16 day products), skipping any that have been downloaded already.
 #' @author Brian Maitner, but built from code by Qinwen, Adam, and the KNDVI ms authors
 #' @param directory The directory the kndvi layers should be saved to, defaults to "data/raw_data/kndvi_modis/"
+#' @param domain domain (sf polygon) used for masking
 #' @import rgee
-get_kndvi <- function(directory = "data/raw_data/kndvi_modis/") {
+get_kndvi_modis <- function(directory = "data/raw_data/kndvi_modis/", domain) {
 
 
   # Make a directory if one doesn't exist yet
@@ -15,12 +16,18 @@ get_kndvi <- function(directory = "data/raw_data/kndvi_modis/") {
       dir.create(directory)
     }
 
+  #Initialize earth engine (for targets works better if called here)
+    ee_Initialize()
+
   # Load the image collection
     modis_ndvi <- ee$ImageCollection("MODIS/006/MOD13A1") #500 m
     # modis_ndvi <- ee$ImageCollection("MODIS/006/MOD13A2") #1 km
 
 
-  domain <- get_domain()
+  #Format the domain
+    domain <- sf_as_ee(x = domain)
+    domain <- domain$geometry()
+
 
   #Set Visualization parameters
 
