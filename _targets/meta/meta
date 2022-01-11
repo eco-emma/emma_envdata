@@ -12,8 +12,8 @@ model_data|stem|4b47a4fede880056|8223ad42e5e049cb|f92b99e321a7c2ab|-495503059|da
 vegmap_shp|stem|d3744d69c8da6bb2|193e3e8d55a8bbd4|ef46db3751d8e999|-232248272|data/manual_download/VEGMAP2018_AEA_16082019Final/NVM2018_AEA_V22_7_16082019_final.shp|t18977.7951949704s|9cc1ad1c26fc3f86|493121012|file|vector|||1.075||
 remnants_shp|stem|9dc0c644eedf6430|81ff8511059852c0|ef46db3751d8e999|1961884837|data/manual_download/RLE_2021_Remnants/RLE_Terr_2021_June2021_Remnants_ddw.shp|t18977.7962072854s|9fd0b3ef5a76431f|726393404|file|vector|||0.001||
 ndvi|stem||0845e9d612c00988|a6ca0a7681325c6b|-1608034659||t18998.8862528718s||0|file|vector|||4459.479||Error in the HTTP2 framing layer
-alos|stem|3ae505606be9ddd9|e075079d0c926a3a|997e759716ec9a40|1794838964|data/raw_data/alos/|t18998.9404815127s|a75e104011428481|4096|file|vector|||1.059||
 domain|stem|655dea841d382d95|7a783623d7c8b012|ea1ef9ffbef37d3b|640757417||t18999.000194083s|c233e5bdd1ddd8a9|2171832|rds|vector|||75.127||
+alos|stem|3ae505606be9ddd9|e075079d0c926a3a|38fbb58df5295dcb|1794838964|data/raw_data/alos/|t18998.9404815127s|a75e104011428481|4096|file|vector|||0.989||
 getQABits_match|function|866042616e64190c||||||||||||||
 domain_map|function|b3a8249eb2758de6||||||||||||||
 get_soil_gcfr|function|e4af25f0baf15c88||||||||||||||
@@ -24,7 +24,7 @@ domain_remnants|function|199dfa8f66690059||||||||||||||
 national_boundary|function|98c948356a6f3853||||||||||||||
 get_landcover_za|function|0e6c77fc4f9a908e||||||||||||||
 update_git|function|f837db84a6c90d8a||||||||||||||
-.Random.seed|object|a2767b997f617db5||||||||||||||
+.Random.seed|object|b1f71cbe64618c82||||||||||||||
 process_domain|function|cd5c58bd66fc7f66||||||||||||||
 group_data_function|function|cf81a22df7ca8418||||||||||||||
 clean_data|function|484d9c4667cbdd4d||||||||||||||
@@ -37,17 +37,17 @@ fit_model|function|d0d4e0ea8d7f400c||||||||||||||
 process_ndvi_relative_days_since_fire|function|e1f0dfff752a7b8c||||||||||||||
 domain_rasterize|function|44797f03c1431513||||||||||||||
 stan_data_function|function|60507201f11a2ffe||||||||||||||
-get_climate_chelsa|function|09406f624a7b1302||||||||||||||
+get_climate_chelsa|function|dffa9818d69643cf||||||||||||||
 get_precipitation_chelsa|function|4dd53febf8e63cca||||||||||||||
 summarize_posteriors|function|92d2f12f0d1f6071||||||||||||||
 process_fire_doy_to_unix_date|function|1520f6e331cbfaf4||||||||||||||
 get_clouds_wilson|function|3cf71ddc4f215e0a||||||||||||||
 MCD64A1_clean|function|497d11983dd6d889||||||||||||||
-get_alos_data|function|892f6f04b6132eef||||||||||||||
+get_alos_data|function|72b73f07593c2c4d||||||||||||||
 get_elevation_nasadem|function|644ec3ea1b2e9e7c||||||||||||||
 get_ndvi|function|22c06484e3e1c498||||||||||||||
 get_kndvi|function|c1d650ecc7a0bf6a||||||||||||||
 get_ndvi_dates_modis|function|c37d34760309839f||||||||||||||
 get_fire_modis|function|22c0379798b1b53f||||||||||||||
-get_alos|function|a842944ca65625e6||||||||||||||
-chelsa|stem||e9c447909f8ca42e|33a755d10676f91f|-2121112400||t18998.8158226411s||0|file|vector|||1.049||error reading from connection
+get_alos|function|fc76439d48ebe5bb||||||||||||||
+chelsa|stem|7a8d851df7618ac1|ecea8a3dc8adc659|a5b5647198251502|-2121112400|data/raw_data/climate_chelsa/|t18999.9569645207s|a75e104011428481|4096|file|vector|||5381.694||

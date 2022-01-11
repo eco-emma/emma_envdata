@@ -59,7 +59,7 @@ list(
   ),
   tar_target(
     chelsa,
-    get_climate_chelsa(directory = "data/raw_data/climate_chelsa/"),
+    get_climate_chelsa(directory = "data/raw_data/climate_chelsa/",domain=domain),
     format = "file"
   ),
   #   tar_target(
