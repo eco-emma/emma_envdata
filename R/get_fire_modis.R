@@ -2,8 +2,6 @@
 
 library(rgee)
 
-source("R/get_domain.R")
-
 #Below I've modified some existing code to mask any data that isn't land data with sufficient information available
 #There are additional filters we can apply using the QA data if we like, but this seems like a good start
 
@@ -72,17 +70,17 @@ get_fire_modis <- function(directory = "data/raw_data/fire_modis/", domain) {
     domain <- sf_as_ee(x = domain)
     domain <- domain$geometry()
 
-  # get metadata
-
-    info <- modis_fire$getInfo()
-
-  # Set Visualization parameters
-
-    fireviz <- list(
-      min = info$properties$visualization_0_min,
-      max = info$properties$visualization_0_max,
-      palette = c('00FFFF','FF00FF')
-    )
+  # # get metadata
+  #
+  #   info <- modis_fire$getInfo()
+  #
+  # # Set Visualization parameters
+  #
+  #   fireviz <- list(
+  #     min = info$properties$visualization_0_min,
+  #     max = info$properties$visualization_0_max,
+  #     palette = c('00FFFF','FF00FF')
+  #   )
 
   # Clean data using QA
 
@@ -126,9 +124,9 @@ get_fire_modis <- function(directory = "data/raw_data/fire_modis/", domain) {
     #                             dsn = directory,
     #                             formatOptions = c(cloudOptimized = true))
 
-    # Cleanup
-
-      rm(fireviz, info, modis_fire)
+    # # Cleanup
+    #
+    #   rm(fireviz, info, modis_fire)
 
     # End
 

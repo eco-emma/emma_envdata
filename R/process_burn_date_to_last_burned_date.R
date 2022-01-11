@@ -2,7 +2,8 @@
 #' @description This function converts rasters containing burn dates (in UNIX date format) to rasters containing the most recent burn date (also in UNIX format)
 
 process_burn_date_to_last_burned_date <- function(input_folder = "data/processed_data/fire_dates/",
-                                           output_folder = "data/processed_data/most_recent_burn_dates/"){
+                                           output_folder = "data/processed_data/most_recent_burn_dates/",
+                                           ...){
 
 
   if(!dir.exists(output_folder)){dir.create(output_folder)}

@@ -20,3 +20,8 @@ unique(getValues(test))
 
 # Note:
   # download speed for e.g. ndvi layers much slower now.  Possibly due to new, more complex, domain?
+
+tar_load(domain)
+get_fire_modis(domain = domain)
+get_ndvi_dates_modis(domain = domain)
+process_fire_doy_to_unix_date()

@@ -20,6 +20,9 @@ if(F) {
 
 
 list(
+
+  #Prep needed files
+
   tar_target(
     vegmap_shp, # 2018 National Vegetation Map http://bgis.sanbi.org/SpatialDataset/Detail/1674
     "raw_data/VEGMAP2018_AEA_16082019Final/NVM2018_AEA_V22_7_16082019_final.shp",
@@ -53,49 +56,75 @@ list(
     format = "file"
   ),
 
-  #Infrequent downloads
+  #Infrequent updates
 
-  tar_target(
+  tar_age(
     alos,
-    get_alos(domain = domain)
+    get_alos(domain = domain),
+    age = as.difftime(26, units = "weeks")
   ),
-  tar_target(
+  tar_age(
     climate_chelsa,
-    get_climate_chelsa(domain = domain)
+    get_climate_chelsa(domain = domain),
+    age = as.difftime(26, units = "weeks")
   ),
-  tar_target(
+  tar_age(
     clouds_wilson,
-    get_clouds_wilson(domain = domain)
+    get_clouds_wilson(domain = domain),
+    age = as.difftime(26, units = "weeks")
   ),
-  tar_target(
+  tar_age(
     elevation_nasadem,
-    get_elevation_nasadem(domain = domain)
+    get_elevation_nasadem(domain = domain),
+    age = as.difftime(26, units = "weeks")
   ),
-  tar_target(
+  tar_age(
     landcover_za,
-    get_landcover_za(domain = domain)
+    get_landcover_za(domain = domain),
+    age = as.difftime(26, units = "weeks")
   ),
-  tar_target(
+  tar_age(
     precipitation_chelsa,
-    get_precipitation_chelsa(domain = domain)
+    get_precipitation_chelsa(domain = domain),
+    age = as.difftime(26, units = "weeks")
   ),
 
 #Frequent updates
-  tar_target(
+  tar_age(
     fire_modis,
-    get_fire_modis(domain = domain)
+    get_fire_modis(domain = domain),
+    age = as.difftime(7, units = "days")
   ),
-  tar_target(
+  tar_age(
     kndvi_modis,
-    get_kndvi_modis(domain = domain)
+    get_kndvi_modis(domain = domain),
+    age = as.difftime(7, units = "days")
   ),
-  tar_target(
-    ndvi_dates_modis,
-    get_ndvi_dates_modis(domain = domain)
-  ),
-  tar_target(
+  tar_age(
     ndvi_modis,
-    get_ndvi_modis(domain = domain)
+    get_ndvi_modis(domain = domain),
+    age = as.difftime(7, units = "days")
+  ),
+  tar_age(
+    ndvi_dates_modis,
+    get_ndvi_dates_modis(domain = domain),
+    age = as.difftime(7, units = "days")
+  ),
+
+
+# Processing
+  tar_target(
+    fire_doy_to_unix_date,
+    process_fire_doy_to_unix_date(fire_modis)
+  ),
+  tar_target(
+    burn_date_to_last_burned_date,
+    process_burn_date_to_last_burned_date(fire_doy_to_unix_date)
+  ),
+  tar_target(
+    ndvi_relative_days_since_fire,
+    process_ndvi_relative_days_since_fire(burn_date_to_last_burned_date,
+                                          ndvi_dates_modis)
   ),
   tar_target(
     model_data,
