@@ -60,10 +60,6 @@ list(
 
   tar_age(
     alos,
-<<<<<<< HEAD
-    get_alos("data/raw_data/alos/"),
-    format = "file"
-=======
     get_alos(domain = domain),
     age = as.difftime(26, units = "weeks")
   ),
@@ -99,11 +95,11 @@ list(
     get_fire_modis(domain = domain),
     age = as.difftime(7, units = "days")
   ),
-  tar_age(
-    kndvi_modis,
-    get_kndvi_modis(domain = domain),
-    age = as.difftime(7, units = "days")
-  ),
+  # tar_age(
+  #   kndvi_modis,
+  #   get_kndvi_modis(domain = domain),
+  #   age = as.difftime(7, units = "days")
+  # ),
   tar_age(
     ndvi_modis,
     get_ndvi_modis(domain = domain),
@@ -129,18 +125,7 @@ list(
     ndvi_relative_days_since_fire,
     process_ndvi_relative_days_since_fire(burn_date_to_last_burned_date,
                                           ndvi_dates_modis)
->>>>>>> 9ea2e174a9b9b05458bfd7eaad3ee03adcbe182e
   ),
-  tar_target(
-    chelsa,
-    get_climate_chelsa(directory = "data/raw_data/climate_chelsa/"),
-    format = "file"
-  ),
-  #   tar_target(
-  #   ndvi,
-  #   get_ndvi(directory = "data/raw_data/ndvi_modis/"),
-  #   format = "file"
-  # ),
   tar_target(
     model_data,
     get_model_data(remnant_distance),
