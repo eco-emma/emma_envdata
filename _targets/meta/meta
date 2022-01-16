@@ -4,25 +4,28 @@ rasterize_domain|function|875039500aad9c48||||||||||||||
 get_national_boundary|function|99fa5ffc020cbd63||||||||||||||
 domain_edgedistance|stem||401d57c2fb24d7dc|df145d2b69e6d3fc|2127448252||t18981.9115219128s||0|file|vector|||0.002||could not find function domain_distance
 za|stem|a17ad732d16586d7|b6a9176b6c51da0c|8618c820e3bd8672|249565237||t18982.713246292s|ff026697d66e9a9f|75|rds|vector|||8.816||
-remnants|stem|006ccc331dc96a25|7d78ea0be657b6ea|a45d26b42f8abebe|630969701|data/remnants.tif|t19002.7790630344s|ec80fcf7d0a85e2f|915945|file|vector|||80.927||
-climate_chelsa|stem|4ac1eb883db90b0f|99f4a2e0245696e3|db9ee61fe8b23c39|558800862||t19002.8695014765s|a1c456b03adbfbf8|44|rds|vector|||1.132||
 remnant_distance|stem|f2baefe7161f7453|9326018404110314|3479cd8f7362108b|-1777723304|data/remnant_distance.tif|t19002.8695132032s|cdcc17971c8665ee|721827|file|vector|||1.038||
 model_data|stem|4b47a4fede880056|8223ad42e5e049cb|f92b99e321a7c2ab|-495503059|data/model_data.csv|t19002.8695273527s|2166b4d5a598ebf2|132850454|file|vector|||1.152||
 nasa_dem|stem||6900031d0bd8b48c|92690e568f0835bb|-1734817609||t19002.8716915498s||0|rds|vector|||0.972||could not find function get_nasadem
-elevation_nasadem|stem|4ac1eb883db90b0f|168eaedd9e679f1f|22030e93ab91c3d6|-1875480619||t19002.9486666276s|a1c456b03adbfbf8|44|rds|vector|||1.117||
-precipitation_chelsa|stem|4ac1eb883db90b0f|7199549b0a2f0b42|e0274b0fd94d57ea|-1119422601||t19002.9541915407s|a1c456b03adbfbf8|44|rds|vector|||345.445||
-clouds_wilson|stem|4ac1eb883db90b0f|6ecb469165f9be5d|d50df5d8a744a12d|526667795||t19002.9541931984s|a1c456b03adbfbf8|44|rds|vector|||0.119||
-landcover_za|stem|4ac1eb883db90b0f|3386a5338d2753ab|30dd604f0a320f22|-69106787||t19002.9565215476s|a1c456b03adbfbf8|44|rds|vector|||0.947||
-ndvi_modis|stem||de45493152f51759|a72b9f78938549a7|305104419||t19002.9587158683s||0|rds|vector|||1.506||EEException Earth Engine client library not initialized. Run ee.InitializeDetailed traceback  File usrlocallibpython3.8distpackageseecomputedobject.py, line 32, in __call__    return type.__call__cls, args, kwargs  File usrlocallibpython3.8distpackageseeimagecollection.py, line 38, in __init__    self.initialize  File usrlocallibpython3.8distpackageseeimagecollection.py, line 72, in initialize    superImageCollection, cls.initialize  File usrlocallibpython3.8distpackageseecollection.py, line 32, in initialize    apifunction.ApiFunction.importApicls, Collection, Collection  File usrlocallibpython3.8distpackageseeapifunction.py, line 183, in importApi    cls.initialize  File usrlocallibpython3.8distpackageseeapifunction.py, line 154, in initialize    signatures  data.getAlgorithms  File usrlocallibpython3.8distpackageseedata.py, line 992, in getAlgorithms    call  _get_cloud_api_resource.projects.algorithms.list  File usrlocallibpython3.8distpackageseedata.py, line 288, in _get_cloud_api_resource    raise ee_exception.EEException
 get_kndvi|function|1ce84e65ad844f28||||||||||||||
+process_domain|function|cd5c58bd66fc7f66||||||||||||||
 vegmap_shp|stem|d3744d69c8da6bb2|e25235a0b8cd4967|ef46db3751d8e999|-232248272|raw_data/VEGMAP2018_AEA_16082019Final/NVM2018_AEA_V22_7_16082019_final.shp|t18997.6958847567s|9cc1ad1c26fc3f86|493121012|file|vector|||1.014||
 remnants_shp|stem|9dc0c644eedf6430|18bad651361ef047|ef46db3751d8e999|1961884837|raw_data/RLE_2021_Remnants/RLE_Terr_2021_June2021_Remnants_ddw.shp|t18997.6973174499s|9fd0b3ef5a76431f|726393404|file|vector|||0.001||
 country|stem|e1ba870f74ff51d0|b6a9176b6c51da0c|4b52215de67bc2a9|-396713552||t19002.7106028758s|762b0ff687cec244|3225950|rds|vector|||44.977||
 vegmap|stem|b502445ec7320d62|1811b4a0f90e1688|26cd61d94db2b5bd|602754364||t19002.7741926894s|d2ddbb368a516aaa|79094695|rds|vector|||41.98||
 domain|stem|655dea841d382d95|7a783623d7c8b012|26e423e0c1a9d2be|640757417||t19002.7749104068s|c233e5bdd1ddd8a9|2171832|rds|vector|||61.37||
-process_domain|function|cd5c58bd66fc7f66||||||||||||||
-fire_doy_to_unix_date|stem|4ac1eb883db90b0f|d112acc7e7f5469a|d3eb74c4594d11ee|-1541145076||t19003.6618779338s||44|rds|vector|||0.812||object fire_modis not found
 alos|stem|4ac1eb883db90b0f|a73bb6286224cc7c|0b7e694cb11719f2|1794838964||t19003.7218651035s|a1c456b03adbfbf8|44|rds|vector|||3.529||
+ndvi_modis|stem|d564f2231b115055|de45493152f51759|75abba737d2bc4b0|305104419||t19007.026442806s|5eccb956753eba15|1560|rds|vector|||11030.079||
+fire_modis|stem|4ac1eb883db90b0f|47cd490ca08744a2|9d37093d488149dc|1443052342||t19008.7519513054s|a1c456b03adbfbf8|44|rds|vector|||149083.861||
+remnants|stem|006ccc331dc96a25|7d78ea0be657b6ea|a45d26b42f8abebe|630969701|data/remnants.tif|t19002.7790630344s|ec80fcf7d0a85e2f|915945|file|vector|||80.927||
+elevation_nasadem|stem|4ac1eb883db90b0f|168eaedd9e679f1f|22030e93ab91c3d6|-1875480619||t19002.9486666276s|a1c456b03adbfbf8|44|rds|vector|||1.117||
+climate_chelsa|stem|4ac1eb883db90b0f|99f4a2e0245696e3|db9ee61fe8b23c39|558800862||t19002.8695014765s|a1c456b03adbfbf8|44|rds|vector|||1.132||
+precipitation_chelsa|stem|4ac1eb883db90b0f|7199549b0a2f0b42|e0274b0fd94d57ea|-1119422601||t19002.9541915407s|a1c456b03adbfbf8|44|rds|vector|||345.445||
+clouds_wilson|stem|4ac1eb883db90b0f|6ecb469165f9be5d|d50df5d8a744a12d|526667795||t19002.9541931984s|a1c456b03adbfbf8|44|rds|vector|||0.119||
+landcover_za|stem|4ac1eb883db90b0f|3386a5338d2753ab|30dd604f0a320f22|-69106787||t19002.9565215476s|a1c456b03adbfbf8|44|rds|vector|||0.947||
+template|stem|04fc9289fcf8ccef|b60205904e5ebb71|2abb0985e77d57bb|-1092328110||t19008.7895064909s|f0e2d074f48d80b1|692721|rds|vector|||1.084||
+fire_doy_to_unix_date|stem|4ac1eb883db90b0f|bf360ba34319669b|1c4f28a90c55cc95|-1541145076||t19008.7932976451s|a1c456b03adbfbf8|44|rds|vector|||255.83||
+projected_alos|stem||c84c407f044a2507|8e5ced27c8390a2d|-14066847||t19008.7933028976s||0|rds|vector|||0.015||invalid filename argument
 getQABits_match|function|866042616e64190c||||||||||||||
 domain_map|function|b3a8249eb2758de6||||||||||||||
 get_soil_gcfr|function|e4af25f0baf15c88||||||||||||||
@@ -33,13 +36,15 @@ domain_remnants|function|199dfa8f66690059||||||||||||||
 national_boundary|function|98c948356a6f3853||||||||||||||
 get_landcover_za|function|9c2b773a22add072||||||||||||||
 update_git|function|f837db84a6c90d8a||||||||||||||
-.Random.seed|object|1df984a6f7148c05||||||||||||||
+.Random.seed|object|6b8523fabbb0818d||||||||||||||
 get_domain|function|f4a2cb4148ca73b4||||||||||||||
 group_data_function|function|cf81a22df7ca8418||||||||||||||
 clean_data|function|484d9c4667cbdd4d||||||||||||||
 get_alos_data|function|26aa3ba42cf425c1||||||||||||||
 get_model_data|function|9e05be8a27aace67||||||||||||||
+get_template_raster|function|ccde72e48ed01aa9||||||||||||||
 get_kndvi_modis|function|f7d7475ddcb4b3e8||||||||||||||
+process_alos|function|d1c0f225d819f7f4||||||||||||||
 get_elevation_nasadem|function|e7f7a3b0415747eb||||||||||||||
 process_burn_date_to_last_burned_date|function|049eadff781b174d||||||||||||||
 domain_define|function|d64c95da6773fe74||||||||||||||
@@ -69,13 +74,15 @@ domain_remnants|function|199dfa8f66690059
 national_boundary|function|98c948356a6f3853
 get_landcover_za|function|9c2b773a22add072
 update_git|function|f837db84a6c90d8a
-.Random.seed|object|2c9e6c8b866b540a
+.Random.seed|object|75bc8cd4e2f4ab2f
 get_domain|function|f4a2cb4148ca73b4
 group_data_function|function|cf81a22df7ca8418
 clean_data|function|484d9c4667cbdd4d
 get_alos_data|function|26aa3ba42cf425c1
 get_model_data|function|9e05be8a27aace67
+get_template_raster|function|ccde72e48ed01aa9
 get_kndvi_modis|function|f7d7475ddcb4b3e8
+process_alos|function|d1c0f225d819f7f4
 get_elevation_nasadem|function|e7f7a3b0415747eb
 process_burn_date_to_last_burned_date|function|049eadff781b174d
 domain_define|function|d64c95da6773fe74

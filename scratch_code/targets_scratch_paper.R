@@ -25,3 +25,17 @@ tar_load(domain)
 get_fire_modis(domain = domain)
 get_ndvi_dates_modis(domain = domain)
 process_fire_doy_to_unix_date()
+
+
+##################################
+
+# Which files need re-projection?
+
+#Using nsvi as a base
+  template <- terra::rast(x = "data/raw_data/ndvi_modis/2000_02_18.tif")
+
+# alos
+
+  test <- terra::raster("data/raw_data/alos/alos_chili.tif")
+  test@crs
+

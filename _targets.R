@@ -54,9 +54,9 @@ list(
     remnant_distance,
     domain_distance(remnants),
     format = "file"
-  ),
+   ),
 
-  #Infrequent updates
+# Infrequent updates
 
   tar_age(
     alos,
@@ -89,17 +89,18 @@ list(
     age = as.difftime(26, units = "weeks")
   ),
 
-#Frequent updates
+# Frequent updates
+
   tar_age(
     fire_modis,
     get_fire_modis(domain = domain),
     age = as.difftime(7, units = "days")
   ),
-  tar_age(
-    kndvi_modis,
-    get_kndvi_modis(domain = domain),
-    age = as.difftime(7, units = "days")
-  ),
+  # tar_age(
+  #   kndvi_modis,
+  #   get_kndvi_modis(domain = domain),
+  #   age = as.difftime(7, units = "days")
+  # ),
   tar_age(
     ndvi_modis,
     get_ndvi_modis(domain = domain),
@@ -113,13 +114,14 @@ list(
 
 
 # Processing
+
   tar_target(
     fire_doy_to_unix_date,
-    process_fire_doy_to_unix_date(fire_modis)
+    process_fire_doy_to_unix_date(... = fire_modis)
   ),
   tar_target(
     burn_date_to_last_burned_date,
-    process_burn_date_to_last_burned_date(fire_doy_to_unix_date)
+    process_burn_date_to_last_burned_date(... = fire_doy_to_unix_date)
   ),
   tar_target(
     ndvi_relative_days_since_fire,
@@ -130,7 +132,15 @@ list(
     model_data,
     get_model_data(remnant_distance),
     format = "file"
-  )
+  ),
+  tar_target(
+    template,
+    get_template_raster(... = ndvi_modis)
+  )#,
+  # tar_target(
+  #   projected_alos,
+  #   process_alos(template = template, ... = alos)
+  # )
 
 )
 
