@@ -1,7 +1,7 @@
 #' @author Brian Maitner
 #' @param input_dir directory where the input files live
 #' @param output_dir directory for the output files
-#' @param template raster to use for reprojection
+#' @param template path to raster file to use as a template for reprojection
 #' @param ... Does nothing, but is used in making connections between files in the targets framework
 #' @note This function uses bilinear for continuous variables and nearest neighbor for categorical
 process_alos <- function(input_dir = "data/raw_data/alos/",
@@ -19,6 +19,8 @@ process_alos <- function(input_dir = "data/raw_data/alos/",
     dir.create(output_dir)
   }
 
+# get template raster
+  template <- terra::rast(template)
 
 # get input rasters
 

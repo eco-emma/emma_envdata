@@ -106,11 +106,11 @@ list(
     get_ndvi_modis(domain = domain),
     age = as.difftime(7, units = "days")
   ),
-  tar_age(
-    ndvi_dates_modis,
-    get_ndvi_dates_modis(domain = domain),
-    age = as.difftime(7, units = "days")
-  ),
+  # tar_age(
+  #   ndvi_dates_modis,
+  #   get_ndvi_dates_modis(domain = domain),
+  #   age = as.difftime(7, units = "days")
+  # ),
 
 
 # Processing
@@ -123,11 +123,11 @@ list(
     burn_date_to_last_burned_date,
     process_burn_date_to_last_burned_date(... = fire_doy_to_unix_date)
   ),
-  tar_target(
-    ndvi_relative_days_since_fire,
-    process_ndvi_relative_days_since_fire(burn_date_to_last_burned_date,
-                                          ndvi_dates_modis)
-  ),
+  # tar_target(
+  #   ndvi_relative_days_since_fire,
+  #   process_ndvi_relative_days_since_fire(burn_date_to_last_burned_date,
+  #                                         ndvi_dates_modis)
+  # ),
   tar_target(
     model_data,
     get_model_data(remnant_distance),
@@ -136,11 +136,32 @@ list(
   tar_target(
     template,
     get_template_raster(... = ndvi_modis)
-  )#,
-  # tar_target(
-  #   projected_alos,
-  #   process_alos(template = template, ... = alos)
-  # )
+  ),
+  tar_target(
+    projected_alos,
+    process_alos(template = template, ... = alos)
+  ),
+  tar_target(
+    projected_climate_chelsa,
+    process_climate_chelsa(template = template, ... = climate_chelsa)
+  ),
+  tar_target(
+    projected_clouds_wilson,
+    process_clouds_wilson(template = template, ... = clouds_wilson)
+  ),
+  tar_target(
+    projected_elevation_nasadem,
+    process_elevation_nasadem(template = template, ... = elevation_nasadem)
+   ),
+  tar_target(
+    projected_landcover_za,
+    process_landcover_za(template = template, ... = landcover_za)
+  ),
+  tar_target(
+    projected_precipitation_chelsa,
+    process_precipitation_chelsa(template = template, ... = precipitaton_chelsa)
+  )
+
 
 )
 
