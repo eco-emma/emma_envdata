@@ -106,7 +106,7 @@ get_ndvi_modis <- function(directory = "data/raw_data/ndvi_modis/", domain) {
                               formatOptions = c(cloudOptimized = true))
 
 
-
+return(directory)
 
 }
 

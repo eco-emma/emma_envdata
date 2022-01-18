@@ -7,7 +7,7 @@ library(ClimDatDownloadR)
 #' @param directory Where to save the files, defaults to "data/raw_data/climate_chelsa/"
 #' @param domain domain (sf polygon) used for masking
 #' @import ClimDatDownloadR
-get_climate_chelsa <- function(directory = "data/raw_data/climate_chelsa/", domain){
+get_climate_chelsa <- function(directory = "data/raw_data/climate_chelsa/",domain){
 
   #make a directory if one doesn't exist yet
 
@@ -68,7 +68,7 @@ get_climate_chelsa <- function(directory = "data/raw_data/climate_chelsa/", doma
 
 
   message("CHELSA climate files downloaded")
-  return(invisible(NULL))
+  return(directory)
 
 
 } # end fx
