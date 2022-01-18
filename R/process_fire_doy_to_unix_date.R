@@ -4,7 +4,7 @@
 
 
 process_fire_doy_to_unix_date <- function(input_folder = "data/raw_data/fire_modis/",
-                             output_folder = "data/processed_data/fire_dates/"){
+                             output_folder = "data/processed_data/fire_dates/", ...){
 
 
   #make folder if needed

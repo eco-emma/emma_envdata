@@ -2,12 +2,11 @@
 
 #' @author Brian Maitner
 
-#' @author Brian Maitner
-
 #' @description This function will download South Africa national landcover layers, skipping any that have been downloaded already.
 #' @author Brian Maitner
 #' @param directory The directory the soil layers should be saved to, defaults to "data/raw_data/landcover_za/"
-get_landcover_za <- function(directory = "data/raw_data/landcover_za/") {
+#' @param domain domain (sf polygon) used for masking
+get_landcover_za <- function(directory = "data/raw_data/landcover_za/", domain) {
 
   #make a directory if one doesn't exist yet
 
@@ -54,58 +53,36 @@ get_landcover_za <- function(directory = "data/raw_data/landcover_za/") {
   #Delete the zipped version (which isn't much smaller anyway)
     file.remove(paste(directory, filename, sep = ""))
 
-  # Load in domain
-
-    if(file.exists("data/other_data/domain.shp")) {
-
-      domain <- sf::read_sf("data/other_data/domain.shp")
-
-      #Buffer the domain to get the object size down
-      domain_buffered <- sf::st_buffer(x = domain,
-                                       dist = 5000)
-
-    }else{
-
-      ext <- readRDS(file = "data/other_data/domain_extent.RDS")
-
-    }#end else
-
-  #Load in raster
-
+  # Load the raster
     raster_i <- raster::raster(x = list.files(directory,
                                               pattern = ".tif$",
                                               full.names = TRUE))
 
-  #Reproject domain to match raster
+  # Reproject domain to match raster
 
-    domain_buffered <- sf::st_transform(x = domain_buffered,
+    domain_tf <- sf::st_transform(x = domain_tf,
                                         crs = crs(raster_i))
 
+  # Crop to extent
 
-    ext <- extent(domain_buffered)
+    raster_i <- raster::crop(x = raster_i,
+                             y = extent(domain_tf))
 
-    #Crop to extent
-      raster_i <- raster::crop(x = raster_i,
-                               y = ext)
+  # Mask to domain
 
-    #If theres a domain object, do a mask
-      if(exists(x = "domain_buffered")){
+    raster_i <- terra::mask(x = raster_i,
+                            mask = domain_tf)
 
-        raster_i <- terra::mask(x = raster_i,
-                                mask = domain_buffered)
-
-      }
-
-    # Save the cropped/masked raster
+  # Save the cropped/masked raster
       writeRaster(x = raster_i,
                   filename = list.files(directory,
                                         pattern = ".tif$",
                                         full.names = TRUE),
                   overwrite = TRUE)
 
-    # Finish up
-      message("Landcover layer downloaded")
-      return(invisible(NULL))
+  # Finish up
+    message("Landcover layer downloaded")
+    return(invisible(NULL))
 
 }
 
