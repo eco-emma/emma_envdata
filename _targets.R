@@ -130,6 +130,34 @@ list(
     model_data,
     get_model_data(remnant_distance),
     format = "file"
+  ),
+  tar_target(
+    template,
+    get_template_raster(... = ndvi_modis)
+  ),
+  tar_target(
+    projected_alos,
+    process_alos(template = template, ... = alos)
+  ),
+  tar_target(
+    projected_climate_chelsa,
+    process_climate_chelsa(template = template, ... = climate_chelsa)
+  ),
+  tar_target(
+    projected_clouds_wilson,
+    process_clouds_wilson(template = template, ... = clouds_wilson)
+  ),
+  tar_target(
+    projected_elevation_nasadem,
+    process_elevation_nasadem(template = template, ... = elevation_nasadem)
+  ),
+  tar_target(
+    projected_landcover_za,
+    process_landcover_za(template = template, ... = landcover_za)
+  ),
+  tar_target(
+    projected_precipitation_chelsa,
+    process_precipitation_chelsa(template = template, ... = precipitaton_chelsa)
   )
 
 )
