@@ -25,3 +25,11 @@ tar_load(domain)
 get_fire_modis(domain = domain)
 get_ndvi_dates_modis(domain = domain)
 process_fire_doy_to_unix_date()
+
+tar_load(template)
+plot(template)
+template
+
+
+###################
+#Notes: Need to think on landcover, landforms
