@@ -37,3 +37,5 @@ data/*
 */other_data/*
 .DS_Store
 */meta
+img/network.html
+img/network*
