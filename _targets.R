@@ -105,26 +105,26 @@ list(
     get_ndvi_modis(domain = domain),
     age = as.difftime(7, units = "days")
   ),
-  tar_age(
-    ndvi_dates_modis,
-    get_ndvi_dates_modis(domain = domain),
-    age = as.difftime(7, units = "days")
-  ),
+  # tar_age(
+  #   ndvi_dates_modis,
+  #   get_ndvi_dates_modis(domain = domain),
+  #   age = as.difftime(7, units = "days")
+  # ),
 
 
 # Processing
   tar_target(
     fire_doy_to_unix_date,
-    process_fire_doy_to_unix_date(fire_modis)
+    process_fire_doy_to_unix_date(... = fire_modis)
   ),
   tar_target(
     burn_date_to_last_burned_date,
-    process_burn_date_to_last_burned_date(fire_doy_to_unix_date)
+    process_burn_date_to_last_burned_date(... = fire_doy_to_unix_date)
   ),
   tar_target(
     ndvi_relative_days_since_fire,
-    process_ndvi_relative_days_since_fire(burn_date_to_last_burned_date,
-                                          ndvi_dates_modis)
+    process_ndvi_relative_days_since_fire(... = burn_date_to_last_burned_date,
+                                          ... = ndvi_dates_modis)
   ),
   tar_target(
     model_data,
@@ -158,7 +158,26 @@ list(
   tar_target(
     projected_precipitation_chelsa,
     process_precipitation_chelsa(template = template, ... = precipitaton_chelsa)
-  )
+  ),
+
+# Prep model data
+  tar_target(
+    stable_data,
+    process_stable_data(output_dir = "data/processed_data/model_data/",
+                        precip_dir = "data/processed_data/precipitation_chelsa/",
+                        landcover_dir = "data/processed_data/landcover_za/",
+                        elevation_dir = "data/processed_data/elevation_nasadem/",
+                        cloud_dir = "data/processed_data/clouds_wilson/",
+                        climate_dir = "data/processed_data/climate_chelsa/",
+                        alos_dir = "data/processed_data/alos/",
+                        ... = projected_precipitation_chelsa,
+                        ... = projected_landcover_za,
+                        ... = projected_elevation_nasadem,
+                        ... = projected_clouds_wilson,
+                        ... = projected_climate_chelsa,
+                        ... = projected_alos),
+    format = "file"
+)
 
 )
 

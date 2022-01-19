@@ -74,3 +74,17 @@ tar_load(domain)
 get_fire_modis(domain = domain)
 get_ndvi_dates_modis(domain = domain)
 process_fire_doy_to_unix_date()
+
+##################
+
+# gets to update
+
+  #elevation nasa
+
+  #landcover za
+
+#process functions to update
+
+  #alos
+
+  #elevation
