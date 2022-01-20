@@ -1,3 +1,4 @@
+library(arrow)
 
 #' @param output_dir directory (no file name) in which to save the csv that is returned
 #' @param precip_dir directory containing the precipitation layers
@@ -23,33 +24,43 @@ process_stable_data <- function(output_dir = "data/processed_data/model_data/",
       dir.create(output_dir)
     }
 
+  # process data
 
+    c(precip_dir,
+      landcover_dir,
+      elevation_dir,
+      cloud_dir,
+      climate_dir,
+      alos_dir) |>
 
-  c(precip_dir,
-    landcover_dir,
-    elevation_dir,
-    cloud_dir,
-    climate_dir,
-    alos_dir) |>
+        lapply(FUN = function(x){
+          list.files(path = x,
+                     pattern = ".tif$",
+                     full.names = T,
+                     recursive = T)}) |>
+      unlist() |>
+      stars::read_stars() |>
+      as.data.frame() |>
+      mutate(cellID = row_number()) %>%
+      mutate(count_na = apply(., 1,FUN = function(x){sum(is.na(x))} )) %>%
+      filter(count_na < 20) %>%
+      group_by(landforms.tif) %>%
+      write_parquet(sink = paste(output_dir,"stable_data.gz.parquet",sep = ""),
+                    compression = "gzip")
 
-      lapply(FUN = function(x){
-        list.files(path = x,
-                   pattern = ".tif$",
-                   full.names = T,
-                   recursive = T)}) |>
-    unlist() |>
-    stars::read_stars() |>
-    as.data.frame() |>
-    mutate(cellID = row_number()) %>%
-    mutate(count_na = apply(., 1,FUN = function(x){sum(is.na(x))} )) %>%
-    filter(count_na < 20) |>
-    write.csv(file = paste(output_dir,"stable_data.csv",sep = ""))
+      #The following line of code can be used to break things down by a grouping variable
+      # write_dataset(path = output_dir,
+      #               format = "parquet",
+      #               basename_template = "stable_data{i}.parquet.gz",
+      #               compression = "gzip",
+      #               existing_data_behavior = "delete_matching")
 
+    #cleanup
     gc()
 
     # Return filename
-      message("Finished processing stable model data")
-      return(paste(output_dir,"stable_data.csv",sep = ""))
 
+      message("Finished processing stable model data")
+      return(paste(output_dir,"stable_data.gz.parquet",sep = ""))
 
 }
