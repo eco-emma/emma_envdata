@@ -44,7 +44,6 @@ process_stable_data <- function(output_dir = "data/processed_data/model_data/",
       mutate(cellID = row_number()) %>%
       mutate(count_na = apply(., 1,FUN = function(x){sum(is.na(x))} )) %>%
       filter(count_na < 20) %>%
-      group_by(landforms.tif) %>%
       write_parquet(sink = paste(output_dir,"stable_data.gz.parquet",sep = ""),
                     compression = "gzip")
 

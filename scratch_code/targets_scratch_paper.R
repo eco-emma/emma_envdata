@@ -31,6 +31,12 @@ if(!dir.exists("data/processed_data/")){dir.create("data/processed_data/")}
 
 # Notes:
 
+# Update from csv to parquet format
+
+  #https://towardsdatascience.com/apache-arrow-read-dataframe-with-zero-memory-69634092b1a?gi=b13ba878ddcb#:~:text=Arrow%20is%20only%20slightly%20smaller,insignificant%20(%3C0.5%20MB)
+
+  #https://arrow.apache.org/docs/r/
+
 # Have single-file scripts return directory names instead of NULL
 
 # Figure out bug in ee_imagecollection_to_local causing it to omit file names and just give things the extensions
@@ -45,6 +51,7 @@ if(!dir.exists("data/processed_data/")){dir.create("data/processed_data/")}
 
 #Install stuff I may not have already
   install.packages("cubelyr","visNetwork","rdryad")
+  install.packages("arrow")
 
 library(targets)
 library(rgee)
@@ -88,3 +95,28 @@ process_fire_doy_to_unix_date()
   #alos
 
   #elevation
+
+
+###########################
+process_dynamic_data_to_parquet(input_dir = "data/raw_data/ndvi_modis/",
+                                output_dir = "data/processed_data/dynamic_parquet/ndvi/",
+                                variable_name = "ndvi")
+
+process_dynamic_data_to_parquet(input_dir = "data/processed_data/ndvi_relative_time_since_fire/",
+                                output_dir = "data/processed_data/dynamic_parquet/time_since_fire/",
+                                variable_name = "time_since_fire")
+
+#
+x <- open_dataset(sources = "data/processed_data/dynamic_parquet/")
+
+x$schema
+x$metadata
+
+x  %>%
+  filter(variable != "ndvi")%>%
+  filter(date == 11261)%>%
+  summarise(mean = mean(value))%>%
+  head() %>%
+  collect()
+
+

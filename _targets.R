@@ -105,12 +105,11 @@ list(
     get_ndvi_modis(domain = domain),
     age = as.difftime(7, units = "days")
   ),
-  # tar_age(
-  #   ndvi_dates_modis,
-  #   get_ndvi_dates_modis(domain = domain),
-  #   age = as.difftime(7, units = "days")
-  # ),
-
+  tar_age(
+    ndvi_dates_modis,
+    get_ndvi_dates_modis(domain = domain),
+    age = as.difftime(7, units = "days")
+  ),
 
 # Processing
   tar_target(
@@ -177,7 +176,21 @@ list(
                         ... = projected_climate_chelsa,
                         ... = projected_alos),
     format = "file"
-)
+  ),
+  tar_target(
+    ndvi_to_parquet,
+    process_dynamic_data_to_parquet(input_dir = "data/raw_data/ndvi_modis/",
+                                    output_dir = "data/processed_data/dynamic_parquet/ndvi/",
+                                    variable_name = "ndvi",
+                                    ... = ndvi_modis)
+    ),
+  tar_target(
+    fire_dates_to_parquet,
+    process_dynamic_data_to_parquet(input_dir = "data/processed_data/ndvi_relative_time_since_fire/",
+                                    output_dir = "data/processed_data/dynamic_parquet/time_since_fire/",
+                                    variable_name = "time_since_fire",
+                                    ... = ndvi_relative_days_since_fire)
+  )
 
 )
 
