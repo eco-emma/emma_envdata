@@ -13,9 +13,9 @@ process_fire_doy_to_unix_date <- function(input_folder = "data/raw_data/fire_mod
 
   #get files
 
-    input_files <- list.files(input_folder, full.names = T)
+    input_files <- list.files(input_folder, full.names = T, pattern = ".tif$")
 
-    output_files <- list.files(output_folder, full.names = T)
+    output_files <- list.files(output_folder, full.names = T, pattern = ".tif$")
 
   #prune input files to only ones not in output
 
