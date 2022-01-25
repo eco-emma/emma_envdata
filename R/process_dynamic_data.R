@@ -21,7 +21,7 @@ process_dynamic_data_to_parquet <- function(input_dir = "data/raw_data/ndvi_modi
 
       if(!dir.exists(output_dir)){
 
-        dir.create(output_dir)
+        dir.create(output_dir, recursive = TRUE)
 
       }
 
