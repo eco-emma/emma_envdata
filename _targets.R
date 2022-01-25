@@ -95,11 +95,11 @@ list(
     get_fire_modis(domain = domain),
     age = as.difftime(7, units = "days")
   ),
-  # tar_age(
-  #   kndvi_modis,
-  #   get_kndvi_modis(domain = domain),
-  #   age = as.difftime(7, units = "days")
-  # ),
+  tar_age(
+    kndvi_modis,
+    get_kndvi_modis(domain = domain),
+    age = as.difftime(7, units = "days")
+  ),
   tar_age(
     ndvi_modis,
     get_ndvi_modis(domain = domain),
@@ -111,10 +111,33 @@ list(
     age = as.difftime(7, units = "days")
   ),
 
+# Fixing projections
+  tar_target(
+    correct_ndvi_proj,
+    process_fix_modis_projection(directory = "data/raw_data/ndvi_modis/",
+                                 ... = ndvi_modis)
+  ),
+  tar_target(
+    correct_ndvi_date_proj,
+    process_fix_modis_projection(directory = "data/raw_data/ndvi_dates_modis/",
+                               ... = ndvi_dates_modis)
+  ),
+  tar_target(
+    correct_kndvi_proj,
+    process_fix_modis_projection(directory = "data/raw_data/kndvi_modis/",
+                               ... = kndvi_modis)
+  ),
+  tar_target(
+    correct_fire_proj,
+    process_fix_modis_projection(directory = "data/raw_data/fire_modis/",
+                               ... = fire_modis)
+  ),
+
 # Processing
+
   tar_target(
     fire_doy_to_unix_date,
-    process_fire_doy_to_unix_date(... = fire_modis)
+    process_fire_doy_to_unix_date(... = correct_fire_proj)
   ),
   tar_target(
     burn_date_to_last_burned_date,
@@ -123,7 +146,7 @@ list(
   tar_target(
     ndvi_relative_days_since_fire,
     process_ndvi_relative_days_since_fire(... = burn_date_to_last_burned_date,
-                                          ... = ndvi_dates_modis)
+                                          ... = correct_ndvi_date_proj)
   ),
   tar_target(
     model_data,
@@ -132,7 +155,7 @@ list(
   ),
   tar_target(
     template,
-    get_template_raster(... = ndvi_modis)
+    get_template_raster(... = correct_ndvi_proj)
   ),
   tar_target(
     projected_alos,
@@ -182,7 +205,7 @@ list(
     process_dynamic_data_to_parquet(input_dir = "data/raw_data/ndvi_modis/",
                                     output_dir = "data/processed_data/dynamic_parquet/ndvi/",
                                     variable_name = "ndvi",
-                                    ... = ndvi_modis)
+                                    ... = correct_ndvi_proj)
     ),
   tar_target(
     fire_dates_to_parquet,
