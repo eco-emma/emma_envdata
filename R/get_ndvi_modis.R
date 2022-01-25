@@ -28,11 +28,11 @@ get_ndvi_modis <- function(directory = "data/raw_data/ndvi_modis/", domain) {
 
   #Set Visualization parameters
 
-  ndviviz <- list(
-    min = -1,
-    max = 1,
-    palette = c('00FFFF','FF00FF')
-  )
+  # ndviviz <- list(
+  #   min = -1,
+  #   max = 1,
+  #   palette = c('00FFFF','FF00FF')
+  # )
 
   #MODIS makes it simple to filter out poor quality pixels thanks to a quality control bits band (DetailedQA).
   #The following function helps us to distinct between good data (bit == …00) and marginal data (bit != …00).
