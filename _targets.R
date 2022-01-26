@@ -96,11 +96,11 @@ list(
     get_fire_modis(domain = domain),
     age = as.difftime(7, units = "days")
   ),
-  # tar_age(
-  #   kndvi_modis,
-  #   get_kndvi_modis(domain = domain),
-  #   age = as.difftime(7, units = "days")
-  # ),
+  tar_age(
+    kndvi_modis,
+    get_kndvi_modis(domain = domain),
+    age = as.difftime(7, units = "days")
+  ),
   tar_age(
     ndvi_modis,
     get_ndvi_modis(domain = domain),
@@ -119,14 +119,8 @@ list(
     process_fire_doy_to_unix_date(... = fire_modis)
   ),
   tar_target(
-<<<<<<< HEAD
-    chelsa,
-    get_climate_chelsa(directory = "data/raw_data/climate_chelsa/",domain=domain),
-    format = "file"
-=======
     burn_date_to_last_burned_date,
     process_burn_date_to_last_burned_date(... = fire_doy_to_unix_date)
->>>>>>> main
   ),
   # tar_target(
   #   ndvi_relative_days_since_fire,

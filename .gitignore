@@ -36,4 +36,6 @@ processed_data/
 data/*
 */other_data/*
 .DS_Store
-*/meta
+img/*_files
+img/*html
+_targets/meta/meta
