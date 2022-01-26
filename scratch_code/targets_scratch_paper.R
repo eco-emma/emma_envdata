@@ -31,12 +31,6 @@ if(!dir.exists("data/processed_data/")){dir.create("data/processed_data/")}
 
 # Notes:
 
-# Update from csv to parquet format
-
-  #https://towardsdatascience.com/apache-arrow-read-dataframe-with-zero-memory-69634092b1a?gi=b13ba878ddcb#:~:text=Arrow%20is%20only%20slightly%20smaller,insignificant%20(%3C0.5%20MB)
-
-  #https://arrow.apache.org/docs/r/
-
 # Have single-file scripts return directory names instead of NULL
 
 # Figure out bug in ee_imagecollection_to_local causing it to omit file names and just give things the extensions
@@ -63,24 +57,12 @@ ee_Initialize()
   tar_manifest()
 
 #visualize the pipeline
-  tar_glimpse()
+  tar_glimpse(level_separation = 200)
   tar_visnetwork()
 
 #run the pipeline
   tar_make()
 
-test <- raster::raster("data/raw_data/ndvi_modis/2000_02_18.tif")
-raster::plot(test)
-library(raster)
-unique(getValues(test))
-
-# Note:
-  # download speed for e.g. ndvi layers much slower now.  Possibly due to new, more complex, domain?
-
-tar_load(domain)
-get_fire_modis(domain = domain)
-get_ndvi_dates_modis(domain = domain)
-process_fire_doy_to_unix_date()
 
 ##################
 
@@ -98,15 +80,11 @@ process_fire_doy_to_unix_date()
 
 
 ###########################
-process_dynamic_data_to_parquet(input_dir = "data/raw_data/ndvi_modis/",
-                                output_dir = "data/processed_data/dynamic_parquet/ndvi/",
-                                variable_name = "ndvi")
 
-process_dynamic_data_to_parquet(input_dir = "data/processed_data/ndvi_relative_time_since_fire/",
-                                output_dir = "data/processed_data/dynamic_parquet/time_since_fire/",
-                                variable_name = "time_since_fire")
+library(arrow)
+# Example code for working with arrow library
 
-#
+
 x <- open_dataset(sources = "data/processed_data/dynamic_parquet/")
 
 x$schema
@@ -118,5 +96,4 @@ x  %>%
   summarise(mean = mean(value))%>%
   head() %>%
   collect()
-
 
