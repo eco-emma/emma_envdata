@@ -60,8 +60,8 @@ get_landcover_za <- function(directory = "data/raw_data/landcover_za/", domain) 
 
   # Reproject domain to match raster
 
-    domain_tf <- sf::st_transform(x = domain_tf,
-                                        crs = crs(raster_i))
+    domain_tf <- sf::st_transform(x = domain,
+                                  crs = crs(raster_i))
 
   # Crop to extent
 

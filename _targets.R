@@ -96,11 +96,11 @@ list(
     get_fire_modis(domain = domain),
     age = as.difftime(7, units = "days")
   ),
-  # tar_age(
-  #   kndvi_modis,
-  #   get_kndvi_modis(domain = domain),
-  #   age = as.difftime(7, units = "days")
-  # ),
+  tar_age(
+    kndvi_modis,
+    get_kndvi_modis(domain = domain),
+    age = as.difftime(7, units = "days")
+  ),
   tar_age(
     ndvi_modis,
     get_ndvi_modis(domain = domain),
@@ -112,15 +112,42 @@ list(
     age = as.difftime(7, units = "days")
   ),
 
+# Fixing projections
+  tar_target(
+    correct_ndvi_proj,
+    process_fix_modis_projection(directory = "data/raw_data/ndvi_modis/",
+                                 ... = ndvi_modis)
+  ),
+  tar_target(
+    correct_ndvi_date_proj,
+    process_fix_modis_projection(directory = "data/raw_data/ndvi_dates_modis/",
+                               ... = ndvi_dates_modis)
+  ),
+  tar_target(
+    correct_kndvi_proj,
+    process_fix_modis_projection(directory = "data/raw_data/kndvi_modis/",
+                               ... = kndvi_modis)
+  ),
+  tar_target(
+    correct_fire_proj,
+    process_fix_modis_projection(directory = "data/raw_data/fire_modis/",
+                               ... = fire_modis)
+  ),
+
 # Processing
 
   tar_target(
     fire_doy_to_unix_date,
-    process_fire_doy_to_unix_date(... = fire_modis)
+    process_fire_doy_to_unix_date(... = correct_fire_proj)
   ),
   tar_target(
     burn_date_to_last_burned_date,
     process_burn_date_to_last_burned_date(... = fire_doy_to_unix_date)
+  ),
+  tar_target(
+    ndvi_relative_days_since_fire,
+    process_ndvi_relative_days_since_fire(... = burn_date_to_last_burned_date,
+                                          ... = correct_ndvi_date_proj)
   ),
   # tar_target(
   #   ndvi_relative_days_since_fire,
@@ -134,7 +161,7 @@ list(
   ),
   tar_target(
     template,
-    get_template_raster(... = ndvi_modis)
+    get_template_raster(... = correct_ndvi_proj)
   ),
   tar_target(
     projected_alos,
@@ -151,7 +178,7 @@ list(
   tar_target(
     projected_elevation_nasadem,
     process_elevation_nasadem(template = template, ... = elevation_nasadem)
-   ),
+  ),
   tar_target(
     projected_landcover_za,
     process_landcover_za(template = template, ... = landcover_za)
@@ -159,6 +186,40 @@ list(
   tar_target(
     projected_precipitation_chelsa,
     process_precipitation_chelsa(template = template, ... = precipitaton_chelsa)
+
+  ),
+
+# Prep model data
+  tar_target(
+    stable_data,
+    process_stable_data(output_dir = "data/processed_data/model_data/",
+                        precip_dir = "data/processed_data/precipitation_chelsa/",
+                        landcover_dir = "data/processed_data/landcover_za/",
+                        elevation_dir = "data/processed_data/elevation_nasadem/",
+                        cloud_dir = "data/processed_data/clouds_wilson/",
+                        climate_dir = "data/processed_data/climate_chelsa/",
+                        alos_dir = "data/processed_data/alos/",
+                        ... = projected_precipitation_chelsa,
+                        ... = projected_landcover_za,
+                        ... = projected_elevation_nasadem,
+                        ... = projected_clouds_wilson,
+                        ... = projected_climate_chelsa,
+                        ... = projected_alos),
+    format = "file"
+  ),
+  tar_target(
+    ndvi_to_parquet,
+    process_dynamic_data_to_parquet(input_dir = "data/raw_data/ndvi_modis/",
+                                    output_dir = "data/processed_data/dynamic_parquet/ndvi/",
+                                    variable_name = "ndvi",
+                                    ... = correct_ndvi_proj)
+    ),
+  tar_target(
+    fire_dates_to_parquet,
+    process_dynamic_data_to_parquet(input_dir = "data/processed_data/ndvi_relative_time_since_fire/",
+                                    output_dir = "data/processed_data/dynamic_parquet/time_since_fire/",
+                                    variable_name = "time_since_fire",
+                                    ... = ndvi_relative_days_since_fire)
   )
 
 
