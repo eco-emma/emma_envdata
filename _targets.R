@@ -54,9 +54,9 @@ list(
     remnant_distance,
     domain_distance(remnants),
     format = "file"
-  ),
+   ),
 
-  #Infrequent updates
+# Infrequent updates
 
   tar_age(
     alos,
@@ -89,7 +89,8 @@ list(
     age = as.difftime(26, units = "weeks")
   ),
 
-#Frequent updates
+# Frequent updates
+
   tar_age(
     fire_modis,
     get_fire_modis(domain = domain),
@@ -148,6 +149,11 @@ list(
     process_ndvi_relative_days_since_fire(... = burn_date_to_last_burned_date,
                                           ... = correct_ndvi_date_proj)
   ),
+  # tar_target(
+  #   ndvi_relative_days_since_fire,
+  #   process_ndvi_relative_days_since_fire(burn_date_to_last_burned_date,
+  #                                         ndvi_dates_modis)
+  # ),
   tar_target(
     model_data,
     get_model_data(remnant_distance),
@@ -180,6 +186,7 @@ list(
   tar_target(
     projected_precipitation_chelsa,
     process_precipitation_chelsa(template = template, ... = precipitaton_chelsa)
+
   ),
 
 # Prep model data
@@ -214,6 +221,7 @@ list(
                                     variable_name = "time_since_fire",
                                     ... = ndvi_relative_days_since_fire)
   )
+
 
 )
 
