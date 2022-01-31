@@ -30,7 +30,10 @@ on:
     branches:
       - main
       - master
-
+      
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+  
 name: targets
 
 jobs:
@@ -52,6 +55,11 @@ jobs:
 #      #   if: runner.os == 'Linux'
 #      #   run: |
 #      #     sudo apt-get update
+      - name: DECRYPT rgee SECRETS
+        run: ./.github/decrypt_secret.sh
+        env:
+          RGEE_SECRET_PASSPHRASE: ${{ secrets.RGEE_SECRET_PASSPHRASE }}
+        continue-on-error: true
       - name: Install R Package Dependencies
         run: |-
           Rscript -e "questionr::qscan(list.files(pattern='*.R',recursive=T), load = TRUE, detail = FALSE)" # this scans all scripts and installs any needed packages
