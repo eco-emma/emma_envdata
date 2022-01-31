@@ -56,7 +56,7 @@ jobs:
 #      #   run: |
 #      #     sudo apt-get update
       - name: DECRYPT rgee SECRETS
-        run: ./decrypt_secret.sh
+        run: $HOME/decrypt_secret.sh
         env:
           RGEE_SECRET_PASSPHRASE: ${{ secrets.RGEE_SECRET_PASSPHRASE }}
       - name: Install R Package Dependencies
