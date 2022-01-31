@@ -149,11 +149,6 @@ list(
     process_ndvi_relative_days_since_fire(... = burn_date_to_last_burned_date,
                                           ... = correct_ndvi_date_proj)
   ),
-  # tar_target(
-  #   ndvi_relative_days_since_fire,
-  #   process_ndvi_relative_days_since_fire(burn_date_to_last_burned_date,
-  #                                         ndvi_dates_modis)
-  # ),
   tar_target(
     model_data,
     get_model_data(remnant_distance),
@@ -220,8 +215,13 @@ list(
                                     output_dir = "data/processed_data/dynamic_parquet/time_since_fire/",
                                     variable_name = "time_since_fire",
                                     ... = ndvi_relative_days_since_fire)
-  )
-
+  ),
+  tar_target(
+    most_recent_fire_dates_to_parquet,
+    process_dynamic_data_to_parquet(input_dir = "data/processed_data/most_recent_burn_dates/",
+                                    output_dir = "data/processed_data/dynamic_parquet/most_recent_burn_dates/",
+                                    variable_name = "most_recent_burn_date",
+                                    ... = burn_date_to_last_burned_date)
+    )
 
 )
-
