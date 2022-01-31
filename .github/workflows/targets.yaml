@@ -99,7 +99,7 @@ jobs:
           earthengine -h
           ls $HOME/.config/earthengine/
           ls $HOME/.config/earthengine/ndef
-          $HOME
+          pwd
       - name: Run targets pipeline
         run: |
           Sys.setenv(HOME="/home/rstudio")
