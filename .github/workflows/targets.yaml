@@ -58,7 +58,7 @@ jobs:
       - name: DECRYPT rgee SECRETS
         run: ./.github/decrypt_secret.sh
         env:
-          RGEE_SECRET_PASSPHRASE: ${{ secrets.RGEE_SECRET_PASSPHRASE }}
+          RGEE_SECRET_PASSPHRASE: ${{ secrets.RGEE_SECRET }}
         continue-on-error: true
       - name: Install R Package Dependencies
         run: |-
