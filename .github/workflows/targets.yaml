@@ -55,11 +55,11 @@ jobs:
 #      #   if: runner.os == 'Linux'
 #      #   run: |
 #      #     sudo apt-get update
-      - name: DECRYPT rgee SECRETS
-        run: ./.github/decrypt_secret.sh
-        env:
-          RGEE_SECRET: ${{ secrets.RGEE_SECRET }}
-        continue-on-error: true
+#      - name: DECRYPT rgee SECRETS
+#        run: ./.github/decrypt_secret.sh
+#        env:
+#          RGEE_SECRET: ${{ secrets.RGEE_SECRET }}
+#        continue-on-error: true
       - name: Install R Package Dependencies
         run: |-
           Rscript -e "questionr::qscan(list.files(pattern='*.R',recursive=T), load = TRUE, detail = FALSE)" # this scans all scripts and installs any needed packages
@@ -119,7 +119,7 @@ jobs:
       - name: Verify credentials  
         run: |
           ./.github/decrypt_secret.sh
-          ls ~/config/earthengine
+          ls ~/.config/earthengine
           earthengine -h
         env:
           RGEE_SECRET: ${{ secrets.RGEE_SECRET }}
