@@ -97,6 +97,7 @@ jobs:
       - name: PREBUILD TESTING
         run: |
           earthengine -h
+          echo $HOME/.config/earthengine/
           ls $HOME/.config/earthengine/
           ls $HOME/.config/earthengine/ndef
           pwd
