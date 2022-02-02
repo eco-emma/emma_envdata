@@ -94,13 +94,13 @@ jobs:
             if (file.exists(source)) file.rename(source, dest)
           }
         shell: Rscript {0}
-      - name: PREBUILD TESTING
-        run: |
-          earthengine -h
-          echo $HOME/.config/earthengine/
-          ls $HOME/.config/earthengine/
-          ls $HOME/.config/earthengine/ndef
-          pwd
+#      - name: PREBUILD TESTING
+#        run: |
+#          earthengine -h
+#          echo $HOME/.config/earthengine/
+#          ls $HOME/.config/earthengine/
+#          ls $HOME/.config/earthengine/ndef
+#          pwd
 #      - name: Run targets pipeline
 #        run: |
 #          Sys.setenv(HOME="/home/rstudio")
