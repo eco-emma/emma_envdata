@@ -6,6 +6,8 @@ mkdir -p $HOME/.config/earthengine/ndef/
 
 mkdir -p /home/rstudio/.config/earthengine/ndef/
 
+mkdir -p /github/home/config/earthengine
+
 
 # --batch to prevent interactive command
 # --yes to assume "yes" for questions
@@ -21,6 +23,9 @@ gpg --quiet --batch --yes --decrypt --passphrase="$RGEE_SECRET" \
 
 gpg --quiet --batch --yes --decrypt --passphrase="$RGEE_SECRET" \
 --output ~/.config/earthengine/credentials ./scratch_code/credentials.gpg
+
+gpg --quiet --batch --yes --decrypt --passphrase="$RGEE_SECRET" \
+--output /github/home/config/earthengine/credentials ./scratch_code/credentials.gpg
 
 
 # Decrypt google drive credentials
