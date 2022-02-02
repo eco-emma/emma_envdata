@@ -104,7 +104,7 @@ jobs:
       - name: Run targets pipeline
         run: |
           Sys.setenv(HOME="/home/rstudio")
-          ./.github/decrypt_secret.sh
+          ls ~/.config/earthengine/
           cmdstanr::set_cmdstan_path("/home/rstudio/.cmdstanr/cmdstan-2.28.1")
           cmdstanr::check_cmdstan_toolchain()
           #cmdstanr::install_cmdstan()
