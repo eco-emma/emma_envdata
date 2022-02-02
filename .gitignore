@@ -31,9 +31,11 @@ vignettes/*.pdf
 index.md
 index_files/*
 firemodel_predict
-raw_data/
+#raw_data/
 processed_data/
-data/*
+#data/*
+*.gpkg
+data/other_data/
 */other_data/*
 .DS_Store
 */meta
