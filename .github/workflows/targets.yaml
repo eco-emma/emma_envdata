@@ -101,17 +101,35 @@ jobs:
           ls $HOME/.config/earthengine/
           ls $HOME/.config/earthengine/ndef
           pwd
-      - name: Run targets pipeline
+#      - name: Run targets pipeline
+#        run: |
+#          Sys.setenv(HOME="/home/rstudio")
+#          cmdstanr::set_cmdstan_path("/home/rstudio/.cmdstanr/cmdstan-2.28.1")
+#          cmdstanr::check_cmdstan_toolchain()
+#          #cmdstanr::install_cmdstan()
+#          targets::tar_make()
+#        shell: Rscript {0}
+      - name: Run targets pt 1
         run: |
           Sys.setenv(HOME="/home/rstudio")
-          ls ~/.config/earthengine/
           cmdstanr::set_cmdstan_path("/home/rstudio/.cmdstanr/cmdstan-2.28.1")
           cmdstanr::check_cmdstan_toolchain()
           #cmdstanr::install_cmdstan()
-          targets::tar_make()
+        shell: Rscript {0}
+      - name: Verify credentials  
+        run: |
+          ./.github/decrypt_secret.sh
+          ls ~/config/earthengine
+          earthengine -h
         env:
           RGEE_SECRET: ${{ secrets.RGEE_SECRET }}
-        shell: Rscript {0}
+        continue-on-error: true
+
+      - name: Run targets pt 2
+        run: |
+          targets::tar_make()
+        shell: Rscript {0}      
+
       - name: Identify files that the targets pipeline produced
         run: git ls-files -mo --exclude=renv > .targets-files
       - name: Create the runs branch if it does not already exist
