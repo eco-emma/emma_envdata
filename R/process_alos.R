@@ -12,11 +12,11 @@ process_alos <- function(input_dir = "data/raw_data/alos/",
 # make a directory if one doesn't exist yet
 
   if(!dir.exists(input_dir)){
-    dir.create(input_dir)
+    dir.create(input_dir,recursive = TRUE)
   }
 
   if(!dir.exists(output_dir)){
-    dir.create(output_dir)
+    dir.create(output_dir,recursive = TRUE)
   }
 
 # get template raster

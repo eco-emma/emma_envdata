@@ -47,7 +47,7 @@ get_alos <- function(directory = "data/raw_data/alos/", domain){
   #make a directory if one doesn't exist yet
 
     if(!dir.exists(directory)){
-      dir.create(directory)
+      dir.create(directory, recursive = TRUE)
     }
 
 

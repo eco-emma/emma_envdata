@@ -14,7 +14,7 @@ get_precipitation_chelsa <- function(directory = "data/raw_data/precipitation_ch
   #make a directory if one doesn't exist yet
 
   if(!dir.exists(directory)){
-    dir.create(directory)
+    dir.create(directory,recursive = TRUE)
   }
 
   #Adjust the download timeout duration (this needs to be large enough to allow the download to complete)

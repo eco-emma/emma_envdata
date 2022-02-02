@@ -11,7 +11,7 @@ get_landcover_za <- function(directory = "data/raw_data/landcover_za/", domain) 
   #make a directory if one doesn't exist yet
 
     if(!dir.exists(directory)){
-      dir.create(directory)
+      dir.create(directory, recursive = TRUE)
     }
 
   #check if file exists already

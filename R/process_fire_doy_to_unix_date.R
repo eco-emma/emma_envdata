@@ -8,7 +8,7 @@ process_fire_doy_to_unix_date <- function(input_folder = "data/raw_data/fire_mod
 
 
   #make folder if needed
-    if(!dir.exists(output_folder)){dir.create(output_folder)}
+    if(!dir.exists(output_folder)){dir.create(output_folder, recursive = TRUE)}
 
 
   #get files

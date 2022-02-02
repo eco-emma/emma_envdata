@@ -12,16 +12,22 @@ process_ndvi_relative_days_since_fire <- function(ndvi_date_folder = "data/raw_d
                                             ...){
 
   #Make folder if needed
-    if(! dir.exists(fire_output_folder)){ dir.create(fire_output_folder) }
+    if(! dir.exists(fire_output_folder)){ dir.create(fire_output_folder,
+                                                     recursive = TRUE) }
 
 
   #Get a list of files with different formats
-    fire_files <- list.files(fire_date_folder, full.names = T,pattern = ".tif")
-    ndvi_files <- list.files(ndvi_date_folder, full.names = T,pattern = ".tif")
+    fire_files <- list.files(fire_date_folder, full.names = T, pattern = ".tif")
+    ndvi_files <- list.files(ndvi_date_folder, full.names = T, pattern = ".tif")
 
 
-    fire_no_dir <- gsub(pattern = fire_date_folder,replacement = "",x = fire_files)
-    ndvi_no_dir <- gsub(pattern = ndvi_date_folder,replacement = "",x = ndvi_files)
+    fire_no_dir <- gsub(pattern = fire_date_folder,
+                        replacement = "",
+                        x = fire_files)
+
+    ndvi_no_dir <- gsub(pattern = ndvi_date_folder,
+                        replacement = "",
+                        x = ndvi_files)
 
     fire_files <- data.frame(input_file = fire_files,
                               date = as_date(gsub(pattern = ".tif",

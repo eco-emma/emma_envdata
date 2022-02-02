@@ -12,7 +12,7 @@ get_elevation_nasadem <- function(directory = "data/raw_data/elevation_nasadem/"
   # Make a directory if one doesn't exist yet
 
     if(!dir.exists(directory)){
-      dir.create(directory)
+      dir.create(directory,recursive = TRUE)
     }
 
   #Check if files exist already

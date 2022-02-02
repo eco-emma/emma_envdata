@@ -55,7 +55,7 @@ get_fire_modis <- function(directory = "data/raw_data/fire_modis/", domain) {
   # make a directory if one doesn't exist yet
 
     if(!dir.exists(directory)){
-      dir.create(directory)
+      dir.create(directory,recursive = TRUE)
     }
 
   # Initialize earth engine (for targets works better if called here)

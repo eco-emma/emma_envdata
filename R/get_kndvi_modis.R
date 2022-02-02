@@ -13,7 +13,7 @@ get_kndvi_modis <- function(directory = "data/raw_data/kndvi_modis/", domain) {
   # Make a directory if one doesn't exist yet
 
     if(!dir.exists(directory)){
-      dir.create(directory)
+      dir.create(directory,recursive = TRUE)
     }
 
   #Initialize earth engine (for targets works better if called here)

@@ -21,7 +21,7 @@ process_stable_data <- function(output_dir = "data/processed_data/model_data/",
   # make a directory if one doesn't exist yet
 
     if(!dir.exists(output_dir)){
-      dir.create(output_dir)
+      dir.create(output_dir, recursive = TRUE)
     }
 
   # process data

@@ -14,7 +14,7 @@ get_soil_gcfr <- function(directory = "data/raw_data/soil_gcfr/") {
   # Set up directories if need be
 
     if(!dir.exists(directory)){
-      dir.create(directory)
+      dir.create(directory, recursive = TRUE)
     }
 
   #If files are present, skip

@@ -43,7 +43,7 @@ get_ndvi_dates_modis <- function(directory = "data/raw_data/ndvi_dates_modis/", 
   #Make a directory
 
     if(!dir.exists(directory)){
-      dir.create(directory)
+      dir.create(directory,recursive = TRUE)
     }
 
   # Initialize earth engine (for targets works better if called here)

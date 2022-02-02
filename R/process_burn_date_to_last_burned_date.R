@@ -6,7 +6,7 @@ process_burn_date_to_last_burned_date <- function(input_folder = "data/processed
                                            ...){
 
 
-  if(!dir.exists(output_folder)){dir.create(output_folder)}
+  if(!dir.exists(output_folder)){dir.create(output_folder,recursive = TRUE)}
 
   #Get lists of files
     input_files <- list.files(input_folder, full.names = T,pattern = ".tif")
