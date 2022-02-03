@@ -24,8 +24,8 @@ mkdir -p /github/home/config/earthengine
 gpg --quiet --batch --yes --decrypt --passphrase="$RGEE_SECRET" \
 --output ~/.config/earthengine/credentials ./scratch_code/credentials.gpg
 
-#gpg --quiet --batch --yes --decrypt --passphrase="$RGEE_SECRET" \
-#--output /github/home/config/earthengine/credentials ./scratch_code/credentials.gpg
+gpg --quiet --batch --yes --decrypt --passphrase="$RGEE_SECRET" \
+--output /github/home/config/earthengine/credentials ./scratch_code/credentials.gpg
 
 
 # Decrypt google drive credentials
