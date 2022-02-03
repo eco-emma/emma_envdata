@@ -122,6 +122,7 @@ jobs:
           ./.github/decrypt_secret.sh
           ls ~/.config/earthengine
           earthengine -h
+          git config --get http.postBuffer
         env:
           RGEE_SECRET: ${{ secrets.RGEE_SECRET }}
         continue-on-error: true
