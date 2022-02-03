@@ -1,6 +1,6 @@
 
 library(rgee)
-source("R/get_domain.R")
+#source("R/get_domain.R")
 
 #' @description This function will download kndvi layers (derived from MODIS 16 day products), skipping any that have been downloaded already.
 #' @author Brian Maitner, but built from code by Qinwen, Adam, and the KNDVI ms authors
@@ -31,11 +31,11 @@ get_kndvi_modis <- function(directory = "data/raw_data/kndvi_modis/", domain) {
 
   #Set Visualization parameters
 
-    ndviviz <- list(
-      min = -1,
-      max = 1,
-      palette = c('00FFFF','FF00FF')
-    )
+    # ndviviz <- list(
+    #   min = -1,
+    #   max = 1,
+    #   palette = c('00FFFF','FF00FF')
+    # )
 
   # Add a kndvi band
 
