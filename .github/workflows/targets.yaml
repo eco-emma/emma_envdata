@@ -49,8 +49,8 @@ jobs:
         with:
           lfs:  'true'
       - name: Checkout LFS objects
-        run:
-          git lfs checkout
+        run: git lfs checkout
+        continue-on-error: true
 #      # - name: Install Linux system dependencies
 #      #   if: runner.os == 'Linux'
 #      #   run: |
@@ -60,6 +60,9 @@ jobs:
 #        env:
 #          RGEE_SECRET: ${{ secrets.RGEE_SECRET }}
 #        continue-on-error: true
+      - name: Check git settings
+        run:
+          git config --get http.postBuffer
       - name: Install R Package Dependencies
         run: |-
           Rscript -e "questionr::qscan(list.files(pattern='*.R',recursive=T), load = TRUE, detail = FALSE)" # this scans all scripts and installs any needed packages
@@ -95,13 +98,6 @@ jobs:
             if (file.exists(source)) file.rename(source, dest)
           }
         shell: Rscript {0}
-#      - name: PREBUILD TESTING
-#        run: |
-#          earthengine -h
-#          echo $HOME/.config/earthengine/
-#          ls $HOME/.config/earthengine/
-#          ls $HOME/.config/earthengine/ndef
-#          pwd
 #      - name: Run targets pipeline
 #        run: |
 #          Sys.setenv(HOME="/home/rstudio")
@@ -121,7 +117,7 @@ jobs:
         run: |
           ./.github/decrypt_secret.sh
           ls ~/.config/earthengine
-          earthengine -h
+          earthengine -h          
         env:
           RGEE_SECRET: ${{ secrets.RGEE_SECRET }}
         continue-on-error: true
