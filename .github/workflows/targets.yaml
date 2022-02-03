@@ -60,6 +60,9 @@ jobs:
 #        env:
 #          RGEE_SECRET: ${{ secrets.RGEE_SECRET }}
 #        continue-on-error: true
+      - name: Check git settings
+        run:
+          git config --get http.postBuffer
       - name: Install R Package Dependencies
         run: |-
           Rscript -e "questionr::qscan(list.files(pattern='*.R',recursive=T), load = TRUE, detail = FALSE)" # this scans all scripts and installs any needed packages
@@ -114,7 +117,6 @@ jobs:
         run: |
           ./.github/decrypt_secret.sh
           ls ~/.config/earthengine
-          git config --get http.postBuffer
           earthengine -h          
         env:
           RGEE_SECRET: ${{ secrets.RGEE_SECRET }}
