@@ -26,3 +26,11 @@ data/alos/alos_mtpi.tif filter=lfs diff=lfs merge=lfs -text
 data/alos/alos_topographic_diversity.tif filter=lfs diff=lfs merge=lfs -text
 data/alos/landforms.tif filter=lfs diff=lfs merge=lfs -text
 data/other_data/domain_extent.RDS filter=lfs diff=lfs merge=lfs -text
+*.shp filter=lfs diff=lfs merge=lfs -text
+*.dbf filter=lfs diff=lfs merge=lfs -text
+*.gdb* filter=lfs diff=lfs merge=lfs -text
+*.gdbtable filter=lfs diff=lfs merge=lfs -text
+data/manual_downloads/* filter=lfs diff=lfs merge=lfs -text
+*.tif filter=lfs diff=lfs merge=lfs -text
+*.csv filter=lfs diff=lfs merge=lfs -text
+*.gpkg filter=lfs diff=lfs merge=lfs -text
