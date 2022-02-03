@@ -28,11 +28,11 @@ list(
     "data/manual_download/VEGMAP2018_AEA_16082019Final/NVM2018_AEA_V22_7_16082019_final.shp",
     format = "file"
   ),
-  tar_target(
-    remnants_shp,
-    "data/manual_download/RLE_2021_Remnants/RLE_Terr_2021_June2021_Remnants_ddw.shp",
-    format = "file"
-  ),
+  # tar_target(
+  #   remnants_shp,
+  #   "data/manual_download/RLE_2021_Remnants/RLE_Terr_2021_June2021_Remnants_ddw.shp",
+  #   format = "file"
+  # ),
   tar_target(
     country,
     national_boundary()
@@ -45,183 +45,184 @@ list(
     domain,
     domain_define(vegmap = vegmap, country)
   ),
-  tar_target(
-    remnants,
-    domain_remnants(domain, remnants_shp = remnants_shp),
-    format = "file"
-  ),
-  tar_target(
-    remnant_distance,
-    domain_distance(remnants),
-    format = "file"
-   ),
+  # tar_target(
+  #   remnants,
+  #   domain_remnants(domain, remnants_shp = remnants_shp),
+  #   format = "file"
+  # ),
+  # tar_target(
+  #   remnant_distance,
+  #   domain_distance(remnants),
+  #   format = "file"
+  #  ),
 
 # Infrequent updates
 
-  tar_age(
-    alos,
-    get_alos(domain = domain),
-    age = as.difftime(26, units = "weeks")
-  ),
-  tar_age(
-    climate_chelsa,
-    get_climate_chelsa(domain = domain),
-    age = as.difftime(26, units = "weeks")
-  ),
-  tar_age(
-    clouds_wilson,
-    get_clouds_wilson(domain = domain),
-    age = as.difftime(26, units = "weeks")
-  ),
-  tar_age(
-    elevation_nasadem,
-    get_elevation_nasadem(domain = domain),
-    age = as.difftime(26, units = "weeks")
-  ),
-  tar_age(
-    landcover_za,
-    get_landcover_za(domain = domain),
-    age = as.difftime(26, units = "weeks")
-  ),
-  tar_age(
-    precipitation_chelsa,
-    get_precipitation_chelsa(domain = domain),
-    age = as.difftime(26, units = "weeks")
-  ),
+  # tar_age(
+  #   alos,
+  #   get_alos(domain = domain),
+  #   age = as.difftime(26, units = "weeks")
+  # ),
+  # tar_age(
+  #   climate_chelsa,
+  #   get_climate_chelsa(domain = domain),
+  #   age = as.difftime(26, units = "weeks")
+  # ),
+  # tar_age(
+  #   clouds_wilson,
+  #   get_clouds_wilson(domain = domain),
+  #   age = as.difftime(26, units = "weeks")
+  # ),
+  # tar_age(
+  #   elevation_nasadem,
+  #   get_elevation_nasadem(domain = domain),
+  #   age = as.difftime(26, units = "weeks")
+  # ),
+  # tar_age(
+  #   landcover_za,
+  #   get_landcover_za(domain = domain),
+  #   age = as.difftime(26, units = "weeks")
+  # ),
+  # tar_age(
+  #   precipitation_chelsa,
+  #   get_precipitation_chelsa(domain = domain),
+  #   age = as.difftime(26, units = "weeks")
+  # ),
 
 # Frequent updates
 
-  tar_age(
-    fire_modis,
-    get_fire_modis(domain = domain),
-    age = as.difftime(7, units = "days")
-  ),
-  tar_age(
-    kndvi_modis,
-    get_kndvi_modis(domain = domain),
-    age = as.difftime(7, units = "days")
-  ),
+  # tar_age(
+  #   fire_modis,
+  #   get_fire_modis(domain = domain),
+  #   age = as.difftime(7, units = "days")
+  # ),
+  # tar_age(
+  #   kndvi_modis,
+  #   get_kndvi_modis(domain = domain),
+  #   age = as.difftime(7, units = "days")
+  # ),
   tar_age(
     ndvi_modis,
     get_ndvi_modis(domain = domain),
     age = as.difftime(7, units = "days")
-  ),
-  tar_age(
-    ndvi_dates_modis,
-    get_ndvi_dates_modis(domain = domain),
-    age = as.difftime(7, units = "days")
-  ),
+  )
+#,
+  # tar_age(
+  #   ndvi_dates_modis,
+  #   get_ndvi_dates_modis(domain = domain),
+  #   age = as.difftime(7, units = "days")
+  # ),
 
 # Fixing projections
-  tar_target(
-    correct_ndvi_proj,
-    process_fix_modis_projection(directory = "data/raw_data/ndvi_modis/",
-                                 ... = ndvi_modis)
-  ),
-  tar_target(
-    correct_ndvi_date_proj,
-    process_fix_modis_projection(directory = "data/raw_data/ndvi_dates_modis/",
-                               ... = ndvi_dates_modis)
-  ),
-  tar_target(
-    correct_kndvi_proj,
-    process_fix_modis_projection(directory = "data/raw_data/kndvi_modis/",
-                               ... = kndvi_modis)
-  ),
-  tar_target(
-    correct_fire_proj,
-    process_fix_modis_projection(directory = "data/raw_data/fire_modis/",
-                               ... = fire_modis)
-  ),
+  # tar_target(
+  #   correct_ndvi_proj,
+  #   process_fix_modis_projection(directory = "data/raw_data/ndvi_modis/",
+  #                                ... = ndvi_modis)
+  # ),
+  # tar_target(
+  #   correct_ndvi_date_proj,
+  #   process_fix_modis_projection(directory = "data/raw_data/ndvi_dates_modis/",
+  #                              ... = ndvi_dates_modis)
+  # ),
+  # tar_target(
+  #   correct_kndvi_proj,
+  #   process_fix_modis_projection(directory = "data/raw_data/kndvi_modis/",
+  #                              ... = kndvi_modis)
+  # ),
+  # tar_target(
+  #   correct_fire_proj,
+  #   process_fix_modis_projection(directory = "data/raw_data/fire_modis/",
+  #                              ... = fire_modis)
+  # ),
 
 # Processing
 
-  tar_target(
-    fire_doy_to_unix_date,
-    process_fire_doy_to_unix_date(... = correct_fire_proj)
-  ),
-  tar_target(
-    burn_date_to_last_burned_date,
-    process_burn_date_to_last_burned_date(... = fire_doy_to_unix_date)
-  ),
-  tar_target(
-    ndvi_relative_days_since_fire,
-    process_ndvi_relative_days_since_fire(... = burn_date_to_last_burned_date,
-                                          ... = correct_ndvi_date_proj)
-  ),
-  tar_target(
-    model_data,
-    get_model_data(remnant_distance),
-    format = "file"
-  ),
-  tar_target(
-    template,
-    get_template_raster(... = correct_ndvi_proj)
-  ),
-  tar_target(
-    projected_alos,
-    process_alos(template = template, ... = alos)
-  ),
-  tar_target(
-    projected_climate_chelsa,
-    process_climate_chelsa(template = template, ... = climate_chelsa)
-  ),
-  tar_target(
-    projected_clouds_wilson,
-    process_clouds_wilson(template = template, ... = clouds_wilson)
-  ),
-  tar_target(
-    projected_elevation_nasadem,
-    process_elevation_nasadem(template = template, ... = elevation_nasadem)
-  ),
-  tar_target(
-    projected_landcover_za,
-    process_landcover_za(template = template, ... = landcover_za)
-  ),
-  tar_target(
-    projected_precipitation_chelsa,
-    process_precipitation_chelsa(template = template, ... = precipitaton_chelsa)
-
-  ),
-
-# Prep model data
-  tar_target(
-    stable_data,
-    process_stable_data(output_dir = "data/processed_data/model_data/",
-                        precip_dir = "data/processed_data/precipitation_chelsa/",
-                        landcover_dir = "data/processed_data/landcover_za/",
-                        elevation_dir = "data/processed_data/elevation_nasadem/",
-                        cloud_dir = "data/processed_data/clouds_wilson/",
-                        climate_dir = "data/processed_data/climate_chelsa/",
-                        alos_dir = "data/processed_data/alos/",
-                        ... = projected_precipitation_chelsa,
-                        ... = projected_landcover_za,
-                        ... = projected_elevation_nasadem,
-                        ... = projected_clouds_wilson,
-                        ... = projected_climate_chelsa,
-                        ... = projected_alos),
-    format = "file"
-  ),
-  tar_target(
-    ndvi_to_parquet,
-    process_dynamic_data_to_parquet(input_dir = "data/raw_data/ndvi_modis/",
-                                    output_dir = "data/processed_data/dynamic_parquet/ndvi/",
-                                    variable_name = "ndvi",
-                                    ... = correct_ndvi_proj)
-    ),
-  tar_target(
-    fire_dates_to_parquet,
-    process_dynamic_data_to_parquet(input_dir = "data/processed_data/ndvi_relative_time_since_fire/",
-                                    output_dir = "data/processed_data/dynamic_parquet/time_since_fire/",
-                                    variable_name = "time_since_fire",
-                                    ... = ndvi_relative_days_since_fire)
-  ),
-  tar_target(
-    most_recent_fire_dates_to_parquet,
-    process_dynamic_data_to_parquet(input_dir = "data/processed_data/most_recent_burn_dates/",
-                                    output_dir = "data/processed_data/dynamic_parquet/most_recent_burn_dates/",
-                                    variable_name = "most_recent_burn_date",
-                                    ... = burn_date_to_last_burned_date)
-    )
+#   tar_target(
+#     fire_doy_to_unix_date,
+#     process_fire_doy_to_unix_date(... = correct_fire_proj)
+#   ),
+#   tar_target(
+#     burn_date_to_last_burned_date,
+#     process_burn_date_to_last_burned_date(... = fire_doy_to_unix_date)
+#   ),
+#   tar_target(
+#     ndvi_relative_days_since_fire,
+#     process_ndvi_relative_days_since_fire(... = burn_date_to_last_burned_date,
+#                                           ... = correct_ndvi_date_proj)
+#   ),
+#   tar_target(
+#     model_data,
+#     get_model_data(remnant_distance),
+#     format = "file"
+#   ),
+#   tar_target(
+#     template,
+#     get_template_raster(... = correct_ndvi_proj)
+#   ),
+#   tar_target(
+#     projected_alos,
+#     process_alos(template = template, ... = alos)
+#   ),
+#   tar_target(
+#     projected_climate_chelsa,
+#     process_climate_chelsa(template = template, ... = climate_chelsa)
+#   ),
+#   tar_target(
+#     projected_clouds_wilson,
+#     process_clouds_wilson(template = template, ... = clouds_wilson)
+#   ),
+#   tar_target(
+#     projected_elevation_nasadem,
+#     process_elevation_nasadem(template = template, ... = elevation_nasadem)
+#   ),
+#   tar_target(
+#     projected_landcover_za,
+#     process_landcover_za(template = template, ... = landcover_za)
+#   ),
+#   tar_target(
+#     projected_precipitation_chelsa,
+#     process_precipitation_chelsa(template = template, ... = precipitaton_chelsa)
+#
+#   ),
+#
+# # Prep model data
+#   tar_target(
+#     stable_data,
+#     process_stable_data(output_dir = "data/processed_data/model_data/",
+#                         precip_dir = "data/processed_data/precipitation_chelsa/",
+#                         landcover_dir = "data/processed_data/landcover_za/",
+#                         elevation_dir = "data/processed_data/elevation_nasadem/",
+#                         cloud_dir = "data/processed_data/clouds_wilson/",
+#                         climate_dir = "data/processed_data/climate_chelsa/",
+#                         alos_dir = "data/processed_data/alos/",
+#                         ... = projected_precipitation_chelsa,
+#                         ... = projected_landcover_za,
+#                         ... = projected_elevation_nasadem,
+#                         ... = projected_clouds_wilson,
+#                         ... = projected_climate_chelsa,
+#                         ... = projected_alos),
+#     format = "file"
+#   ),
+  # tar_target(
+  #   ndvi_to_parquet,
+  #   process_dynamic_data_to_parquet(input_dir = "data/raw_data/ndvi_modis/",
+  #                                   output_dir = "data/processed_data/dynamic_parquet/ndvi/",
+  #                                   variable_name = "ndvi",
+  #                                   ... = correct_ndvi_proj)
+  #   ),
+  # tar_target(
+  #   fire_dates_to_parquet,
+  #   process_dynamic_data_to_parquet(input_dir = "data/processed_data/ndvi_relative_time_since_fire/",
+  #                                   output_dir = "data/processed_data/dynamic_parquet/time_since_fire/",
+  #                                   variable_name = "time_since_fire",
+  #                                   ... = ndvi_relative_days_since_fire)
+  # ),
+  # tar_target(
+  #   most_recent_fire_dates_to_parquet,
+  #   process_dynamic_data_to_parquet(input_dir = "data/processed_data/most_recent_burn_dates/",
+  #                                   output_dir = "data/processed_data/dynamic_parquet/most_recent_burn_dates/",
+  #                                   variable_name = "most_recent_burn_date",
+  #                                   ... = burn_date_to_last_burned_date)
+  #   )
 
 )
