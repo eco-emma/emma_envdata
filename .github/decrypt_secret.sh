@@ -15,17 +15,17 @@ mkdir -p /github/home/config/earthengine
 
 # Decrypt ee credentials (currently decrypting to a bunch of places hoping that earth engine finds one)
 
-gpg --quiet --batch --yes --decrypt --passphrase="$RGEE_SECRET" \
---output $HOME/.config/earthengine/ndef/credentials ./scratch_code/credentials.gpg
-
 #gpg --quiet --batch --yes --decrypt --passphrase="$RGEE_SECRET" \
-#--output /home/rstudio/.config/earthengine/ndef/credentials ./scratch_code/credentials.gpg
+#--output $HOME/.config/earthengine/ndef/credentials ./scratch_code/credentials.gpg
+
+gpg --quiet --batch --yes --decrypt --passphrase="$RGEE_SECRET" \
+--output /home/rstudio/.config/earthengine/ndef/credentials ./scratch_code/credentials.gpg
 
 #gpg --quiet --batch --yes --decrypt --passphrase="$RGEE_SECRET" \
 #--output ~/.config/earthengine/credentials ./scratch_code/credentials.gpg
 
-gpg --quiet --batch --yes --decrypt --passphrase="$RGEE_SECRET" \
---output /github/home/config/earthengine/credentials ./scratch_code/credentials.gpg
+#gpg --quiet --batch --yes --decrypt --passphrase="$RGEE_SECRET" \
+#--output /github/home/config/earthengine/credentials ./scratch_code/credentials.gpg
 
 
 # Decrypt google drive credentials
