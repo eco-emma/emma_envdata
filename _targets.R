@@ -91,11 +91,11 @@ list(
 
 # Frequent updates
 
-  # tar_age(
-  #   fire_modis,
-  #   get_fire_modis(domain = domain),
-  #   age = as.difftime(7, units = "days")
-  # ),
+  tar_age(
+    fire_modis,
+    get_fire_modis(domain = domain),
+    age = as.difftime(7, units = "days")
+  ),
   # tar_age(
   #   kndvi_modis,
   #   get_kndvi_modis(domain = domain),
