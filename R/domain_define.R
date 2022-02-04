@@ -34,7 +34,7 @@ domain_define <- function(vegmap, country){
     mutate(domain=1)
 
   # save the files
- st_write(domain,dsn="data/domain.gpkg",append=F)
+ st_write(domain,dsn="data/domain.gpkg", append = F, delete_layer = TRUE)# overwrite layer if it exists (caused an error in targets)
 
   return(domain)
 
