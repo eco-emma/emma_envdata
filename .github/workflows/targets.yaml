@@ -147,6 +147,7 @@ jobs:
           git lfs track _targets/objects/* #use git LFS to track the targets output (larger files)
           git lfs track data/* #use git LFS to track the data output (larger files)
           git lfs track "raw_data/**" #use git LFS to track raw_data output (larger files)
+          git lfs track _targets/metadata/* #track metadata
           git add .gitattributes
           git add --all -- ':!renv'
           for file in $(git ls-files -mo --exclude=renv)
