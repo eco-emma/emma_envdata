@@ -33,8 +33,11 @@ domain_define <- function(vegmap, country){
     st_as_sf() %>%
     mutate(domain=1)
 
+  #Delete file if it exists (this should be handled by the line below, but that seems to fail on github)
+    if(file.exists("data/domain.gpkg")){file.remove("data/domain.gpkg")}
+
   # save the files
- st_write(domain,dsn="data/domain.gpkg", append = F, delete_layer = TRUE)# overwrite layer if it exists (caused an error in targets)
+    st_write(domain,dsn="data/domain.gpkg", append = F, delete_layer = TRUE)# overwrite layer if it exists (caused an error in targets)
 
   return(domain)
 
