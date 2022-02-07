@@ -23,11 +23,11 @@ list(
 
   #Prep needed files
 
-  # tar_target(
-  #   vegmap_shp, # 2018 National Vegetation Map http://bgis.sanbi.org/SpatialDataset/Detail/1674
-  #   "data/manual_download/VEGMAP2018_AEA_16082019Final/NVM2018_AEA_V22_7_16082019_final.shp",
-  #   format = "file"
-  # ),
+  tar_target(
+    vegmap_shp, # 2018 National Vegetation Map http://bgis.sanbi.org/SpatialDataset/Detail/1674
+    "data/manual_download/VEGMAP2018_AEA_16082019Final/NVM2018_AEA_V22_7_16082019_final.shp",
+    format = "file"
+  ),
   # tar_target(
   #   remnants_shp,
   #   "data/manual_download/RLE_2021_Remnants/RLE_Terr_2021_June2021_Remnants_ddw.shp",
