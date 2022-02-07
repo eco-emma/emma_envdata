@@ -105,13 +105,13 @@ list(
     ndvi_modis,
     get_ndvi_modis(domain = domain),
     age = as.difftime(7, units = "days")
+  ),
+  tar_age(
+    ndvi_dates_modis,
+    get_ndvi_dates_modis(domain = domain),
+    age = as.difftime(7, units = "days")
   )
 #,
-  # tar_age(
-  #   ndvi_dates_modis,
-  #   get_ndvi_dates_modis(domain = domain),
-  #   age = as.difftime(7, units = "days")
-  # ),
 
 # Fixing projections
   # tar_target(
