@@ -44,7 +44,8 @@ list(
   tar_target(
     domain,
     domain_define(vegmap = vegmap, country)
-  ),
+  )
+  #,
   # tar_target(
   #   remnants,
   #   domain_remnants(domain, remnants_shp = remnants_shp),
@@ -91,27 +92,26 @@ list(
 
 # Frequent updates
 
-  tar_age(
-    fire_modis,
-    get_fire_modis(domain = domain),
-    age = as.difftime(7, units = "days")
-  ),
   # tar_age(
-  #   kndvi_modis,
-  #   get_kndvi_modis(domain = domain),
+  #   fire_modis,
+  #   get_fire_modis(domain = domain),
   #   age = as.difftime(7, units = "days")
   # ),
-  tar_age(
-    ndvi_modis,
-    get_ndvi_modis(domain = domain),
-    age = as.difftime(7, units = "days")
-  ),
-  tar_age(
-    ndvi_dates_modis,
-    get_ndvi_dates_modis(domain = domain),
-    age = as.difftime(7, units = "days")
-  )
-#,
+  # # tar_age(
+  # #   kndvi_modis,
+  # #   get_kndvi_modis(domain = domain),
+  # #   age = as.difftime(7, units = "days")
+  # # ),
+  # tar_age(
+  #   ndvi_modis,
+  #   get_ndvi_modis(domain = domain),
+  #   age = as.difftime(7, units = "days")
+  # ),
+  # tar_age(
+  #   ndvi_dates_modis,
+  #   get_ndvi_dates_modis(domain = domain),
+  #   age = as.difftime(7, units = "days")
+  # ),
 
 # Fixing projections
   # tar_target(
