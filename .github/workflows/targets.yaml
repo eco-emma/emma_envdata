@@ -127,7 +127,6 @@ jobs:
         run: |
           targets::tar_make()
         shell: Rscript {0}      
-        continue-on-error: true
       - name: Identify files that the targets pipeline produced
         run: git ls-files -mo --exclude=renv > .targets-files
       - name: Create the runs branch if it does not already exist
