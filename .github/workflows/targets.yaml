@@ -125,6 +125,7 @@ jobs:
 
       - name: Run targets pt 2
         run: |
+          targets::tar_destroy("meta",ask = FALSE)
           targets::tar_make()
         shell: Rscript {0}      
       - name: Identify files that the targets pipeline produced
