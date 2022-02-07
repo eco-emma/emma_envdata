@@ -110,30 +110,30 @@ list(
     ndvi_dates_modis,
     get_ndvi_dates_modis(domain = domain),
     age = as.difftime(7, units = "days")
-  ),
-
-# Fixing projections
-  tar_target(
-    correct_ndvi_proj,
-    process_fix_modis_projection(directory = "data/raw_data/ndvi_modis/",
-                                 ... = ndvi_modis)
-  ),
-  tar_target(
-    correct_ndvi_date_proj,
-    process_fix_modis_projection(directory = "data/raw_data/ndvi_dates_modis/",
-                               ... = ndvi_dates_modis)
-  ),
-  tar_target(
-    correct_kndvi_proj,
-    process_fix_modis_projection(directory = "data/raw_data/kndvi_modis/",
-                               ... = kndvi_modis)
-  ),
-  tar_target(
-    correct_fire_proj,
-    process_fix_modis_projection(directory = "data/raw_data/fire_modis/",
-                               ... = fire_modis)
   )
 #,
+
+# Fixing projections
+  # tar_target(
+  #   correct_ndvi_proj,
+  #   process_fix_modis_projection(directory = "data/raw_data/ndvi_modis/",
+  #                                ... = ndvi_modis)
+  # ),
+  # tar_target(
+  #   correct_ndvi_date_proj,
+  #   process_fix_modis_projection(directory = "data/raw_data/ndvi_dates_modis/",
+  #                              ... = ndvi_dates_modis)
+  # ),
+  # tar_target(
+  #   correct_kndvi_proj,
+  #   process_fix_modis_projection(directory = "data/raw_data/kndvi_modis/",
+  #                              ... = kndvi_modis)
+  # ),
+  # tar_target(
+  #   correct_fire_proj,
+  #   process_fix_modis_projection(directory = "data/raw_data/fire_modis/",
+  #                              ... = fire_modis)
+  # ),
 
 # Processing
 
