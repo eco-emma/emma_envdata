@@ -117,7 +117,8 @@ list(
     correct_ndvi_proj,
     process_fix_modis_projection(directory = "data/raw_data/ndvi_modis/",
                                  ... = ndvi_modis)
-  ),
+  )
+# ,
   # tar_target(
   #   correct_ndvi_date_proj,
   #   process_fix_modis_projection(directory = "data/raw_data/ndvi_dates_modis/",
@@ -135,20 +136,20 @@ list(
   # ),
 
 # Processing
-
-  tar_target(
-    fire_doy_to_unix_date,
-    process_fire_doy_to_unix_date(... = correct_fire_proj)
-  ),
-  tar_target(
-    burn_date_to_last_burned_date,
-    process_burn_date_to_last_burned_date(... = fire_doy_to_unix_date)
-  ),
-  tar_target(
-    ndvi_relative_days_since_fire,
-    process_ndvi_relative_days_since_fire(... = burn_date_to_last_burned_date,
-                                          ... = correct_ndvi_date_proj)
-  )
+#
+#   tar_target(
+#     fire_doy_to_unix_date,
+#     process_fire_doy_to_unix_date(... = correct_fire_proj)
+#   ),
+#   tar_target(
+#     burn_date_to_last_burned_date,
+#     process_burn_date_to_last_burned_date(... = fire_doy_to_unix_date)
+#   ),
+#   tar_target(
+#     ndvi_relative_days_since_fire,
+#     process_ndvi_relative_days_since_fire(... = burn_date_to_last_burned_date,
+#                                           ... = correct_ndvi_date_proj)
+#   )
 #,
 #
 # #   tar_target(
