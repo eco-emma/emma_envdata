@@ -123,16 +123,16 @@ list(
   #   process_fix_modis_projection(directory = "data/raw_data/ndvi_dates_modis/",
   #                              ... = ndvi_dates_modis)
   # ),
-  tar_target(
-    correct_kndvi_proj,
-    process_fix_modis_projection(directory = "data/raw_data/kndvi_modis/",
-                               ... = kndvi_modis)
-  ),
-  tar_target(
-    correct_fire_proj,
-    process_fix_modis_projection(directory = "data/raw_data/fire_modis/",
-                               ... = fire_modis)
-  ),
+  # tar_target(
+  #   correct_kndvi_proj,
+  #   process_fix_modis_projection(directory = "data/raw_data/kndvi_modis/",
+  #                              ... = kndvi_modis)
+  # ),
+  # tar_target(
+  #   correct_fire_proj,
+  #   process_fix_modis_projection(directory = "data/raw_data/fire_modis/",
+  #                              ... = fire_modis)
+  # ),
 
 # Processing
 
