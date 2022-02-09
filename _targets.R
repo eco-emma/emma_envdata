@@ -87,31 +87,31 @@ list(
     precipitation_chelsa,
     get_precipitation_chelsa(domain = domain),
     age = as.difftime(26, units = "weeks")
-  )
-  #,
+  ),
 
 # Frequent updates
 
-  # tar_age(
-  #   fire_modis,
-  #   get_fire_modis(domain = domain),
-  #   age = as.difftime(7, units = "days")
-  # ),
+  tar_age(
+    fire_modis,
+    get_fire_modis(domain = domain),
+    age = as.difftime(7, units = "days")
+  ),
   # # tar_age(
   # #   kndvi_modis,
   # #   get_kndvi_modis(domain = domain),
   # #   age = as.difftime(7, units = "days")
   # # ),
-  # tar_age(
-  #   ndvi_modis,
-  #   get_ndvi_modis(domain = domain),
-  #   age = as.difftime(7, units = "days")
-  # ),
-  # tar_age(
-  #   ndvi_dates_modis,
-  #   get_ndvi_dates_modis(domain = domain),
-  #   age = as.difftime(7, units = "days")
-  # ),
+  tar_age(
+    ndvi_modis,
+    get_ndvi_modis(domain = domain),
+    age = as.difftime(7, units = "days")
+  ),
+  tar_age(
+    ndvi_dates_modis,
+    get_ndvi_dates_modis(domain = domain),
+    age = as.difftime(7, units = "days")
+  )
+  #,
 
 # Fixing projections
   # tar_target(
