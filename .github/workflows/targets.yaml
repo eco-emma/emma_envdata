@@ -30,10 +30,10 @@ on:
     branches:
       - main
       - master
-      
+
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
-  
+
 name: targets
 
 jobs:
@@ -114,11 +114,11 @@ jobs:
           cmdstanr::check_cmdstan_toolchain()
           #cmdstanr::install_cmdstan()
         shell: Rscript {0}
-      - name: Verify credentials  
+      - name: Verify credentials
         run: |
           ./.github/decrypt_secret.sh
           ls ~/.config/earthengine
-          earthengine -h          
+          earthengine -h
         env:
           RGEE_SECRET: ${{ secrets.RGEE_SECRET }}
         continue-on-error: true
@@ -126,7 +126,7 @@ jobs:
       - name: Run targets pt 2
         run: |
           targets::tar_make()
-        shell: Rscript {0}      
+        shell: Rscript {0}
       - name: Identify files that the targets pipeline produced
         run: git ls-files -mo --exclude=renv > .targets-files
       - name: Create the runs branch if it does not already exist
@@ -144,9 +144,12 @@ jobs:
           git config --local user.email "actions@github.com"
           rm -r .gitignore .github/workflows
           git lfs track _targets/objects/* #use git LFS to track the targets output (larger files)
+          git lfs track data/raw_data/*
           git lfs track data/* #use git LFS to track the data output (larger files)
           git lfs track "raw_data/**" #use git LFS to track raw_data output (larger files)
+          git lfs track "data/**"
           git lfs track _targets/metadata/* #track metadata
+          git lfs track *.tif
           git add .gitattributes
           git add --all -- ':!renv'
           for file in $(git ls-files -mo --exclude=renv)
