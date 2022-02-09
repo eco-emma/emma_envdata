@@ -38,6 +38,6 @@ processed_data/
 data/other_data/
 */other_data/*
 .DS_Store
-*/meta
+#*/meta
 img/network.html
 img/network*
