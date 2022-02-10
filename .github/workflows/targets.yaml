@@ -113,6 +113,8 @@ jobs:
           cmdstanr::set_cmdstan_path("/home/rstudio/.cmdstanr/cmdstan-2.28.1")
           cmdstanr::check_cmdstan_toolchain()
           #cmdstanr::install_cmdstan()
+          unlink(".RData")
+          quit(save = "no")
         shell: Rscript {0}
       - name: Verify credentials
         run: |
