@@ -3,9 +3,11 @@ tif_debug <- function(directory = "scratch_code"){
 
   if(file.exists(paste(directory,"/wc2.1_10m_tmin_01.tif",sep = ""))){
 
+    message("file present")
+
     #File found
 
-    list.files(directory,full.names = TRUE)
+    print(list.files(directory,full.names = TRUE,recursive = TRUE))
 
     raster::raster(paste(directory,"/wc2.1_10m_tmin_01.tif",sep = ""))
 
