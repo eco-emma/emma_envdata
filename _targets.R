@@ -21,30 +21,35 @@ if(T) {
 
 list(
 
-  #Prep needed files
-
   tar_target(
-    vegmap_shp, # 2018 National Vegetation Map http://bgis.sanbi.org/SpatialDataset/Detail/1674
-    "data/manual_download/VEGMAP2018_AEA_16082019Final/NVM2018_AEA_V22_7_16082019_final.shp",
-    format = "file"
-  ),
+    test_tif,
+    tif_debug()
+  )
+
+  #Prep needed files
+#
+#   tar_target(
+#     vegmap_shp, # 2018 National Vegetation Map http://bgis.sanbi.org/SpatialDataset/Detail/1674
+#     "data/manual_download/VEGMAP2018_AEA_16082019Final/NVM2018_AEA_V22_7_16082019_final.shp",
+#     format = "file"
+#   ),
   # tar_target(
   #   remnants_shp,
   #   "data/manual_download/RLE_2021_Remnants/RLE_Terr_2021_June2021_Remnants_ddw.shp",
   #   format = "file"
   # ),
-  tar_target(
-    country,
-    national_boundary()
-  ),
-  tar_target(
-    vegmap,
-    get_vegmap(vegmap_shp)
-  ),
-  tar_target(
-    domain,
-    domain_define(vegmap = vegmap, country)
-  ),
+  # tar_target(
+  #   country,
+  #   national_boundary()
+  # ),
+  # tar_target(
+  #   vegmap,
+  #   get_vegmap(vegmap_shp)
+  # ),
+  # tar_target(
+  #   domain,
+  #   domain_define(vegmap = vegmap, country)
+  # ),
   # tar_target(
   #   remnants,
   #   domain_remnants(domain, remnants_shp = remnants_shp),
@@ -58,66 +63,66 @@ list(
 
 # Infrequent updates
 
-  tar_age(
-    alos,
-    get_alos(domain = domain),
-    age = as.difftime(26, units = "weeks")
-  ),
-  tar_age(
-    climate_chelsa,
-    get_climate_chelsa(domain = domain),
-    age = as.difftime(26, units = "weeks")
-  ),
-  tar_age(
-    clouds_wilson,
-    get_clouds_wilson(domain = domain),
-    age = as.difftime(26, units = "weeks")
-  ),
-  tar_age(
-    elevation_nasadem,
-    get_elevation_nasadem(domain = domain),
-    age = as.difftime(26, units = "weeks")
-  ),
-  tar_age(
-    landcover_za,
-    get_landcover_za(domain = domain),
-    age = as.difftime(26, units = "weeks")
-  ),
-  tar_age(
-    precipitation_chelsa,
-    get_precipitation_chelsa(domain = domain),
-    age = as.difftime(26, units = "weeks")
-  ),
+  # tar_age(
+  #   alos,
+  #   get_alos(domain = domain),
+  #   age = as.difftime(26, units = "weeks")
+  # ),
+  # tar_age(
+  #   climate_chelsa,
+  #   get_climate_chelsa(domain = domain),
+  #   age = as.difftime(26, units = "weeks")
+  # ),
+  # tar_age(
+  #   clouds_wilson,
+  #   get_clouds_wilson(domain = domain),
+  #   age = as.difftime(26, units = "weeks")
+  # ),
+  # tar_age(
+  #   elevation_nasadem,
+  #   get_elevation_nasadem(domain = domain),
+  #   age = as.difftime(26, units = "weeks")
+  # ),
+  # tar_age(
+  #   landcover_za,
+  #   get_landcover_za(domain = domain),
+  #   age = as.difftime(26, units = "weeks")
+  # ),
+  # tar_age(
+  #   precipitation_chelsa,
+  #   get_precipitation_chelsa(domain = domain),
+  #   age = as.difftime(26, units = "weeks")
+  # ),
 
 # Frequent updates
 
-  tar_age(
-    fire_modis,
-    get_fire_modis(domain = domain),
-    age = as.difftime(7, units = "days")
-  ),
+  # tar_age(
+  #   fire_modis,
+  #   get_fire_modis(domain = domain),
+  #   age = as.difftime(7, units = "days")
+  # ),
   # # tar_age(
   # #   kndvi_modis,
   # #   get_kndvi_modis(domain = domain),
   # #   age = as.difftime(7, units = "days")
   # # ),
-  tar_age(
-    ndvi_modis,
-    get_ndvi_modis(domain = domain),
-    age = as.difftime(7, units = "days")
-  ),
-  tar_age(
-    ndvi_dates_modis,
-    get_ndvi_dates_modis(domain = domain),
-    age = as.difftime(7, units = "days")
-  ),
+  # tar_age(
+  #   ndvi_modis,
+  #   get_ndvi_modis(domain = domain),
+  #   age = as.difftime(7, units = "days")
+  # ),
+  # tar_age(
+  #   ndvi_dates_modis,
+  #   get_ndvi_dates_modis(domain = domain),
+  #   age = as.difftime(7, units = "days")
+  # ),
 
 # Fixing projections
-  tar_target(
-    correct_ndvi_proj,
-    process_fix_modis_projection(directory = "data/raw_data/ndvi_modis/",
-                                 ... = ndvi_modis)
-  )
+  # tar_target(
+  #   correct_ndvi_proj,
+  #   process_fix_modis_projection(directory = "data/raw_data/ndvi_modis/",
+  #                                ... = ndvi_modis)
+  # )
 # ,
   # tar_target(
   #   correct_ndvi_date_proj,
