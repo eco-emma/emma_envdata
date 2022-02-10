@@ -5,6 +5,8 @@ tif_debug <- function(directory = "scratch_code"){
 
     #File found
 
+    list.files(directory,full.names = TRUE)
+
     raster::raster(paste(directory,"/wc2.1_10m_tmin_01.tif",sep = ""))
 
 
