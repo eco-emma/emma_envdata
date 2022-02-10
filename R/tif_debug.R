@@ -10,7 +10,12 @@ tif_debug <- function(directory = "scratch_code"){
     print(list.files(directory,full.names = TRUE,recursive = TRUE))
 
     list.files(path =directory,full.names = TRUE,pattern = ".tif" )[1]
-    raster::raster(list.files(path =directory,full.names = TRUE,pattern = ".tif" )[1])
+
+    #raster::raster(list.files(path =directory,full.names = TRUE,pattern = ".tif" )[1])
+
+    terra::rast(list.files(path =directory,full.names = TRUE,pattern = ".tif" )[1])
+
+
     #raster::raster(paste(directory,"/wc2.1_10m_tmin_01.tif",sep = ""))
 
 
