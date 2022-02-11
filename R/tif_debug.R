@@ -13,7 +13,7 @@ tif_debug <- function(directory = "scratch_code"){
 
     #raster::raster(list.files(path =directory,full.names = TRUE,pattern = ".tif" )[1])
 
-    terra::rast(list.files(path =directory,full.names = TRUE,pattern = ".tif" )[1])
+    print(terra::rast(list.files(path =directory,full.names = TRUE,pattern = ".tif" )[1]))
 
 
     #raster::raster(paste(directory,"/wc2.1_10m_tmin_01.tif",sep = ""))
@@ -35,7 +35,7 @@ tif_debug <- function(directory = "scratch_code"){
     unzip(zipfile = paste(directory,"/test.zip",sep = ""),
           exdir = "scratch_code",overwrite = TRUE)
 
-    raster::raster(paste(directory,"/wc2.1_10m_tmin_01.tif",sep = ""))
+    print(raster::raster(paste(directory,"/wc2.1_10m_tmin_01.tif",sep = "")))
 
     file.remove(list.files(path = directory, full.names = TRUE, pattern = ".tif" )[2:12])
 
