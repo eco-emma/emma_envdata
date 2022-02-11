@@ -68,6 +68,7 @@ jobs:
         run: |-
           Rscript -e "questionr::qscan(list.files(pattern='*.R',recursive=T), load = TRUE, detail = FALSE)" # this scans all scripts and installs any needed packages
           Rscript -e "remotes::install_github('ROpenSci/bibtex')"
+          Rscript -e "install.packages('rgdal')" #trying to reinstall rgdal per Hijmans comments on stackoverflow
       - name: Cache packages
         uses: actions/cache@v1
         with:
