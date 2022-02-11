@@ -123,7 +123,10 @@ jobs:
         env:
           RGEE_SECRET: ${{ secrets.RGEE_SECRET }}
         continue-on-error: true
-
+      - name: check on files
+        run: |
+          file scratch_code/wc2.1_10m_tmin_01.tif          
+        continue-on-error: true
       - name: Run targets pt 2
         run: |
           targets::tar_make()
