@@ -60,6 +60,13 @@ jobs:
 #        env:
 #          RGEE_SECRET: ${{ secrets.RGEE_SECRET }}
 #        continue-on-error: true
+      - name: uninstall R
+        run:
+          sudo apt-get remove r-base
+          sudo apt-get remove r-base-core
+      - name: reinstall R
+        run:
+          sudo apt-get install r-base
       - name: Check git settings
         run:
           git config --get http.postBuffer
