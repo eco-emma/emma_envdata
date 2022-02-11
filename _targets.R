@@ -5,6 +5,8 @@ library(visNetwork)
 # source all files in R folder
 lapply(list.files("R",pattern="[.]R",full.names = T), source)
 
+install.packages("rgdal")
+
 options(tidyverse.quiet = TRUE)
 options(clustermq.scheduler = "multicore")
 
@@ -21,9 +23,10 @@ if(T) {
 
 list(
 
-  tar_target(
+  tar_age(
     test_tif,
-    tif_debug()
+    tif_debug(),
+    age = as.difftime(1, units = "secs")
   )
 
   #Prep needed files
