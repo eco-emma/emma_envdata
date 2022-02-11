@@ -159,7 +159,7 @@ tar_target(
     process_ndvi_relative_days_since_fire(... = burn_date_to_last_burned_date,
                                           ... = correct_ndvi_date_proj)
   ),
-  star_target(
+  tar_target(
     model_data,
     get_model_data(remnant_distance),
     format = "file"
