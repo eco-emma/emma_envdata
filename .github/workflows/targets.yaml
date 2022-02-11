@@ -62,10 +62,10 @@ jobs:
 #        continue-on-error: true
       - name: uninstall R
         run:
-          brew uninstall R
+          sudo brew uninstall R
       - name: reinstall R
         run:
-          brew install R
+          sudo brew install R
       - name: Check git settings
         run:
           git config --get http.postBuffer
