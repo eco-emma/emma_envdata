@@ -142,60 +142,57 @@ tar_target(
     correct_fire_proj,
     process_fix_modis_projection(directory = "data/raw_data/fire_modis/",
                                ... = fire_modis)
-  )
-  #,
+  ),
 
 # Processing
-#
-#   tar_target(
-#     fire_doy_to_unix_date,
-#     process_fire_doy_to_unix_date(... = correct_fire_proj)
-#   ),
-#   tar_target(
-#     burn_date_to_last_burned_date,
-#     process_burn_date_to_last_burned_date(... = fire_doy_to_unix_date)
-#   ),
-#   tar_target(
-#     ndvi_relative_days_since_fire,
-#     process_ndvi_relative_days_since_fire(... = burn_date_to_last_burned_date,
-#                                           ... = correct_ndvi_date_proj)
-#   )
-#,
-#
-# #   tar_target(
-# #     model_data,
-# #     get_model_data(remnant_distance),
-# #     format = "file"
-# #   ),
-#   tar_target(
-#     template,
-#     get_template_raster(... = correct_ndvi_proj)
-#   ),
-#   tar_target(
-#     projected_alos,
-#     process_alos(template = template, ... = alos)
-#   ),
-#   tar_target(
-#     projected_climate_chelsa,
-#     process_climate_chelsa(template = template, ... = climate_chelsa)
-#   ),
-#   tar_target(
-#     projected_clouds_wilson,
-#     process_clouds_wilson(template = template, ... = clouds_wilson)
-#   ),
-#   tar_target(
-#     projected_elevation_nasadem,
-#     process_elevation_nasadem(template = template, ... = elevation_nasadem)
-#   ),
-#   tar_target(
-#     projected_landcover_za,
-#     process_landcover_za(template = template, ... = landcover_za)
-#   ),
-#   tar_target(
-#     projected_precipitation_chelsa,
-#     process_precipitation_chelsa(template = template, ... = precipitaton_chelsa)
-#
-#   )
+
+  tar_target(
+    fire_doy_to_unix_date,
+    process_fire_doy_to_unix_date(... = correct_fire_proj)
+  ),
+  tar_target(
+    burn_date_to_last_burned_date,
+    process_burn_date_to_last_burned_date(... = fire_doy_to_unix_date)
+  ),
+  tar_target(
+    ndvi_relative_days_since_fire,
+    process_ndvi_relative_days_since_fire(... = burn_date_to_last_burned_date,
+                                          ... = correct_ndvi_date_proj)
+  ),
+  star_target(
+    model_data,
+    get_model_data(remnant_distance),
+    format = "file"
+  ),
+  tar_target(
+    template,
+    get_template_raster(... = correct_ndvi_proj)
+  ),
+  tar_target(
+    projected_alos,
+    process_alos(template = template, ... = alos)
+  ),
+  tar_target(
+    projected_climate_chelsa,
+    process_climate_chelsa(template = template, ... = climate_chelsa)
+  ),
+  tar_target(
+    projected_clouds_wilson,
+    process_clouds_wilson(template = template, ... = clouds_wilson)
+  ),
+  tar_target(
+    projected_elevation_nasadem,
+    process_elevation_nasadem(template = template, ... = elevation_nasadem)
+  ),
+  tar_target(
+    projected_landcover_za,
+    process_landcover_za(template = template, ... = landcover_za)
+  ),
+  tar_target(
+    projected_precipitation_chelsa,
+    process_precipitation_chelsa(template = template, ... = precipitaton_chelsa)
+
+  )
 #,
 #
 # # Prep model data
