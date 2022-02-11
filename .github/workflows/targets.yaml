@@ -62,11 +62,10 @@ jobs:
 #        continue-on-error: true
       - name: uninstall R
         run:
-          sudo apt-get remove r-base
-          sudo apt-get remove r-base-core
+          brew uninstall R
       - name: reinstall R
         run:
-          sudo apt-get install r-base
+          brew install R
       - name: Check git settings
         run:
           git config --get http.postBuffer
