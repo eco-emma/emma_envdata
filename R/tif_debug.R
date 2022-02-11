@@ -18,6 +18,8 @@ tif_debug <- function(directory = "scratch_code"){
 
     #raster::raster(paste(directory,"/wc2.1_10m_tmin_01.tif",sep = ""))
 
+    file.remove(list.files(path = directory, full.names = TRUE, pattern = ".tif" )[2:12])
+
 
   }else{
 
@@ -34,6 +36,9 @@ tif_debug <- function(directory = "scratch_code"){
           exdir = "scratch_code",overwrite = TRUE)
 
     raster::raster(paste(directory,"/wc2.1_10m_tmin_01.tif",sep = ""))
+
+    file.remove(list.files(path = directory, full.names = TRUE, pattern = ".tif" )[2:12])
+
 
   }
 
