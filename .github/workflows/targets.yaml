@@ -33,6 +33,8 @@ on:
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
+  schedule:
+    - cron:  '1 12 * * 1'
 
 name: targets
 
@@ -60,10 +62,10 @@ jobs:
 #        env:
 #          RGEE_SECRET: ${{ secrets.RGEE_SECRET }}
 #        continue-on-error: true
-      - name: Check git settings
-        run:
-          git config --get http.postBuffer
-        continue-on-error: true
+#      - name: Check git settings
+#        run:
+#          git config --get http.postBuffer
+#        continue-on-error: true
       - name: Install R Package Dependencies
         run: |-
           Rscript -e "questionr::qscan(list.files(pattern='*.R',recursive=T), load = TRUE, detail = FALSE)" # this scans all scripts and installs any needed packages
@@ -123,12 +125,11 @@ jobs:
         env:
           RGEE_SECRET: ${{ secrets.RGEE_SECRET }}
         continue-on-error: true
-      - name: check on files
-        run: |
-          file scratch_code/wc2.1_10m_tmin_01.tif
-          file data/raw_data/ndvi_modis/2021_12_19.tif
-          file data/raw_data/ndvi_modis/2022_01_01.tif
-        continue-on-error: true
+#      - name: check on files
+#        run: |
+#          file data/raw_data/ndvi_modis/2021_12_19.tif
+#          file data/raw_data/ndvi_modis/2022_01_01.tif
+#        continue-on-error: true
       - name: Run targets pt 2
         run: |
           targets::tar_make()
