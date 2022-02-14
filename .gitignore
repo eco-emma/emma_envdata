@@ -36,6 +36,12 @@ processed_data/
 data/*
 */other_data/*
 .DS_Store
+<<<<<<< HEAD
 img/*_files
 img/*html
 _targets/meta/meta
+=======
+*/meta
+img/network.html
+img/network*
+>>>>>>> main
