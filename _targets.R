@@ -5,8 +5,6 @@ library(visNetwork)
 # source all files in R folder
 lapply(list.files("R",pattern="[.]R",full.names = T), source)
 
-install.packages("rgdal")
-
 options(tidyverse.quiet = TRUE)
 options(clustermq.scheduler = "multicore")
 
@@ -22,12 +20,6 @@ if(T) {
 
 
 list(
-
-  # tar_age(
-  #   test_tif,
-  #   tif_debug(),
-  #   age = as.difftime(1, units = "secs")
-  # )
 
   #Prep needed files
 
@@ -53,16 +45,6 @@ tar_target(
   domain,
   domain_define(vegmap = vegmap, country)
 ),
-tar_target(
-  remnants,
-  domain_remnants(domain, remnants_shp = remnants_shp),
-  format = "file"
-),
-tar_target(
-  remnant_distance,
-  domain_distance(remnants),
-  format = "file"
- ),
 
 # Infrequent updates
 
@@ -167,6 +149,16 @@ tar_target(
   tar_target(
     template,
     get_template_raster(... = correct_ndvi_proj)
+  ),
+  tar_target(
+    remnants,
+    domain_remnants(domain, remnants_shp = remnants_shp, template = template),
+    format = "file"
+  ),
+  tar_target(
+    remnant_distance,
+    domain_distance(remnants),
+    format = "file"
   ),
   tar_target(
     projected_alos,

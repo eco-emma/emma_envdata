@@ -9,12 +9,20 @@ library(terra)
 #' @author Adam Wilson & Brian Maitner
 #' @description This code cleans up the RLE Remnants file to yield a simpler polygon that we can use as a domain.
 #' @param remnants_shp The file location of the remnants shapefile.  Defaults to "data/RLE_2021_Remnants/RLE_Terr_2021_June2021_Remnants_ddw.shp"
+#' @param template path to raster file to use as a template for reprojection
 
-
-domain_remnants <- function(domain, remnants_shp, file="data/remnants.tif") {
+domain_remnants <- function(domain, remnants_shp, template ,file = "data/remnants.tif") {
 
   # Define which biome(s) to keep
-  biome_keep <- c("Fynbos")
+    biome_keep <- c("Fynbos")
+
+  # Load in a domain template in the MODIS projection
+    ##domain_template=st_as_stars(st_bbox(domain), dx = 500, dy = 500)
+    domain_template <- st_as_stars(rast(template))
+
+  # reproject domain to match the template
+    domain <-domain %>%
+      st_transform(crs = crs(rast(template)))
 
 
   # Load remnants file
@@ -35,8 +43,6 @@ domain_remnants <- function(domain, remnants_shp, file="data/remnants.tif") {
     filter(biome %in% biome_keep ) %>% #filter to list above
     st_make_valid()
 
-  domain_template=st_as_stars(st_bbox(domain), dx = 500, dy = 500)
-
   domain_raster <- domain %>%
     dplyr::select(domain) %>%
     st_rasterize(template = domain_template, values = NA_real_)
@@ -44,9 +50,13 @@ domain_remnants <- function(domain, remnants_shp, file="data/remnants.tif") {
   remnants_raster <- remnants %>%
     mutate(remnant=1) %>%
     vect() %>%
-    rasterize(x=.,y=rast(domain_template),field="remnant",touches=T,cover=T)
+    rasterize(x = .,
+              y = rast(domain_template),
+              field = "remnant",
+              touches = T,
+              cover = T)
 
-  writeRaster(remnants_raster,file=file,overwrite=T)
+  writeRaster(remnants_raster, file = file, overwrite = T)
 
 return(file)
 
@@ -60,7 +70,7 @@ domain_distance<- function(remnants, file="data/remnant_distance.tif"){
     terra::distance(grid=T)/1000
 
 
-  writeRaster(distance_raster,file=file,overwrite=T)
+  writeRaster(distance_raster, file = file, overwrite = T)
 
   return(file)
 
