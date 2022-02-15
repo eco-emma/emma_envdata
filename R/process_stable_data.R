@@ -7,6 +7,7 @@ library(arrow)
 #' @param cloud_dir directory containing the could layers
 #' @param climate_dir directory containing the climate layers
 #' @param alos_dir directory containing the alos layers
+#' @param remnant_distace_dir directory containing remnant distance layer
 #' @param ... Does nothing, used to ensure upstream changes impact things
 process_stable_data <- function(output_dir = "data/processed_data/model_data/",
                                 precip_dir = "data/processed_data/precipitation_chelsa/",
@@ -15,6 +16,7 @@ process_stable_data <- function(output_dir = "data/processed_data/model_data/",
                                 cloud_dir = "data/processed_data/clouds_wilson/",
                                 climate_dir = "data/processed_data/climate_chelsa/",
                                 alos_dir = "data/processed_data/alos/",
+                                remnant_distace_dir = "data/processed_data/remnant_distance/",
                                 ...) {
 
 
@@ -31,7 +33,8 @@ process_stable_data <- function(output_dir = "data/processed_data/model_data/",
       elevation_dir,
       cloud_dir,
       climate_dir,
-      alos_dir) |>
+      alos_dir,
+      remnant_distace_dir) |>
 
         lapply(FUN = function(x){
           list.files(path = x,
