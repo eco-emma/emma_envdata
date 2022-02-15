@@ -228,6 +228,16 @@ tar_target(
                                     output_dir = "data/processed_data/model_data/dynamic_parquet/most_recent_burn_dates/",
                                     variable_name = "most_recent_burn_date",
                                     ... = burn_date_to_last_burned_date)
-    )
+    ),
+  #Release Data
+  tar_target(
+    release_data_to_github,
+    release_data(data_directory = "data/processed_data/model_data/",
+                 tag = "current",
+                 ... = stable_data,
+                 ... = most_recent_fire_dates_to_parquet,
+                 ... = fire_dates_to_parquet,
+                 ... = ndvi_to_parquet)
+)
 
 )
