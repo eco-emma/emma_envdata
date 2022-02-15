@@ -11,7 +11,20 @@ library(terra)
 #' @param remnants_shp The file location of the remnants shapefile.  Defaults to "data/RLE_2021_Remnants/RLE_Terr_2021_June2021_Remnants_ddw.shp"
 #' @param template path to raster file to use as a template for reprojection
 
-domain_remnants <- function(domain, remnants_shp, template ,file = "data/remnants.tif") {
+domain_remnants <- function(domain, remnants_shp, template, file = "data/remnants.tif") {
+
+  #set up the directory structure if needed (ugly code, but it works)
+    if(!dir.exists(strsplit(x = file,split = "/")[[1]][1:length(strsplit(x = file,split = "/")[[1]]) -1] %>%
+                   paste(collapse = "/"))){
+
+      strsplit(x = file,split = "/")[[1]][1:length(strsplit(x = file,split = "/")[[1]]) -1] %>%
+        paste(collapse = "/") %>%
+        dir.create(recursive = TRUE)
+
+    }
+
+
+  length(strsplit(x = file,split = "/")[[1]])
 
   # Define which biome(s) to keep
     biome_keep <- c("Fynbos")
@@ -63,6 +76,16 @@ return(file)
 }
 
 domain_distance<- function(remnants, file="data/remnant_distance.tif"){
+
+  #set up the directory structure if needed (ugly code, but it works)
+  if(!dir.exists(strsplit(x = file,split = "/")[[1]][1:length(strsplit(x = file,split = "/")[[1]]) -1] %>%
+                 paste(collapse = "/"))){
+
+    strsplit(x = file,split = "/")[[1]][1:length(strsplit(x = file,split = "/")[[1]]) -1] %>%
+      paste(collapse = "/") %>%
+      dir.create(recursive = TRUE)
+
+  }
 
   distance_raster <-
     rast(remnants) %>%
