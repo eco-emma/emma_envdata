@@ -145,6 +145,11 @@ jobs:
           rm -r .git
           mv .targets-runs/.git .
           rm -r .targets-runs
+
+      - name: update md
+        run: |
+          knitr::knit("README.Rmd")
+        shell: Rscript {0}
       - name: Upload latest run
         run: |
           git config --local user.name "GitHub Actions"
