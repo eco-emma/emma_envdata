@@ -15,36 +15,63 @@ release_data <- function(data_directory = "data/processed_data/model_data/", tag
              error = function(e){message("Previous release found")})
 
   #Get a list of files already released
-  current_files  <- pb_list(repo = "AdamWilsonLab/emma_envdata",
-                            tag = tag)
+    released_files  <- pb_list(repo = "AdamWilsonLab/emma_envdata",
+                              tag = tag)
 
 
-  # take a look at the available files
-    release_files <- list.files(path = data_directory,
+  # Get a lost of the local files
+    local_files <- data.frame(local_filename = list.files(path = data_directory,
                                 recursive = TRUE,
-                                full.names = TRUE)
+                                full.names = TRUE))
+
+  # Convert local filenames to be releases compatible
+    local_files$file_name <-
+        sapply(X = local_files$local_filename,
+               FUN = function(x){
+
+                 name_i <- gsub(pattern = data_directory,
+                                replacement = "",
+                                x = x)
+
+                 name_i <- gsub(pattern = "/",
+                                replacement = "-",
+                                x = name_i)
+                 return(name_i)
+
+               })
+
+  # Get timestamps on local files
+    local_files$last_modified <-
+      Reduce(c, lapply(X = local_files$local_filename,
+                     FUN =  function(x) {
+                      file.info(x)$mtime})
+           )
+
+
+  # Figure out which files DON'T need to be released
+    merged_info <- merge(x = released_files,
+                         y = local_files,
+                         all = TRUE)
+
+    merged_info$diff_hrs <- difftime(time2 = merged_info$timestamp,
+                                     time1 = merged_info$last_modified,
+                                     units = "hours")
+
+
+    # We only want time differences of greater than zero (meaning that the local file is more recent) or NA
+      merged_info <- merged_info[which(!merged_info$diff_hrs < 0 | is.na(merged_info$diff_hrs)),]
+
 
     # loop through and release everything
-      for( i in 1:length(release_files)){
+      for( i in 1:nrow(merged_info)){
 
-        Sys.sleep(0.01) #We need to limit our rate in order to keep Github happy
-
-        file_i <- release_files[i]
-
-        name_i <- gsub(pattern = data_directory,
-                       replacement = "",
-                       x = file_i)
-
-        name_i <- gsub(pattern = "/",
-                       replacement = "-",
-                       x = name_i)
+        Sys.sleep(0.1) #We need to limit our rate in order to keep Github happy
 
 
-
-        pb_upload(file = file_i,
+        pb_upload(file = merged_info$local_filename[i],
                   repo = "AdamWilsonLab/emma_envdata",
-                  tag = "current",
-                  name = name_i)
+                  tag = tag,
+                  name = merged_info$file_name[i])
 
 
 
