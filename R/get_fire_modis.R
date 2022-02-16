@@ -49,7 +49,7 @@ MCD64A1_clean <- function(img) {
 #' @author Brian Maitner
 #' @param directory The directory the fire layers should be saved to, defaults to "data/raw_data/fire_modis/"
 #' @param domain domain (sf polygon) used for masking
-#' @param max_layers the maximum number of layers to download at once.  Set to NULL to ignore.  Default is 100
+#' @param max_layers the maximum number of layers to download at once.  Set to NULL to ignore.  Default is 50
 #' @import rgee
 get_fire_modis <- function(directory = "data/raw_data/fire_modis/", domain, max_layers = 50) {
 
