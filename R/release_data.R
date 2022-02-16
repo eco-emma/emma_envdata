@@ -61,6 +61,15 @@ release_data <- function(data_directory = "data/processed_data/model_data/", tag
     # We only want time differences of greater than zero (meaning that the local file is more recent) or NA
       merged_info <- merged_info[which(!merged_info$diff_hrs < 0 | is.na(merged_info$diff_hrs)),]
 
+    #Quit if there are no new/updated files to release
+      if(nrow(merged_info) == 0){
+
+        message("Releases are already up to date.")
+        return(invisible(NULL))
+
+
+      }
+
 
     # loop through and release everything
       for( i in 1:nrow(merged_info)){
