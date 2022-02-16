@@ -83,24 +83,26 @@ tar_target(
 
   tar_age(
     fire_modis,
-    get_fire_modis(domain = domain),
-    age = as.difftime(7, units = "days")
+    get_fire_modis(domain = domain,
+                   max_layers = 1),
+    #age = as.difftime(7, units = "days")
+    age = as.difftime(1, units = "hours")
   ),
-  tar_age(
-    kndvi_modis,
-    get_kndvi_modis(domain = domain),
-    age = as.difftime(7, units = "days")
-  ),
-  tar_age(
-    ndvi_modis,
-    get_ndvi_modis(domain = domain),
-    age = as.difftime(7, units = "days")
-  ),
-  tar_age(
-    ndvi_dates_modis,
-    get_ndvi_dates_modis(domain = domain),
-    age = as.difftime(7, units = "days")
-  ),
+  # tar_age(
+  #   kndvi_modis,
+  #   get_kndvi_modis(domain = domain),
+  #   age = as.difftime(7, units = "days")
+  # ),
+  # tar_age(
+  #   ndvi_modis,
+  #   get_ndvi_modis(domain = domain),
+  #   age = as.difftime(7, units = "days")
+  # ),
+  # tar_age(
+  #   ndvi_dates_modis,
+  #   get_ndvi_dates_modis(domain = domain),
+  #   age = as.difftime(7, units = "days")
+  # ),
 
 # Fixing projections
 
