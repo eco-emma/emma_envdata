@@ -13,6 +13,8 @@ library(terra)
 
 domain_remnants <- function(domain, remnants_shp, template, file = "data/remnants.tif") {
 
+  message("Starting remnants directory setup")
+
   #set up the directory structure if needed (ugly code, but it works)
     if(!dir.exists(strsplit(x = file,split = "/")[[1]][1:length(strsplit(x = file,split = "/")[[1]]) -1] %>%
                    paste(collapse = "/"))){
@@ -23,16 +25,16 @@ domain_remnants <- function(domain, remnants_shp, template, file = "data/remnant
 
     }
 
-
-  length(strsplit(x = file,split = "/")[[1]])
-
+  message("Starting definition of biomes to keep")
   # Define which biome(s) to keep
     biome_keep <- c("Fynbos")
 
+    message("Loading template")
   # Load in a domain template in the MODIS projection
     ##domain_template=st_as_stars(st_bbox(domain), dx = 500, dy = 500)
     domain_template <- st_as_stars(rast(template))
 
+    message("reprojecting domain")
   # reproject domain to match the template
     domain <-domain %>%
       st_transform(crs = crs(rast(template)))
@@ -49,17 +51,22 @@ domain_remnants <- function(domain, remnants_shp, template, file = "data/remnant
   #   dplyr::mutate(area = units::set_units(st_area(.),km^2))
   #
 
-   # Load remnants file
+    message("Loading remnants file")
+
+  # Load remnants file
   remnants <- st_read(remnants_shp) %>%
     janitor::clean_names() %>%
     st_transform(crs = crs(domain)) %>%
     filter(biome %in% biome_keep ) %>% #filter to list above
     st_make_valid()
 
+
+  message("Making domain raster")
   domain_raster <- domain %>%
     dplyr::select(domain) %>%
     st_rasterize(template = domain_template, values = NA_real_)
 
+  message("Starting remnants raster")
   remnants_raster <- remnants %>%
     mutate(remnant=1) %>%
     vect() %>%
@@ -69,6 +76,7 @@ domain_remnants <- function(domain, remnants_shp, template, file = "data/remnant
               touches = T,
               cover = T)
 
+  message("Starting write raster")
   writeRaster(remnants_raster, file = file, overwrite = T)
 
 return(file)
