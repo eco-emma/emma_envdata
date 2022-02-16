@@ -200,12 +200,14 @@ tar_target(
                         cloud_dir = "data/processed_data/clouds_wilson/",
                         climate_dir = "data/processed_data/climate_chelsa/",
                         alos_dir = "data/processed_data/alos/",
+                        remnant_distace_dir = "data/processed_data/remnant_distance/",
                         ... = projected_precipitation_chelsa,
                         ... = projected_landcover_za,
                         ... = projected_elevation_nasadem,
                         ... = projected_clouds_wilson,
                         ... = projected_climate_chelsa,
-                        ... = projected_alos),
+                        ... = projected_alos,
+                        ... = remnant_distance),
     format = "file"
   ),
   tar_target(
