@@ -33,6 +33,7 @@ domain_remnants <- function(domain, remnants_shp, template, file = "data/remnant
   # Load in a domain template in the MODIS projection
     ##domain_template=st_as_stars(st_bbox(domain), dx = 500, dy = 500)
     domain_template <- st_as_stars(rast(template))
+    print(domain_template)
 
     message("reprojecting domain")
   # reproject domain to match the template
@@ -51,7 +52,7 @@ domain_remnants <- function(domain, remnants_shp, template, file = "data/remnant
   #   dplyr::mutate(area = units::set_units(st_area(.),km^2))
   #
 
-    message("Loading remnants file")
+    message("Loading remnants polygon")
 
   # Load remnants file
   remnants <- st_read(remnants_shp) %>%
@@ -66,6 +67,8 @@ domain_remnants <- function(domain, remnants_shp, template, file = "data/remnant
     dplyr::select(domain) %>%
     st_rasterize(template = domain_template, values = NA_real_)
 
+  print(domain_raster)
+
   message("Starting remnants raster")
   remnants_raster <- remnants %>%
     mutate(remnant=1) %>%
@@ -75,6 +78,8 @@ domain_remnants <- function(domain, remnants_shp, template, file = "data/remnant
               field = "remnant",
               touches = T,
               cover = T)
+
+  print(remnants_raster)
 
   message("Starting write raster")
   writeRaster(remnants_raster, file = file, overwrite = T)
