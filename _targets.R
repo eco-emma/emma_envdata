@@ -148,10 +148,10 @@ tar_target(
 #     get_model_data(remnant_distance),
 #     format = "file"
 #   ),
-#   tar_target(
-#     template,
-#     get_template_raster(... = correct_ndvi_proj)
-#   ),
+  tar_target(
+    template,
+    get_template_raster(... = correct_ndvi_proj)
+  ),
   tar_target(
     remnants,
     domain_remnants(domain = domain,
