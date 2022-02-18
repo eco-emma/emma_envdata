@@ -63,16 +63,16 @@ tar_target(
     get_clouds_wilson(domain = domain),
     age = as.difftime(26, units = "weeks")
   ),
-  # tar_age(
-  #   elevation_nasadem,
-  #   get_elevation_nasadem(domain = domain),
-  #   age = as.difftime(26, units = "weeks")
-  # ),
-  # tar_age(
-  #   landcover_za,
-  #   get_landcover_za(domain = domain),
-  #   age = as.difftime(26, units = "weeks")
-  # ),
+  tar_age(
+    elevation_nasadem,
+    get_elevation_nasadem(domain = domain),
+    age = as.difftime(26, units = "weeks")
+  ),
+  tar_age(
+    landcover_za,
+    get_landcover_za(domain = domain),
+    age = as.difftime(26, units = "weeks")
+  ),
   tar_age(
     precipitation_chelsa,
     get_precipitation_chelsa(domain = domain),
