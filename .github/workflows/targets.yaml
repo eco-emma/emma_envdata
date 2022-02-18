@@ -148,6 +148,7 @@ jobs:
 
       - name: update md
         run: |
+          webshot::install_phantomjs()
           knitr::knit("README.Rmd")
         shell: Rscript {0}
       - name: Upload latest run
