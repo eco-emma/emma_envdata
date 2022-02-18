@@ -80,14 +80,14 @@ tar_target(
   ),
 
 # # Frequent updates
-#
-#   tar_age(
-#     fire_modis,
-#     get_fire_modis(domain = domain,
-#                    max_layers = 2),
-#     #age = as.difftime(7, units = "days")
-#     age = as.difftime(1, units = "hours")
-#   ),
+
+  tar_age(
+    fire_modis,
+    get_fire_modis(domain = domain,
+                   max_layers = 50),
+    #age = as.difftime(7, units = "days")
+    age = as.difftime(7, units = "hours")
+  ),
   # tar_age(
   #   kndvi_modis,
   #   get_kndvi_modis(domain = domain),
