@@ -122,11 +122,11 @@ tar_target(
 #     process_fix_modis_projection(directory = "data/raw_data/kndvi_modis/",
 #                                ... = kndvi_modis)
 #   ),
-#   tar_target(
-#     correct_fire_proj,
-#     process_fix_modis_projection(directory = "data/raw_data/fire_modis/",
-#                                ... = fire_modis)
-#   ),
+  tar_target(
+    correct_fire_proj,
+    process_fix_modis_projection(directory = "data/raw_data/fire_modis/",
+                               ... = fire_modis)
+  ),
 #
 # # Processing
 #
