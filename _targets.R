@@ -58,11 +58,11 @@ tar_target(
     get_climate_chelsa(domain = domain),
     age = as.difftime(26, units = "weeks")
   ),
-  # tar_age(
-  #   clouds_wilson,
-  #   get_clouds_wilson(domain = domain),
-  #   age = as.difftime(26, units = "weeks")
-  # ),
+  tar_age(
+    clouds_wilson,
+    get_clouds_wilson(domain = domain),
+    age = as.difftime(26, units = "weeks")
+  ),
   # tar_age(
   #   elevation_nasadem,
   #   get_elevation_nasadem(domain = domain),
@@ -73,11 +73,11 @@ tar_target(
   #   get_landcover_za(domain = domain),
   #   age = as.difftime(26, units = "weeks")
   # ),
-  # tar_age(
-  #   precipitation_chelsa,
-  #   get_precipitation_chelsa(domain = domain),
-  #   age = as.difftime(26, units = "weeks")
-  # ),
+  tar_age(
+    precipitation_chelsa,
+    get_precipitation_chelsa(domain = domain),
+    age = as.difftime(26, units = "weeks")
+  ),
 
 # # Frequent updates
 #
