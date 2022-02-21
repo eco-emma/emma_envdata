@@ -5,8 +5,9 @@ source("R/get_domain.R")
 #' @author Brian Maitner, but built from code by Qinwen, Adam, and the KNDVI ms authors
 #' @param directory The directory the ndvi layers should be saved to, defaults to "data/raw_data/ndvi_modis/"
 #' @param domain domain (sf polygon) used for masking
+#' @param max_layers the maximum number of layers to download at once.  Set to NULL to ignore.  Default is 50
 #' @import rgee
-get_ndvi_modis <- function(directory = "data/raw_data/ndvi_modis/", domain) {
+get_ndvi_modis <- function(directory = "data/raw_data/ndvi_modis/", domain, max_layers = 50) {
 
   # Make a directory if one doesn't exist yet
 
@@ -68,8 +69,16 @@ get_ndvi_modis <- function(directory = "data/raw_data/ndvi_modis/", domain) {
 
   #What has been downloaded already?
 
-  images_downloaded <- list.files(directory, full.names = F,pattern = ".tif")
-  images_downloaded <- gsub(pattern = ".tif",replacement = "",x = images_downloaded,fixed = T)
+    images_downloaded <- list.files(directory,
+                                    full.names = F,
+                                    pattern = ".tif")
+
+    images_downloaded <- gsub(pattern = ".tif",
+                              replacement = "",
+                              x = images_downloaded,
+                              fixed = T)
+
+
 
   #check to see if any images have been downloaded already
   if(length(images_downloaded)==0){
@@ -81,7 +90,6 @@ get_ndvi_modis <- function(directory = "data/raw_data/ndvi_modis/", domain) {
     newest <- max(lubridate::as_date(images_downloaded)) #if there are images, start with the most recent
 
   }
-
 
 
   #Filter the data to exclude anything you've already downloaded (or older)
@@ -97,6 +105,23 @@ get_ndvi_modis <- function(directory = "data/raw_data/ndvi_modis/", domain) {
 
 
   ndvi_clean_and_new <- ndvi_clean_and_new$map(adjust_gain_and_offset)
+
+  # Function to optionally limit the number of layers downloaded at once
+
+  if(!is.null(max_layers)){
+
+    info <- ndvi_clean_and_new$getInfo()
+    to_download <- unlist(lapply(X = info$features,FUN = function(x){x$properties$`system:index`}))
+    to_download <- gsub(pattern = "_",replacement = "-",x = to_download)
+
+    if(length(to_download) > max_layers){
+      ndvi_clean_and_new <- ndvi_clean_and_new$filterDate(start = to_download[1],
+                                                          opt_end = to_download[max_layers+1])
+
+    }
+
+
+  }
 
 
   #Download

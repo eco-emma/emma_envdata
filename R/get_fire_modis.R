@@ -124,7 +124,7 @@ get_fire_modis <- function(directory = "data/raw_data/fire_modis/", domain, max_
         to_download <- unlist(lapply(X = info$features,FUN = function(x){x$properties$`system:index`}))
         to_download <- gsub(pattern = "_",replacement = "-",x = to_download)
 
-        if(length(to_download) > 100){
+        if(length(to_download) > max_layers){
           fire_new_and_clean <- fire_new_and_clean$filterDate(start = to_download[1],
                                                               opt_end = to_download[max_layers+1])
 
