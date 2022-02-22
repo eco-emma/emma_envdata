@@ -14,18 +14,17 @@ if(getwd() == "/home/rstudio"){setwd("/home/rstudio/emma_envdata/")}
 
 #Install packages not in docker image
 #install.packages("bibtex", "rdryad")
+#install.packages("cmdstanr", repos = c("https://mc-stan.org/r-packages/", getOption("repos")))
 
 #Load packages
 library(rgee)
+library(targets)
 
 #Initialize rgee
 ee_Initialize(drive = TRUE)
 
-#set up directories if needed
-
-if(!dir.exists("data/raw_data/")){dir.create("data/raw_data/")}
-if(!dir.exists("data/processed_data/")){dir.create("data/processed_data/")}
-
+#If we need to extract values, use exactextractor
+library(exactextractr)
 
 ################################################################################
 
@@ -60,26 +59,31 @@ ee_Initialize()
   tar_glimpse(level_separation = 200)
   tar_visnetwork()
 
+
+
+curr_network <- tar_glimpse()
+#curr_network <- tar_visnetwork()
+htmlwidgets::saveWidget(widget = curr_network,
+                        file = "scratch_code/current_network.html")
+webshot::install_phantomjs()
+webshot::webshot(url = "scratch_code/current_network.html",
+                 file = "scratch_code/current_network.png",delay = 2,zoom = 10,vwidth = 400,vheight = 200)
+
+
+?webshot
 #run the pipeline
   tar_make()
 
+  #tar_destroy("meta",ask = FALSE)
 
 ##################
 
-# gets to update
-
-  #elevation nasa
-
-  #landcover za
-
-#process functions to update
-
-  #alos
-
-  #elevation
+#need to update rgee functions to use correct filename if only one layer
+#need to update rgee functions to skip download if there is nothing TO download (since it takes a while to upload the domain)
 
 
 ###########################
+
 
 library(arrow)
 # Example code for working with arrow library
