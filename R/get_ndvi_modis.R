@@ -12,7 +12,7 @@ get_ndvi_modis <- function(directory = "data/raw_data/ndvi_modis/", domain, max_
   # Make a directory if one doesn't exist yet
 
   if(!dir.exists(directory)){
-    dir.create(directory,recursive = TRUE)
+    dir.create(directory, recursive = TRUE)
   }
 
   #Initialize earth engine (for targets works better if called here)
@@ -81,7 +81,7 @@ get_ndvi_modis <- function(directory = "data/raw_data/ndvi_modis/", domain, max_
 
 
   #check to see if any images have been downloaded already
-  if(length(images_downloaded)==0){
+  if(length(images_downloaded) == 0){
 
     newest <- lubridate::as_date(-1) #if nothing is downloaded, start in 1970
 
@@ -96,17 +96,9 @@ get_ndvi_modis <- function(directory = "data/raw_data/ndvi_modis/", domain, max_
   ndvi_clean_and_new <- ndvi_clean$filterDate(start = paste(as.Date(newest+1),sep = ""),
                                               opt_end = paste(format(Sys.time(), "%Y-%m-%d"),sep = "") ) #I THINK I can just pull the most recent date, and then use this to download everything since then
 
-  #Adjust gain and offset.  The NDVI layer has a scale factor of 0.0001
-  adjust_gain_and_offset <- function(img){
-    img$add(10000)$divide(100)$round()
-
-  }
-
-
-
-  ndvi_clean_and_new <- ndvi_clean_and_new$map(adjust_gain_and_offset)
 
   # Function to optionally limit the number of layers downloaded at once
+  ## Note that this code is placed before the gain and offset adjustment, which removes the metadata needed in the date filtering
 
   if(!is.null(max_layers)){
 
@@ -121,7 +113,20 @@ get_ndvi_modis <- function(directory = "data/raw_data/ndvi_modis/", domain, max_
     }
 
 
+  }# end if maxlayers is not null
+
+
+
+
+  #Adjust gain and offset.  The NDVI layer has a scale factor of 0.0001
+  adjust_gain_and_offset <- function(img){
+    img$add(10000)$divide(100)$round()
+
   }
+
+
+
+  ndvi_clean_and_new <- ndvi_clean_and_new$map(adjust_gain_and_offset)
 
 
   #Download
