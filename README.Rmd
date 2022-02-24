@@ -47,7 +47,7 @@ webshot::webshot("img/network.html", "img/network.png")
 # Workflow Notes
 
 ## Runtime and frequency
-Github places some constrains on actions, including memory limits and run time limits.  To prevent this workflow from taking too long to run (and thereby losing all progress), there are a few key parameters that can be changed. In the _targets.R file, the argument "max_layers" controls the maximum number of layers that rgee will attempt to download in one action run. When initially setting up the repo, it may be necessary to lower this value and increase the frequency that the targets workflow is run (by adjusting the cron parameters in targets.yaml). Github also limits the rates of requests, and so the file release_data.R includes a call to sys.sleep that can be adjusted to slow down/speed up the process of pushing data to a Github release.
+Github places some constrains on actions, including memory limits and run time limits.  To prevent this workflow from taking too long to run (and thereby losing all progress), there are a few key parameters that can be changed. In the _targets.R file, the argument "max_layers" controls the maximum number of layers that rgee will attempt to download in one action run. When initially setting up the repo, it may be necessary to lower this value and increase the frequency that the targets workflow is run (by adjusting the cron parameters in targets.yaml). Github also limits the rates of requests, and so the file release_data.R includes a call to Sys.sleep that can be adjusted to slow down/speed up the process of pushing data to a Github release.
 
 # Data notes
 

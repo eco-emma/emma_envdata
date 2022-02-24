@@ -35,10 +35,13 @@ get_integer_date <-function(img) {
 #' @description This code is designed to modify the MODIS "DayOfYear" band to a "days relative to Jan 01 1970" band to facilitate comparisons with fire data and across years.
 #' @param directory The directory the ndvi date layers should be saved to, defaults to "data/raw_data/ndvi_dates_modis/"
 #' @param domain domain (sf polygon) used for masking
+#' @param max_layers the maximum number of layers to download at once.  Set to NULL to ignore.  Default is 50
 #' @note This code assumes that data are downloaded in order, which is usually the case.  In the case that a raster is lost, it won't be replaced automatically unless it happens to be at the very end.
 #' Probably not going to cause a problem, but worth noting out of caution.
 #'
-get_ndvi_dates_modis <- function(directory = "data/raw_data/ndvi_dates_modis/", domain) {
+get_ndvi_dates_modis <- function(directory = "data/raw_data/ndvi_dates_modis/",
+                                 domain,
+                                 max_layers = 50) {
 
   #Make a directory
 
@@ -94,6 +97,24 @@ get_ndvi_dates_modis <- function(directory = "data/raw_data/ndvi_dates_modis/", 
                               gsub(pattern = "-", replacement = "_", x = newest)
           )
           )
+
+      # Function to optionally limit the number of layers downloaded at once
+
+        if(!is.null(max_layers)){
+
+          info <- ndvi_integer_dates_new$getInfo()
+          to_download <- unlist(lapply(X = info$features,FUN = function(x){x$properties$`system:index`}))
+          to_download <- gsub(pattern = "_",replacement = "-",x = to_download)
+
+          if(length(to_download) > max_layers){
+            ndvi_integer_dates_new <- ndvi_integer_dates_new$filterDate(start = to_download[1],
+                                                                opt_end = to_download[max_layers+1])
+
+          }
+
+
+        }# end if maxlayers is not null
+
 
 
     #Download the new stuff

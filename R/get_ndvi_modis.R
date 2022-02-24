@@ -1,5 +1,4 @@
 library(rgee)
-source("R/get_domain.R")
 
 #' @description This function will download ndvi layers (derived from MODIS 16 day products), skipping any that have been downloaded already.
 #' @author Brian Maitner, but built from code by Qinwen, Adam, and the KNDVI ms authors
@@ -130,10 +129,15 @@ get_ndvi_modis <- function(directory = "data/raw_data/ndvi_modis/", domain, max_
 
 
   #Download
-  ee_imagecollection_to_local(ic = ndvi_clean_and_new,
-                              region = domain,
-                              dsn = directory,
-                              formatOptions = c(cloudOptimized = true))
+
+  tryCatch(expr =
+             ee_imagecollection_to_local(ic = ndvi_clean_and_new,
+                                         region = domain,
+                                         dsn = directory,
+                                         formatOptions = c(cloudOptimized = true)),
+           error = function(e){message("Captured an error in rgee/earth engine processing of NDVI.")}
+           )
+
 
 
 return(directory)

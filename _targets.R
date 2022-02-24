@@ -99,11 +99,13 @@ tar_target(
     #age = as.difftime(7, units = "days")
     age = as.difftime(0, units = "hours")
   ),
-  # tar_age(
-  #   ndvi_dates_modis,
-  #   get_ndvi_dates_modis(domain = domain),
-  #   age = as.difftime(7, units = "days")
-  # ),
+  tar_age(
+    ndvi_dates_modis,
+    get_ndvi_dates_modis(domain = domain,
+                         max_layers = 50),
+    #age = as.difftime(7, units = "days")
+    age = as.difftime(0, units = "hours")
+  ),
 
 # Fixing projections
 
