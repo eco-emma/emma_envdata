@@ -103,12 +103,23 @@ get_ndvi_dates_modis <- function(directory = "data/raw_data/ndvi_dates_modis/",
         if(!is.null(max_layers)){
 
           info <- ndvi_integer_dates_new$getInfo()
+
           to_download <- unlist(lapply(X = info$features,FUN = function(x){x$properties$`system:index`}))
           to_download <- gsub(pattern = "_",replacement = "-",x = to_download)
 
           if(length(to_download) > max_layers){
-            ndvi_integer_dates_new <- ndvi_integer_dates_new$filterDate(start = to_download[1],
-                                                                opt_end = to_download[max_layers+1])
+
+            # ndvi_integer_dates_new <- ndvi_integer_dates_new$filterDate(start = to_download[1],
+            #                                                     opt_end = to_download[max_layers+1])
+
+            ndvi_integer_dates_new <-
+              ndvi_integer_dates$
+              filter(ee$Filter$lte("system:index",
+                                  gsub(pattern = "-",
+                                       replacement = "_",
+                                       x = to_download[max_layers])
+              )
+              )
 
           }
 
