@@ -84,7 +84,7 @@ tar_target(
   tar_age(
     fire_modis,
     get_fire_modis(domain = domain,
-                   max_layers = 40),
+                   max_layers = 50),
     age = as.difftime(7, units = "days")
   ),
   # tar_age(
@@ -95,13 +95,13 @@ tar_target(
   tar_age(
     ndvi_modis,
     get_ndvi_modis(domain = domain,
-                   max_layers = 40),
+                   max_layers = 50),
     age = as.difftime(7, units = "days")
   ),
   tar_age(
     ndvi_dates_modis,
     get_ndvi_dates_modis(domain = domain,
-                         max_layers = 40),
+                         max_layers = 50),
     #age = as.difftime(7, units = "days")
     age = as.difftime(0, units = "hours")
   ),
