@@ -113,7 +113,7 @@ get_ndvi_dates_modis <- function(directory = "data/raw_data/ndvi_dates_modis/",
             #                                                     opt_end = to_download[max_layers+1])
 
             ndvi_integer_dates_new <-
-              ndvi_integer_dates$
+              ndvi_integer_dates_new$
               filter(ee$Filter$lte("system:index",
                                   gsub(pattern = "-",
                                        replacement = "_",
