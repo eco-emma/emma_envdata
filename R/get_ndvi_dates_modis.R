@@ -129,9 +129,17 @@ get_ndvi_dates_modis <- function(directory = "data/raw_data/ndvi_dates_modis/",
 
 
     #Download the new stuff
-      ee_imagecollection_to_local(ic = ndvi_integer_dates_new,
-                                  region = domain,
-                                  dsn = directory)
+
+      tryCatch(expr =
+                 ee_imagecollection_to_local(ic = ndvi_integer_dates_new,
+                                             region = domain,
+                                             dsn = directory),
+               error = function(e){message("Captured an error in rgee/earth engine processing of NDVI dates.")}
+      )
+
+
+
+
     #End function
 
       message("\nDownload of MODIS NDVI date files complete")
