@@ -6,8 +6,9 @@ library(rgee)
 #' @author Brian Maitner, but built from code by Qinwen, Adam, and the KNDVI ms authors
 #' @param directory The directory the kndvi layers should be saved to, defaults to "data/raw_data/kndvi_modis/"
 #' @param domain domain (sf polygon) used for masking
+#' @param max_layers the maximum number of layers to download at once.  Set to NULL to ignore.  Default is 50
 #' @import rgee
-get_kndvi_modis <- function(directory = "data/raw_data/kndvi_modis/", domain) {
+get_kndvi_modis <- function(directory = "data/raw_data/kndvi_modis/", domain, max_layers = 50) {
 
 
   # Make a directory if one doesn't exist yet
@@ -143,6 +144,25 @@ get_kndvi_modis <- function(directory = "data/raw_data/kndvi_modis/", domain) {
   #Filter the data to exclude anything you've already downloaded (or older)
   kndvi_clean_and_new <- kndvi_clean$filterDate(start = paste(as.Date(newest+1),sep = ""),
                                               opt_end = paste(format(Sys.time(), "%Y-%m-%d"),sep = "") ) #I THINK I can just pull the most recent date, and then use this to download everything since then
+
+  # Function to optionally limit the number of layers downloaded at once
+  ## Note that this code is placed before the gain and offset adjustment, which removes the metadata needed in the date filtering
+
+  if(!is.null(max_layers)){
+
+    info <- kndvi_clean_and_new$getInfo()
+    to_download <- unlist(lapply(X = info$features, FUN = function(x){x$properties$`system:index`}))
+    to_download <- gsub(pattern = "_", replacement = "-", x = to_download)
+
+    if(length(to_download) > max_layers){
+      kndvi_clean_and_new <- kndvi_clean_and_new$filterDate(start = to_download[1],
+                                                            opt_end = to_download[max_layers+1])
+
+    }
+
+
+  }# end if maxlayers is not null
+
 
 
   #Adjust gain and offset
