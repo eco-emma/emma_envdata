@@ -87,11 +87,13 @@ tar_target(
                    max_layers = 50),
     age = as.difftime(7, units = "days")
   ),
-  # tar_age(
-  #   kndvi_modis,
-  #   get_kndvi_modis(domain = domain),
-  #   age = as.difftime(7, units = "days")
-  # ),
+  tar_age(
+    kndvi_modis,
+    get_kndvi_modis(domain = domain,
+                    max_layers = 50),
+    #age = as.difftime(7, units = "days")
+    age = as.difftime(0, units = "hours")
+  ),
   tar_age(
     ndvi_modis,
     get_ndvi_modis(domain = domain,
