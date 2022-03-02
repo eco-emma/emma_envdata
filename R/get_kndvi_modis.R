@@ -175,10 +175,13 @@ get_kndvi_modis <- function(directory = "data/raw_data/kndvi_modis/", domain, ma
   kndvi_clean_and_new <- kndvi_clean_and_new$map(adjust_gain_and_offset)
 
   #Download
-  ee_imagecollection_to_local(ic = kndvi_clean_and_new,
-                              region = domain,
-                              dsn = directory,
-                              formatOptions = c(cloudOptimized = true)) #not sure the cloudOptimized is specified correctly
+
+  tryCatch(expr = ee_imagecollection_to_local(ic = kndvi_clean_and_new,
+                                              region = domain,
+                                              dsn = directory,
+                                              formatOptions = c(cloudOptimized = true)), #not sure the cloudOptimized is specified correctly
+           error = function(e){ message("Captured an error in rgee/earth engine processing of KNDVI.")}
+  )
 
 
 
