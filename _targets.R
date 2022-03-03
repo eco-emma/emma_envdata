@@ -118,12 +118,11 @@ tar_target(
 
 # Fixing projections
 
-#   tar_target(
-#     correct_ndvi_proj,
-#     process_fix_modis_projection(directory = "data/raw_data/ndvi_modis/",
-#                                  ... = ndvi_modis)
-#   )
-#   ,
+  tar_target(
+    correct_ndvi_proj,
+    process_fix_modis_projection(directory = "data/raw_data/ndvi_modis/",
+                                 ... = ndvi_modis)
+  ),
 #   tar_target(
 #     correct_ndvi_date_proj,
 #     process_fix_modis_projection(directory = "data/raw_data/ndvi_dates_modis/",
