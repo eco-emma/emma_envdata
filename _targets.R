@@ -104,6 +104,14 @@ tar_target(
     ndvi_dates_modis,
     get_ndvi_dates_modis(domain = domain,
                          max_layers = 50),
+    age = as.difftime(7, units = "days")
+    #age = as.difftime(0, units = "hours")
+  ),
+  tar_age(
+    get_release_fire_modis(temp_directory = "data/temp/raw_data/fire_modis/",
+                           tag = "raw_fire_modis",
+                           domain = domain,
+                           max_layers = 5),
     #age = as.difftime(7, units = "days")
     age = as.difftime(0, units = "hours")
   ),
