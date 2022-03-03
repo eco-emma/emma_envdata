@@ -112,7 +112,7 @@ tar_target(
     get_release_fire_modis(temp_directory = "data/temp/raw_data/fire_modis/",
                            tag = "raw_fire_modis",
                            domain = domain,
-                           max_layers = 5),
+                           max_layers = 40),
     #age = as.difftime(7, units = "days")
     age = as.difftime(0, units = "hours")
   ),
@@ -124,11 +124,11 @@ tar_target(
     process_fix_modis_projection(directory = "data/raw_data/ndvi_modis/",
                                  ... = ndvi_modis)
   ),
-#   tar_target(
-#     correct_ndvi_date_proj,
-#     process_fix_modis_projection(directory = "data/raw_data/ndvi_dates_modis/",
-#                                ... = ndvi_dates_modis)
-#   ),
+  tar_target(
+    correct_ndvi_date_proj,
+    process_fix_modis_projection(directory = "data/raw_data/ndvi_dates_modis/",
+                               ... = ndvi_dates_modis)
+  ),
 #   tar_target(
 #     correct_kndvi_proj,
 #     process_fix_modis_projection(directory = "data/raw_data/kndvi_modis/",
