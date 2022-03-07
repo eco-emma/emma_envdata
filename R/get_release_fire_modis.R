@@ -133,11 +133,20 @@ get_release_fire_modis <- function(temp_directory = "data/temp/raw_data/fire_mod
   }
 
 
+  # Check if anything to download
+
+    if(length(fire_new_and_clean$getInfo()$features) == 0 ){
+
+      message("Releases are already up to date.")
+      return(invisible(NULL))
+
+    }
 
   # Download
-  ee_imagecollection_to_local(ic = fire_new_and_clean,
-                              region = domain,
-                              dsn = temp_directory)
+
+    ee_imagecollection_to_local(ic = fire_new_and_clean,
+                                region = domain,
+                                dsn = temp_directory)
 
 
   #Push files to release
@@ -146,6 +155,7 @@ get_release_fire_modis <- function(temp_directory = "data/temp/raw_data/fire_mod
       local_files <- data.frame(local_filename = list.files(path = temp_directory,
                                                             recursive = TRUE,
                                                             full.names = TRUE))
+
 
       # Convert local filenames to be releases compatible
       local_files$file_name <-
