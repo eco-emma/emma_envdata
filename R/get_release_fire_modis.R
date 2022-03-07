@@ -95,6 +95,10 @@ get_release_fire_modis <- function(temp_directory = "data/temp/raw_data/fire_mod
                                 replacement = "",
                                 x = released_files$file_name)
 
+    released_files <-
+      released_files %>%
+      filter(file_name != "")
+
 
   # check to see if any images have been downloaded already
 
