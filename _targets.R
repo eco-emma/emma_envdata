@@ -1,6 +1,7 @@
 library(targets)
 library(tarchetypes)
 library(visNetwork)
+library(future) #not sure why this is needed, but we get an error in some of the files without it
 
 # source all files in R folder
 lapply(list.files("R",pattern="[.]R",full.names = T), source)
