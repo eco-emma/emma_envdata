@@ -216,6 +216,13 @@ get_release_kndvi_modis <- function(temp_directory = "data/temp/raw_data/kndvi_m
                                                           recursive = TRUE,
                                                           full.names = TRUE))
 
+    # end things if nothing was downloaded
+
+      if(nrow(local_files) == 0){
+        message("Nothing downloaded")
+        return(invisible(NULL))
+      }
+
     # Convert local filenames to be releases compatible
 
     local_files$file_name <-
