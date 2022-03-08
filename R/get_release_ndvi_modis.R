@@ -132,7 +132,7 @@ get_release_ndvi_modis <- function(temp_directory = "data/temp/raw_data/ndvi_mod
 
   # Check if anything to download
 
-    if(length(ndvi_new_and_clean$getInfo()$features) == 0 ){
+    if(length(ndvi_clean_and_new$getInfo()$features) == 0 ){
 
       message("Releases are already up to date.")
       return(invisible(NULL))
