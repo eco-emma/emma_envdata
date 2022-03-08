@@ -147,7 +147,12 @@ get_release_ndvi_modis <- function(temp_directory = "data/temp/raw_data/ndvi_mod
                                          region = domain,
                                          dsn = temp_directory,
                                          formatOptions = c(cloudOptimized = true)),
-           error = function(e){message("Captured an error in rgee/earth engine processing of NDVI.")}
+           error = function(e){
+
+             message("\ Captured an error in rgee/earth engine processing of NDVI.")
+             message(e)
+
+             }
   )
 
   #Push files to release
