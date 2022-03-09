@@ -136,6 +136,15 @@ tar_target(
     #age = as.difftime(7, units = "days")
     age = as.difftime(0, units = "hours")
   ),
+  # tar_age(
+  #   ndvi_dates_modis_release,
+  #   get_release_ndvi_dates_modis(temp_directory = "data/temp/raw_data/ndvi_dates_modis/",
+  #                          tag = "raw_ndvi_dates_modis",
+  #                          domain = domain,
+  #                          max_layers = 30),
+  #   #age = as.difftime(7, units = "days")
+  #   age = as.difftime(0, units = "hours")
+  # ),
 
 # Fixing projections
 
