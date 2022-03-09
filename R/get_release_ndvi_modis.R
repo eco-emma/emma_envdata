@@ -11,6 +11,7 @@ get_release_ndvi_modis <- function(temp_directory = "data/temp/raw_data/ndvi_mod
                                    tag = "raw_ndvi_modis",
                                    domain,
                                    max_layers = 50) {
+
   # make a directory if one doesn't exist yet
 
     if(!dir.exists(temp_directory)){
