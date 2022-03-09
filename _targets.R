@@ -168,6 +168,17 @@ tar_target(
     process_fix_modis_projection(directory = "data/raw_data/fire_modis/",
                                ... = fire_modis)
   ),
+# Fixing projection via releases
+  tar_target(
+    correct_fire_release_proj,
+    process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/fire_modis/",
+                                         tag = "raw_fire_modis",
+                                         max_layers = NULL,
+                                         sleep_time = 0.1,
+                                 ... = fire_modis_release)
+  ),
+
+
 #
 # # Processing
 #
