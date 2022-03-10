@@ -18,7 +18,7 @@ robust_pb_download <- function(file, dest, repo, tag, overwrite = TRUE, max_atte
                             max_attempts = max_attempts,
                             sleep_time = sleep_time)
 
-    return(invisible(NULL))
+    return(dest)
 
   }else{
 
@@ -30,7 +30,7 @@ robust_pb_download <- function(file, dest, repo, tag, overwrite = TRUE, max_atte
                             max_attempts = max_attempts,
                             sleep_time = sleep_time)
 
-    return(invisible(NULL))
+    return(dest)
 
 
   }
@@ -103,7 +103,7 @@ robust_pb_download_bulk <- function(dest, repo, tag, overwrite = TRUE, max_attem
    if(length(bad_files)==0){
 
      message("All files appear to have downloaded correctly")
-     return(invisible(NULL))
+     return(dest)
 
    }
 
@@ -128,7 +128,7 @@ robust_pb_download_bulk <- function(dest, repo, tag, overwrite = TRUE, max_attem
    }
 
   message("File downloads complete")
-  return(invisible(NULL))
+  return(dest)
 
 
 }# end robust pb_download function
@@ -197,7 +197,7 @@ robust_pb_download_solo <- function(file, dest, repo, tag, overwrite = TRUE, max
 
     # If the file has gotten this far, it seems good and we can move on
 
-    return(invisible(NULL))
+    return(dest)
 
 
   } # i loop (~ "while")
