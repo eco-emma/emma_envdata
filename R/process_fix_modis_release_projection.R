@@ -36,11 +36,13 @@ process_fix_modis_release_projection <-
 
       if("log.csv" %in% released_files$file_name){
 
-          pb_download(file =  "log.csv",
+        robust_pb_download(file =  "log.csv",
                       dest = temp_directory,
                       repo = "AdamWilsonLab/emma_envdata",
                       tag = tag,
-                      overwrite = TRUE)
+                      overwrite = TRUE,
+                      max_attempts = 10,
+                      sleep_time = sleep_time)
 
 
       }else{
@@ -85,11 +87,13 @@ process_fix_modis_release_projection <-
 
       # download ith raster
 
-        pb_download(file = rasters[i],
+        robust_pb_download(file = rasters[i],
                     dest = temp_directory,
                     repo = "AdamWilsonLab/emma_envdata",
                     tag = tag,
-                    overwrite = TRUE)
+                    overwrite = TRUE,
+                    max_attempts = 10,
+                    sleep_time = sleep_time)
 
         Sys.sleep(sleep_time)
 
@@ -201,3 +205,5 @@ process_fix_modis_release_projection <-
 } # end function
 
 ###########################
+
+
