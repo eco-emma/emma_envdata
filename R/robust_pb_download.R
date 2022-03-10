@@ -20,70 +20,20 @@ robust_pb_download <- function(file, dest, repo, tag, overwrite = TRUE, max_atte
 
     return(invisible(NULL))
 
-  }
+  }else{
 
-
-  # First remove existing files.  Failing to do this makes it harder to distinguish between failed downloads and old files
-
-  if(file.exists(file.path(dest, file)) ){
-
-    file.remove(file.path(dest, file))
-
-  }
-
-
-  # Next, attempt to download file, checking if it was indeed downloaded
-
-  for( i in 1:max_attempts){
-
-    #Try to download file
-
-    pb_download(file = file,
-                dest = dest,
-                repo = repo,
-                tag = tag,
-                overwrite = overwrite)
-
-    # Check whether file exists
-
-    file_present  <- file.exists(file.path(dest, file))
-
-    # If file isn't present, try again
-    if(!file_present){
-      Sys.sleep(sleep_time)
-      next
-    }
-
-    # If this is a tif, check that it loads.  If it throws an error, try again
-
-    if(grepl(pattern = ".tif$", x = file)){
-
-      if(!tryCatch({terra::rast(file.path(dest, file)); TRUE}, error = function(e) FALSE)){
-        Sys.sleep(sleep_time)
-        next
-      }
-
-    }
-
-    # If this is a parquet, check that it loads.  If it throws an error, try again
-
-    if(grepl(pattern = ".parquet", x = file)){
-
-      if(!tryCatch({arrow::open_dataset(sources = file.path(dest, file)); TRUE}, error = function(e) FALSE)){
-        Sys.sleep(sleep_time)
-        next
-      }
-
-    }
-
-    # If the file has gotten this far, it seems good and we can move on
+    robust_pb_download_solo(file = file,
+                            dest = dest,
+                            repo = repo,
+                            tag = tag,
+                            overwrite = overwrite,
+                            max_attempts = max_attempts,
+                            sleep_time = sleep_time)
 
     return(invisible(NULL))
 
 
-  } # i loop (~ "while")
-
-  stop(paste(file, "File was not downloaded properly"))
+  }
 
 
 }# end robust pb_download function
@@ -166,7 +116,7 @@ robust_pb_download_bulk <- function(dest, repo, tag, overwrite = TRUE, max_attem
 
      message(paste("Attempting to correct erroneous pb_download ", i , "of", length(bad_files)))
 
-     robust_pb_download(file = bad_files[i],
+     robust_pb_download_solo(file = bad_files[i],
                         dest = dest,
                         repo = repo,
                         tag = tag,
@@ -183,5 +133,78 @@ robust_pb_download_bulk <- function(dest, repo, tag, overwrite = TRUE, max_attem
 
 }# end robust pb_download function
 
+########################################################
+robust_pb_download_solo <- function(file, dest, repo, tag, overwrite = TRUE, max_attempts = 10, sleep_time = 1 ){
+
+  if(is.null(file)){
+    stop("use bulk version")
+
+  }
+
+
+  # First remove existing files.  Failing to do this makes it harder to distinguish between failed downloads and old files
+
+  if(file.exists(file.path(dest, file)) ){
+
+    file.remove(file.path(dest, file))
+
+  }
+
+
+  # Next, attempt to download file, checking if it was indeed downloaded
+
+  for( i in 1:max_attempts){
+
+    #Try to download file
+
+    pb_download(file = file,
+                dest = dest,
+                repo = repo,
+                tag = tag,
+                overwrite = overwrite)
+
+    # Check whether file exists
+
+    file_present  <- file.exists(file.path(dest, file))
+
+    # If file isn't present, try again
+    if(!file_present){
+      Sys.sleep(sleep_time)
+      next
+    }
+
+    # If this is a tif, check that it loads.  If it throws an error, try again
+
+    if(grepl(pattern = ".tif$", x = file)){
+
+      if(!tryCatch({terra::rast(file.path(dest, file)); TRUE}, error = function(e) FALSE)){
+        Sys.sleep(sleep_time)
+        next
+      }
+
+    }
+
+    # If this is a parquet, check that it loads.  If it throws an error, try again
+
+    if(grepl(pattern = ".parquet", x = file)){
+
+      if(!tryCatch({arrow::open_dataset(sources = file.path(dest, file)); TRUE}, error = function(e) FALSE)){
+        Sys.sleep(sleep_time)
+        next
+      }
+
+    }
+
+    # If the file has gotten this far, it seems good and we can move on
+
+    return(invisible(NULL))
+
+
+  } # i loop (~ "while")
+
+  stop(paste(file, "File was not downloaded properly"))
+
+
+}# end robust pb_download function
 
 
