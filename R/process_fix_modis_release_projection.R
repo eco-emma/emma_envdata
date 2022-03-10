@@ -81,6 +81,16 @@ process_fix_modis_release_projection <-
       }
 
 
+    # check whether there is anything left to fix
+
+      if(length(rasters) == 0){
+
+        message(paste("Finished updating ",tag," projections",sep = ""))
+        return(invisible(NULL))
+
+      }
+
+
 
     #iterate and fix
     for(i in 1:length(rasters)){
