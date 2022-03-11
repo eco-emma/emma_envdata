@@ -8,11 +8,13 @@ library(tidyverse)
 #' @param tag tag to be used for the Github release
 #' @param domain domain (sf polygon) used for masking
 #' @param max_layers the maximum number of layers to download at once.  Set to NULL to ignore.  Default is 50
+#' @param sleep_time Amount of time to wait between attempts.  Needed to keep github happy
 #' @import rgee
 get_release_kndvi_modis <- function(temp_directory = "data/temp/raw_data/kndvi_modis/",
                                     tag = "raw_kndvi_modis",
                                     domain,
-                                    max_layers = 50) {
+                                    max_layers = 50,
+                                    sleep_time = 1) {
 
 
   # make a directory if one doesn't exist yet
@@ -136,7 +138,8 @@ get_release_kndvi_modis <- function(temp_directory = "data/temp/raw_data/kndvi_m
 
     released_files <-
     released_files %>%
-      filter(file_name != "")
+      filter(file_name != "") %>%
+      filter(file_name != "log.csv")
 
 
   #check to see if any images have been downloaded already
@@ -289,7 +292,7 @@ get_release_kndvi_modis <- function(temp_directory = "data/temp/raw_data/kndvi_m
 
       for( i in 1:nrow(merged_info)){
 
-        Sys.sleep(0.1) #We need to limit our rate in order to keep Github happy
+        Sys.sleep(sleep_time) #We need to limit our rate in order to keep Github happy
 
         pb_upload(file = merged_info$local_filename[i],
                   repo = "AdamWilsonLab/emma_envdata",

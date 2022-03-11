@@ -37,13 +37,15 @@ get_integer_date <-function(img) {
 #' @param directory The directory the ndvi date layers should be saved to, defaults to "data/raw_data/ndvi_dates_modis/"
 #' @param domain domain (sf polygon) used for masking
 #' @param max_layers the maximum number of layers to download at once.  Set to NULL to ignore.  Default is 50
+#' @param sleep_time Amount of time to wait between attempts.  Needed to keep github happy
 #' @note This code assumes that data are downloaded in order, which is usually the case.  In the case that a raster is lost, it won't be replaced automatically unless it happens to be at the very end.
 #' Probably not going to cause a problem, but worth noting out of caution.
 #'
 get_release_ndvi_dates_modis <- function(temp_directory = "data/temp/raw_data/ndvi_dates_modis/",
                                          tag = "raw_ndvi_dates_modis",
                                          domain,
-                                         max_layers = 50) {
+                                         max_layers = 50,
+                                         sleep_time = 1) {
 
   # make a directory if one doesn't exist yet
 
@@ -87,7 +89,8 @@ get_release_ndvi_dates_modis <- function(temp_directory = "data/temp/raw_data/nd
 
     released_files <-
       released_files %>%
-      filter(file_name != "")
+      filter(file_name != "") %>%
+      filter(file_name != "log.csv")
 
 
     #check to see if any images have been downloaded already
@@ -222,7 +225,7 @@ get_release_ndvi_dates_modis <- function(temp_directory = "data/temp/raw_data/nd
 
       for( i in 1:nrow(merged_info)){
 
-        Sys.sleep(0.1) #We need to limit our rate in order to keep Github happy
+        Sys.sleep(sleep_time) #We need to limit our rate in order to keep Github happy
 
         pb_upload(file = merged_info$local_filename[i],
                   repo = "AdamWilsonLab/emma_envdata",
