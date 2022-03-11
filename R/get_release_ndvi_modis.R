@@ -79,7 +79,8 @@ get_release_ndvi_modis <- function(temp_directory = "data/temp/raw_data/ndvi_mod
 
     released_files <-
       released_files %>%
-      filter(file_name != "")
+      filter(file_name != "") %>%
+      filter(file_name != "log.csv")
 
 
   #check to see if any images have been downloaded already
