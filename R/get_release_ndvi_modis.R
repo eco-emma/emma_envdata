@@ -1,4 +1,5 @@
 library(rgee)
+library(piggyback)
 
 #' @description This function will download ndvi layers (derived from MODIS 16 day products), skipping any that have been downloaded already.
 #' @author Brian Maitner, but built from code by Qinwen, Adam, and the KNDVI ms authors
@@ -193,6 +194,13 @@ get_release_ndvi_modis <- function(temp_directory = "data/temp/raw_data/ndvi_mod
                      FUN =  function(x) {
                        file.info(x)$mtime})
     )
+
+  # end things if nothing was downloaded
+
+    if(nrow(local_files) == 0){
+      message("Nothing downloaded")
+      return(invisible(NULL))
+    }
 
   # Figure out which files DON'T need to be released
 
