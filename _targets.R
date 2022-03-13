@@ -139,16 +139,16 @@ tar_target(
     #age = as.difftime(7, units = "days")
     age = as.difftime(0, units = "hours")
   ),
-  # tar_age(
-  #   ndvi_dates_modis_release,
-  #   get_release_ndvi_dates_modis(temp_directory = "data/temp/raw_data/ndvi_dates_modis/",
-  #                          tag = "raw_ndvi_dates_modis",
-  #                          domain = domain,
-  #                          max_layers = 30,
-  #                          sleep_time = 1),
-  #   #age = as.difftime(7, units = "days")
-  #   age = as.difftime(0, units = "hours")
-  # ),
+  tar_age(
+    ndvi_dates_modis_release,
+    get_release_ndvi_dates_modis(temp_directory = "data/temp/raw_data/ndvi_dates_modis/",
+                           tag = "raw_ndvi_dates_modis",
+                           domain = domain,
+                           max_layers = 30,
+                           sleep_time = 1),
+    #age = as.difftime(7, units = "days")
+    age = as.difftime(0, units = "hours")
+  ),
 
 # Fixing projections
 
@@ -188,6 +188,14 @@ tar_target(
                                          max_layers = NULL,
                                          sleep_time = 2,
                                          ... = ndvi_modis_release)
+  ),
+  tar_target(
+    correct_ndvi_dates_release_proj,
+    process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/ndvi_dates_modis/",
+                                         tag = "raw_ndvi_dates_modis",
+                                         max_layers = NULL,
+                                         sleep_time = 2,
+                                         ... = ndvi_dates_modis_release)
   ),
 
 
