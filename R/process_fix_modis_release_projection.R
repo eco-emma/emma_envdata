@@ -187,7 +187,7 @@ process_fix_modis_release_projection <-
                    assigned_proj = nasa_proj) %>%
 
           write.table(x = .,
-                      file = paste(directory,"log.csv",sep = ""),
+                      file = paste(temp_directory,"log.csv",sep = ""),
                       append = TRUE,
                       col.names = FALSE,
                       row.names=FALSE,
