@@ -124,17 +124,17 @@ tar_target(
     get_release_kndvi_modis(temp_directory = "data/temp/raw_data/kndvi_modis/",
                            tag = "raw_kndvi_modis",
                            domain = domain,
-                           max_layers = 30,
+                           max_layers = 50,
                            sleep_time = 1),
-    #age = as.difftime(7, units = "days")
-    age = as.difftime(0, units = "hours")
+    age = as.difftime(7, units = "days")
+    #age = as.difftime(0, units = "hours")
   ),
   tar_age(
     ndvi_modis_release,
     get_release_ndvi_modis(temp_directory = "data/temp/raw_data/ndvi_modis/",
                             tag = "raw_ndvi_modis",
                             domain = domain,
-                            max_layers = 30,
+                            max_layers = 50,
                            sleep_time = 1),
     age = as.difftime(7, units = "days")
     #age = as.difftime(0, units = "hours")
@@ -144,7 +144,7 @@ tar_target(
     get_release_ndvi_dates_modis(temp_directory = "data/temp/raw_data/ndvi_dates_modis/",
                            tag = "raw_ndvi_dates_modis",
                            domain = domain,
-                           max_layers = 30,
+                           max_layers = 50,
                            sleep_time = 1),
     #age = as.difftime(7, units = "days")
     age = as.difftime(0, units = "hours")
@@ -208,11 +208,20 @@ tar_target(
 
 #
 # # Processing
-#
-#   tar_target(
-#     fire_doy_to_unix_date,
-#     process_fire_doy_to_unix_date(... = correct_fire_proj)
-#   ),
+
+    tar_target(
+      fire_doy_to_unix_date_release,
+      process_release_fire_doy_to_unix_date(input_folder = "raw_fire_modis",
+                                            output_folder = "processed_fire_dates",
+                                            temp_directory = "data/temp/processed_data/fire_dates/",
+                                            sleep_time = 5,
+                                            ... = correct_fire_release_proj)
+    ),
+
+    tar_target(
+      fire_doy_to_unix_date,
+      process_fire_doy_to_unix_date(... = correct_fire_proj)
+    ),
 #   tar_target(
 #     burn_date_to_last_burned_date,
 #     process_burn_date_to_last_burned_date(... = fire_doy_to_unix_date)
