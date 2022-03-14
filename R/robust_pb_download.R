@@ -7,7 +7,7 @@
 #' @param overwrite as in pb_download
 #' @param max_attempts The maximum number of attempts before giving up
 #' @param sleep_time Amount of time to wait between attempts.  Needed to keep github happy
-robust_pb_download <- function(file, dest, repo, tag, overwrite = TRUE, max_attempts = 10, sleep_time = 1 ){
+robust_pb_download <- function(file, dest, repo, tag, overwrite = TRUE, max_attempts = 10, sleep_time = 1, ...){
 
   if(is.null(file)){
 
@@ -16,7 +16,7 @@ robust_pb_download <- function(file, dest, repo, tag, overwrite = TRUE, max_atte
                             tag = tag,
                             overwrite = overwrite,
                             max_attempts = max_attempts,
-                            sleep_time = sleep_time)
+                            sleep_time = sleep_time,...)
 
     return(dest)
 
@@ -28,7 +28,7 @@ robust_pb_download <- function(file, dest, repo, tag, overwrite = TRUE, max_atte
                             tag = tag,
                             overwrite = overwrite,
                             max_attempts = max_attempts,
-                            sleep_time = sleep_time)
+                            sleep_time = sleep_time,...)
 
     return(dest)
 
@@ -41,7 +41,7 @@ robust_pb_download <- function(file, dest, repo, tag, overwrite = TRUE, max_atte
 ##############################################
 
 #' @description Oddly enough, this function is both a wrapper for robust_pb_download and an internal function therof.
-robust_pb_download_bulk <- function(dest, repo, tag, overwrite = TRUE, max_attempts = 10, sleep_time = 1 ){
+robust_pb_download_bulk <- function(dest, repo, tag, overwrite = TRUE, max_attempts = 10, sleep_time = 1, ...){
 
   # make a directory if one doesn't exist yet
 
@@ -122,7 +122,8 @@ robust_pb_download_bulk <- function(dest, repo, tag, overwrite = TRUE, max_attem
                         tag = tag,
                         overwrite = TRUE,
                         max_attempts = max_attempts,
-                        sleep_time = sleep_time)
+                        sleep_time = sleep_time,
+                        ...)
 
 
    }
@@ -134,7 +135,7 @@ robust_pb_download_bulk <- function(dest, repo, tag, overwrite = TRUE, max_attem
 }# end robust pb_download function
 
 ########################################################
-robust_pb_download_solo <- function(file, dest, repo, tag, overwrite = TRUE, max_attempts = 10, sleep_time = 1 ){
+robust_pb_download_solo <- function(file, dest, repo, tag, overwrite = TRUE, max_attempts = 10, sleep_time = 1, ...){
 
   if(is.null(file)){
     stop("use bulk version")
@@ -161,7 +162,8 @@ robust_pb_download_solo <- function(file, dest, repo, tag, overwrite = TRUE, max
                 dest = dest,
                 repo = repo,
                 tag = tag,
-                overwrite = overwrite)
+                overwrite = overwrite,
+                ...)
 
     # Check whether file exists
 
