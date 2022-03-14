@@ -208,7 +208,6 @@ get_release_kndvi_modis <- function(temp_directory = "data/temp/raw_data/kndvi_m
                                               formatOptions = c(cloudOptimized = true)), #not sure the cloudOptimized is specified correctly
            error = function(e){
              message("\ Captured an error in rgee/earth engine processing of KNDVI.")
-             message(e)
              }
   )
 

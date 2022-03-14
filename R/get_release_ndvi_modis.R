@@ -155,7 +155,7 @@ get_release_ndvi_modis <- function(temp_directory = "data/temp/raw_data/ndvi_mod
            error = function(e){message("Captured an error in rgee/earth engine processing of NDVI.")}
   )
 
-  message("Down downloading NDVI layers for release")
+  message("Done downloading NDVI layers for release")
 
   #Push files to release
 
