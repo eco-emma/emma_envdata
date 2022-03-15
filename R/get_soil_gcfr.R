@@ -44,7 +44,7 @@ get_soil_gcfr <- function(directory = "data/raw_data/soil_gcfr/", domain) {
 
   # Delete the old copies from the temporary location
 
-    file.remove(locations[[1]])
+    unlink(dirname(dirname(locations[[1]])),recursive = TRUE,force = TRUE)
 
   # Clean up
 
@@ -73,10 +73,10 @@ get_soil_gcfr <- function(directory = "data/raw_data/soil_gcfr/", domain) {
 
             #Reproject domain to match raster
             domain <- sf::st_transform(x = domain,
-                                       crs = crs(raster_i))
+                                       crs = raster::crs(raster_i))
 
 
-            ext <- extent(domain)
+            ext <- raster::extent(domain)
 
           }
 
@@ -90,7 +90,7 @@ get_soil_gcfr <- function(directory = "data/raw_data/soil_gcfr/", domain) {
                                     mask = domain)
 
         # Save the cropped/masked raster
-          writeRaster(x = raster_i,
+          raster::writeRaster(x = raster_i,
                       filename = files[i],
                       overwrite = TRUE)
 

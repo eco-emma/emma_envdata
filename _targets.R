@@ -89,11 +89,11 @@ list(
     age = as.difftime(26, units = "weeks")
   ),
 
-  # tar_age(
-  #   soil_gcfr,
-  #   get_soil_gcfr(domain = domain),
-  #   age = as.difftime(26, units = "weeks")
-  # ),
+  tar_age(
+    soil_gcfr,
+    get_soil_gcfr(domain = domain),
+    age = as.difftime(26, units = "weeks")
+  ),
 
 # Infrequent updates via releases
 
@@ -105,6 +105,15 @@ list(
 
     age = as.difftime(26, units = "weeks")
   ),
+
+tar_age(
+  climate_chelsa_release,
+  get_release_climate_chelsa(temp_directory = "data/temp/raw_data/climate_chelsa/",
+                             tag = "raw_static",
+                             domain = domain),
+
+  age = as.difftime(26, units = "weeks")
+),
 
 
 # Frequent updates via releases
