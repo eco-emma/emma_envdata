@@ -223,6 +223,8 @@ tar_target(
       process_fire_doy_to_unix_date(... = correct_fire_proj)
     ),
 
+  ##
+
   tar_target(
     burn_date_to_last_burned_date,
     process_burn_date_to_last_burned_date(... = fire_doy_to_unix_date)
@@ -238,14 +240,29 @@ tar_target(
                                                   ... = fire_doy_to_unix_date_release)
   ),
 
+  ##
 
+  tar_target(
+    ndvi_relative_days_since_fire,
+    process_ndvi_relative_days_since_fire(... = burn_date_to_last_burned_date,
+                                          ... = correct_ndvi_date_proj)
+  ),
 
+  tar_target(
+    ndvi_relative_days_since_fire_release,
+    process_release_ndvi_relative_days_since_fire(temp_input_ndvi_date_folder = "data/temp/raw_data/ndvi_dates_modis/",
+                                                  temp_input_fire_date_folder = "data/temp/processed_data/most_recent_burn_dates/",
+                                                  temp_fire_output_folder = "data/temp/processed_data/ndvi_relative_time_since_fire/",
+                                                  input_fire_dates_tag = "processed_most_recent_burn_dates",
+                                                  input_modis_dates_tag = "raw_ndvi_dates_modis",
+                                                  output_tag = "processed_ndvi_relative_days_since_fire",
+                                                  sleep_time = 5,
+                                                  ... = burn_date_to_last_burned_date_release,
+                                                  ... = correct_ndvi_dates_release_proj)
+    ),
 
-#   tar_target(
-#     ndvi_relative_days_since_fire,
-#     process_ndvi_relative_days_since_fire(... = burn_date_to_last_burned_date,
-#                                           ... = correct_ndvi_date_proj)
-#   ),
+  ##
+
 #   tar_target(
 #     model_data,
 #     get_model_data(remnant_distance),
