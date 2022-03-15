@@ -89,6 +89,15 @@ list(
     age = as.difftime(26, units = "weeks")
   ),
 
+  tar_age(
+    soil_gcfr,
+    get_soil_gcfr(domain = domain),
+    age = as.difftime(26, units = "weeks")
+  ),
+
+# Infrequent updates via releases
+
+
 # Frequent updates via releases
 
     tar_age(
@@ -130,7 +139,7 @@ list(
                            tag = "raw_ndvi_dates_modis",
                            domain = domain,
                            max_layers = 50,
-                           sleep_time = 5),
+                           sleep_time = 10),
     #age = as.difftime(7, units = "days")
     age = as.difftime(0, units = "hours")
   ),
