@@ -89,13 +89,22 @@ list(
     age = as.difftime(26, units = "weeks")
   ),
 
-  tar_age(
-    soil_gcfr,
-    get_soil_gcfr(domain = domain),
-    age = as.difftime(26, units = "weeks")
-  ),
+  # tar_age(
+  #   soil_gcfr,
+  #   get_soil_gcfr(domain = domain),
+  #   age = as.difftime(26, units = "weeks")
+  # ),
 
 # Infrequent updates via releases
+
+  tar_age(
+    alos_release,
+    get_release_alos(temp_directory = "data/temp/raw_data/alos/",
+                     tag = "raw_static",
+                     domain = domain),
+
+    age = as.difftime(26, units = "weeks")
+  ),
 
 
 # Frequent updates via releases
