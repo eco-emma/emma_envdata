@@ -55,7 +55,8 @@ robust_pb_download_bulk <- function(dest, repo, tag, overwrite = TRUE, max_attem
     pb_download(dest = dest,
                 repo = repo,
                 tag = tag,
-                overwrite = overwrite)
+                overwrite = overwrite,
+                ...)
 
   #Get a list of local files
 
