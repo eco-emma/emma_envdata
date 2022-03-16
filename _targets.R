@@ -106,14 +106,30 @@ list(
     age = as.difftime(26, units = "weeks")
   ),
 
-tar_age(
-  climate_chelsa_release,
-  get_release_climate_chelsa(temp_directory = "data/temp/raw_data/climate_chelsa/",
-                             tag = "raw_static",
-                             domain = domain),
+  tar_age(
+    climate_chelsa_release,
+    get_release_climate_chelsa(temp_directory = "data/temp/raw_data/climate_chelsa/",
+                               tag = "raw_static",
+                               domain = domain),
 
-  age = as.difftime(26, units = "weeks")
-),
+    age = as.difftime(26, units = "weeks")
+  ),
+
+  tar_age(
+    clouds_wilson_release,
+    get_release_clouds_wilson(temp_directory = "data/temp/raw_data/clouds_wilson/",
+                              tag = "raw_static",
+                              domain),
+    age = as.difftime(26, units = "weeks")
+  ),
+
+  tar_age(
+    elevation_nasadem_release,
+    get_release_elevation_nasadem(temp_directory = "data/temp/raw_data/elevation_nasadem/",
+                                  tag = "raw_static",
+                                  domain),
+    age = as.difftime(26, units = "weeks")
+  ),
 
 
 # Frequent updates via releases

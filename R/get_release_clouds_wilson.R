@@ -98,7 +98,7 @@ get_release_clouds_wilson <- function(temp_directory = "data/temp/raw_data/cloud
 
     #Delete temp dir
 
-      unlink(x = file.path(temp_directory), recursive = TRUE)
+    unlink(x = file.path(temp_directory), recursive = TRUE,force = TRUE)
 
   # End
 
