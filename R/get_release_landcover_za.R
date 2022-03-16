@@ -83,7 +83,6 @@ get_release_landcover_za <- function(temp_directory = "data/temp/raw_data/landco
                                 full.names = TRUE),
               repo = "AdamWilsonLab/emma_envdata",
               tag = tag,
-              name = filename,
               overwrite = TRUE)
 
 
