@@ -53,35 +53,35 @@ list(
 
 # Infrequent updates
 
-  tar_age(
-    alos,
-    get_alos(domain = domain),
-    age = as.difftime(26, units = "weeks")
-  ),
-
-  tar_age(
-    climate_chelsa,
-    get_climate_chelsa(domain = domain),
-    age = as.difftime(26, units = "weeks")
-  ),
-
-  tar_age(
-    clouds_wilson,
-    get_clouds_wilson(domain = domain),
-    age = as.difftime(26, units = "weeks")
-  ),
-
-  tar_age(
-    elevation_nasadem,
-    get_elevation_nasadem(domain = domain),
-    age = as.difftime(26, units = "weeks")
-  ),
-
   # tar_age(
-  #   landcover_za,
-  #   get_landcover_za(domain = domain),
+  #   alos,
+  #   get_alos(domain = domain),
   #   age = as.difftime(26, units = "weeks")
   # ),
+  #
+  # tar_age(
+  #   climate_chelsa,
+  #   get_climate_chelsa(domain = domain),
+  #   age = as.difftime(26, units = "weeks")
+  # ),
+  #
+  # tar_age(
+  #   clouds_wilson,
+  #   get_clouds_wilson(domain = domain),
+  #   age = as.difftime(26, units = "weeks")
+  # ),
+  #
+  # tar_age(
+  #   elevation_nasadem,
+  #   get_elevation_nasadem(domain = domain),
+  #   age = as.difftime(26, units = "weeks")
+  # ),
+#
+#   tar_age(
+#     landcover_za,
+#     get_landcover_za(domain = domain),
+#     age = as.difftime(26, units = "weeks")
+#   ),
 
   tar_age(
     precipitation_chelsa,
@@ -131,6 +131,15 @@ list(
     age = as.difftime(26, units = "weeks")
   ),
 
+  tar_age(
+    landcover_za_release,
+    get_release_landcover_za(temp_directory = "data/temp/raw_data/landcover_za/",
+                             tag = "raw_static",
+                             domain = domain),
+    age = as.difftime(26, units = "weeks")
+  ),
+
+
 
 # Frequent updates via releases
 
@@ -139,7 +148,7 @@ list(
       get_release_fire_modis(temp_directory = "data/temp/raw_data/fire_modis/",
                              tag = "raw_fire_modis",
                              domain = domain,
-                             max_layers = 50,
+                             max_layers = 25,
                              sleep_time = 5),
       age = as.difftime(7, units = "days")
       #age = as.difftime(0, units = "hours")
@@ -150,7 +159,7 @@ list(
     get_release_kndvi_modis(temp_directory = "data/temp/raw_data/kndvi_modis/",
                            tag = "raw_kndvi_modis",
                            domain = domain,
-                           max_layers = 50,
+                           max_layers = 25,
                            sleep_time = 5),
     age = as.difftime(7, units = "days")
     #age = as.difftime(0, units = "hours")
@@ -161,7 +170,7 @@ list(
     get_release_ndvi_modis(temp_directory = "data/temp/raw_data/ndvi_modis/",
                             tag = "raw_ndvi_modis",
                             domain = domain,
-                            max_layers = 50,
+                            max_layers = 25,
                            sleep_time = 5),
     age = as.difftime(7, units = "days")
     #age = as.difftime(0, units = "hours")
@@ -172,7 +181,7 @@ list(
     get_release_ndvi_dates_modis(temp_directory = "data/temp/raw_data/ndvi_dates_modis/",
                            tag = "raw_ndvi_dates_modis",
                            domain = domain,
-                           max_layers = 50,
+                           max_layers = 25,
                            sleep_time = 10),
     #age = as.difftime(7, units = "days")
     age = as.difftime(0, units = "hours")
@@ -365,7 +374,7 @@ list(
 
 ##############################
 
-#archived bits below
+# Archived Bits Below #
 
 # # Frequent updates
 #
