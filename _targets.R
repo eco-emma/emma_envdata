@@ -83,11 +83,11 @@ list(
 #     age = as.difftime(26, units = "weeks")
 #   ),
 
-  tar_age(
-    precipitation_chelsa,
-    get_precipitation_chelsa(domain = domain),
-    age = as.difftime(26, units = "weeks")
-  ),
+  # tar_age(
+  #   precipitation_chelsa,
+  #   get_precipitation_chelsa(domain = domain),
+  #   age = as.difftime(26, units = "weeks")
+  # ),
 
   tar_age(
     soil_gcfr,
@@ -138,6 +138,15 @@ list(
                              domain = domain),
     age = as.difftime(26, units = "weeks")
   ),
+
+tar_age(
+  precipitation_chelsa_release,
+  get_release_precipitation_chelsa(temp_directory = "data/temp/raw_data/precipitation_chelsa/",
+                                   tag = "raw_static",
+                                   domain = domain),
+  age = as.difftime(26, units = "weeks")
+),
+
 
 
 
@@ -258,6 +267,15 @@ list(
                                                   ... = correct_ndvi_dates_release_proj)
     ),
 
+  tar_target(
+    template_release,
+    get_release_template_raster(input_tag = "processed_fire_dates",
+                        output_tag = "raw_static",
+                        temp_directory = "data/temp/template",
+                        ... = correct_fire_release_proj)
+  ),
+
+
   ##
 
 #   tar_target(
@@ -266,10 +284,6 @@ list(
 #     format = "file"
 #   ),
 
-  tar_target(
-    template,
-    get_template_raster(... = correct_ndvi_proj)
-  ),
 
   tar_target(
     remnants,
@@ -442,4 +456,10 @@ list(
 #   process_ndvi_relative_days_since_fire(... = burn_date_to_last_burned_date,
 #                                         ... = correct_ndvi_date_proj)
 # ),
+#
+# tar_target(
+#   template,
+#   get_template_raster(... = correct_ndvi_proj)
+# ),
+
 
