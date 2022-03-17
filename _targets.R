@@ -51,49 +51,6 @@ list(
     domain_define(vegmap = vegmap, country)
   ),
 
-# Infrequent updates
-
-  # tar_age(
-  #   alos,
-  #   get_alos(domain = domain),
-  #   age = as.difftime(26, units = "weeks")
-  # ),
-  #
-  # tar_age(
-  #   climate_chelsa,
-  #   get_climate_chelsa(domain = domain),
-  #   age = as.difftime(26, units = "weeks")
-  # ),
-  #
-  # tar_age(
-  #   clouds_wilson,
-  #   get_clouds_wilson(domain = domain),
-  #   age = as.difftime(26, units = "weeks")
-  # ),
-  #
-  # tar_age(
-  #   elevation_nasadem,
-  #   get_elevation_nasadem(domain = domain),
-  #   age = as.difftime(26, units = "weeks")
-  # ),
-#
-#   tar_age(
-#     landcover_za,
-#     get_landcover_za(domain = domain),
-#     age = as.difftime(26, units = "weeks")
-#   ),
-
-  # tar_age(
-  #   precipitation_chelsa,
-  #   get_precipitation_chelsa(domain = domain),
-  #   age = as.difftime(26, units = "weeks")
-  # ),
-
-  tar_age(
-    soil_gcfr,
-    get_soil_gcfr(domain = domain),
-    age = as.difftime(26, units = "weeks")
-  ),
 
 # Infrequent updates via releases
 
@@ -147,6 +104,13 @@ tar_age(
   age = as.difftime(26, units = "weeks")
 ),
 
+tar_age(
+  soil_gcfr_release,
+  get_release_soil_gcfr(temp_directory = "data/temp/raw_data/soil_gcfr/",
+                        tag = "raw_static",
+                        domain),
+  age = as.difftime(26, units = "weeks")
+),
 
 
 
@@ -203,7 +167,7 @@ tar_age(
     process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/fire_modis/",
                                          tag = "raw_fire_modis",
                                          max_layers = NULL,
-                                         sleep_time = 2,
+                                         sleep_time = 10,
                                  ... = fire_modis_release)
   ),
   tar_target(
@@ -211,7 +175,7 @@ tar_age(
     process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/ndvi_modis/",
                                          tag = "raw_ndvi_modis",
                                          max_layers = NULL,
-                                         sleep_time = 5,
+                                         sleep_time = 10,
                                          ... = ndvi_modis_release)
   ),
   tar_target(
@@ -219,7 +183,7 @@ tar_age(
     process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/ndvi_dates_modis/",
                                          tag = "raw_ndvi_dates_modis",
                                          max_layers = NULL,
-                                         sleep_time = 2,
+                                         sleep_time = 10,
                                          ... = ndvi_dates_modis_release)
   ),
   tar_target(
@@ -227,7 +191,7 @@ tar_age(
     process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/kndvi_modis/",
                                          tag = "raw_kndvi_modis",
                                          max_layers = NULL,
-                                         sleep_time = 5,
+                                         sleep_time = 10,
                                          ... = kndvi_modis_release)
   ),
 
@@ -386,9 +350,55 @@ tar_age(
 
 )
 
-##############################
+################################################################################
+################################################################################
+################################################################################
+
 
 # Archived Bits Below #
+# Infrequent updates
+
+# tar_age(
+#   alos,
+#   get_alos(domain = domain),
+#   age = as.difftime(26, units = "weeks")
+# ),
+#
+# tar_age(
+#   climate_chelsa,
+#   get_climate_chelsa(domain = domain),
+#   age = as.difftime(26, units = "weeks")
+# ),
+#
+# tar_age(
+#   clouds_wilson,
+#   get_clouds_wilson(domain = domain),
+#   age = as.difftime(26, units = "weeks")
+# ),
+#
+# tar_age(
+#   elevation_nasadem,
+#   get_elevation_nasadem(domain = domain),
+#   age = as.difftime(26, units = "weeks")
+# ),
+#
+#   tar_age(
+#     landcover_za,
+#     get_landcover_za(domain = domain),
+#     age = as.difftime(26, units = "weeks")
+#   ),
+
+# tar_age(
+#   precipitation_chelsa,
+#   get_precipitation_chelsa(domain = domain),
+#   age = as.difftime(26, units = "weeks")
+# ),
+#
+#   tar_age(
+#     soil_gcfr,
+#     get_soil_gcfr(domain = domain),
+#     age = as.difftime(26, units = "weeks")
+#   ),
 
 # # Frequent updates
 #

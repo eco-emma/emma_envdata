@@ -59,8 +59,6 @@ get_soil_gcfr <- function(directory = "data/raw_data/soil_gcfr/", domain) {
                           full.names = T)
 
 
-    # Load in domain
-
 
     # Iteratively crop and mask
 

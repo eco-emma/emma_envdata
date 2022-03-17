@@ -17,54 +17,42 @@ get_release_soil_gcfr <- function(temp_directory = "data/temp/raw_data/soil_gcfr
 
   # Set up directories if need be
 
-    if(!dir.exists(directory)){
-      dir.create(directory, recursive = TRUE)
+    if(!dir.exists(temp_directory)){
+      dir.create(temp_directory, recursive = TRUE)
     }
 
-  #If files are present, skip
-
-    if(length(list.files(path = directory,
-                         pattern = ".tif",
-                         full.names = T)) == 7){
-
-      message("Soil data already present, skipping")
-      return(invisible(NULL))
-    }
 
   # Adjust the download timeout duration (this needs to be large enough to allow the download to complete)
 
-  if(getOption('timeout') < 1000){
-    options(timeout = 1000)
-  }
+    if(getOption('timeout') < 1000){
+      options(timeout = 1000)
+    }
 
   #Download the files from dryad
 
-  locations <- dryad_download(dois = "10.5061/dryad.37qc017")
+    locations <- dryad_download(dois = "10.5061/dryad.37qc017")
 
   # Move the files to a permanent location (rdryad doesn't give you an option)
 
-  file.copy(from = locations[[1]],
-            to = directory,
-            overwrite = TRUE)
+    file.copy(from = locations[[1]],
+              to = temp_directory,
+              overwrite = TRUE)
 
   # Delete the old copies from the temporary location
 
-  unlink(dirname(dirname(locations[[1]])),recursive = TRUE,force = TRUE)
+    unlink(dirname(dirname(locations[[1]])),recursive = TRUE,force = TRUE)
 
   # Clean up
 
-  rm(locations)
+    rm(locations)
 
   #Crop and mask
 
   # Get file names
 
-  files <- list.files(path = directory,
-                      pattern = ".tif",
-                      full.names = T)
-
-
-  # Load in domain
+    files <- list.files(path = temp_directory,
+                        pattern = ".tif",
+                        full.names = T)
 
 
   # Iteratively crop and mask
@@ -102,9 +90,23 @@ get_release_soil_gcfr <- function(temp_directory = "data/temp/raw_data/soil_gcfr
   } # i files loop
 
 
+  # Release
+    pb_upload(repo = "AdamWilsonLab/emma_envdata",
+              file = list.files(file.path(temp_directory),
+                                recursive = TRUE,
+                                full.names = TRUE),
+              tag = tag)
+
+
+  # Delete directory and contents
+
+    unlink(x = file.path(temp_directory), recursive = TRUE, force = TRUE)
+
+
   # End function
-  message("Soil data finished")
-  return(invisible(NULL))
+
+    message("Soil data finished")
+    return(invisible(NULL))
 
 
 } # end fx

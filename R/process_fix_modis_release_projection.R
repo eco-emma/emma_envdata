@@ -193,6 +193,12 @@ process_fix_modis_release_projection <-
                       row.names=FALSE,
                       sep = ",")
 
+          pb_upload(file = paste(temp_directory,"log.csv",sep = ""),
+                    repo = "AdamWilsonLab/emma_envdata",
+                    tag = tag)
+
+          Sys.sleep(sleep_time)
+
           file.remove(paste(temp_directory, rasters[i], sep = ""))
 
       }
