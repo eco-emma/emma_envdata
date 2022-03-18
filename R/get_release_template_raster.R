@@ -36,7 +36,7 @@ get_release_template_raster <- function(input_tag = "processed_fire_dates",
     pb_upload(repo = "AdamWilsonLab/emma_envdata",
               file = file.path(temp_directory, "template.tif"),
               tag = output_tag,
-              name = "template.tif")
+              overwrite = TRUE)
 
     template_md <- list(repo = "AdamWilsonLab/emma_envdata",
                         tag = output_tag,

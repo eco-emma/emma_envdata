@@ -80,8 +80,6 @@ get_release_climate_chelsa <- function(temp_directory = "data/temp/raw_data/clim
 
     rm(dirs)
 
-    stop("Code goes here to release and delete files")
-
     # release
         pb_upload(repo = "AdamWilsonLab/emma_envdata",
                   file = list.files(file.path(temp_directory),

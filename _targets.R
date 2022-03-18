@@ -172,6 +172,7 @@ tar_age(
   ),
   tar_target(
     correct_ndvi_release_proj,
+    stop("BRIAN: 2013-02-1 through 2013-04-01 may need to be re-corrected.  DOuble check")
     process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/ndvi_modis/",
                                          tag = "raw_ndvi_modis",
                                          max_layers = NULL,
@@ -203,7 +204,7 @@ tar_age(
     process_release_fire_doy_to_unix_date(input_tag = "raw_fire_modis",
                                           output_tag = "processed_fire_dates",
                                           temp_directory = "data/temp/processed_data/fire_dates/",
-                                          sleep_time = 5,
+                                          sleep_time = 20,
                                           ... = correct_fire_release_proj)
     ),
 
@@ -263,12 +264,14 @@ tar_age(
     domain_distance(remnants,
                     file = "data/processed_data/remnant_distance/remnant_distance.tif"),
     format = "file"
+  ),
+
+  tar_target(
+    projected_alos,
+    process_alos(template = template,
+                 ... = alos)
   )
 #,
-#   tar_target(
-#     projected_alos,
-#     process_alos(template = template, ... = alos)
-#   ),
 #
 #   tar_target(
 #     projected_climate_chelsa,

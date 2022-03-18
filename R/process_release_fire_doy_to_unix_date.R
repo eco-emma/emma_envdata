@@ -32,7 +32,8 @@ process_release_fire_doy_to_unix_date <- function( input_tag = "raw_fire_modis",
 
     input_files  <- pb_list(repo = "AdamWilsonLab/emma_envdata",
                             tag = input_tag) %>%
-                    filter(file_name != "")
+                    filter(file_name != "") %>%
+                    filter(grepl(pattern = ".tif$",x = file_name))
 
     Sys.sleep(sleep_time) #We need to limit our rate in order to keep Github happy
 
