@@ -147,7 +147,8 @@ get_release_alos <- function(temp_directory = "data/temp/raw_data/alos/", tag = 
 
   message("Finished downloading ALOS layers")
 
-  return(directory)
+
+  return(tag)
 
 }
 
