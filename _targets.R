@@ -104,13 +104,13 @@ tar_age(
   age = as.difftime(26, units = "weeks")
 ),
 
-tar_age(
-  soil_gcfr_release,
-  get_release_soil_gcfr(temp_directory = "data/temp/raw_data/soil_gcfr/",
-                        tag = "raw_static",
-                        domain),
-  age = as.difftime(26, units = "weeks")
-),
+# tar_age(
+#   soil_gcfr_release,
+#   get_release_soil_gcfr(temp_directory = "data/temp/raw_data/soil_gcfr/",
+#                         tag = "raw_static",
+#                         domain),
+#   age = as.difftime(26, units = "weeks")
+# ),
 
 
 
