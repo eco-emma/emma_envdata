@@ -266,11 +266,17 @@ tar_age(
   ),
 
   tar_target(
-    projected_alos,
-    process_alos(template = template,
-                 ... = alos)
+    projected_alos_release,
+    process_release_alos(input_tag = "raw_static",
+                         output_tag = "processed_static",
+                         temp_directory = "data/temp/raw_data/alos/",
+                         template_release = template_release,
+                         ... = alos_release)
   )
 #,
+
+
+
 #
 #   tar_target(
 #     projected_climate_chelsa,
@@ -473,5 +479,12 @@ tar_age(
 #   template,
 #   get_template_raster(... = correct_ndvi_proj)
 # ),
+
+
+# tar_target(
+#     projected_alos,
+#     process_alos(template = template,
+#                  ... = alos)
+#   ),
 
 
