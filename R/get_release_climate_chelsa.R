@@ -12,6 +12,12 @@ get_release_climate_chelsa <- function(temp_directory = "data/temp/raw_data/clim
                                        tag = "raw_static",
                                        domain){
 
+  #ensure temp directory is empty
+
+    if(!dir.exists(temp_directory)){
+      unlink(x = file.path(temp_directory), recursive = TRUE, force = TRUE)
+    }
+
   #make a directory if one doesn't exist yet
 
     if(!dir.exists(temp_directory)){
@@ -60,26 +66,6 @@ get_release_climate_chelsa <- function(temp_directory = "data/temp/raw_data/clim
 
 
 
-    dirs <- list.dirs(file.path(temp_directory,"bio/"),
-                      recursive = TRUE,
-                      full.names = TRUE)
-
-    dirs <-dirs[grep(pattern = "clipped",x = dirs)]
-
-    file.rename(from = dirs,
-                to = paste(strsplit(x = dirs,
-                                    split = "clipped")[[1]][1],
-                           "clipped",
-                           sep = "")
-    )
-
-    file.rename(from = list.files(dirs,full.names = TRUE,pattern = ".tif"),
-                to = gsub(pattern = "_clipped",replacement = "",x = list.files(dirs,full.names = TRUE,pattern = ".tif"))
-    )
-
-
-    rm(dirs)
-
     # release
         pb_upload(repo = "AdamWilsonLab/emma_envdata",
                   file = list.files(file.path(temp_directory),
@@ -93,7 +79,7 @@ get_release_climate_chelsa <- function(temp_directory = "data/temp/raw_data/clim
 
 
   message("CHELSA climate files downloaded")
-  return(directory)
+  return(tag)
 
 
 } # end fx
