@@ -248,23 +248,23 @@ tar_age(
 #     format = "file"
 #   ),
 
-
-  tar_target(
-    remnants,
-    domain_remnants(domain = domain,
-                    remnants_shp = remnants_shp,
-                    template = template,
-                    file = "data/processed_data/remnants/remnants.tif"),
-    format = "file"
-  ),
-
-  tar_target(
-    remnant_distance,
-    domain_distance(remnants,
-                    file = "data/processed_data/remnant_distance/remnant_distance.tif"),
-    format = "file"
-  ),
-
+#
+#   tar_target(
+#     remnants,
+#     domain_remnants(domain = domain,
+#                     remnants_shp = remnants_shp,
+#                     template = template,
+#                     file = "data/processed_data/remnants/remnants.tif"),
+#     format = "file"
+#   ),
+#
+#   tar_target(
+#     remnant_distance,
+#     domain_distance(remnants,
+#                     file = "data/processed_data/remnant_distance/remnant_distance.tif"),
+#     format = "file"
+#   ),
+#
   tar_target(
     projected_alos_release,
     process_release_alos(input_tag = "raw_static",
