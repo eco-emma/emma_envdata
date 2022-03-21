@@ -169,7 +169,7 @@ list(
     process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/fire_modis/",
                                          tag = "raw_fire_modis",
                                          max_layers = NULL,
-                                         sleep_time = 10,
+                                         sleep_time = 30,
                                  ... = fire_modis_release)
   ),
   tar_target(
@@ -177,7 +177,7 @@ list(
     process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/ndvi_modis/",
                                          tag = "raw_ndvi_modis",
                                          max_layers = NULL,
-                                         sleep_time = 10,
+                                         sleep_time = 30,
                                          ... = ndvi_modis_release)
   ),
   tar_target(
@@ -185,7 +185,7 @@ list(
     process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/ndvi_dates_modis/",
                                          tag = "raw_ndvi_dates_modis",
                                          max_layers = NULL,
-                                         sleep_time = 10,
+                                         sleep_time = 30,
                                          ... = ndvi_dates_modis_release)
   ),
   tar_target(
@@ -193,7 +193,7 @@ list(
     process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/kndvi_modis/",
                                          tag = "raw_kndvi_modis",
                                          max_layers = NULL,
-                                         sleep_time = 10,
+                                         sleep_time = 30,
                                          ... = kndvi_modis_release)
   )
 #,
