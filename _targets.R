@@ -85,17 +85,17 @@ list(
     get_release_elevation_nasadem(temp_directory = "data/temp/raw_data/elevation_nasadem/",
                                   tag = "raw_static",
                                   domain),
-    age = as.difftime(26, units = "weeks")
+    age = as.difftime(72, units = "weeks")
+  ),
+
+  tar_age(
+    landcover_za_release,
+    get_release_landcover_za(temp_directory = "data/temp/raw_data/landcover_za/",
+                             tag = "raw_static",
+                             domain = domain),
+    age = as.difftime(52, units = "weeks")
   )
 #,
-#
-#   tar_age(
-#     landcover_za_release,
-#     get_release_landcover_za(temp_directory = "data/temp/raw_data/landcover_za/",
-#                              tag = "raw_static",
-#                              domain = domain),
-#     age = as.difftime(26, units = "weeks")
-#   ),
 #
 # tar_age(
 #   precipitation_chelsa_release,
