@@ -70,16 +70,15 @@ list(
                                domain = domain),
 
     age = as.difftime(57, units = "weeks")
+  ),
+
+  tar_age(
+    clouds_wilson_release,
+    get_release_clouds_wilson(temp_directory = "data/temp/raw_data/clouds_wilson/",
+                              tag = "raw_static",
+                              domain),
+    age = as.difftime(62, units = "weeks")
   )
-#,
-#
-#   tar_age(
-#     clouds_wilson_release,
-#     get_release_clouds_wilson(temp_directory = "data/temp/raw_data/clouds_wilson/",
-#                               tag = "raw_static",
-#                               domain),
-#     age = as.difftime(26, units = "weeks")
-#   )
 # ,
 #
 #   tar_age(
