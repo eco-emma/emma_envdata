@@ -102,16 +102,16 @@ list(
                                      tag = "raw_static",
                                      domain = domain),
     age = as.difftime(62, units = "weeks")
-  )
+  ),
+
+tar_age(
+  soil_gcfr_release,
+  get_release_soil_gcfr(temp_directory = "data/temp/raw_data/soil_gcfr/",
+                        tag = "raw_static",
+                        domain),
+  age = as.difftime(64, units = "weeks")
+)
 #,
-#
-# # tar_age(
-# #   soil_gcfr_release,
-# #   get_release_soil_gcfr(temp_directory = "data/temp/raw_data/soil_gcfr/",
-# #                         tag = "raw_static",
-# #                         domain),
-# #   age = as.difftime(64, units = "weeks")
-# # ),
 #
 #
 #
