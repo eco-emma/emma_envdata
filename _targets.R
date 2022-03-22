@@ -210,18 +210,18 @@ list(
                                           temp_directory = "data/temp/processed_data/fire_dates/",
                                           sleep_time = 20,
                                           ... = correct_fire_release_proj)
-    )
+    ),
+
+  tar_target(
+    burn_date_to_last_burned_date_release,
+    process_release_burn_date_to_last_burned_date(input_tag = "processed_fire_dates",
+                                                  output_tag = "processed_most_recent_burn_dates",
+                                                  temp_directory_input = "data/temp/processed_data/fire_dates/",
+                                                  temp_directory_output = "data/temp/processed_data/most_recent_burn_dates/",
+                                                  sleep_time = 1,
+                                                  ... = fire_doy_to_unix_date_release)
+  )
 #,
-#
-#   tar_target(
-#     burn_date_to_last_burned_date_release,
-#     process_release_burn_date_to_last_burned_date(input_tag = "processed_fire_dates",
-#                                                   output_tag = "processed_most_recent_burn_dates",
-#                                                   temp_directory_input = "data/temp/processed_data/fire_dates/",
-#                                                   temp_directory_output = "data/temp/processed_data/most_recent_burn_dates/",
-#                                                   sleep_time = 1,
-#                                                   ... = fire_doy_to_unix_date_release)
-#   ),
 #
 #
 #   tar_target(
