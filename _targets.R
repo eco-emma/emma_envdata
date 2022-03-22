@@ -187,7 +187,7 @@ list(
     process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/ndvi_dates_modis/",
                                          tag = "raw_ndvi_dates_modis",
                                          max_layers = NULL,
-                                         sleep_time = 45,
+                                         sleep_time = 30,
                                          ... = ndvi_dates_modis_release)
   ),
 
@@ -198,20 +198,20 @@ list(
                                          max_layers = NULL,
                                          sleep_time = 30,
                                          ... = kndvi_modis_release)
-  )
-#,
-#
-#
+  ),
+
+
 # # Processing via release
-#
-#   tar_target(
-#     fire_doy_to_unix_date_release,
-#     process_release_fire_doy_to_unix_date(input_tag = "raw_fire_modis",
-#                                           output_tag = "processed_fire_dates",
-#                                           temp_directory = "data/temp/processed_data/fire_dates/",
-#                                           sleep_time = 20,
-#                                           ... = correct_fire_release_proj)
-#     ),
+
+  tar_target(
+    fire_doy_to_unix_date_release,
+    process_release_fire_doy_to_unix_date(input_tag = "raw_fire_modis",
+                                          output_tag = "processed_fire_dates",
+                                          temp_directory = "data/temp/processed_data/fire_dates/",
+                                          sleep_time = 20,
+                                          ... = correct_fire_release_proj)
+    )
+#,
 #
 #   tar_target(
 #     burn_date_to_last_burned_date_release,
