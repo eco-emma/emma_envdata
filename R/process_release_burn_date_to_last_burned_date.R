@@ -81,10 +81,6 @@ process_release_burn_date_to_last_burned_date <- function(input_tag = "processed
       mutate(number = as.numeric(date)) %>%
       arrange(number) -> output_files
 
-
-  #Prune any files that have been already done
-    input_files <- input_files[which(!input_files$file_name %in% output_files$file_name),]
-
   #If all input has been processed, skip
 
     if(nrow(input_files) == 0) {
@@ -102,7 +98,7 @@ process_release_burn_date_to_last_burned_date <- function(input_tag = "processed
                          tag = input_tag,
                          overwrite = TRUE,
                          max_attempts = 10,
-                         sleep_time = 2)
+                         sleep_time = sleep_time)
 
 
     previous_raster <- raster(file.path(temp_directory_input,input_files$file_name[1]))
@@ -110,13 +106,13 @@ process_release_burn_date_to_last_burned_date <- function(input_tag = "processed
   }else{
 
 
-    robust_pb_download(file = output_files$file_name[1],
+    robust_pb_download(file = output_files$file_name[nrow(output_files)],
                        dest = temp_directory_output,
                        repo = "AdamWilsonLab/emma_envdata",
                        tag = output_tag,
                        overwrite = TRUE,
                        max_attempts = 10,
-                       sleep_time = 2)
+                       sleep_time = sleep_time)
 
     previous_raster <- raster(file.path(temp_directory_output,
                                         output_files$file_name[nrow(output_files)]))
