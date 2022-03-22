@@ -172,6 +172,7 @@ list(
                                          sleep_time = 30,
                                  ... = fire_modis_release)
   ),
+
   tar_target(
     correct_ndvi_release_proj,
     process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/ndvi_modis/",
@@ -180,6 +181,7 @@ list(
                                          sleep_time = 30,
                                          ... = ndvi_modis_release)
   ),
+
   tar_target(
     correct_ndvi_dates_release_proj,
     process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/ndvi_dates_modis/",
@@ -187,8 +189,8 @@ list(
                                          max_layers = NULL,
                                          sleep_time = 45,
                                          ... = ndvi_dates_modis_release)
-  )
-  ,
+  ),
+
   tar_target(
     correct_kndvi_release_proj,
     process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/kndvi_modis/",
@@ -196,7 +198,8 @@ list(
                                          max_layers = NULL,
                                          sleep_time = 30,
                                          ... = kndvi_modis_release)
-  ),
+  )
+#,
 #
 #
 # # Processing via release
