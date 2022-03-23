@@ -193,7 +193,8 @@ process_release_ndvi_relative_days_since_fire <- function(temp_input_ndvi_date_f
                             x = ndvi_files$date[i])
 
     writeRaster(x = output_i,
-                filename = file.path(temp_fire_output_folder, ndvi_files$file_name[i]))
+                filename = file.path(temp_fire_output_folder, ndvi_files$file_name[i]),
+                overwrite=TRUE)
 
     #release the saved filed
 
