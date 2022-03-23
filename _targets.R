@@ -231,7 +231,7 @@ list(
                                                   input_fire_dates_tag = "processed_most_recent_burn_dates",
                                                   input_modis_dates_tag = "raw_ndvi_dates_modis",
                                                   output_tag = "processed_ndvi_relative_days_since_fire",
-                                                  sleep_time = 45,
+                                                  sleep_time = 60,
                                                   ... = burn_date_to_last_burned_date_release,
                                                   ... = correct_ndvi_dates_release_proj)
     ),
