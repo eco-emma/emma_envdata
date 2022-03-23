@@ -108,6 +108,8 @@ process_release_ndvi_relative_days_since_fire <- function(temp_input_ndvi_date_f
                          max_attempts = 10,
                          sleep_time = sleep_time)
 
+    Sys.sleep(sleep_time) #We need to limit our rate in order to keep Github happy
+
     ndvi_raster_i <- raster(file.path(temp_input_ndvi_date_folder,ndvi_files$file_name[i]))
 
     start_date_i <- ndvi_files$date[i]
@@ -138,6 +140,9 @@ process_release_ndvi_relative_days_since_fire <- function(temp_input_ndvi_date_f
 
       }
 
+    Sys.sleep(sleep_time) #We need to limit our rate in order to keep Github happy
+
+
     fire_raster_2_i <- raster(file.path(temp_input_fire_date_folder,fire_files$file_name[fire_index]))
     fire_2_start_date <- fire_files$number[fire_index]
 
@@ -156,6 +161,9 @@ process_release_ndvi_relative_days_since_fire <- function(temp_input_ndvi_date_f
                                overwrite = TRUE,
                                max_attempts = 10,
                                sleep_time = sleep_time)
+
+            Sys.sleep(sleep_time) #We need to limit our rate in order to keep Github happy
+
 
         }
 
@@ -198,11 +206,15 @@ process_release_ndvi_relative_days_since_fire <- function(temp_input_ndvi_date_f
 
     #release the saved filed
 
+
       pb_upload(file = file.path(temp_fire_output_folder, ndvi_files$file_name[i]),
                 repo = "AdamWilsonLab/emma_envdata",
                 tag = output_tag,
                 name = ndvi_files$file_name[i],
                 overwrite = TRUE)
+
+      Sys.sleep(sleep_time) #We need to limit our rate in order to keep Github happy
+
 
 
     #Delete any files that are no longer needed
