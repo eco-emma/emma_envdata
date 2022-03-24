@@ -1,3 +1,5 @@
+library(tidyverse)
+library(piggyback)
 
 #' @author Brian Maitner
 #' @description This function just grabs the first raster file in a directory
@@ -15,7 +17,7 @@ get_release_template_raster <- function(input_tag = "processed_fire_dates",
   # Get file
     files <- pb_list(repo = "AdamWilsonLab/emma_envdata",
               tag = input_tag) %>%
-                filter(grepl(x = file_name,pattern = ".tif$"))
+                filter(grepl(x = file_name, pattern = ".tif$"))
 
     robust_pb_download(file = files$file_name[1],
                        repo = "AdamWilsonLab/emma_envdata",
@@ -27,8 +29,8 @@ get_release_template_raster <- function(input_tag = "processed_fire_dates",
     template[1:ncell(template)] <- 1:ncell(template)
 
 
-    writeRaster(x = template,
-                filename = file.path(temp_directory,"template.tif"),
+    raster::writeRaster(x = template,
+                filename = file.path(temp_directory, "template.tif"),
                 overwrite = TRUE)
 
   #Release
