@@ -158,8 +158,8 @@ list(
                            domain = domain,
                            max_layers = 25,
                            sleep_time = 10),
-    #age = as.difftime(7, units = "days")
-    age = as.difftime(0, units = "hours")
+    age = as.difftime(7, units = "days")
+    #age = as.difftime(0, units = "hours")
   ),
 
 # # Fixing projection via releases
@@ -262,16 +262,16 @@ list(
                             temp_directory = "data/temp/remnants",
                             out_file = "remnants.tif",
                             out_tag = "processed_static")
-  )
+  ),
+
+  tar_target(
+    remnant_distance_release,
+    domain_distance_release(remnants_release = remnants_release,
+                            out_file="remnant_distance.tif",
+                            temp_directory = "data/temp/remnants",
+                            out_tag = "processed_static")
+    )
 #,
-#
-#   tar_target(
-#     remnant_distance_release,
-#     domain_distance_release(remnants_release = remnants_release,
-#                             out_file="remnant_distance.tif",
-#                             temp_directory = "data/temp/remnants",
-#                             out_tag = "processed_static")
-#     ),
 #
 #   tar_target(
 #     projected_alos_release,
