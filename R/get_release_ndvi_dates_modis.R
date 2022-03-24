@@ -50,7 +50,7 @@ get_release_ndvi_dates_modis <- function(temp_directory = "data/temp/raw_data/nd
   # clean out directory if it exists
 
     if(dir.exists(temp_directory)){
-      unlink(x = temp_directory,recursive = TRUE,force = TRUE)
+      unlink(x = file.path(temp_directory), recursive = TRUE, force = TRUE)
     }
 
   # make a directory if one doesn't exist yet
@@ -126,8 +126,8 @@ get_release_ndvi_dates_modis <- function(temp_directory = "data/temp/raw_data/nd
       if(!is.null(max_layers)){
 
         info <- ndvi_integer_dates_new$getInfo()
-
         to_download <- unlist(lapply(X = info$features,FUN = function(x){x$properties$`system:index`}))
+
         to_download <- gsub(pattern = "_",replacement = "-",x = to_download)
 
         if(length(to_download) > max_layers){
@@ -193,7 +193,7 @@ get_release_ndvi_dates_modis <- function(temp_directory = "data/temp/raw_data/nd
                   tag = tag)
 
     # Delete temp files
-        unlink(x = gsub(pattern = "/$", replacement = "", x = temp_directory), #sub used to delete any trailing slashes, which interfere with unlink
+        unlink(x = file.path(temp_directory), #sub used to delete any trailing slashes, which interfere with unlink
                recursive = TRUE)
 
     # Finish up
