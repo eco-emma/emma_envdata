@@ -262,15 +262,16 @@ list(
                             temp_directory = "data/temp/remnants",
                             out_file = "remnants.tif",
                             out_tag = "processed_static")
-  ),
+  )
+#,
 
-  tar_target(
-    remnant_distance_release,
-    domain_distance_release(remnants_release = remnants_release,
-                            out_file="remnant_distance.tif",
-                            temp_directory = "data/temp/remnants",
-                            out_tag = "processed_static")
-    )
+  # tar_target(
+  #   remnant_distance_release,
+  #   domain_distance_release(remnants_release = remnants_release,
+  #                           out_file="remnant_distance.tif",
+  #                           temp_directory = "data/temp/remnants",
+  #                           out_tag = "processed_static")
+  #   )
 #,
 #
 #   tar_target(
