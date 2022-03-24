@@ -7,7 +7,7 @@ get_release_template_raster <- function(input_tag = "processed_fire_dates",
                                         output_tag = "processed_static",
                                         temp_directory = "data/temp/template",
                                         ...){
-
+  message(10)
   # Set up directories if need be
 
     if(!dir.exists(temp_directory)){
@@ -23,29 +23,29 @@ get_release_template_raster <- function(input_tag = "processed_fire_dates",
                        repo = "AdamWilsonLab/emma_envdata",
                        tag = input_tag,
                        dest = temp_directory)
-
-    template <- raster::raster(x = file.path(temp_directory,files$file_name[1]))
+    message(26)
+    template <- raster::raster(x = file.path(temp_directory, files$file_name[1]))
 
     template[1:ncell(template)] <- 1:ncell(template)
 
-
+    message(31)
     raster::writeRaster(x = template,
                 filename = file.path(temp_directory, "template.tif"),
                 overwrite = TRUE)
 
   #Release
-
+    message(37)
     pb_upload(repo = "AdamWilsonLab/emma_envdata",
               file = file.path(temp_directory, "template.tif"),
               tag = output_tag,
               overwrite = TRUE)
-
+    message(42)
     template_md <- list(repo = "AdamWilsonLab/emma_envdata",
                         tag = output_tag,
                         file = "template.tif")
 
   #Empty old stuff
-
+    message(48)
     unlink(x = file.path(temp_directory), recursive = TRUE, force = TRUE)
 
 
