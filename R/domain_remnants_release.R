@@ -107,11 +107,11 @@ domain_distance_release <- function(remnants_release,
                                     ){
 
   # make a directory if one doesn't exist yet
-
+    message(110)
     if(!dir.exists(temp_directory)){
       dir.create(temp_directory, recursive = TRUE)
     }
-
+    message(114)
   #get the raster
     robust_pb_download(file = remnants_release$file,
                        dest = file.path(temp_directory),
@@ -121,32 +121,32 @@ domain_distance_release <- function(remnants_release,
                        max_attempts = 10,
                        sleep_time = 10)
 
-
+  message(124)
   distance_raster <-
     rast(file.path(temp_directory,remnants_release$file)) %>%
     terra::app(fun=function(x) ifelse(is.na(x),1,NA)) %>%
     terra::distance(grid=T)/1000
 
-
+  message(130)
   writeRaster(distance_raster,
               file = file.path(temp_directory,out_file),
               overwrite = T)
-
+    message(134)
   #release
     pb_upload(file = file.path(temp_directory,out_file),
               repo = template_release$repo,
               tag = out_tag)
-
+    message(139)
   #get md
     file_md <- list(repo = template_release$repo,
                     tag = out_tag,
                     file = out_file)
-
+    message(144)
   #cleanup
   unlink(x = temp_directory, recursive = TRUE, force = TRUE)
-
+    message(147)
   #end
-
+    message(149)
   return(file_md)
 
 }
