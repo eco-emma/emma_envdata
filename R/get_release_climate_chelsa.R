@@ -24,19 +24,12 @@ get_release_climate_chelsa <- function(temp_directory = "data/temp/raw_data/clim
       dir.create(temp_directory)
     }
 
-  #check for files
-
-    # if( length(list.files(directory,pattern = "clipped.tif", recursive = T)) == 19){
-    #   message("CHELSA files found, skipping download")
-    #   return(invisible(NULL))
-    # }
-    #
 
   #Make sure there is a release by attempting to create one.  If it already exists, this will fail
 
-  tryCatch(expr =   pb_new_release(repo = "AdamWilsonLab/emma_envdata",
-                                   tag =  tag),
-           error = function(e){message("Previous release found")})
+    tryCatch(expr =   pb_new_release(repo = "AdamWilsonLab/emma_envdata",
+                                     tag =  tag),
+             error = function(e){message("Previous release found")})
 
   #Adjust the download timeout duration (this needs to be large enough to allow the download to complete)
 
@@ -57,20 +50,39 @@ get_release_climate_chelsa <- function(temp_directory = "data/temp/raw_data/clim
   # It would also be useful if only the relevant data could be downloaded (rather than downloading and THEN pruning)
 
 
-    ClimDatDownloadR::Chelsa.Clim.download(save.location = temp_directory,
-                                           parameter = "bio",
-                                           clip.extent = domain_extent[c(1,2,3,4)],
-                                           clipping = TRUE,
-                                           delete.raw.data = TRUE
-    )
+      ClimDatDownloadR::Chelsa.Clim.download(save.location = temp_directory,
+                                             parameter = "bio",
+                                             clip.extent = domain_extent[c(1,2,3,4)],
+                                             clipping = TRUE,
+                                             delete.raw.data = TRUE
+      )
 
+    #fix names
 
+      to_rename <- list.files(path = file.path(temp_directory),
+                              pattern = "_clipped.tif",full.names = TRUE,recursive = TRUE)
+
+      for(i in 1:length(to_rename)){
+        file.rename(from = to_rename[i],
+                    to = gsub(pattern = "_clipped.tif",
+                              replacement = "",
+                              x = to_rename[i]))
+        }
 
     # release
+      to_release <-
+        list.files(path = file.path(temp_directory),
+                   recursive = TRUE,
+                   full.names = TRUE)
+
+
+      to_release <-
+        to_release[grepl(pattern = "CHELSA",
+                         ignore.case = TRUE,
+                         x = basename(to_release))]
+
         pb_upload(repo = "AdamWilsonLab/emma_envdata",
-                  file = list.files(file.path(temp_directory),
-                                    recursive = TRUE,
-                                    full.names = TRUE),
+                  file = to_release,
                   tag = tag)
 
     # delete directory and contents
