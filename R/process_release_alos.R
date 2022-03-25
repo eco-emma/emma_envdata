@@ -1,7 +1,7 @@
 #' @author Brian Maitner
 #' @param input_dir directory where the input files live
 #' @param output_dir directory for the output files
-#' @param template path to raster file to use as a template for reprojection
+#' @param template_release path to raster file to use as a template for reprojection
 #' @param ... Does nothing, but is used in making connections between files in the targets framework
 #' @note This function uses bilinear for continuous variables and nearest neighbor for categorical
 process_release_alos <- function(input_tag = "raw_static",
@@ -13,7 +13,7 @@ process_release_alos <- function(input_tag = "raw_static",
   #  #Ensure directory is empty if it exists
 
     if(dir.exists(temp_directory)){
-      unlink(temp_directory, recursive = TRUE, force = TRUE)
+      unlink(file.path(temp_directory), recursive = TRUE, force = TRUE)
     }
 
   # make a directory if one doesn't exist yet
@@ -102,7 +102,7 @@ process_release_alos <- function(input_tag = "raw_static",
 
   #Clear out the folder
 
-    unlink(temp_directory, recursive = TRUE, force = TRUE)
+    unlink(file.path(temp_directory), recursive = TRUE, force = TRUE)
 
   #End functions
 
