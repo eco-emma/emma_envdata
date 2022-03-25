@@ -14,7 +14,7 @@ get_release_climate_chelsa <- function(temp_directory = "data/temp/raw_data/clim
 
   #ensure temp directory is empty
 
-    if(!dir.exists(temp_directory)){
+    if(dir.exists(temp_directory)){
       unlink(x = file.path(temp_directory), recursive = TRUE, force = TRUE)
     }
 
@@ -65,7 +65,7 @@ get_release_climate_chelsa <- function(temp_directory = "data/temp/raw_data/clim
       for(i in 1:length(to_rename)){
         file.rename(from = to_rename[i],
                     to = gsub(pattern = "_clipped.tif",
-                              replacement = "",
+                              replacement = ".tif",
                               x = to_rename[i]))
         }
 
