@@ -24,9 +24,10 @@ get_release_template_raster <- function(input_tag = "processed_fire_dates",
                        tag = input_tag,
                        dest = temp_directory)
     message(26)
-    template <- raster::raster(x = file.path(temp_directory, files$file_name[1]))
+    template <- raster::raster(x = file.path(temp_directory, files$file_name[1])) #here?
 
-    template[1:ncell(template)] <- 1:ncell(template)
+    message(27)
+    template[1:ncell(template)] <- 1:ncell(template) #here?
 
     message(31)
     raster::writeRaster(x = template,
