@@ -26,7 +26,7 @@ get_release_template_raster <- function(input_tag = "processed_fire_dates",
 
     template <- raster::raster(x = file.path(temp_directory, files$file_name[1]))
 
-    template[(1:terra::ncell(template))] <- (1:terra::ncell(template)) #problem spot
+    template[(1:terra::ncell(template))] <- (1:terra::ncell(template)) #this spot seems to throw a "Error in (function (x)  : attempt to apply non-function", but it doesn't seem to hurt anything
 
     raster::writeRaster(x = template,
                 filename = file.path(temp_directory, "template.tif"),
