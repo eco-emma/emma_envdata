@@ -9,7 +9,7 @@ library(terra)
 #' @author Adam Wilson & Brian Maitner
 #' @description This code cleans up the RLE Remnants file to yield a simpler polygon that we can use as a domain.
 #' @param remnants_shp The file location of the remnants shapefile.  Defaults to "data/RLE_2021_Remnants/RLE_Terr_2021_June2021_Remnants_ddw.shp"
-#' @param template path to raster file to use as a template for reprojection
+#' @param template_release path to raster file to use as a template for reprojection
 
 domain_remnants_release <- function(domain,
                                     remnants_shp,
