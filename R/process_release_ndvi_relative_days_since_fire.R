@@ -66,9 +66,6 @@ process_release_ndvi_relative_days_since_fire <- function(temp_input_ndvi_date_f
                           filter(file_name != "")%>%
                           filter(file_name != "log.csv")
 
-
-
-
   fire_files <-
   fire_files %>%
     mutate(date = file_name) %>%
