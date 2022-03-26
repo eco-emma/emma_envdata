@@ -4,6 +4,8 @@
 
 library(lubridate)
 library(raster)
+library(tidyverse)
+library(piggyback)
 
 process_release_ndvi_relative_days_since_fire <- function(temp_input_ndvi_date_folder = "data/temp/raw_data/ndvi_dates_modis/",
                                                   temp_input_fire_date_folder = "data/temp/processed_data/most_recent_burn_dates/",
@@ -13,6 +15,11 @@ process_release_ndvi_relative_days_since_fire <- function(temp_input_ndvi_date_f
                                                   output_tag = "processed_ndvi_relative_days_since_fire",
                                                   sleep_time = 5,
                                                   ...){
+
+  #ensure output_folder empty
+  if(dir.exists(temp_fire_output_folder)){
+    unlink(file.path(temp_fire_output_folder),recursive = TRUE,force = TRUE)
+    }
 
   #Make folder if needed
     if(! dir.exists(temp_fire_output_folder)){ dir.create(temp_fire_output_folder,
@@ -110,7 +117,7 @@ process_release_ndvi_relative_days_since_fire <- function(temp_input_ndvi_date_f
 
     Sys.sleep(sleep_time) #We need to limit our rate in order to keep Github happy
 
-    ndvi_raster_i <- raster(file.path(temp_input_ndvi_date_folder,ndvi_files$file_name[i]))
+    ndvi_raster_i <- raster::raster(file.path(temp_input_ndvi_date_folder,ndvi_files$file_name[i]))
 
     start_date_i <- ndvi_files$date[i]
     start_date_numeric_i <- ndvi_files$number[i]
@@ -143,7 +150,7 @@ process_release_ndvi_relative_days_since_fire <- function(temp_input_ndvi_date_f
     Sys.sleep(sleep_time) #We need to limit our rate in order to keep Github happy
 
 
-    fire_raster_2_i <- raster(file.path(temp_input_fire_date_folder,fire_files$file_name[fire_index]))
+    fire_raster_2_i <- raster::raster(file.path(temp_input_fire_date_folder,fire_files$file_name[fire_index]))
     fire_2_start_date <- fire_files$number[fire_index]
 
     #Grab previous fire layer, or make an empty one if needed
@@ -167,7 +174,7 @@ process_release_ndvi_relative_days_since_fire <- function(temp_input_ndvi_date_f
 
         }
 
-        fire_raster_1_i <- raster(file.path(temp_input_fire_date_folder,fire_files$file_name[fire_index-1]))
+        fire_raster_1_i <- raster::raster(file.path(temp_input_fire_date_folder,fire_files$file_name[fire_index-1]))
         fire_1_start_date <- fire_files$number[fire_index-1]
 
       }else{
@@ -200,7 +207,7 @@ process_release_ndvi_relative_days_since_fire <- function(temp_input_ndvi_date_f
                             replacement = "_",
                             x = ndvi_files$date[i])
 
-    writeRaster(x = output_i,
+    raster::writeRaster(x = output_i,
                 filename = file.path(temp_fire_output_folder, ndvi_files$file_name[i]),
                 overwrite=TRUE)
 
@@ -218,15 +225,21 @@ process_release_ndvi_relative_days_since_fire <- function(temp_input_ndvi_date_f
 
 
     #Delete any files that are no longer needed
+      rm(ndvi_raster_i, output_i)
 
 
-    file.remove(file.path(temp_fire_output_folder,ndvi_files$file_name[i]))
+        file.remove(file.path(temp_fire_output_folder,ndvi_files$file_name[i]))
+        file.remove(file.path(temp_input_ndvi_date_folder,ndvi_files$file_name[i]))
 
-      if(fire_index > 2){
+        #unlink(file.path(temp_fire_output_folder,ndvi_files$file_name[i]),force = TRUE)
 
+      if(file.exists(file.path(temp_input_fire_date_folder,fire_files$file_name[fire_index-2]))){
         file.remove(file.path(temp_input_fire_date_folder,fire_files$file_name[fire_index-2]))
-
       }
+
+
+
+
 
 
   }#for ndvi loop

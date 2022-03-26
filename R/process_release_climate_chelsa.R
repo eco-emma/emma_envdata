@@ -10,12 +10,17 @@ process_release_climate_chelsa <- function(input_tag = "raw_static",
                                            template_release,
                                            ...){
 
+  # Ensure directory is empty
+
+    if(dir.exists(temp_directory)){
+      unlink(x = file.path(temp_directory), recursive =  TRUE, force = TRUE)
+    }
+
   # make a directory if one doesn't exist yet
 
     if(!dir.exists(temp_directory)){
-      dir.create(temp_directory,recursive = TRUE)
+      dir.create(temp_directory, recursive = TRUE)
     }
-
 
   # get template raster
 
@@ -27,7 +32,7 @@ process_release_climate_chelsa <- function(input_tag = "raw_static",
                        max_attempts = 10,
                        sleep_time = 5)
 
-    template <- terra::rast(file.path(temp_directory,template_release$file))
+    template <- terra::rast(file.path(temp_directory, template_release$file))
 
   # get input rasters
 
@@ -47,9 +52,9 @@ process_release_climate_chelsa <- function(input_tag = "raw_static",
 
   #reformat and save each
 
-  for(i in 1:length(files)){
+  for(i in 1:nrow(files)){
 
-      raster_i <- terra::rast(file.path(temp_directory,files$file_name[i]))
+      raster_i <- terra::rast(file.path(temp_directory, files$file_name[i]))
 
     #Use bilinear for everything
 
@@ -71,6 +76,17 @@ process_release_climate_chelsa <- function(input_tag = "raw_static",
 
 
   } #i loop
+
+  #Upload files
+
+    pb_upload(file = file.path(temp_directory,files$file_name),
+              repo = "AdamWilsonLab/emma_envdata",
+              tag = output_tag)
+
+  #Clean up
+
+    unlink(x = file.path(temp_directory), recursive =  TRUE, force = TRUE)
+
 
 
   #End functions
