@@ -300,16 +300,16 @@ list(
                                   sleep_time = 180,
                                   ... = clouds_wilson_release)
   )
-# ,
-#
-#   tar_target(
-#     projected_elevation_nasadem_release,
-#     process_release_elevation_nasadem(input_tag = "raw_static",
-#                                       output_tag = "processed_static",
-#                                       temp_directory = "data/temp/raw_data/elevation_nasadem/",
-#                                       template_release = template_release,
-#                                       ... = elevation_nasadem_release)
-#   )
+,
+
+  tar_target(
+    projected_elevation_nasadem_release,
+    process_release_elevation_nasadem(input_tag = "raw_static",
+                                      output_tag = "processed_static",
+                                      temp_directory = "data/temp/raw_data/elevation_nasadem/",
+                                      template_release = template_release,
+                                      ... = elevation_nasadem_release)
+  )
 #,
 #
 #   tar_target(
@@ -322,15 +322,21 @@ list(
 #                                  ... = landcover_za_release)
 #   )
 #   ,
-
-
-
-#   tar_target(
-#     projected_precipitation_chelsa,
-#     process_precipitation_chelsa(template = template, ... = precipitaton_chelsa)
 #
-#   ),
-#
+  # tar_target(
+  #   projected_precipitation_chelsa_release,
+  #   process_release_precipitation_chelsa(input_tag = "raw_static",
+  #                                        output_tag = "processed_static",
+  #                                        temp_directory = "data/temp/raw_data/precipitation_chelsa/",
+  #                                        template_release,
+  #                                        sleep_time = 30,
+  #                                        ... = precipitation_chelsa_release)
+  #
+  # ),
+
+
+
+
 # # # Prep model data
 #   tar_target(
 #     stable_data,
@@ -550,6 +556,12 @@ list(
 #   tar_target(
 #     projected_landcover_za,
 #     process_landcover_za(template = template, ... = landcover_za)
+#   ),
+#
+#   tar_target(
+#     projected_precipitation_chelsa,
+#     process_precipitation_chelsa(template = template, ... = precipitaton_chelsa)
+#
 #   ),
 #
 
