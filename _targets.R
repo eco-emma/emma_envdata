@@ -327,19 +327,18 @@ list(
                                          sleep_time = 30,
                                          ... = precipitation_chelsa_release)
 
-  )
-#,
-#
-# tar_target(
-#   projected_soil_gcfr_release,
-#   process_release_soil_gcfr(input_tag = "raw_static",
-#                             output_tag = "processed_static",
-#                             temp_directory = "data/temp/raw_data/soil_gcfr/",
-#                             template_release,
-#                             sleep_time = 30,
-#                             ... = soil_gcfr_release)
-#
-# )
+  ),
+
+tar_target(
+  projected_soil_gcfr_release,
+  process_release_soil_gcfr(input_tag = "raw_static",
+                            output_tag = "processed_static",
+                            temp_directory = "data/temp/raw_data/soil_gcfr/",
+                            template_release,
+                            sleep_time = 30,
+                            ... = soil_gcfr_release)
+
+)
 #,
 
 
