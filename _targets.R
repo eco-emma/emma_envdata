@@ -297,7 +297,7 @@ list(
                                   output_tag = "processed_static",
                                   temp_directory = "data/temp/raw_data/clouds_wilson/",
                                   template_release = template_release,
-                                  sleep_time = 150,
+                                  sleep_time = 180,
                                   ... = clouds_wilson_release)
   )
 # ,
@@ -311,12 +311,20 @@ list(
 #                                       ... = elevation_nasadem_release)
 #   )
 #,
-
-#   tar_target(
-#     projected_landcover_za,
-#     process_landcover_za(template = template, ... = landcover_za)
-#   ),
 #
+#   tar_target(
+#     projected_landcover_za_release,
+#     process_release_landcover_za(input_tag = "raw_static",
+#                                  output_tag = "processed_static",
+#                                  temp_directory = "data/temp/raw_data/landcover_za/",
+#                                  template_release,
+#                                  sleep_time = 30,
+#                                  ... = landcover_za_release)
+#   )
+#   ,
+
+
+
 #   tar_target(
 #     projected_precipitation_chelsa,
 #     process_precipitation_chelsa(template = template, ... = precipitaton_chelsa)
@@ -537,6 +545,11 @@ list(
 #   tar_target(
 #     projected_elevation_nasadem,
 #     process_elevation_nasadem(template = template, ... = elevation_nasadem)
+#   ),
+#
+#   tar_target(
+#     projected_landcover_za,
+#     process_landcover_za(template = template, ... = landcover_za)
 #   ),
 #
 
