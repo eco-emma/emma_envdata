@@ -11,6 +11,13 @@ get_release_landcover_za <- function(temp_directory = "data/temp/raw_data/landco
                                      tag = "raw_static",
                                      domain) {
 
+  #  #Ensure directory is empty if it exists
+
+  if(dir.exists(temp_directory)){
+    unlink(file.path(temp_directory), recursive = TRUE, force = TRUE)
+  }
+
+
   #make a directory if one doesn't exist yet
 
     if(!dir.exists(temp_directory)){
@@ -44,7 +51,7 @@ get_release_landcover_za <- function(temp_directory = "data/temp/raw_data/landco
 
   #Delete the zipped version (which isn't much smaller anyway)
 
-    file.remove(file.path(temp_directory, filename))
+    unlink(file.path(temp_directory, filename))
 
   # Load the raster
 
@@ -87,8 +94,9 @@ get_release_landcover_za <- function(temp_directory = "data/temp/raw_data/landco
 
 
   # Delete temp folder
+    rm(raster_i)
 
-    unlink(x = file.path(temp_directory), recursive = TRUE,force = TRUE)
+    unlink(x = file.path(temp_directory), recursive = TRUE, force = TRUE)
 
   # Finish up
     message("Landcover layer downloaded")

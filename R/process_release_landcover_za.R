@@ -44,6 +44,8 @@ process_release_landcover_za <- function(input_tag = "raw_static",
     raster_list <- pb_list(repo = "AdamWilsonLab/emma_envdata",
                            tag = input_tag) %>%
       filter(grepl(pattern = "SA_NLC",
+                   x = file_name))%>%
+      filter(grepl(pattern = ".tif$",
                    x = file_name))
 
     robust_pb_download(file = raster_list$file_name,
@@ -66,15 +68,15 @@ process_release_landcover_za <- function(input_tag = "raw_static",
 
         #Use bilinear
 
-        method <- "bilinear"
+        method <- "ngb"
 
 
         raster::projectRaster(from = raster_i,
                               to = template,
                               method = method,
                               filename = file.path(temp_directory, raster_list$file_name[i],sep = ""),
-                              overwrite=TRUE
-        )
+                              overwrite = TRUE
+                              )
 
         #Terra is currently having some problems with reading and writing so I've switched back to raster for now
         # terra::project(x = raster_i,
