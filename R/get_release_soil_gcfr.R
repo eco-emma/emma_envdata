@@ -15,6 +15,14 @@ get_release_soil_gcfr <- function(temp_directory = "data/temp/raw_data/soil_gcfr
                                   tag = "raw_static",
                                   domain) {
 
+
+  # Ensure directory is empty if it exists
+
+    if(dir.exists(temp_directory)){
+      unlink(file.path(temp_directory), recursive = TRUE, force = TRUE)
+    }
+    #
+
   # Set up directories if need be
 
     if(!dir.exists(temp_directory)){
@@ -55,11 +63,20 @@ get_release_soil_gcfr <- function(temp_directory = "data/temp/raw_data/soil_gcfr
                         full.names = T)
 
 
+
+
+
   # Iteratively crop and mask
 
   for( i in 1:length(files)){
 
     raster_i <- raster::raster(x = files[i])
+
+    # append soil_ to the name to make things easier downstream
+
+    file_name_i <- basename(files[i])
+    file_name_i <- paste("soil_",file_name_i,sep = "")
+
 
     # Reproject domain if not done already
     if(i == 1){
@@ -84,8 +101,14 @@ get_release_soil_gcfr <- function(temp_directory = "data/temp/raw_data/soil_gcfr
 
     # Save the cropped/masked raster
     raster::writeRaster(x = raster_i,
-                        filename = files[i],
+                        filename = file.path(temp_directory,file_name_i),
                         overwrite = TRUE)
+
+
+    rm(raster_i, file_name_i)
+
+    file.remove(files[i])
+
 
   } # i files loop
 
