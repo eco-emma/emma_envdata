@@ -55,7 +55,7 @@ process_release_clouds_wilson <- function(input_tag = "raw_static",
                          repo = "AdamWilsonLab/emma_envdata",
                          tag = input_tag,
                          max_attempts = 10,
-                         sleep_time = 10)
+                         sleep_time = sleep_time)
 
       #Pause to keep below the rate limit
         Sys.sleep(sleep_time)

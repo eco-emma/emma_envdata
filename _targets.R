@@ -297,7 +297,7 @@ list(
                                   output_tag = "processed_static",
                                   temp_directory = "data/temp/raw_data/clouds_wilson/",
                                   template_release = template_release,
-                                  sleep_time = 60,
+                                  sleep_time = 90,
                                   ... = clouds_wilson_release)
   )
 # ,
