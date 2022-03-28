@@ -104,16 +104,13 @@ list(
     age = as.difftime(62, units = "weeks")
   ),
 
-# tar_age(
-#   soil_gcfr_release,
-#   get_release_soil_gcfr(temp_directory = "data/temp/raw_data/soil_gcfr/",
-#                         tag = "raw_static",
-#                         domain),
-#   age = as.difftime(64, units = "weeks")
-# ),
-
-
-
+  tar_age(
+    soil_gcfr_release,
+    get_release_soil_gcfr(temp_directory = "data/temp/raw_data/soil_gcfr/",
+                          tag = "raw_static",
+                          domain),
+    age = as.difftime(64, units = "weeks")
+  ),
 
 
 # # Frequent updates via releases
@@ -331,6 +328,18 @@ list(
                                          ... = precipitation_chelsa_release)
 
   )
+#,
+#
+# tar_target(
+#   projected_soil_gcfr_release,
+#   process_release_soil_gcfr(input_tag = "raw_static",
+#                             output_tag = "processed_static",
+#                             temp_directory = "data/temp/raw_data/soil_gcfr/",
+#                             template_release,
+#                             sleep_time = 30,
+#                             ... = soil_gcfr_release)
+#
+# )
 #,
 
 
