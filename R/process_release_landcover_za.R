@@ -74,7 +74,7 @@ process_release_landcover_za <- function(input_tag = "raw_static",
         raster::projectRaster(from = raster_i,
                               to = template,
                               method = method,
-                              filename = file.path(temp_directory, raster_list$file_name[i],sep = ""),
+                              filename = file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = "")),
                               overwrite = TRUE
                               )
 
@@ -86,17 +86,29 @@ process_release_landcover_za <- function(input_tag = "raw_static",
         #                overwrite = TRUE)
 
 
-        pb_upload(file = file.path(temp_directory, raster_list$file_name[i]),
-                  repo = "AdamWilsonLab/emma_envdata",
-                  tag = output_tag,
-                  name = raster_list$file_name[i])
+        # Check the projection
 
-        rm(raster_i)
+          if(projection(raster(file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = "")))) != projection(template)){
+            stop("Issue with reprojection")
+            }
 
-        file.remove(file.path(temp_directory, raster_list$file_name[i]))
+        #Upload file
 
-        #Pause to keep below the rate limit
-        Sys.sleep(sleep_time)
+          pb_upload(file = file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = "")),
+                    repo = "AdamWilsonLab/emma_envdata",
+                    tag = output_tag,
+                    name = raster_list$file_name[i])
+
+        # Clean up
+
+          rm(raster_i)
+
+          file.remove(file.path(temp_directory, raster_list$file_name[i]))
+          file.remove( file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = "")) )
+
+        # Pause to keep below the rate limit
+
+          Sys.sleep(sleep_time)
 
 
       } #i loop

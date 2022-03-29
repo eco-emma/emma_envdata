@@ -67,9 +67,9 @@ process_release_elevation_nasadem <- function(input_tag = "raw_static",
       raster::projectRaster(from = raster_i,
                             to = template,
                             method = method,
-                            filename = file.path(temp_directory, raster_list$file_name[i],sep = ""),
-                            overwrite=TRUE
-      )
+                            filename = file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = "")),
+                            overwrite = TRUE
+                            )
 
       #Terra is currently having some problems with reading and writing so I've switched back to raster for now
       # terra::project(x = raster_i,
@@ -78,15 +78,22 @@ process_release_elevation_nasadem <- function(input_tag = "raw_static",
       #                filename = file.path(temp_directory, paste("temp_",raster_list$file_name[i],sep = "")),
       #                overwrite = TRUE)
 
+      # Double check projection
 
-      pb_upload(file = file.path(temp_directory, raster_list$file_name[i]),
+        if(projection(raster(file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = "")))) != projection(template)){
+          stop("Issue with reprojection")
+          }
+
+
+      pb_upload(file = file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = "")),
                 repo = "AdamWilsonLab/emma_envdata",
                 tag = output_tag,
                 name = raster_list$file_name[i])
 
-      rm(raster_i)
-
-      file.remove(file.path(temp_directory, raster_list$file_name[i]))
+      # cleanup
+        rm(raster_i)
+        file.remove( file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = "")) )
+        file.remove( file.path(temp_directory, raster_list$file_name[i]) )
 
 
     } #i loop
