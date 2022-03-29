@@ -388,6 +388,9 @@ tar_target(
 #                                     variable_name = "most_recent_burn_date",
 #                                     ... = burn_date_to_last_burned_date)
 #     ),
+
+#   # Add target here to ensure the temp directory is cleaned out
+#
 #   #Release Data
 #   tar_target(
 #     release_data_to_github,

@@ -64,14 +64,15 @@ process_release_stable_data <- function(temp_directory = "data/temp/processed_da
   # Release
 
 
-    pb_upload(file = file.path(output_dir,"stable_data.gz.parquet"),
+    pb_upload(file = file.path(temp_directory,"stable_data.gz.parquet"),
               repo = "AdamWilsonLab/emma_envdata",
               tag = output_tag)
 
 
   #cleanup
-  gc()
 
+    unlink(x = file.path(temp_directory), recursive = TRUE, force = TRUE)
+    gc()
 
 
 
