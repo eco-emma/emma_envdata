@@ -73,10 +73,11 @@ process_release_precipitation_chelsa <- function(input_tag = "raw_static",
 
     method <- "bilinear"
 
+    #Unfortunately I have to save the raster as a new file as it fails to overwrite occaisionally via actions
     raster::projectRaster(from = raster_i,
                           to = template,
                           method = method,
-                          filename = file.path(temp_directory, raster_list$file_name[i],sep = ""),
+                          filename = file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = "")),
                           overwrite=TRUE
                           )
 
@@ -88,18 +89,21 @@ process_release_precipitation_chelsa <- function(input_tag = "raw_static",
     #                overwrite = TRUE)
 
 
-    if(projection(raster(file.path(temp_directory, raster_list$file_name[i]))) != projection(template)){stop("Issue with reprojection")}
+    if(projection(raster(file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = "")))) != projection(template)){stop("Issue with reprojection")}
 
 
 
-    pb_upload(file = file.path(temp_directory, raster_list$file_name[i]),
+    pb_upload(file = file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = "")),
               repo = "AdamWilsonLab/emma_envdata",
               tag = output_tag,
               name = raster_list$file_name[i])
 
+
+
     rm(raster_i)
 
-    file.remove(file.path(temp_directory, raster_list$file_name[i]))
+    file.remove( file.path(temp_directory, raster_list$file_name[i]) )
+    file.remove( file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = "")) )
 
   } #i loop
 
