@@ -75,9 +75,13 @@ process_release_alos <- function(input_tag = "raw_static",
         raster::projectRaster(from = raster_i,
                               to = template,
                               method = method,
-                              filename = file.path(temp_directory, raster_list$file_name[i],sep = ""),
+                              filename = file.path(temp_directory, raster_list$file_name[i]),
                               overwrite=TRUE
                               )
+
+        if(projection(raster(file.path(temp_directory, raster_list$file_name[i]))) != projection(template)){stop("Issue with reprojection")}
+
+
 
         #Terra is currently having some problems with reading and writing so I've switched back to raster for now
         # terra::project(x = raster_i,
