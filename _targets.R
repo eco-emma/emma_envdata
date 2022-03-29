@@ -347,27 +347,26 @@ tar_target(
 )
 #,
 
-
 # # # Prep model data
-#   tar_target(
-#     stable_data,
-#     process_stable_data(output_dir = "data/processed_data/model_data/",
-#                         precip_dir = "data/processed_data/precipitation_chelsa/",
-#                         landcover_dir = "data/processed_data/landcover_za/",
-#                         elevation_dir = "data/processed_data/elevation_nasadem/",
-#                         cloud_dir = "data/processed_data/clouds_wilson/",
-#                         climate_dir = "data/processed_data/climate_chelsa/",
-#                         alos_dir = "data/processed_data/alos/",
-#                         remnant_distace_dir = "data/processed_data/remnant_distance/",
-#                         ... = projected_precipitation_chelsa,
-#                         ... = projected_landcover_za,
-#                         ... = projected_elevation_nasadem,
-#                         ... = projected_clouds_wilson,
-#                         ... = projected_climate_chelsa,
-#                         ... = projected_alos,
-#                         ... = remnant_distance),
-#     format = "file"
-#   ),
+  # tar_target(
+  #   stable_data_release,
+  #   process_release_stable_data(temp_directory = "data/temp/processed_data/static/",
+  #                               input_tag = "processed_static",
+  #                               output_tag = "current",
+  #                               ... = projected_precipitation_chelsa_release,
+  #                               ... = projected_landcover_za_release,
+  #                               ... = projected_elevation_nasadem_release,
+  #                               ... = projected_clouds_wilson_release,
+  #                               ... = projected_climate_chelsa_release,
+  #                               ... = projected_alos_release,
+  #                               ... = remnant_distance_release,
+  #                               ... = projected_soil_gcfr_release)
+  #   )
+  # ,
+
+
+
+
 #   tar_target(
 #     ndvi_to_parquet,
 #     process_dynamic_data_to_parquet(input_dir = "data/raw_data/ndvi_modis/",
@@ -575,4 +574,24 @@ tar_target(
 #
 #   ),
 #
+# # # Prep model data
+#   tar_target(
+#     stable_data,
+#     process_stable_data(output_dir = "data/processed_data/model_data/",
+#                         precip_dir = "data/processed_data/precipitation_chelsa/",
+#                         landcover_dir = "data/processed_data/landcover_za/",
+#                         elevation_dir = "data/processed_data/elevation_nasadem/",
+#                         cloud_dir = "data/processed_data/clouds_wilson/",
+#                         climate_dir = "data/processed_data/climate_chelsa/",
+#                         alos_dir = "data/processed_data/alos/",
+#                         remnant_distace_dir = "data/processed_data/remnant_distance/",
+#                         ... = projected_precipitation_chelsa,
+#                         ... = projected_landcover_za,
+#                         ... = projected_elevation_nasadem,
+#                         ... = projected_clouds_wilson,
+#                         ... = projected_climate_chelsa,
+#                         ... = projected_alos,
+#                         ... = remnant_distance),
+#     format = "file"
+#   ),
 
