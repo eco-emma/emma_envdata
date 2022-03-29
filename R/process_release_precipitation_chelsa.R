@@ -88,6 +88,10 @@ process_release_precipitation_chelsa <- function(input_tag = "raw_static",
     #                overwrite = TRUE)
 
 
+    if(projection(raster(file.path(temp_directory, raster_list$file_name[i]))) != projection(template)){stop("Issue with reprojection")}
+
+
+
     pb_upload(file = file.path(temp_directory, raster_list$file_name[i]),
               repo = "AdamWilsonLab/emma_envdata",
               tag = output_tag,
