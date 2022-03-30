@@ -400,12 +400,6 @@ tar_target(
 
 )
 
-  # Cleanup
-
-    unlink(file.path("data/temp/"), recursive = TRUE, force = TRUE)
-    rm(list = ls())
-    message(paste("Objects:",ls(),collapse = "\n"))
-
 
 
 
