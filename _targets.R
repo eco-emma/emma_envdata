@@ -3,8 +3,14 @@ library(tarchetypes)
 library(visNetwork)
 library(future) #not sure why this is needed, but we get an error in some of the files without it
 
+
+# Ensure things are clean
+  unlink(file.path("data/temp/"), recursive = TRUE, force = TRUE)
+  unlink(file.path("data/raw_data", recursive = TRUE, force = TRUE))
+  message(paste("Objects:",ls(),collapse = "\n"))
+
 # source all files in R folder
-lapply(list.files("R",pattern="[.]R",full.names = T), source)
+  lapply(list.files("R",pattern="[.]R",full.names = T), source)
 
 options(tidyverse.quiet = TRUE)
 options(clustermq.scheduler = "multicore")
@@ -12,6 +18,8 @@ options(clustermq.scheduler = "multicore")
 tar_option_set(packages = c("cmdstanr", "posterior", "bayesplot", "tidyverse",
                             "stringr","knitr","sf","stars","units",
                             "cubelyr","rgee"))
+
+
 
 # ee authentication
 if(T) {
@@ -21,6 +29,7 @@ if(T) {
 
 
 list(
+
 
   #Prep needed files
 
