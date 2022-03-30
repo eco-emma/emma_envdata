@@ -19,8 +19,6 @@ tar_option_set(packages = c("cmdstanr", "posterior", "bayesplot", "tidyverse",
                             "stringr","knitr","sf","stars","units",
                             "cubelyr","rgee"))
 
-
-
 # ee authentication
 if(T) {
   library(rgee)
@@ -388,36 +386,29 @@ tar_target(
                                   variable_name = "time_since_fire",
                                   sleep_time = 30,
                                   ... = ndvi_relative_days_since_fire_release)
+),
+
+tar_target(
+  most_recent_fire_dates_to_parquet_release,
+  process_dynamic_data_to_parquet(temp_directory = "data/temp/processed_data/most_recent_burn_dates/",
+                                  input_tag = "processed_most_recent_burn_dates",
+                                  output_tag = "current",
+                                  variable_name = "most_recent_burn_dates",
+                                  sleep_time = 30,
+                                  ... = burn_date_to_last_burned_date_release)
 )
-#,
-
-
-
-
-
-
-#   tar_target(
-#     most_recent_fire_dates_to_parquet,
-#     process_dynamic_data_to_parquet(input_dir = "data/processed_data/most_recent_burn_dates/",
-#                                     output_dir = "data/processed_data/model_data/dynamic_parquet/most_recent_burn_dates/",
-#                                     variable_name = "most_recent_burn_date",
-#                                     ... = burn_date_to_last_burned_date)
-#     ),
-
-#   # Add target here to ensure the temp directory is cleaned out
-#
-#   #Release Data
-#   tar_target(
-#     release_data_to_github,
-#     release_data(data_directory = "data/processed_data/model_data/",
-#                  tag = "current",
-#                  ... = stable_data,
-#                  ... = most_recent_fire_dates_to_parquet,
-#                  ... = fire_dates_to_parquet,
-#                  ... = ndvi_to_parquet)
-# )
 
 )
+
+  # Cleanup
+
+    unlink(file.path("data/temp/"), recursive = TRUE, force = TRUE)
+    rm(list = ls())
+    message(paste("Objects:",ls(),collapse = "\n"))
+
+
+
+
 
 ################################################################################
 ################################################################################
@@ -627,3 +618,21 @@ tar_target(
 #                                     ... = ndvi_relative_days_since_fire)
 #   ),
 
+#   tar_target(
+#     most_recent_fire_dates_to_parquet,
+#     process_dynamic_data_to_parquet(input_dir = "data/processed_data/most_recent_burn_dates/",
+#                                     output_dir = "data/processed_data/model_data/dynamic_parquet/most_recent_burn_dates/",
+#                                     variable_name = "most_recent_burn_date",
+#                                     ... = burn_date_to_last_burned_date)
+#     ),
+
+#   #Release Data
+#   tar_target(
+#     release_data_to_github,
+#     release_data(data_directory = "data/processed_data/model_data/",
+#                  tag = "current",
+#                  ... = stable_data,
+#                  ... = most_recent_fire_dates_to_parquet,
+#                  ... = fire_dates_to_parquet,
+#                  ... = ndvi_to_parquet)
+# )
