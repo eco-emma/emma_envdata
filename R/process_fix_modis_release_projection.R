@@ -20,6 +20,13 @@ process_fix_modis_release_projection <-
       released_files  <- pb_list(repo = "AdamWilsonLab/emma_envdata",
                                  tag = tag)
 
+    #  #Ensure directory is empty if it exists
+
+      if(dir.exists(temp_directory)){
+        unlink(file.path(temp_directory), recursive = TRUE, force = TRUE)
+      }
+
+
     # make a directory if one doesn't exist yet
 
       if(!dir.exists(temp_directory)){
@@ -133,7 +140,8 @@ process_fix_modis_release_projection <-
 
         # delete old raster
 
-          file.remove(paste(temp_directory,rasters[i],sep = ""))
+          unlink(file.path(temp_directory,rasters[i]))
+
 
         # update new name
 
@@ -175,8 +183,7 @@ process_fix_modis_release_projection <-
 
         # Delete the new raster
 
-          file.remove(paste(temp_directory, rasters[i], sep = ""))
-
+          unlink(file.path(temp_directory,rasters[i]))
 
       }else{
 
@@ -199,7 +206,8 @@ process_fix_modis_release_projection <-
 
           Sys.sleep(sleep_time)
 
-          file.remove(paste(temp_directory, rasters[i], sep = ""))
+          unlink(file.path(temp_directory,rasters[i]))
+
 
       }
 
@@ -208,8 +216,7 @@ process_fix_modis_release_projection <-
     # Cleanup and end
 
       # Delete temp files
-        unlink(x = gsub(pattern = "/$", replacement = "", x = temp_directory), #sub used to delete any trailing slashes, which interfere with unlink
-               recursive = TRUE)
+        unlink(x = file.path(temp_directory), recursive = TRUE, force = TRUE)
 
       # Finish up
 
