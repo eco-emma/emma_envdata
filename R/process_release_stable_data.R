@@ -79,6 +79,6 @@ process_release_stable_data <- function(temp_directory = "data/temp/processed_da
   # Return filename
 
   message("Finished processing stable model data")
-  return(paste(output_dir,"stable_data.gz.parquet",sep = ""))
+  return(invisible(NULL))
 
 }
