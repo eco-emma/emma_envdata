@@ -378,20 +378,24 @@ tar_target(
                                     variable_name = "ndvi",
                                     sleep_time = 30,
                                     ... = correct_ndvi_release_proj)
-    )
+    ),
+
+tar_target(
+  fire_dates_to_parquet_release,
+  process_dynamic_data_to_parquet(temp_directory = "data/temp/processed_data/ndvi_relative_time_since_fire/",
+                                  input_tag = "processed_ndvi_relative_days_since_fire",
+                                  output_tag = "current",
+                                  variable_name = "time_since_fire",
+                                  sleep_time = 30,
+                                  ... = ndvi_relative_days_since_fire_release)
+)
 #,
 
 
 
 
 
-#   tar_target(
-#     fire_dates_to_parquet,
-#     process_dynamic_data_to_parquet(input_dir = "data/processed_data/ndvi_relative_time_since_fire/",
-#                                     output_dir = "data/processed_data/model_data/dynamic_parquet/time_since_fire/",
-#                                     variable_name = "time_since_fire",
-#                                     ... = ndvi_relative_days_since_fire)
-#   ),
+
 #   tar_target(
 #     most_recent_fire_dates_to_parquet,
 #     process_dynamic_data_to_parquet(input_dir = "data/processed_data/most_recent_burn_dates/",
@@ -615,4 +619,11 @@ tar_target(
 #                                     variable_name = "ndvi",
 #                                     ... = correct_ndvi_proj)
 #     ),
+#   tar_target(
+#     fire_dates_to_parquet,
+#     process_dynamic_data_to_parquet(input_dir = "data/processed_data/ndvi_relative_time_since_fire/",
+#                                     output_dir = "data/processed_data/model_data/dynamic_parquet/time_since_fire/",
+#                                     variable_name = "time_since_fire",
+#                                     ... = ndvi_relative_days_since_fire)
+#   ),
 
