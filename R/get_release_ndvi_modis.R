@@ -15,6 +15,13 @@ get_release_ndvi_modis <- function(temp_directory = "data/temp/raw_data/ndvi_mod
                                    max_layers = 50,
                                    sleep_time = 1) {
 
+  #  #Ensure directory is empty if it exists
+
+    if(dir.exists(temp_directory)){
+      unlink(file.path(temp_directory), recursive = TRUE, force = TRUE)
+    }
+
+
   # make a directory if one doesn't exist yet
 
     if(!dir.exists(temp_directory)){
@@ -165,33 +172,6 @@ get_release_ndvi_modis <- function(temp_directory = "data/temp/raw_data/ndvi_mod
                                                             recursive = TRUE,
                                                             full.names = TRUE))
 
-    # Convert local filenames to be releases compatible
-
-      local_files$file_name <-
-        sapply(X = local_files$local_filename,
-               FUN = function(x){
-
-                 name_i <- gsub(pattern = temp_directory,
-                                replacement = "",
-                                x = x)
-
-                 name_i <- gsub(pattern = "/",
-                                replacement = "",
-                                x = name_i)
-                 return(name_i)
-
-               })
-
-  # Release local files
-
-  # Get timestamps on local files
-
-    local_files$last_modified <-
-      Reduce(c, lapply(X = local_files$local_filename,
-                       FUN =  function(x) {
-                         file.info(x)$mtime})
-      )
-
   # end things if nothing was downloaded
 
     if(nrow(local_files) == 0){
@@ -199,48 +179,16 @@ get_release_ndvi_modis <- function(temp_directory = "data/temp/raw_data/ndvi_mod
       return(invisible(NULL))
     }
 
-  # Figure out which files DON'T need to be released
-
-    merged_info <- merge(x = released_files,
-                         y = local_files,
-                         all = TRUE)
-
-    merged_info$diff_hrs <- difftime(time2 = merged_info$timestamp,
-                                     time1 = merged_info$last_modified,
-                                     units = "hours")
-
-    merged_info <- merged_info[merged_info$file_name != "",]
-
-
-  # We only want time differences of greater than zero (meaning that the local file is more recent) or NA
-
-    merged_info <- merged_info[which(!merged_info$diff_hrs < 0 | is.na(merged_info$diff_hrs)),]
-
-  # Also toss anything that doesn't need to be uploaded (because doesn't exist locally)
-
-    merged_info <- merged_info[which(!is.na(merged_info$local_filename)),]
-
-
-  # End if there are no new/updated files to release
-
-    if(nrow(merged_info) == 0){
-
-      message("Releases are already up to date.")
-      return(invisible(NULL))
-
-
-    }
 
   # loop through and release everything
 
-    for( i in 1:nrow(merged_info)){
+    for( i in 1:nrow(local_files)){
 
       Sys.sleep(sleep_time) #We need to limit our rate in order to keep Github happy
 
-      pb_upload(file = merged_info$local_filename[i],
+      pb_upload(file = local_files$local_filename[i],
                 repo = "AdamWilsonLab/emma_envdata",
-                tag = tag,
-                name = merged_info$file_name[i])
+                tag = tag)
 
     } # end i loop
 
