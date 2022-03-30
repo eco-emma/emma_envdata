@@ -368,19 +368,23 @@ tar_target(
                                 ... = projected_alos_release,
                                 ... = remnant_distance_release,
                                 ... = projected_soil_gcfr_release)
+    ),
+
+  tar_target(
+    ndvi_to_parquet_release,
+    process_dynamic_data_to_parquet(temp_directory = "data/temp/raw_data/ndvi_modis/",
+                                    input_tag = "raw_ndvi_modis",
+                                    output_tag = "current",
+                                    variable_name = "ndvi",
+                                    sleep_time = 30,
+                                    ... = correct_ndvi_release_proj)
     )
-  # ,
+#,
 
 
 
 
-#   tar_target(
-#     ndvi_to_parquet,
-#     process_dynamic_data_to_parquet(input_dir = "data/raw_data/ndvi_modis/",
-#                                     output_dir = "data/processed_data/model_data/dynamic_parquet/ndvi/",
-#                                     variable_name = "ndvi",
-#                                     ... = correct_ndvi_proj)
-#     ),
+
 #   tar_target(
 #     fire_dates_to_parquet,
 #     process_dynamic_data_to_parquet(input_dir = "data/processed_data/ndvi_relative_time_since_fire/",
@@ -604,4 +608,11 @@ tar_target(
 #                         ... = remnant_distance),
 #     format = "file"
 #   ),
+#   tar_target(
+#     ndvi_to_parquet,
+#     process_dynamic_data_to_parquet(input_dir = "data/raw_data/ndvi_modis/",
+#                                     output_dir = "data/processed_data/model_data/dynamic_parquet/ndvi/",
+#                                     variable_name = "ndvi",
+#                                     ... = correct_ndvi_proj)
+#     ),
 
