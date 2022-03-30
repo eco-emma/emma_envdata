@@ -6,7 +6,7 @@ library(future) #not sure why this is needed, but we get an error in some of the
 
 # Ensure things are clean
   unlink(file.path("data/temp/"), recursive = TRUE, force = TRUE)
-  unlink(file.path("data/raw_data", recursive = TRUE, force = TRUE))
+  unlink(file.path("data/raw_data/", recursive = TRUE, force = TRUE))
   message(paste("Objects:",ls(),collapse = "\n"))
 
 # source all files in R folder
@@ -29,6 +29,14 @@ if(T) {
 
 
 list(
+
+
+  tar_age(
+    list_of_objects,
+        ls(),
+    #age = as.difftime(7, units = "days")
+    age = as.difftime(0, units = "hours")
+  ),
 
 
   #Prep needed files
