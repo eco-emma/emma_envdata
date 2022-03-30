@@ -30,15 +30,6 @@ if(T) {
 
 list(
 
-
-  tar_age(
-    list_of_objects,
-        ls(),
-    #age = as.difftime(7, units = "days")
-    age = as.difftime(0, units = "hours")
-  ),
-
-
   #Prep needed files
 
   tar_target(
@@ -321,14 +312,14 @@ list(
   #                                 ... = clouds_wilson_release)
   # ),
 
-  # tar_target(
-  #   projected_elevation_nasadem_release,
-  #   process_release_elevation_nasadem(input_tag = "raw_static",
-  #                                     output_tag = "processed_static",
-  #                                     temp_directory = "data/temp/raw_data/elevation_nasadem/",
-  #                                     template_release = template_release,
-  #                                     ... = elevation_nasadem_release)
-  # ),
+  tar_target(
+    projected_elevation_nasadem_release,
+    process_release_elevation_nasadem(input_tag = "raw_static",
+                                      output_tag = "processed_static",
+                                      temp_directory = "data/temp/raw_data/elevation_nasadem/",
+                                      template_release = template_release,
+                                      ... = elevation_nasadem_release)
+  ),
 
 tar_target(
   projected_landcover_za_release,
