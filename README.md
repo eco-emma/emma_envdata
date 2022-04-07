@@ -30,8 +30,6 @@ The final output of the workflow is a set of parquet files stored as Github rele
 
 # Static Data
 
-# Dynamic Data
-
 * Elevation: [NASADEM](https://developers.google.com/earth-engine/datasets/catalog/NASA_NASADEM_HGT_001)
 * ALOS [Landforms](https://developers.google.com/earth-engine/datasets/catalog/CSP_ERGo_1_0_Global_ALOS_landforms)
 * ALOS [mTPI](https://developers.google.com/earth-engine/datasets/catalog/CSP_ERGo_1_0_Global_ALOS_mTPI)
@@ -39,6 +37,8 @@ The final output of the workflow is a set of parquet files stored as Github rele
 * ALOS [CHILI](https://developers.google.com/earth-engine/datasets/catalog/CSP_ERGo_1_0_Global_ALOS_CHILI)
 * Climate: [CHELSA v1.2](https://chelsa-climate.org/)
 * Clouds: [EarthEnv (MODCF prefix)](https://www.earthenv.org/cloud)
+
+# Dynamic Data
 
 
 # Data notes
