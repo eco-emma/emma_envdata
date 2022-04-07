@@ -37,6 +37,8 @@ The final output of the workflow is a set of parquet files stored as Github rele
 * ALOS [mTPI](https://developers.google.com/earth-engine/datasets/catalog/CSP_ERGo_1_0_Global_ALOS_mTPI)
 * ALOS [Topographic Diversity](https://developers.google.com/earth-engine/datasets/catalog/CSP_ERGo_1_0_Global_ALOS_topoDiversity)
 * ALOS [CHILI](https://developers.google.com/earth-engine/datasets/catalog/CSP_ERGo_1_0_Global_ALOS_CHILI)
+* Climate: [CHELSA v1.2](https://chelsa-climate.org/)
+* Clouds: [EarthEnv (MODCF prefix)](https://www.earthenv.org/cloud)
 
 
 # Data notes
