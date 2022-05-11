@@ -1,5 +1,6 @@
 library(rgee)
 library(piggyback)
+library(tidyverse)
 
 #' @description This function will download ndvi layers (derived from MODIS 16 day products), skipping any that have been downloaded already.
 #' @author Brian Maitner, but built from code by Qinwen, Adam, and the KNDVI ms authors
@@ -133,10 +134,10 @@ get_release_ndvi_modis <- function(temp_directory = "data/temp/raw_data/ndvi_mod
 
 
   #Adjust gain and offset.  The NDVI layer has a scale factor of 0.0001
-  adjust_gain_and_offset <- function(img){
-    img$add(10000)$divide(100)$round()
+    adjust_gain_and_offset <- function(img){
+      img$add(10000)$divide(100)$round()
 
-  }
+    }
 
 
 
@@ -158,7 +159,9 @@ get_release_ndvi_modis <- function(temp_directory = "data/temp/raw_data/ndvi_mod
                ee_imagecollection_to_local(ic = ndvi_clean_and_new,
                                            region = domain,
                                            dsn = temp_directory,
-                                           formatOptions = c(cloudOptimized = true)),
+                                           formatOptions = c(cloudOptimized = true)
+                                           #,scale = 463.3127
+                                           ),
              error = function(e){message("Captured an error in rgee/earth engine processing of NDVI.")}
     )
 
