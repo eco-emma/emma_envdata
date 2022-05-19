@@ -206,8 +206,9 @@ get_release_fire_modis <- function(temp_directory = "data/temp/raw_data/fire_mod
 
   # End
     message("\nFinished download MODIS fire layers")
-    return(invisible(NULL))
 
+    #return(invisible(NULL))
+    return(Sys.Date())
 
 
 } #end fx
