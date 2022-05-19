@@ -171,31 +171,32 @@ process_release_ndvi_relative_days_since_fire <- function(temp_input_ndvi_date_f
     #Get the next fire date raster that occurs after
       suppressWarnings(fire_index <- min(which(fire_files$end_number >= end_date_numeric_i)))
 
-    #If there isn't a next fire layer, stop processing
-    if(is.infinite(fire_index)) {
-      message("Done processing NDVI dates")
+        #If there isn't a next fire layer, stop processing
+        if(is.infinite(fire_index)) {
+          message("Done processing NDVI dates")
 
-      return(
-        release_assetts %>%
-          filter(tag == input_modis_dates_tag) %>%
-          dplyr::select(file_name) %>%
-          filter(file_name != "") %>%
-          filter(grepl(pattern = ".tif$", x = file_name)) %>%
-          mutate(date_format = gsub(pattern = ".tif",
-                                    replacement = "",
-                                    x = file_name))%>%
-          mutate(date_format = gsub(pattern = "_", replacement = "-", x = date_format)) %>%
-          dplyr::pull(date_format) %>%
-          max()
-      )
+          return(
+            release_assetts %>%
+              filter(tag == input_modis_dates_tag) %>%
+              dplyr::select(file_name) %>%
+              filter(file_name != "") %>%
+              filter(grepl(pattern = ".tif$", x = file_name)) %>%
+              mutate(date_format = gsub(pattern = ".tif",
+                                        replacement = "",
+                                        x = file_name))%>%
+              mutate(date_format = gsub(pattern = "_", replacement = "-", x = date_format)) %>%
+              dplyr::pull(date_format) %>%
+              max()
+          )
 
-    }
+        }
 
     #Make a "time since last fire" layer
 
     #Grab next fire layer(downloading if needed)
 
       if(!file.exists(file.path(temp_input_fire_date_folder, fire_files$file_name[fire_index]))){
+
         robust_pb_download(file = fire_files$file_name[fire_index],
                            dest = temp_input_fire_date_folder,
                            repo = "AdamWilsonLab/emma_envdata",
