@@ -17,8 +17,16 @@ process_release_ndvi_relative_days_since_fire <- function(temp_input_ndvi_date_f
                                                   ...){
 
   #ensure output_folder empty
-  if(dir.exists(temp_fire_output_folder)){
-    unlink(file.path(temp_fire_output_folder),recursive = TRUE,force = TRUE)
+    if(dir.exists(temp_fire_output_folder)){
+      unlink(file.path(temp_fire_output_folder),recursive = TRUE,force = TRUE)
+    }
+
+    if(dir.exists(temp_input_fire_date_folder)){
+      unlink(file.path(temp_input_fire_date_folder),recursive = TRUE,force = TRUE)
+    }
+
+    if(dir.exists(temp_input_ndvi_date_folder)){
+      unlink(file.path(temp_input_ndvi_date_folder),recursive = TRUE,force = TRUE)
     }
 
   #Make folder if needed
@@ -31,72 +39,112 @@ process_release_ndvi_relative_days_since_fire <- function(temp_input_ndvi_date_f
     if(! dir.exists(temp_input_ndvi_date_folder)){ dir.create(temp_input_ndvi_date_folder,
                                                      recursive = TRUE) }
 
+  # check on releases
 
-  #Make sure releases exist
+    release_assetts <- pb_list(repo = "AdamWilsonLab/emma_envdata")
 
-      #Make sure there is a release by attempting to create one.  If it already exists, this will fail
+    #Create releases if needed
 
-      tryCatch(expr =   pb_new_release(repo = "AdamWilsonLab/emma_envdata",
-                                       tag =  input_modis_dates_tag),
-               error = function(e){message("Previous release found")})
+      if(!input_modis_dates_tag %in% release_assetts$tag){
 
-      Sys.sleep(sleep_time) #We need to limit our rate in order to keep Github happy
+        tryCatch(expr =   pb_new_release(repo = "AdamWilsonLab/emma_envdata",
+                                         tag =  input_modis_dates_tag),
+                 error = function(e){message("Previous release found")})
 
-      tryCatch(expr =   pb_new_release(repo = "AdamWilsonLab/emma_envdata",
-                                       tag =  input_fire_dates_tag),
-               error = function(e){message("Previous release found")})
+      }
 
-      Sys.sleep(sleep_time) #We need to limit our rate in order to keep Github happy
+      if(!input_fire_dates_tag %in% release_assetts$tag){
 
-      tryCatch(expr =   pb_new_release(repo = "AdamWilsonLab/emma_envdata",
-                                       tag =  output_tag),
-               error = function(e){message("Previous release found")})
+        tryCatch(expr =   pb_new_release(repo = "AdamWilsonLab/emma_envdata",
+                                         tag =  input_fire_dates_tag),
+                 error = function(e){message("Previous release found")})
 
-      Sys.sleep(sleep_time) #We need to limit our rate in order to keep Github happy
+      }
+
+      if(!output_tag %in% release_assetts$tag){
+
+        tryCatch(expr =   pb_new_release(repo = "AdamWilsonLab/emma_envdata",
+                                         tag =  output_tag),
+                 error = function(e){message("Previous release found")})
+
+      }
+
 
 
   #Get a list of files in the releases
 
-    fire_files <- pb_list(repo = "AdamWilsonLab/emma_envdata",
-                          tag = input_fire_dates_tag) %>%
-                          filter(file_name != "")
+    fire_files <-
+    release_assetts %>%
+      filter(tag == input_fire_dates_tag) %>%
+      filter(file_name != "") %>%
+      filter(grepl(pattern = ".tif$",x = file_name))%>%
+      mutate(date = file_name) %>%
+      mutate(date = gsub(pattern = ".tif",replacement = "",x = .$date)) %>%
+      mutate(date = gsub(pattern = "/",replacement = "",x = .$date)) %>%
+      mutate(date = as_date(date)) %>%
+      mutate(number = as.numeric(date)) %>%
+      mutate(end_date = ceiling_date(x = date,unit = "month") %m-% days(1)) %>%
+      mutate(end_number = as.numeric(end_date)) %>%
+      arrange(number)
 
-    ndvi_files <- pb_list(repo = "AdamWilsonLab/emma_envdata",
-                          tag = input_modis_dates_tag) %>%
-                          filter(file_name != "")%>%
-                          filter(file_name != "log.csv")
 
-  fire_files <-
-  fire_files %>%
-    mutate(date = file_name) %>%
-    mutate(date = gsub(pattern = ".tif",replacement = "",x = .$date)) %>%
-    mutate(date = gsub(pattern = "/",replacement = "",x = .$date)) %>%
-    mutate(date = as_date(date)) %>%
-    mutate(number = as.numeric(date)) %>%
-    mutate(end_date = ceiling_date(x = date,unit = "month") %m-% days(1)) %>%
-    mutate(end_number = as.numeric(end_date)) %>%
-    arrange(number)
-
-  ndvi_files <-
-  ndvi_files %>%
-    mutate(date = file_name) %>%
-    mutate(date = gsub(pattern = ".tif",replacement = "",x = .$date)) %>%
-    mutate(date = gsub(pattern = "/",replacement = "",x = .$date)) %>%
-    mutate(date = as_date(date)) %>%
-    mutate(number = as.numeric(date)) %>%
-    mutate(end_date = ceiling_date(x = date,unit = "month") %m-% days(1)) %>%
-    mutate(end_number = as.numeric(end_date)) %>%
-    arrange(number)
+    ndvi_files <-
+      release_assetts %>%
+      filter(tag == input_modis_dates_tag) %>%
+      filter(file_name != "") %>%
+      filter(grepl(pattern = ".tif$",x = file_name))%>%
+      mutate(date = file_name) %>%
+      mutate(date = gsub(pattern = ".tif",replacement = "",x = .$date)) %>%
+      mutate(date = gsub(pattern = "/",replacement = "",x = .$date)) %>%
+      mutate(date = as_date(date)) %>%
+      mutate(number = as.numeric(date)) %>%
+      mutate(end_date = ceiling_date(x = date,unit = "month") %m-% days(1)) %>%
+      mutate(end_number = as.numeric(end_date)) %>%
+      arrange(number)
 
 
   #Get a list of fire stuff that has been processed, and exclude anything that doesn't need to be done
 
-    processed_files <- pb_list(repo = "AdamWilsonLab/emma_envdata",
-                          tag = output_tag) %>%
-      filter(file_name != "")%>%
-      filter(file_name != "log.csv")
+    processed_files <-
+      release_assetts %>%
+      filter(tag == output_tag) %>%
+      filter(file_name != "") %>%
+      filter(grepl(pattern = ".tif$",x = file_name))%>%
+      mutate(date = file_name) %>%
+      mutate(date = gsub(pattern = ".tif",replacement = "",x = .$date)) %>%
+      mutate(date = gsub(pattern = "/",replacement = "",x = .$date)) %>%
+      mutate(date = as_date(date)) %>%
+      mutate(number = as.numeric(date)) %>%
+      mutate(end_date = ceiling_date(x = date,unit = "month") %m-% days(1)) %>%
+      mutate(end_number = as.numeric(end_date)) %>%
+      arrange(number)
 
     ndvi_files <- ndvi_files[which(!ndvi_files$file_name %in% processed_files$file_name),]
+
+
+  #Quit if there is nothing to process
+    if(nrow(ndvi_files) == 0){
+
+      message("Finished processing fire day-of-year to date")
+
+      return(
+        release_assetts %>%
+          filter(tag == input_modis_dates_tag) %>%
+          dplyr::select(file_name) %>%
+          filter(file_name != "") %>%
+          filter(grepl(pattern = ".tif$", x = file_name)) %>%
+          mutate(date_format = gsub(pattern = ".tif",
+                                    replacement = "",
+                                    x = file_name))%>%
+          mutate(date_format = gsub(pattern = "_", replacement = "-", x = date_format)) %>%
+          dplyr::pull(date_format) %>%
+          max()
+      )
+
+
+    }
+
+
 
   #Iterate through each NDVI layer (that hasn't been processed) and generate a corresponding set of fire dates
 
@@ -126,7 +174,21 @@ process_release_ndvi_relative_days_since_fire <- function(temp_input_ndvi_date_f
     #If there isn't a next fire layer, stop processing
     if(is.infinite(fire_index)) {
       message("Done processing NDVI dates")
-      return(invisible(NULL))
+
+      return(
+        release_assetts %>%
+          filter(tag == input_modis_dates_tag) %>%
+          dplyr::select(file_name) %>%
+          filter(file_name != "") %>%
+          filter(grepl(pattern = ".tif$", x = file_name)) %>%
+          mutate(date_format = gsub(pattern = ".tif",
+                                    replacement = "",
+                                    x = file_name))%>%
+          mutate(date_format = gsub(pattern = "_", replacement = "-", x = date_format)) %>%
+          dplyr::pull(date_format) %>%
+          max()
+      )
+
     }
 
     #Make a "time since last fire" layer
@@ -248,7 +310,20 @@ process_release_ndvi_relative_days_since_fire <- function(temp_input_ndvi_date_f
 
   #End function
   message("Done processing NDVI dates")
-  return(invisible(NULL))
+  return(
+    ndvi_files %>%
+      filter(tag == input_modis_dates_tag) %>%
+      dplyr::select(file_name) %>%
+      filter(file_name != "") %>%
+      filter(grepl(pattern = ".tif$", x = file_name)) %>%
+      mutate(date_format = gsub(pattern = ".tif",
+                                replacement = "",
+                                x = file_name))%>%
+      mutate(date_format = gsub(pattern = "_", replacement = "-", x = date_format)) %>%
+      dplyr::pull(date_format) %>%
+      max()
+  )
+
 
 
 }
