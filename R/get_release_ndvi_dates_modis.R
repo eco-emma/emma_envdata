@@ -154,7 +154,7 @@ get_release_ndvi_dates_modis <- function(temp_directory = "data/temp/raw_data/nd
       if(length(ndvi_integer_dates_new$getInfo()$features) == 0){
 
         message("No new NDVI date layers to download")
-        return(invisible(NULL))
+        return(max(gsub(pattern = "_",replacement = "-",x = released_files$date))) #return the last date that had been done
 
       }
 
@@ -181,16 +181,23 @@ get_release_ndvi_dates_modis <- function(temp_directory = "data/temp/raw_data/nd
       if(nrow(local_files) == 0){
 
         message("Releases are already up to date.")
-        return(invisible(NULL))
+        return(max(gsub(pattern = "_",replacement = "-",x = released_files$date))) #return the last date that had been done
 
 
       }
 
-      # loop through and release everything (if this causes problems, code in a sleep function)
+        # loop through and release everything
 
-        pb_upload(file = local_files$local_filename,
-                  repo = "AdamWilsonLab/emma_envdata",
-                  tag = tag)
+        for( i in 1:nrow(local_files)){
+
+          Sys.sleep(sleep_time) #We need to limit our rate in order to keep Github happy
+
+          pb_upload(file = local_files$local_filename[i],
+                    repo = "AdamWilsonLab/emma_envdata",
+                    tag = tag)
+
+        } # end i loop
+
 
     # Delete temp files
         unlink(x = file.path(temp_directory), #sub used to delete any trailing slashes, which interfere with unlink
@@ -198,8 +205,17 @@ get_release_ndvi_dates_modis <- function(temp_directory = "data/temp/raw_data/nd
 
     # Finish up
       message("Finished Downloading NDVI date layers")
-      return(invisible(NULL))
-      #return(directory)
+
+      local_files %>%
+        filter(grepl(pattern = ".tif$",x = local_filename)) %>%
+        mutate(date_format = basename(local_filename)) %>%
+        mutate(date_format = gsub(pattern = ".tif",replacement = "",x = date_format)) %>%
+        mutate(date_format = gsub(pattern = "_",replacement = "-",x = date_format)) %>%
+        mutate(date_format = lubridate::as_date(date_format))%>%
+        dplyr::select(date_format) -> local_files
+
+      return(as.character(max(local_files$date_format))) # return the date of the latest file that was updated
+
 
 
 
