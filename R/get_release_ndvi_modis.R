@@ -31,21 +31,21 @@ get_release_ndvi_modis <- function(temp_directory = "data/temp/raw_data/ndvi_mod
 
   #Make sure there is a release by attempting to create one.  If it already exists, this will fail
 
-  tryCatch(expr =   pb_new_release(repo = "AdamWilsonLab/emma_envdata",
-                                   tag =  tag),
-           error = function(e){message("Previous release found")})
+    tryCatch(expr =   pb_new_release(repo = "AdamWilsonLab/emma_envdata",
+                                     tag =  tag),
+             error = function(e){message("Previous release found")})
 
   #Initialize earth engine (for targets works better if called here)
-  ee_Initialize()
+    ee_Initialize()
 
   # Load the image collection
-  modis_ndvi <- ee$ImageCollection("MODIS/006/MOD13A1") #500 m
-  # modis_ndvi <- ee$ImageCollection("MODIS/006/MOD13A2") #1 km
+    modis_ndvi <- ee$ImageCollection("MODIS/006/MOD13A1") #500 m
+    # modis_ndvi <- ee$ImageCollection("MODIS/006/MOD13A2") #1 km
 
 
   #Format the domain
-  domain <- sf_as_ee(x = domain)
-  domain <- domain$geometry()
+    domain <- sf_as_ee(x = domain)
+    domain <- domain$geometry()
 
   #MODIS makes it simple to filter out poor quality pixels thanks to a quality control bits band (DetailedQA).
   #The following function helps us to distinct between good data (bit == …00) and marginal data (bit != …00).
@@ -108,8 +108,8 @@ get_release_ndvi_modis <- function(temp_directory = "data/temp/raw_data/ndvi_mod
 
 
   #Filter the data to exclude anything you've already downloaded (or older)
-  ndvi_clean_and_new <- ndvi_clean$filterDate(start = paste(as.Date(newest+1),sep = ""),
-                                              opt_end = paste(format(Sys.time(), "%Y-%m-%d"),sep = "") ) #I THINK I can just pull the most recent date, and then use this to download everything since then
+    ndvi_clean_and_new <- ndvi_clean$filterDate(start = paste(as.Date(newest+1),sep = ""),
+                                                opt_end = paste(format(Sys.time(), "%Y-%m-%d"),sep = "") ) #I THINK I can just pull the most recent date, and then use this to download everything since then
 
 
   # Function to optionally limit the number of layers downloaded at once
@@ -148,7 +148,7 @@ get_release_ndvi_modis <- function(temp_directory = "data/temp/raw_data/ndvi_mod
     if(length(ndvi_clean_and_new$getInfo()$features) == 0 ){
 
       message("Releases are already up to date.")
-      return(invisible(NULL))
+      return(max(gsub(pattern = "_",replacement = "-",x = released_files$date))) #return the last date that had been done
 
     }
 
@@ -179,7 +179,8 @@ get_release_ndvi_modis <- function(temp_directory = "data/temp/raw_data/ndvi_mod
 
     if(nrow(local_files) == 0){
       message("Nothing downloaded")
-      return(invisible(NULL))
+      return(max(gsub(pattern = "_",replacement = "-",x = released_files$date))) #return the last date that had been done
+
     }
 
 
@@ -201,9 +202,18 @@ get_release_ndvi_modis <- function(temp_directory = "data/temp/raw_data/ndvi_mod
            recursive = TRUE)
 
 
-  message("Finished Downloading NDVI layers")
-  return(invisible(NULL))
-  #return(directory)
+  message("\nFinished Downloading NDVI layers")
+
+  local_files %>%
+    filter(grepl(pattern = ".tif$",x = local_filename)) %>%
+    mutate(date_format = basename(local_filename)) %>%
+    mutate(date_format = gsub(pattern = ".tif",replacement = "",x = date_format)) %>%
+    mutate(date_format = gsub(pattern = "_",replacement = "-",x = date_format)) %>%
+    mutate(date_format = lubridate::as_date(date_format))%>%
+    dplyr::select(date_format) -> local_files
+
+  return(as.character(max(local_files$date_format))) # return the date of the latest file that was updated
+
 
 }
 
