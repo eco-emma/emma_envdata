@@ -15,42 +15,69 @@ process_release_fire_doy_to_unix_date <- function( input_tag = "raw_fire_modis",
   #make folder if needed
     if(!dir.exists(temp_directory)){dir.create(temp_directory, recursive = TRUE)}
 
+  # check on releases
+  release_assetts <- pb_list(repo = "AdamWilsonLab/emma_envdata")
 
-  #Make sure there is a release by attempting to create one.  If it already exists, this will fail
-    tryCatch(expr =   pb_new_release(repo = "AdamWilsonLab/emma_envdata",
-                                     tag =  input_tag),
-             error = function(e){message("Previous release found")})
+  #Make sure there is an input release or make one
+    if(!input_tag %in% release_assetts$tag){
 
-  Sys.sleep(sleep_time) #We need to limit our rate in order to keep Github happy
+      tryCatch(expr =   pb_new_release(repo = "AdamWilsonLab/emma_envdata",
+                                       tag =  input_tag),
+               error = function(e){message("Previous release found")})
 
-  #Make sure there is a release by attempting to create one.  If it already exists, this will fail
-    tryCatch(expr =   pb_new_release(repo = "AdamWilsonLab/emma_envdata",
-                                     tag =  output_tag),
-             error = function(e){message("Previous release found")})
+      Sys.sleep(sleep_time) #We need to limit our rate in order to keep Github happy
+
+    }
+
+  #Make sure there is an input release or make one
+    if(!output_tag %in% release_assetts$tag){
+
+      #Make sure there is a release by attempting to create one.  If it already exists, this will fail
+      tryCatch(expr =   pb_new_release(repo = "AdamWilsonLab/emma_envdata",
+                                       tag =  output_tag),
+               error = function(e){message("Previous release found")})
+
+    }
+
+
 
   #get files
 
-    input_files  <- pb_list(repo = "AdamWilsonLab/emma_envdata",
-                            tag = input_tag) %>%
-                    filter(file_name != "") %>%
-                    filter(grepl(pattern = ".tif$",x = file_name))
+    input_files  <-
+    release_assetts %>%
+      filter(tag == input_tag) %>%
+      filter(file_name != "") %>%
+      filter(grepl(pattern = ".tif$",x = file_name))
 
-    Sys.sleep(sleep_time) #We need to limit our rate in order to keep Github happy
 
-    output_files  <- pb_list(repo = "AdamWilsonLab/emma_envdata",
-                            tag = output_tag)%>%
-                      filter(file_name != "")
+    output_files  <-
+      release_assetts %>%
+      filter(tag == output_tag) %>%
+      filter(file_name != "") %>%
+      filter(grepl(pattern = ".tif$",x = file_name))
 
   #prune input files to only ones not in output
-
-
 
     input_files <- input_files[which(!input_files$file_name %in% output_files$file_name),]
 
 
     if(nrow(input_files) == 0) {
       message("Finished processing fire day-of-year to date")
-      return(invisible(NULL))
+
+        return(
+          release_assetts %>%
+            filter(tag == input_tag) %>%
+            dplyr::select(file_name) %>%
+            filter(file_name != "") %>%
+            filter(grepl(pattern = ".tif$", x = file_name)) %>%
+            mutate(date_format = gsub(pattern = ".tif",
+                                      replacement = "",
+                                      x = file_name))%>%
+            mutate(date_format = gsub(pattern = "_", replacement = "-", x = date_format)) %>%
+            dplyr::pull(date_format) %>%
+            max()
+        )
+
     }
 
   #Do the actual processing of the fire day-of-year rasters into UNIX dates
@@ -116,7 +143,18 @@ process_release_fire_doy_to_unix_date <- function( input_tag = "raw_fire_modis",
   #End function
 
     message("Finished processing fire day-of-year to date")
-    return(invisible(NULL))
 
+      return(
+        input_files %>%
+          dplyr::select(file_name) %>%
+          filter(file_name != "") %>%
+          filter(grepl(pattern = ".tif$", x = file_name)) %>%
+          mutate(date_format = gsub(pattern = ".tif",
+                                    replacement = "",
+                                    x = file_name))%>%
+          mutate(date_format = gsub(pattern = "_", replacement = "-", x = date_format)) %>%
+          dplyr::pull(date_format) %>%
+          max()
+      )
 
 }
