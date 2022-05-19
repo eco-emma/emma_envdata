@@ -152,7 +152,7 @@ get_release_fire_modis <- function(temp_directory = "data/temp/raw_data/fire_mod
     if(length(fire_new_and_clean$getInfo()$features) == 0 ){
 
       message("Releases are already up to date.")
-      return(invisible(NULL))
+      return(Sys.time())
 
     }
 
@@ -175,7 +175,7 @@ get_release_fire_modis <- function(temp_directory = "data/temp/raw_data/fire_mod
 
       if(nrow(local_files) == 0){
         message("Nothing downloaded")
-        return(invisible(NULL))
+        return(Sys.time())
       }
 
 
@@ -208,7 +208,7 @@ get_release_fire_modis <- function(temp_directory = "data/temp/raw_data/fire_mod
     message("\nFinished download MODIS fire layers")
 
     #return(invisible(NULL))
-    return(Sys.Date())
+    return(Sys.time())
 
 
 } #end fx
