@@ -208,9 +208,6 @@ get_release_fire_modis <- function(temp_directory = "data/temp/raw_data/fire_mod
   # End
     message("\nFinished download MODIS fire layers")
 
-    #return(invisible(NULL))
-    return(max(local_files$local_filename)) # return the date of the latest file that was updated
-
     local_files %>%
       filter(grepl(pattern = ".tif$",x = local_filename)) %>%
       mutate(date_format = basename(local_filename)) %>%
@@ -219,7 +216,7 @@ get_release_fire_modis <- function(temp_directory = "data/temp/raw_data/fire_mod
       mutate(date_format = lubridate::as_date(date_format))%>%
       dplyr::select(date_format) -> local_files
 
-      return(as.character(max(local_files$date_format)))
+      return(as.character(max(local_files$date_format))) # return the date of the latest file that was updated
 
 
 } #end fx

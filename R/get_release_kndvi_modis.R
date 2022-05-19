@@ -17,6 +17,13 @@ get_release_kndvi_modis <- function(temp_directory = "data/temp/raw_data/kndvi_m
                                     sleep_time = 1) {
 
 
+  #  #Ensure directory is empty if it exists
+
+  if(dir.exists(temp_directory)){
+    unlink(file.path(temp_directory), recursive = TRUE, force = TRUE)
+  }
+
+
   # make a directory if one doesn't exist yet
 
     if(!dir.exists(temp_directory)){
@@ -195,7 +202,7 @@ get_release_kndvi_modis <- function(temp_directory = "data/temp/raw_data/kndvi_m
     if(length(kndvi_clean_and_new$getInfo()$features) == 0 ){
 
       message("Releases are already up to date.")
-      return(invisible(NULL))
+      return(max(gsub(pattern = "_",replacement = "-",x = released_files$date))) #return the last date that had been done
 
     }
 
@@ -225,78 +232,26 @@ get_release_kndvi_modis <- function(temp_directory = "data/temp/raw_data/kndvi_m
 
       if(nrow(local_files) == 0){
         message("Nothing downloaded")
-        return(invisible(NULL))
+        return(max(gsub(pattern = "_",replacement = "-",x = released_files$date))) #return the last date that had been done
       }
 
-    # Convert local filenames to be releases compatible
 
-    local_files$file_name <-
-      sapply(X = local_files$local_filename,
-             FUN = function(x){
-
-               name_i <- gsub(pattern = temp_directory,
-                              replacement = "",
-                              x = x)
-
-               name_i <- gsub(pattern = "/",
-                              replacement = "",
-                              x = name_i)
-               return(name_i)
-
-             })
-
-  # Release local files
-
-    # Get timestamps on local files
-
-      local_files$last_modified <-
-        Reduce(c, lapply(X = local_files$local_filename,
-                         FUN =  function(x) {
-                           file.info(x)$mtime})
-        )
-
-    # Figure out which files DON'T need to be released
-
-      merged_info <- merge(x = released_files,
-                           y = local_files,
-                           all = TRUE)
-
-      merged_info$diff_hrs <- difftime(time2 = merged_info$timestamp,
-                                       time1 = merged_info$last_modified,
-                                       units = "hours")
-
-      merged_info <- merged_info[merged_info$file_name != "",]
+    # Get a lost of the local files
+      local_files <- data.frame(local_filename = list.files(path = temp_directory,
+                                                            recursive = TRUE,
+                                                            full.names = TRUE))
 
 
-    # We only want time differences of greater than zero (meaning that the local file is more recent) or NA
 
-      merged_info <- merged_info[which(!merged_info$diff_hrs < 0 | is.na(merged_info$diff_hrs)),]
+      # loop through and release everything
 
-    # Also toss anything that doesn't need to be uploaded (because doesn't exist locally)
-
-      merged_info <- merged_info[which(!is.na(merged_info$local_filename)),]
-
-
-    # End if there are no new/updated files to release
-
-      if(nrow(merged_info) == 0){
-
-        message("Releases are already up to date.")
-        return(invisible(NULL))
-
-
-      }
-
-    # loop through and release everything
-
-      for( i in 1:nrow(merged_info)){
+      for( i in 1:nrow(local_files)){
 
         Sys.sleep(sleep_time) #We need to limit our rate in order to keep Github happy
 
-        pb_upload(file = merged_info$local_filename[i],
+        pb_upload(file = local_files$local_filename[i],
                   repo = "AdamWilsonLab/emma_envdata",
-                  tag = tag,
-                  name = merged_info$file_name[i])
+                  tag = tag)
 
       } # end i loop
 
@@ -308,7 +263,16 @@ get_release_kndvi_modis <- function(temp_directory = "data/temp/raw_data/kndvi_m
   # End
 
     message("Finished Downloading KNDVI layers")
-    return(invisible(NULL))
+
+    local_files %>%
+      filter(grepl(pattern = ".tif$",x = local_filename)) %>%
+      mutate(date_format = basename(local_filename)) %>%
+      mutate(date_format = gsub(pattern = ".tif",replacement = "",x = date_format)) %>%
+      mutate(date_format = gsub(pattern = "_",replacement = "-",x = date_format)) %>%
+      mutate(date_format = lubridate::as_date(date_format))%>%
+      dplyr::select(date_format) -> local_files
+
+    return(as.character(max(local_files$date_format))) # return the date of the latest file that was updated
 
 
 }# End get_kndvi fx
