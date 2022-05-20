@@ -370,7 +370,7 @@ tar_target(
 
   tar_target(
     ndvi_to_parquet_release,
-    process_release__dynamic_data_to_parquet(temp_directory = "data/temp/raw_data/ndvi_modis/",
+    process_release_dynamic_data_to_parquet(temp_directory = "data/temp/raw_data/ndvi_modis/",
                                     input_tag = "raw_ndvi_modis",
                                     output_tag = "current",
                                     variable_name = "ndvi",
@@ -380,7 +380,7 @@ tar_target(
 
 tar_target(
   fire_dates_to_parquet_release,
-  process_release__dynamic_data_to_parquet(temp_directory = "data/temp/processed_data/ndvi_relative_time_since_fire/",
+  process_release_dynamic_data_to_parquet(temp_directory = "data/temp/processed_data/ndvi_relative_time_since_fire/",
                                   input_tag = "processed_ndvi_relative_days_since_fire",
                                   output_tag = "current",
                                   variable_name = "time_since_fire",
