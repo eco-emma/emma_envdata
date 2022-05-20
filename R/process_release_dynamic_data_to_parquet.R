@@ -31,11 +31,14 @@ process_release_dynamic_data_to_parquet <- function(temp_directory = "data/temp/
       dir.create(temp_directory, recursive = TRUE)
     }
 
+  #get release assets
+  release_assetts <- pb_list(repo = "AdamWilsonLab/emma_envdata")
 
   # load files
 
-  raster_list <- pb_list(repo = "AdamWilsonLab/emma_envdata",
-                         tag = input_tag) %>%
+  raster_list <-
+    release_assetts %>%
+    filter(tag == input_tag) %>%
     filter(file_name != "log.csv") %>%
     mutate(parquet_name = lubridate::as_date(x = gsub(pattern = ".tif",replacement = "",x = file_name,)))%>%
     mutate(parquet_name = as.numeric(parquet_name))%>%
@@ -48,8 +51,9 @@ process_release_dynamic_data_to_parquet <- function(temp_directory = "data/temp/
 
   # figure out which files have been processed
 
-  processed_list <- pb_list(repo = "AdamWilsonLab/emma_envdata",
-                         tag = output_tag) %>%
+  processed_list <-
+    release_assetts %>%
+    filter(tag == output_tag)%>%
     filter(grepl(pattern = paste("-",variable_name,"-",sep = ""),
                  x = file_name))
 
@@ -65,7 +69,21 @@ process_release_dynamic_data_to_parquet <- function(temp_directory = "data/temp/
                     variable_name,
                     " files to parquet", sep = ""))
 
-      return(output_tag)
+      return(
+        release_assetts %>%
+          filter(tag == input_tag) %>%
+          dplyr::select(file_name) %>%
+          filter(file_name != "") %>%
+          filter(grepl(pattern = ".tif$", x = file_name)) %>%
+          mutate(date_format = gsub(pattern = ".tif",
+                                    replacement = "",
+                                    x = file_name))%>%
+          mutate(date_format = gsub(pattern = "_", replacement = "-", x = date_format)) %>%
+          dplyr::pull(date_format) %>%
+          max()
+      )
+
+
 
     }
 
@@ -153,6 +171,19 @@ process_release_dynamic_data_to_parquet <- function(temp_directory = "data/temp/
   #End fx
 
     message(paste("Finished converting ",variable_name, " files to parquet",sep = ""))
-    return(output_tag)
+    return(
+      raster_list %>%
+        filter(tag == input_tag) %>%
+        dplyr::select(file_name) %>%
+        filter(file_name != "") %>%
+        filter(grepl(pattern = ".tif$", x = file_name)) %>%
+        mutate(date_format = gsub(pattern = ".tif",
+                                  replacement = "",
+                                  x = file_name))%>%
+        mutate(date_format = gsub(pattern = "_", replacement = "-", x = date_format)) %>%
+        dplyr::pull(date_format) %>%
+        max()
+    )
+
 
 }#end fx
