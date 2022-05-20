@@ -29,11 +29,22 @@ get_release_ndvi_modis <- function(temp_directory = "data/temp/raw_data/ndvi_mod
       dir.create(temp_directory, recursive = TRUE)
     }
 
-  #Make sure there is a release by attempting to create one.  If it already exists, this will fail
 
-    tryCatch(expr =   pb_new_release(repo = "AdamWilsonLab/emma_envdata",
-                                     tag =  tag),
-             error = function(e){message("Previous release found")})
+  #Get release assetts
+
+    release_assetts <- pb_list(repo = "AdamWilsonLab/emma_envdata")
+
+  #Create releases if needed
+
+    if(!tag %in% release_assetts$tag){
+
+      #Make sure there is a release by attempting to create one.  If it already exists, this will fail
+
+        tryCatch(expr =   pb_new_release(repo = "AdamWilsonLab/emma_envdata",
+                                         tag =  tag),
+                 error = function(e){message("Previous release found")})
+
+    }
 
   #Initialize earth engine (for targets works better if called here)
     ee_Initialize()
@@ -80,16 +91,14 @@ get_release_ndvi_modis <- function(temp_directory = "data/temp/raw_data/ndvi_mod
   ndvi_clean <- modis_ndvi$map(mod13A1_clean)
 
   #Get a list of files already released
+    release_tag <- tag
 
-    released_files  <- pb_list(repo = "AdamWilsonLab/emma_envdata",
-                               tag = tag)
-
-    released_files$date <- gsub(pattern = ".tif",
-                                replacement = "",
-                                x = released_files$file_name)
-
-    released_files <-
-      released_files %>%
+    released_files  <-
+    release_assetts %>%
+      filter(tag == release_tag) %>%
+      mutate(date = gsub(pattern = ".tif",
+                         replacement = "",
+                         x = file_name)) %>%
       filter(file_name != "") %>%
       filter(file_name != "log.csv")
 
@@ -108,6 +117,7 @@ get_release_ndvi_modis <- function(temp_directory = "data/temp/raw_data/ndvi_mod
 
 
   #Filter the data to exclude anything you've already downloaded (or older)
+
     ndvi_clean_and_new <- ndvi_clean$filterDate(start = paste(as.Date(newest+1),sep = ""),
                                                 opt_end = paste(format(Sys.time(), "%Y-%m-%d"),sep = "") ) #I THINK I can just pull the most recent date, and then use this to download everything since then
 
@@ -115,20 +125,20 @@ get_release_ndvi_modis <- function(temp_directory = "data/temp/raw_data/ndvi_mod
   # Function to optionally limit the number of layers downloaded at once
   ## Note that this code is placed before the gain and offset adjustment, which removes the metadata needed in the date filtering
 
-  if(!is.null(max_layers)){
+    if(!is.null(max_layers)){
 
-    info <- ndvi_clean_and_new$getInfo()
-    to_download <- unlist(lapply(X = info$features,FUN = function(x){x$properties$`system:index`}))
-    to_download <- gsub(pattern = "_",replacement = "-",x = to_download)
+      info <- ndvi_clean_and_new$getInfo()
+      to_download <- unlist(lapply(X = info$features,FUN = function(x){x$properties$`system:index`}))
+      to_download <- gsub(pattern = "_",replacement = "-",x = to_download)
 
-    if(length(to_download) > max_layers){
-      ndvi_clean_and_new <- ndvi_clean_and_new$filterDate(start = to_download[1],
-                                                          opt_end = to_download[max_layers+1])
+      if(length(to_download) > max_layers){
+        ndvi_clean_and_new <- ndvi_clean_and_new$filterDate(start = to_download[1],
+                                                            opt_end = to_download[max_layers+1])
 
-    }
+      }
 
 
-  }# end if maxlayers is not null
+    }# end if maxlayers is not null
 
 
 
