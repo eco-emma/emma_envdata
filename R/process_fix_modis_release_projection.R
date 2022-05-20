@@ -33,12 +33,6 @@ process_fix_modis_release_projection <-
         dir.create(temp_directory, recursive = TRUE)
       }
 
-
-    # #get a vector of rasters
-    #   rasters <- list.files(path = directory,
-    #                         pattern = ".tif$",
-    #                         full.names = TRUE)
-
     #set up a  change log if needed
 
       if("log.csv" %in% released_files$file_name){
@@ -93,7 +87,22 @@ process_fix_modis_release_projection <-
       if(length(rasters) == 0){
 
         message(paste("Finished updating ",tag," projections",sep = ""))
-        return(invisible(NULL))
+
+        return(
+          released_files %>%
+            filter(tag == tag) %>%
+            dplyr::select(file_name) %>%
+            filter(file_name != "") %>%
+            filter(grepl(pattern = ".tif$", x = file_name)) %>%
+            mutate(date_format = gsub(pattern = ".tif",
+                                      replacement = "",
+                                      x = file_name))%>%
+            mutate(date_format = gsub(pattern = "_", replacement = "-",
+                                      x = date_format)) %>%
+            dplyr::pull(date_format) %>%
+            max()
+        )
+
 
       }
 
@@ -116,7 +125,7 @@ process_fix_modis_release_projection <-
 
       # load ith raster
 
-        rast_i <- terra::rast(x = paste(temp_directory,rasters[i],sep = ""))
+        rast_i <- terra::rast(x = file.path(temp_directory,rasters[i]))
 
       # get the projection
 
@@ -147,8 +156,8 @@ process_fix_modis_release_projection <-
 
           file.rename(from = gsub(pattern = ".tif$",
                                 replacement =".temp.tif",
-                                x =  paste(temp_directory,rasters[i],sep = "")),
-                    to = paste(temp_directory,rasters[i],sep = ""))
+                                x =  file.path(temp_directory,rasters[i])),
+                    to = file.path(temp_directory, rasters[i]))
 
         #log the change
 
@@ -158,7 +167,7 @@ process_fix_modis_release_projection <-
                    assigned_proj = nasa_proj) %>%
 
           write.table(x = .,
-                      file = paste(temp_directory,"log.csv",sep = ""),
+                      file = file.path(temp_directory,"log.csv"),
                       append = TRUE,
                       col.names = FALSE,
                       row.names=FALSE,
@@ -166,16 +175,16 @@ process_fix_modis_release_projection <-
 
         # push the updated raster
 
-          pb_upload(file = paste(temp_directory,rasters[i],sep = ""),
+          pb_upload(file = file.path(temp_directory,rasters[i]),
                     repo = "AdamWilsonLab/emma_envdata",
                     tag = tag,
-                    name = rasters[i],overwrite = TRUE)
+                    name = rasters[i], overwrite = TRUE)
 
           Sys.sleep(sleep_time)
 
         # push the updated log
 
-          pb_upload(file = paste(temp_directory,"log.csv",sep = ""),
+          pb_upload(file = file.path(temp_directory,"log.csv"),
                     repo = "AdamWilsonLab/emma_envdata",
                     tag = tag)
 
@@ -194,13 +203,13 @@ process_fix_modis_release_projection <-
                    assigned_proj = nasa_proj) %>%
 
           write.table(x = .,
-                      file = paste(temp_directory,"log.csv",sep = ""),
+                      file = file.path(temp_directory,"log.csv"),
                       append = TRUE,
                       col.names = FALSE,
                       row.names=FALSE,
                       sep = ",")
 
-          pb_upload(file = paste(temp_directory,"log.csv",sep = ""),
+          pb_upload(file = file.path(temp_directory,"log.csv"),
                     repo = "AdamWilsonLab/emma_envdata",
                     tag = tag)
 
@@ -221,8 +230,16 @@ process_fix_modis_release_projection <-
       # Finish up
 
         message(paste("Finished updating ",tag," projections",sep = ""))
-        return(invisible(NULL))
-        #return(directory)
+
+        return(
+          rasters |>
+            gsub(pattern = ".tif", replacement = "") |>
+            gsub(pattern = "_",replacement = "-") |>
+            max()
+          )
+
+
+
 
 
 } # end function
