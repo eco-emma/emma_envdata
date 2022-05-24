@@ -70,12 +70,10 @@ get_release_soil_gcfr <- function(temp_directory = "data/temp/raw_data/soil_gcfr
 
   for( i in 1:length(locations)){
 
-
-
     # append soil_ to the name to make things easier downstream
 
-    file_name_i <- basename(locations[i])
-
+    file_name_i <- basename(locations[i]) %>%
+      gsub(pattern = "%",replacement = "pct")
 
     #if its a tif, do projection and masking
 
@@ -120,38 +118,20 @@ get_release_soil_gcfr <- function(temp_directory = "data/temp/raw_data/soil_gcfr
 
     }
 
-
-
-
-
-    # Release
-    pb_upload(repo = "AdamWilsonLab/emma_envdata",
-              file = file.path(temp_directory, file_name_i),
-              tag = tag,
-              overwrite = TRUE)
-
-    Sys.sleep(sleep_time)
-
-
-    rm(raster_i)
-
-    file.remove(file.path(temp_directory, file_name_i))
-
-    rm(file_name_i)
-
-
+    rm(raster_i, file_name_i)
 
   } # i files loop
 
+    # Release
 
   rm(locations)
 
   # # Release
-  #   pb_upload(repo = "AdamWilsonLab/emma_envdata",
-  #             file = list.files(file.path(temp_directory),
-  #                               recursive = TRUE,
-  #                               full.names = TRUE),
-  #             tag = tag)
+    pb_upload(repo = "AdamWilsonLab/emma_envdata",
+              file = list.files(file.path(temp_directory),
+                                recursive = TRUE,
+                                full.names = TRUE),
+              tag = tag)
 
 
   # Delete directory and contents
