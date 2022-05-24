@@ -13,7 +13,8 @@ library(rdryad)
 #' @import rgee
 get_release_soil_gcfr <- function(temp_directory = "data/temp/raw_data/soil_gcfr/",
                                   tag = "raw_static",
-                                  domain) {
+                                  domain,
+                                  sleep_time = 30) {
 
 
   # Ensure directory is empty if it exists
@@ -107,15 +108,24 @@ get_release_soil_gcfr <- function(temp_directory = "data/temp/raw_data/soil_gcfr
     file.remove(files[i])
 
 
+    # Release
+    pb_upload(repo = "AdamWilsonLab/emma_envdata",
+              file = file.path(temp_directory,file_name_i),
+              tag = tag,
+              overwrite = TRUE)
+
+    Sys.sleep(sleep_time)
+
+
   } # i files loop
 
 
-  # Release
-    pb_upload(repo = "AdamWilsonLab/emma_envdata",
-              file = list.files(file.path(temp_directory),
-                                recursive = TRUE,
-                                full.names = TRUE),
-              tag = tag)
+  # # Release
+  #   pb_upload(repo = "AdamWilsonLab/emma_envdata",
+  #             file = list.files(file.path(temp_directory),
+  #                               recursive = TRUE,
+  #                               full.names = TRUE),
+  #             tag = tag)
 
 
   # Delete directory and contents
