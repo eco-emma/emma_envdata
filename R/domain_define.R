@@ -39,6 +39,12 @@ domain_define <- function(vegmap, country){
   # save the files
     st_write(domain,dsn="data/domain.gpkg", append = F, delete_layer = TRUE)# overwrite layer if it exists (caused an error in targets)
 
+  #release the domain
+    piggyback::pb_upload(file = "data/domain.gpkg",
+                         repo = "AdamWilsonLab/emma_envdata",
+                         tag = "raw_static",
+                         overwrite = TRUE)
+
   return(domain)
 
 }
