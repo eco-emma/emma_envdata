@@ -21,7 +21,7 @@ get_release_climate_chelsa <- function(temp_directory = "data/temp/raw_data/clim
   #make a directory if one doesn't exist yet
 
     if(!dir.exists(temp_directory)){
-      dir.create(temp_directory)
+      dir.create(temp_directory,recursive = TRUE)
     }
 
 
