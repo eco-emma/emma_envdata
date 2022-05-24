@@ -63,9 +63,6 @@ get_release_soil_gcfr <- function(temp_directory = "data/temp/raw_data/soil_gcfr
                         full.names = T)
 
 
-
-
-
   # Iteratively crop and mask
 
   for( i in 1:length(files)){
@@ -129,8 +126,7 @@ get_release_soil_gcfr <- function(temp_directory = "data/temp/raw_data/soil_gcfr
   # End function
 
     message("Soil data finished")
-    return(invisible(NULL))
-
+    return(as.character(Sys.Date()))
 
 } # end fx
 
