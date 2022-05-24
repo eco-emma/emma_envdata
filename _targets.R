@@ -60,24 +60,24 @@ list(
 
 # Infrequent updates via releases
 
-  # tar_age(
-  #   alos_release,
-  #   get_release_alos(temp_directory = "data/temp/raw_data/alos/",
-  #                    tag = "raw_static",
-  #                    domain = domain),
-  #
-  #   age = as.difftime(52, units = "weeks")
-  # ),
+  tar_age(
+    alos_release,
+    get_release_alos(temp_directory = "data/temp/raw_data/alos/",
+                     tag = "raw_static",
+                     domain = domain),
 
-  # tar_age(
-  #   climate_chelsa_release,
-  #   get_release_climate_chelsa(temp_directory = "data/temp/raw_data/climate_chelsa/",
-  #                              tag = "raw_static",
-  #                              domain = domain),
-  #
-  #   age = as.difftime(54, units = "weeks")
-  # ),
-  #
+    age = as.difftime(52, units = "weeks")
+  ),
+
+  tar_age(
+    climate_chelsa_release,
+    get_release_climate_chelsa(temp_directory = "data/temp/raw_data/climate_chelsa/",
+                               tag = "raw_static",
+                               domain = domain),
+
+    age = as.difftime(54, units = "weeks")
+  ),
+
   # tar_age(
   #   clouds_wilson_release,
   #   get_release_clouds_wilson(temp_directory = "data/temp/raw_data/clouds_wilson/",
@@ -86,21 +86,21 @@ list(
   #   age = as.difftime(56, units = "weeks")
   # ),
   #
-  # tar_age(
-  #   elevation_nasadem_release,
-  #   get_release_elevation_nasadem(temp_directory = "data/temp/raw_data/elevation_nasadem/",
-  #                                 tag = "raw_static",
-  #                                 domain),
-  #   age = as.difftime(58, units = "weeks")
-  # ),
-  #
-  # tar_age(
-  #   landcover_za_release,
-  #   get_release_landcover_za(temp_directory = "data/temp/raw_data/landcover_za/",
-  #                            tag = "raw_static",
-  #                            domain = domain),
-  #   age = as.difftime(60, units = "weeks")
-  # ),
+  tar_age(
+    elevation_nasadem_release,
+    get_release_elevation_nasadem(temp_directory = "data/temp/raw_data/elevation_nasadem/",
+                                  tag = "raw_static",
+                                  domain),
+    age = as.difftime(58, units = "weeks")
+  ),
+
+  tar_age(
+    landcover_za_release,
+    get_release_landcover_za(temp_directory = "data/temp/raw_data/landcover_za/",
+                             tag = "raw_static",
+                             domain = domain),
+    age = as.difftime(60, units = "weeks")
+  ),
   #
   # tar_age(
   #   precipitation_chelsa_release,
