@@ -60,14 +60,14 @@ list(
 
 # Infrequent updates via releases
 
-  tar_age(
-    alos_release,
-    get_release_alos(temp_directory = "data/temp/raw_data/alos/",
-                     tag = "raw_static",
-                     domain = domain),
-
-    age = as.difftime(52, units = "weeks")
-  ),
+  # tar_age(
+  #   alos_release,
+  #   get_release_alos(temp_directory = "data/temp/raw_data/alos/",
+  #                    tag = "raw_static",
+  #                    domain = domain),
+  #
+  #   age = as.difftime(52, units = "weeks")
+  # ),
 
   # tar_age(
   #   climate_chelsa_release,
@@ -121,87 +121,87 @@ list(
 
 # # Frequent updates via releases
 
-    tar_age(
-      fire_modis_release,
-      get_release_fire_modis(temp_directory = "data/temp/raw_data/fire_modis/",
-                             tag = "raw_fire_modis",
-                             domain = domain,
-                             max_layers = 25,
-                             sleep_time = 5),
-      #age = as.difftime(7, units = "days")
-      age = as.difftime(0, units = "hours")
-    ),
-
-    tar_age(
-    kndvi_modis_release,
-    get_release_kndvi_modis(temp_directory = "data/temp/raw_data/kndvi_modis/",
-                           tag = "raw_kndvi_modis",
-                           domain = domain,
-                           max_layers = 25,
-                           sleep_time = 5),
-    #age = as.difftime(7, units = "days")
-    age = as.difftime(0, units = "hours")
-  ),
-
-  tar_age(
-    ndvi_modis_release,
-    get_release_ndvi_modis(temp_directory = "data/temp/raw_data/ndvi_modis/",
-                            tag = "raw_ndvi_modis",
-                            domain = domain,
-                            max_layers = 25,
-                           sleep_time = 5),
-    #age = as.difftime(7, units = "days")
-    age = as.difftime(0, units = "hours")
-  ),
-
-  tar_age(
-    ndvi_dates_modis_release,
-    get_release_ndvi_dates_modis(temp_directory = "data/temp/raw_data/ndvi_dates_modis/",
-                           tag = "raw_ndvi_dates_modis",
-                           domain = domain,
-                           max_layers = 25,
-                           sleep_time = 10),
-    #age = as.difftime(7, units = "days")
-    age = as.difftime(0, units = "hours")
-  ),
+  #   tar_age(
+  #     fire_modis_release,
+  #     get_release_fire_modis(temp_directory = "data/temp/raw_data/fire_modis/",
+  #                            tag = "raw_fire_modis",
+  #                            domain = domain,
+  #                            max_layers = 25,
+  #                            sleep_time = 5),
+  #     #age = as.difftime(7, units = "days")
+  #     age = as.difftime(0, units = "hours")
+  #   ),
+  #
+  #   tar_age(
+  #   kndvi_modis_release,
+  #   get_release_kndvi_modis(temp_directory = "data/temp/raw_data/kndvi_modis/",
+  #                          tag = "raw_kndvi_modis",
+  #                          domain = domain,
+  #                          max_layers = 25,
+  #                          sleep_time = 5),
+  #   #age = as.difftime(7, units = "days")
+  #   age = as.difftime(0, units = "hours")
+  # ),
+  #
+  # tar_age(
+  #   ndvi_modis_release,
+  #   get_release_ndvi_modis(temp_directory = "data/temp/raw_data/ndvi_modis/",
+  #                           tag = "raw_ndvi_modis",
+  #                           domain = domain,
+  #                           max_layers = 25,
+  #                          sleep_time = 5),
+  #   #age = as.difftime(7, units = "days")
+  #   age = as.difftime(0, units = "hours")
+  # ),
+  #
+  # tar_age(
+  #   ndvi_dates_modis_release,
+  #   get_release_ndvi_dates_modis(temp_directory = "data/temp/raw_data/ndvi_dates_modis/",
+  #                          tag = "raw_ndvi_dates_modis",
+  #                          domain = domain,
+  #                          max_layers = 25,
+  #                          sleep_time = 10),
+  #   #age = as.difftime(7, units = "days")
+  #   age = as.difftime(0, units = "hours")
+  # ),
 
 # # Fixing projection via releases
 
-  tar_target(
-    correct_fire_release_proj,
-    process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/fire_modis/",
-                                         tag = "raw_fire_modis",
-                                         max_layers = NULL,
-                                         sleep_time = 30,
-                                 ... = fire_modis_release)
-  ),
-
-  tar_target(
-    correct_ndvi_release_proj,
-    process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/ndvi_modis/",
-                                         tag = "raw_ndvi_modis",
-                                         max_layers = NULL,
-                                         sleep_time = 30,
-                                         ... = ndvi_modis_release)
-  ),
-
-  tar_target(
-    correct_ndvi_dates_release_proj,
-    process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/ndvi_dates_modis/",
-                                         tag = "raw_ndvi_dates_modis",
-                                         max_layers = NULL,
-                                         sleep_time = 30,
-                                         ... = ndvi_dates_modis_release)
-  ),
-
-  tar_target(
-    correct_kndvi_release_proj,
-    process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/kndvi_modis/",
-                                         tag = "raw_kndvi_modis",
-                                         max_layers = NULL,
-                                         sleep_time = 30,
-                                         ... = kndvi_modis_release)
-  ),
+  # tar_target(
+  #   correct_fire_release_proj,
+  #   process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/fire_modis/",
+  #                                        tag = "raw_fire_modis",
+  #                                        max_layers = NULL,
+  #                                        sleep_time = 30,
+  #                                ... = fire_modis_release)
+  # ),
+  #
+  # tar_target(
+  #   correct_ndvi_release_proj,
+  #   process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/ndvi_modis/",
+  #                                        tag = "raw_ndvi_modis",
+  #                                        max_layers = NULL,
+  #                                        sleep_time = 30,
+  #                                        ... = ndvi_modis_release)
+  # ),
+  #
+  # tar_target(
+  #   correct_ndvi_dates_release_proj,
+  #   process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/ndvi_dates_modis/",
+  #                                        tag = "raw_ndvi_dates_modis",
+  #                                        max_layers = NULL,
+  #                                        sleep_time = 30,
+  #                                        ... = ndvi_dates_modis_release)
+  # ),
+  #
+  # tar_target(
+  #   correct_kndvi_release_proj,
+  #   process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/kndvi_modis/",
+  #                                        tag = "raw_kndvi_modis",
+  #                                        max_layers = NULL,
+  #                                        sleep_time = 30,
+  #                                        ... = kndvi_modis_release)
+  # ),
 
 
 # # Processing via release
@@ -263,94 +263,94 @@ list(
 
 
 
-  tar_target(
-    remnants_release,
-    domain_remnants_release(domain = domain,
-                            remnants_shp = remnants_shp,
-                            template_release,
-                            temp_directory = "data/temp/remnants",
-                            out_file = "remnants.tif",
-                            out_tag = "processed_static")
-  ),
-
-  tar_target(
-    remnant_distance_release,
-    domain_distance_release(remnants_release = remnants_release,
-                            out_file="remnant_distance.tif",
-                            temp_directory = "data/temp/remnants",
-                            out_tag = "processed_static")
-    ),
-
-  tar_target(
-    projected_alos_release,
-    process_release_alos(input_tag = "raw_static",
-                         output_tag = "processed_static",
-                         temp_directory = "data/temp/raw_data/alos/",
-                         template_release = template_release,
-                         ... = alos_release)
-  ),
-
-
-  tar_target(
-    projected_climate_chelsa_release,
-    process_release_climate_chelsa(input_tag = "raw_static",
-                                   output_tag = "processed_static",
-                                   temp_directory = "data/temp/raw_data/climate_chelsa/",
-                                   template_release = template_release,
-                                   ... = climate_chelsa_release)
-    ),
-
-  tar_target(
-    projected_clouds_wilson_release,
-    process_release_clouds_wilson(input_tag = "raw_static",
-                                  output_tag = "processed_static",
-                                  temp_directory = "data/temp/raw_data/clouds_wilson/",
-                                  template_release = template_release,
-                                  sleep_time = 180,
-                                  ... = clouds_wilson_release)
-  ),
-
-  tar_target(
-    projected_elevation_nasadem_release,
-    process_release_elevation_nasadem(input_tag = "raw_static",
-                                      output_tag = "processed_static",
-                                      temp_directory = "data/temp/raw_data/elevation_nasadem/",
-                                      template_release = template_release,
-                                      ... = elevation_nasadem_release)
-  ),
-
-tar_target(
-  projected_landcover_za_release,
-  process_release_landcover_za(input_tag = "raw_static",
-                               output_tag = "processed_static",
-                               temp_directory = "data/temp/raw_data/landcover_za/",
-                               template_release,
-                               sleep_time = 60,
-                               ... = landcover_za_release)
-)
-  ,
-
-  tar_target(
-    projected_precipitation_chelsa_release,
-    process_release_precipitation_chelsa(input_tag = "raw_static",
-                                         output_tag = "processed_static",
-                                         temp_directory = "data/temp/raw_data/precipitation_chelsa/",
-                                         template_release,
-                                         sleep_time = 30,
-                                         ... = precipitation_chelsa_release)
-
-  ),
-
-tar_target(
-  projected_soil_gcfr_release,
-  process_release_soil_gcfr(input_tag = "raw_static",
-                            output_tag = "processed_static",
-                            temp_directory = "data/temp/raw_data/soil_gcfr/",
-                            template_release,
-                            sleep_time = 30,
-                            ... = soil_gcfr_release)
-
-),
+#   tar_target(
+#     remnants_release,
+#     domain_remnants_release(domain = domain,
+#                             remnants_shp = remnants_shp,
+#                             template_release,
+#                             temp_directory = "data/temp/remnants",
+#                             out_file = "remnants.tif",
+#                             out_tag = "processed_static")
+#   ),
+#
+#   tar_target(
+#     remnant_distance_release,
+#     domain_distance_release(remnants_release = remnants_release,
+#                             out_file="remnant_distance.tif",
+#                             temp_directory = "data/temp/remnants",
+#                             out_tag = "processed_static")
+#     ),
+#
+#   tar_target(
+#     projected_alos_release,
+#     process_release_alos(input_tag = "raw_static",
+#                          output_tag = "processed_static",
+#                          temp_directory = "data/temp/raw_data/alos/",
+#                          template_release = template_release,
+#                          ... = alos_release)
+#   ),
+#
+#
+#   tar_target(
+#     projected_climate_chelsa_release,
+#     process_release_climate_chelsa(input_tag = "raw_static",
+#                                    output_tag = "processed_static",
+#                                    temp_directory = "data/temp/raw_data/climate_chelsa/",
+#                                    template_release = template_release,
+#                                    ... = climate_chelsa_release)
+#     ),
+#
+#   tar_target(
+#     projected_clouds_wilson_release,
+#     process_release_clouds_wilson(input_tag = "raw_static",
+#                                   output_tag = "processed_static",
+#                                   temp_directory = "data/temp/raw_data/clouds_wilson/",
+#                                   template_release = template_release,
+#                                   sleep_time = 180,
+#                                   ... = clouds_wilson_release)
+#   ),
+#
+#   tar_target(
+#     projected_elevation_nasadem_release,
+#     process_release_elevation_nasadem(input_tag = "raw_static",
+#                                       output_tag = "processed_static",
+#                                       temp_directory = "data/temp/raw_data/elevation_nasadem/",
+#                                       template_release = template_release,
+#                                       ... = elevation_nasadem_release)
+#   ),
+#
+# tar_target(
+#   projected_landcover_za_release,
+#   process_release_landcover_za(input_tag = "raw_static",
+#                                output_tag = "processed_static",
+#                                temp_directory = "data/temp/raw_data/landcover_za/",
+#                                template_release,
+#                                sleep_time = 60,
+#                                ... = landcover_za_release)
+# )
+#   ,
+#
+#   tar_target(
+#     projected_precipitation_chelsa_release,
+#     process_release_precipitation_chelsa(input_tag = "raw_static",
+#                                          output_tag = "processed_static",
+#                                          temp_directory = "data/temp/raw_data/precipitation_chelsa/",
+#                                          template_release,
+#                                          sleep_time = 30,
+#                                          ... = precipitation_chelsa_release)
+#
+#   ),
+#
+# tar_target(
+#   projected_soil_gcfr_release,
+#   process_release_soil_gcfr(input_tag = "raw_static",
+#                             output_tag = "processed_static",
+#                             temp_directory = "data/temp/raw_data/soil_gcfr/",
+#                             template_release,
+#                             sleep_time = 30,
+#                             ... = soil_gcfr_release)
+#
+# ),
 
 # # # Prep model data
   tar_target(
