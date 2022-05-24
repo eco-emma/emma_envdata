@@ -103,9 +103,6 @@ get_release_soil_gcfr <- function(temp_directory = "data/temp/raw_data/soil_gcfr
                         overwrite = TRUE)
 
 
-    rm(raster_i, file_name_i)
-
-    file.remove(files[i])
 
 
     # Release
@@ -115,6 +112,12 @@ get_release_soil_gcfr <- function(temp_directory = "data/temp/raw_data/soil_gcfr
               overwrite = TRUE)
 
     Sys.sleep(sleep_time)
+
+
+    rm(raster_i, file_name_i)
+
+    file.remove(files[i])
+
 
 
   } # i files loop
