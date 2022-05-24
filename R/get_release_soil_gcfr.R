@@ -4,6 +4,7 @@
 
 library(rvest)
 library(rdryad)
+library(piggyback)
 
 #' @description This function will download GCFR soil layers, skipping any that have been downloaded already.
 #' @author Brian Maitner
@@ -40,88 +41,110 @@ get_release_soil_gcfr <- function(temp_directory = "data/temp/raw_data/soil_gcfr
   #Download the files from dryad
 
     locations <- dryad_download(dois = "10.5061/dryad.37qc017")
+    locations %>% unlist() -> locations
 
   # Move the files to a permanent location (rdryad doesn't give you an option)
 
-    file.copy(from = locations[[1]],
-              to = temp_directory,
-              overwrite = TRUE)
+    # file.copy(from = locations[[1]],
+    #           to = temp_directory,
+    #           overwrite = TRUE)
 
   # Delete the old copies from the temporary location
-
-    unlink(dirname(dirname(locations[[1]])),recursive = TRUE,force = TRUE)
+#
+#     unlink(dirname(dirname(locations[[1]])),recursive = TRUE,force = TRUE)
 
   # Clean up
 
-    rm(locations)
+    # rm(locations)
 
   #Crop and mask
 
   # Get file names
 
-    files <- list.files(path = temp_directory,
-                        pattern = ".tif",
-                        full.names = T)
+    # files <- list.files(path = temp_directory,
+    #                     pattern = ".tif",
+    #                     full.names = T)
 
 
   # Iteratively crop and mask
 
-  for( i in 1:length(files)){
+  for( i in 1:length(locations)){
 
-    raster_i <- raster::raster(x = files[i])
+
 
     # append soil_ to the name to make things easier downstream
 
-    file_name_i <- basename(files[i])
-    file_name_i <- paste("soil_",file_name_i,sep = "")
+    file_name_i <- basename(locations[i])
 
 
-    # Reproject domain if not done already
-    if(i == 1){
+    #if its a tif, do projection and masking
 
-      #Reproject domain to match raster
-      domain <- sf::st_transform(x = domain,
-                                 crs = raster::crs(raster_i))
+    if(!grepl(pattern = ".csv$",x = locations[i])){
+
+      file_name_i <- paste("soil_",file_name_i,sep = "")
+
+      raster_i <- raster::raster(x = locations[i])
+
+      # Reproject domain if not done already
+      if(i == 1){
+
+        #Reproject domain to match raster
+        domain <- sf::st_transform(x = domain,
+                                   crs = raster::crs(raster_i))
 
 
-      ext <- raster::extent(domain)
+        ext <- raster::extent(domain)
+
+      }
+
+      #Crop to extent
+      raster_i <- raster::crop(x = raster_i,
+                               y = ext)
+
+      # do a mask
+
+      raster_i <- terra::mask(x = raster_i,
+                              mask = domain)
+
+      # Save the cropped/masked raster
+      raster::writeRaster(x = raster_i,
+                          filename = file.path(temp_directory,file_name_i),
+                          overwrite = TRUE)
+
+
+    }else{
+
+      file.copy(from = locations[i],
+                to = file.path(temp_directory, file_name_i),
+                overwrite = TRUE)
 
     }
 
-    #Crop to extent
-    raster_i <- raster::crop(x = raster_i,
-                             y = ext)
-
-    # do a mask
-
-    raster_i <- terra::mask(x = raster_i,
-                            mask = domain)
-
-    # Save the cropped/masked raster
-    raster::writeRaster(x = raster_i,
-                        filename = file.path(temp_directory,file_name_i),
-                        overwrite = TRUE)
 
 
 
 
     # Release
     pb_upload(repo = "AdamWilsonLab/emma_envdata",
-              file = file.path(temp_directory,file_name_i),
+              file = file.path(temp_directory, file_name_i),
               tag = tag,
               overwrite = TRUE)
 
     Sys.sleep(sleep_time)
 
 
-    rm(raster_i, file_name_i)
+    rm(raster_i)
 
-    file.remove(files[i])
+    file.remove(file.path(temp_directory, file_name_i))
+
+    rm(file_name_i)
 
 
 
   } # i files loop
 
+
+  rm(locations)
 
   # # Release
   #   pb_upload(repo = "AdamWilsonLab/emma_envdata",
