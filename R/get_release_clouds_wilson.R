@@ -22,7 +22,7 @@ get_release_clouds_wilson <- function(temp_directory = "data/temp/raw_data/cloud
   #Create directory if needed
 
     if(!dir.exists(temp_directory)){
-      dir.create(temp_directory)
+      dir.create(temp_directory,recursive = TRUE)
     }
 
 
