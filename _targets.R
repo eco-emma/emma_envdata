@@ -82,7 +82,8 @@ list(
     clouds_wilson_release,
     get_release_clouds_wilson(temp_directory = "data/temp/raw_data/clouds_wilson/",
                               tag = "raw_static",
-                              domain),
+                              domain,
+                              sleep_time = 180),
     age = as.difftime(56, units = "weeks")
   ),
 

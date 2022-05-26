@@ -1,5 +1,5 @@
-expiration_date <- "2022-05-01"
-
+expiration_date <- "2022-05-20"
+sanbi_sf <-  st_read("data/manual_download/All_Fires/All_Fires_20_21_gw.shp")
 # add information on date uncertainty
 
 # check why parquet files aren't updating -> update functions to return latest raster date or timestamp
@@ -8,7 +8,6 @@ expiration_date <- "2022-05-01"
 #' @description This function converts rasters containing burn dates (in UNIX date format) to rasters containing the most recent burn date (also in UNIX format)
 #' @param sanbi_sf The SANBI fire polygons, loaded as an sf object. Ignored if NUL
 #' @param expiration_date If supplied as a date, layers processed before this will be re-processed.  Ignored if NULL.  If specifying, should be "yyyy-mm-dd" format.
-#' @param max_fire_duration Numeric.  The maximum number of days a fire could run.  Any fires lasting longer than this are removed.
 
 process_release_burn_date_to_last_burned_date <- function(input_tag = "processed_fire_dates",
                                                           output_tag = "processed_most_recent_burn_dates",
@@ -17,7 +16,6 @@ process_release_burn_date_to_last_burned_date <- function(input_tag = "processed
                                                           sleep_time = 1,
                                                           sanbi_sf = NULL,
                                                           expiration_date = NULL,
-                                                          max_fire_duration = 30,
                                                           ...){
 
   #make folder if needed
@@ -150,25 +148,76 @@ process_release_burn_date_to_last_burned_date <- function(input_tag = "processed
         if(!is.null(sanbi_sf)){
 
 
-          # Manual fixes (hopefully temporary)
+          # Manual fixes (hopefully temporary).  Manual fixes are educated guesses based on the assumption that fires are unlikely to burn > 30 days, only burn forward in time, have not been reported by time travelers, and that MONTH is correct.
           sanbi_sf$DateExting[which(sanbi_sf$DateExting=="7197-07-31")] <- "1979-07-31"
           sanbi_sf$DateExting[which(sanbi_sf$DateExting=="3009-02-04")] <- "2009-02-04"
           sanbi_sf$DateExting[which(sanbi_sf$DateExting=="2103-03-26")] <- "2013-03-26"
           sanbi_sf$DateExting[which(sanbi_sf$DateExting=="2066-03-05")] <- "2006-03-05"
+          sanbi_sf$DateExting[which(sanbi_sf$FIRE_CODE=="OUTE/06/2016/01")] <- "2016-06-03"
+          sanbi_sf$DateExting[which(sanbi_sf$FIRE_CODE=="LMBR/04/2015/03")] <- "2015-04-11"
+          sanbi_sf$DateExting[which(sanbi_sf$FIRE_CODE=="TKOP/12/2019/01")] <- "2019-12-17"
+          sanbi_sf$DateExting[which(sanbi_sf$FIRE_CODE=="KGBG/02/2017/03")] <- "2017-02-15" #unclear when this occurred, so treating it as month and year
+          sanbi_sf$DateStart[which(sanbi_sf$FIRE_CODE=="KGBG/02/2017/03")] <- "2017-02-15" #unclear when this occurred, so treating it as month and year
+          sanbi_sf$DateExting[which(sanbi_sf$FIRE_CODE=="OUTE/10/2014/01")] <- "2014-10-15" #unclear when this occurred, so treating it as month and year
+          sanbi_sf$DateStart[which(sanbi_sf$FIRE_CODE=="OUTE/10/2014/01")] <- "2014-10-15" #unclear when this occurred, so treating it as month and year
+          sanbi_sf$DateStart[which(sanbi_sf$FIRE_CODE=="WATV/01/2016/04")] <- "2016-02-18"
+          sanbi_sf$DateStart[which(sanbi_sf$FIRE_CODE=="JONK/12/2020/01")] <- "2020-12-07"
+          sanbi_sf$DateExting[which(sanbi_sf$FIRE_CODE=="JONK/12/2020/01")] <- "2020-12-07"
+          sanbi_sf$DateExting[which(sanbi_sf$FIRE_CODE=="WATV/01/2016/04")] <- "2016-02-18"
+          sanbi_sf$DateExting[which(sanbi_sf$FIRE_CODE=="LMBR/03/1984/01")] <- "1984-03-05"
+          sanbi_sf$DateExting[which(sanbi_sf$FIRE_CODE=="SWBG/02/1987/01")] <- "1987-03-12"
+          sanbi_sf$DateExting[which(sanbi_sf$FIRE_CODE=="HOTT/01/2016/01")] <- "2016-01-04"
+          sanbi_sf$DateExting[which(sanbi_sf$FIRE_CODE=="WATV/03/2003/02")] <- "2003-03-10"
+          sanbi_sf$DateExting[which(sanbi_sf$FIRE_CODE=="KAMM/03/2002/01")] <- "2002-04-09"
+          sanbi_sf$DateStart[which(sanbi_sf$FIRE_CODE=="WATV/03/2003/01")] <- "2003-03-01"
+          sanbi_sf$DateExting[which(sanbi_sf$FIRE_CODE=="WATV/03/2003/01")] <- "2003-03-06"
+          sanbi_sf$DateExting[which(sanbi_sf$FIRE_CODE=="SWBG/12/1997/01")] <- "1998-01-05"
+          sanbi_sf$DateExting[which(sanbi_sf$FIRE_CODE=="WATV/02/2006/03")] <- "2006-02-23"
+          sanbi_sf$DateStart[which(sanbi_sf$FIRE_CODE=="ANYS/11/2017/02")] <- "2017-11-08"
+          sanbi_sf$DateExting[which(sanbi_sf$FIRE_CODE=="CEDB/02/2013/03")] <- "2013-02-07"
+          sanbi_sf$DateStart[which(sanbi_sf$FIRE_CODE=="ROCH/04/2020/01")] <- "2020-04-15" #assigning start date to middle of the month due to uncertainty
+          sanbi_sf$DateStart[which(sanbi_sf$FIRE_CODE=="CEDB/12/1978/01")] <- "1978-12-25"
+          sanbi_sf$DateExting[which(sanbi_sf$FIRE_CODE=="DEHP/12/2002/01")] <- "2003-01-03"
+          sanbi_sf$DateStart[which(sanbi_sf$FIRE_CODE=="SWBG/04/1989/01")] <- "1989-04-07"
+          sanbi_sf$DateExting[which(sanbi_sf$FIRE_CODE=="SWBG/04/1989/01")] <- "1989-04-09"
+          sanbi_sf$DateExting[which(sanbi_sf$FIRE_CODE=="GOUK/04/2005/01")] <- "2005-04-26"
+          sanbi_sf$DateExting[which(sanbi_sf$FIRE_CODE=="SWBG/03/1999/01")] <- "1999-04-05"
+          sanbi_sf$DateExting[which(sanbi_sf$FIRE_CODE=="SWBG/02/1994/01")] <- "1994-03-04"
+          sanbi_sf$DateStart[which(sanbi_sf$FIRE_CODE=="SWBG/03/1984/01")] <- "1984-03-05"
+          sanbi_sf$DateExting[which(sanbi_sf$FIRE_CODE=="SWBG/03/1984/01")] <- "1984-03-06"
+          sanbi_sf$DateStart[which(sanbi_sf$FIRE_CODE=="SWBG/03/1984/01")] <- "1985-03-10"
+          sanbi_sf$DateExting[which(sanbi_sf$FIRE_CODE=="SWBG/03/1984/01")] <- "1985-03-11"
+          sanbi_sf$DateStart[which(sanbi_sf$FIRE_CODE=="SWBG/03/1985/01")] <- "1985-03-10"
+          sanbi_sf$DateExting[which(sanbi_sf$FIRE_CODE=="SWBG/03/1985/01")] <- "1985-03-11"
+          sanbi_sf$DateStart[which(sanbi_sf$FIRE_CODE=="SWBG/04/1987/01")] <- "1987-04-08"
+          sanbi_sf$DateExting[which(sanbi_sf$FIRE_CODE=="SWBG/04/1987/01")] <- "1987-04-09"
+          sanbi_sf$DateExting[which(sanbi_sf$FIRE_CODE=="DEHP/01/2007/01")] <- "2007-02-03"
+          sanbi_sf$DateStart[which(sanbi_sf$FIRE_CODE=="SWBG/03/1982/01")] <- "1982-03-02"
+          sanbi_sf$DateExting[which(sanbi_sf$FIRE_CODE=="WATV/01/2013/01")] <- "2013-02-01"
+          sanbi_sf$DateStart[which(sanbi_sf$FIRE_CODE=="SWBG/01/1998/01")] <- "1998-01-04"
+          sanbi_sf$DateExting[which(sanbi_sf$FIRE_CODE=="SWBG/01/1998/01")] <- "1998-01-05"
+          sanbi_sf$DateExting[which(sanbi_sf$FIRE_CODE=="SWBG/07/1984/01")] <- "1984-07-03"
+          sanbi_sf$DateStart[which(sanbi_sf$FIRE_CODE=="SWBG/07/1984/01")] <- "1984-07-02"
+          sanbi_sf$DateStart[which(sanbi_sf$FIRE_CODE=="GOUK/06/1996/01")] <- "1996-06-07"
+          sanbi_sf$DateExting[which(sanbi_sf$FIRE_CODE=="GOUK/06/1996/01")] <- "1996-06-07"
+          sanbi_sf$DateStart[which(sanbi_sf$FIRE_CODE=="SWBG/02/2006/02")] <- "2006-02-07"
+          sanbi_sf$DateExting[which(sanbi_sf$FIRE_CODE=="SWBG/02/2006/02")] <- "2006-02-07"
+          sanbi_sf$DateStart[which(sanbi_sf$FIRE_CODE=="GOUK/06/1996/01")] <- "1996-06-07"
+          sanbi_sf$DateExting[which(sanbi_sf$FIRE_CODE=="GOUK/06/1996/01")] <- "1996-06-07"
+          sanbi_sf$DateStart[which(sanbi_sf$FIRE_CODE=="OUTE/06/1941/01")] <- "1941-06-09"
+          sanbi_sf$DateStart[which(sanbi_sf$FIRE_CODE=="OUTE/06/1943/01")] <- "1943-06-05"
 
+          #Toss any start dates noted as "fake"
+          sanbi_sf$DateStart[which(grepl(pattern = "START DATE FAKE",
+                                         x = sanbi_sf$LOCAL_DESC,
+                                         ignore.case = TRUE))] <- NA
 
-          # Toss any fires that are too long or which burn backwards in time
-
-          sanbi_sf %>%
-            mutate(fire_duration = sanbi_sf$DateExting - sanbi_sf$DateStart) %>%
-            filter((fire_duration <= max_fire_duration & fire_duration >= 0)|
-                     is.na(fire_duration)) -> sanbi_sf
 
           # Add a new date column
           sanbi_sf %>%
             mutate( most_recent_burn = case_when( !is.na(DateExting) ~ as.character(DateExting), # If available, take extinguish date
                                                   is.na(DateExting) & !is.na(DateStart) ~ as.character(DateStart),# next, prioritize start date
-                                                  is.na(DateExting) & is.na(DateStart) & MONTH != 0 ~ as.character(paste(YEAR,MONTH, "01", sep = "-")),# next, prioritize start date
+                                                  is.na(DateExting) & is.na(DateStart) & MONTH != 0 ~ as.character(paste(YEAR, MONTH, "15", sep = "-")),# next, prioritize start date. set unknown date to middle of the month
                                                   is.na(DateExting) & is.na(DateStart) & MONTH == 0 ~ as.character(paste(YEAR, "01", "01", sep = "-")) #take month + year
 
             )) %>%
