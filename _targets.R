@@ -300,15 +300,15 @@ list(
                                    ... = climate_chelsa_release)
     ),
 
-#   tar_target(
-#     projected_clouds_wilson_release,
-#     process_release_clouds_wilson(input_tag = "raw_static",
-#                                   output_tag = "processed_static",
-#                                   temp_directory = "data/temp/raw_data/clouds_wilson/",
-#                                   template_release = template_release,
-#                                   sleep_time = 180,
-#                                   ... = clouds_wilson_release)
-#   ),
+  tar_target(
+    projected_clouds_wilson_release,
+    process_release_clouds_wilson(input_tag = "raw_static",
+                                  output_tag = "processed_static",
+                                  temp_directory = "data/temp/raw_data/clouds_wilson/",
+                                  template_release = template_release,
+                                  sleep_time = 180,
+                                  ... = clouds_wilson_release)
+  ),
 
   tar_target(
     projected_elevation_nasadem_release,
