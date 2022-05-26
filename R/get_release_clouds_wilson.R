@@ -14,10 +14,12 @@ library(raster)
 #' @author Brian Maitner
 #' @param directory The directory the cloud layers should be saved to, defaults to "data/raw_data/ndvi_modis/"
 #' @param domain domain (sf polygon) used for masking
+#' @param sleep_time Amount of time to pause between uploads
 #' @note To save space, the function also crops and masks the layers per the stored domain.
 get_release_clouds_wilson <- function(temp_directory = "data/temp/raw_data/clouds_wilson/",
                                       tag = "raw_static",
-                                      domain) {
+                                      domain,
+                                      sleep_time = 180) {
 
   #Create directory if needed
 
@@ -92,6 +94,9 @@ get_release_clouds_wilson <- function(temp_directory = "data/temp/raw_data/cloud
     # Delete file
 
       file.remove(file.path(temp_directory, filename))
+
+    # pause to keep github happy
+      Sys.sleep(sleep_time)
 
 
   } #end of for i loop
