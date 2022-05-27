@@ -248,22 +248,6 @@ list(
                         ... = correct_fire_release_proj)
   ),
 
-
-#
-#
-#   ##
-#
-# #   tar_target(
-# #     model_data,
-# #     get_model_data(remnant_distance),
-# #     format = "file"
-# #   ),
-#
-#
-
-
-
-
   tar_target(
     remnants_release,
     domain_remnants_release(domain = domain,
@@ -354,20 +338,20 @@ tar_target(
 ),
 
 # # # Prep model data
-  # tar_target(
-  #   stable_data_release,
-  #   process_release_stable_data(temp_directory = "data/temp/processed_data/static/",
-  #                               input_tag = "processed_static",
-  #                               output_tag = "current",
-  #                               ... = projected_precipitation_chelsa_release,
-  #                               ... = projected_landcover_za_release,
-  #                               ... = projected_elevation_nasadem_release,
-  #                               ... = projected_clouds_wilson_release,
-  #                               ... = projected_climate_chelsa_release,
-  #                               ... = projected_alos_release,
-  #                               ... = remnant_distance_release,
-  #                               ... = projected_soil_gcfr_release)
-  #   ),
+  tar_target(
+    stable_data_release,
+    process_release_stable_data(temp_directory = "data/temp/processed_data/static/",
+                                input_tag = "processed_static",
+                                output_tag = "current",
+                                ... = projected_precipitation_chelsa_release,
+                                ... = projected_landcover_za_release,
+                                ... = projected_elevation_nasadem_release,
+                                ... = projected_clouds_wilson_release,
+                                ... = projected_climate_chelsa_release,
+                                ... = projected_alos_release,
+                                ... = remnant_distance_release,
+                                ... = projected_soil_gcfr_release)
+    ),
 
   tar_target(
     ndvi_to_parquet_release,
@@ -631,3 +615,15 @@ tar_target(
 #                  ... = fire_dates_to_parquet,
 #                  ... = ndvi_to_parquet)
 # )
+
+#
+#
+#   ##
+#
+# #   tar_target(
+# #     model_data,
+# #     get_model_data(remnant_distance),
+# #     format = "file"
+# #   ),
+#
+#
