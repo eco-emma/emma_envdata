@@ -26,6 +26,13 @@ ee_Initialize(drive = TRUE)
 #If we need to extract values, use exactextractor
 library(exactextractr)
 
+# source all files in R folder
+lapply(list.files("R",pattern="[.]R",full.names = T), source)
+
+
+#For updating github credentials
+
+
 ################################################################################
 
 # Notes:
@@ -84,6 +91,9 @@ webshot::webshot(url = "scratch_code/current_network.html",
 
 ###########################
 
+#usethis::create_github_token()
+#
+  gitcreds::gitcreds_set()
 
 library(arrow)
 # Example code for working with arrow library
@@ -100,4 +110,12 @@ x  %>%
   summarise(mean = mean(value))%>%
   head() %>%
   collect()
+
+gitcreds::gitcreds_set()
+
+
+#######################
+
+#clean up drive (note: should add this code to targets)
+googledrive::drive_trash(file = googledrive::drive_ls("rgee_backup"))
 

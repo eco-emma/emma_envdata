@@ -51,7 +51,8 @@ Github places some constrains on actions, including memory limits and run time l
 
 # Data notes
 
-    * MODIS NDVI values have been transformed to save space.  To restore them to the original values (between -1 and 1), use (x/100)-1
+    * MODIS NDVI values have been transformed to save space.  To restore them to the original values (between -1 and 1), divide by 100 and subtract 1.
+    * Untransformed NDVI = (transformed NDVI / 100) - 1
 
 # Extras
 
