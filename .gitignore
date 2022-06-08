@@ -41,3 +41,4 @@ data/other_data/
 #*/meta
 img/network.html
 img/network*
+_targets/meta/*
