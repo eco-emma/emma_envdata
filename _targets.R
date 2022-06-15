@@ -43,6 +43,12 @@ list(
   ),
 
   tar_target(
+    sanbi_fires_shp,
+    st_read("data/manual_download/All_Fires/All_Fires_20_21_gw.shp")
+  ),
+
+
+  tar_target(
     country,
     national_boundary()
   ),
@@ -223,6 +229,8 @@ list(
                                                   temp_directory_input = "data/temp/processed_data/fire_dates/",
                                                   temp_directory_output = "data/temp/processed_data/most_recent_burn_dates/",
                                                   sleep_time = 30,
+                                                  sanbi_sf = sanbi_fires_shp,
+                                                  expiration_date = "2022-05-20",
                                                   ... = fire_doy_to_unix_date_release)
   ),
 

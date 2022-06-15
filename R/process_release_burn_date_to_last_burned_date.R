@@ -1,5 +1,7 @@
-expiration_date <- "2022-05-20"
-sanbi_sf <-  st_read("data/manual_download/All_Fires/All_Fires_20_21_gw.shp")
+library(sf)
+library(piggyback)
+library(tidyverse)
+library(lubridate)
 # add information on date uncertainty
 
 # check why parquet files aren't updating -> update functions to return latest raster date or timestamp
@@ -14,7 +16,7 @@ process_release_burn_date_to_last_burned_date <- function(input_tag = "processed
                                                           temp_directory_input = "data/temp/processed_data/fire_dates/",
                                                           temp_directory_output = "data/temp/processed_data/most_recent_burn_dates/",
                                                           sleep_time = 1,
-                                                          sanbi_sf = NULL,
+                                                          sanbi_sf = sanbi_fires_shp,
                                                           expiration_date = NULL,
                                                           ...){
 
@@ -218,7 +220,14 @@ process_release_burn_date_to_last_burned_date <- function(input_tag = "processed
             mutate( most_recent_burn = case_when( !is.na(DateExting) ~ as.character(DateExting), # If available, take extinguish date
                                                   is.na(DateExting) & !is.na(DateStart) ~ as.character(DateStart),# next, prioritize start date
                                                   is.na(DateExting) & is.na(DateStart) & MONTH != 0 ~ as.character(paste(YEAR, MONTH, "15", sep = "-")),# next, prioritize start date. set unknown date to middle of the month
-                                                  is.na(DateExting) & is.na(DateStart) & MONTH == 0 ~ as.character(paste(YEAR, "01", "01", sep = "-")) #take month + year
+                                                  is.na(DateExting) & is.na(DateStart) & MONTH == 0  & YEAR < 1996 ~ as.character(paste(YEAR, "01", "01", sep = "-")) #take month + year
+
+                                                  # 1) if DateExting is present, use that, else
+                                                  #   2) if DateStart is present, use that, else
+                                                  #     3) if YEAR and MONTH are present assign the date as the 15th of that month, else
+                                                  #       4) if YEAR < 1996 assign the date as January 1 of that YEAR, else
+                                                  #         5) NULL
+
 
             )) %>%
             mutate(most_recent_burn = as_date(most_recent_burn)) %>%
@@ -268,6 +277,18 @@ process_release_burn_date_to_last_burned_date <- function(input_tag = "processed
 
       }
 
+  #Fix sf projection
+
+    if(!is.null(sanbi_sf)){
+
+      st_transform(x = sanbi_sf,
+                   crs = st_crs(raster_i)) -> sanbi_sf
+
+
+
+    }
+
+
   #Iterate through all rasters, keeping a running tally of most recent burn
   for(i in 1:nrow(input_files)){
 
@@ -278,17 +299,33 @@ process_release_burn_date_to_last_burned_date <- function(input_tag = "processed
                        tag = input_tag,
                        overwrite = TRUE,
                        max_attempts = 10,
-                       sleep_time = 2,
-                       max_fire_duration = 30)
+                       sleep_time = 2)
 
     #Load the raster
     raster_i <- raster(file.path(temp_directory_input,input_files$file_name[i]))
 
-    #Get an equivalent raster using the SANBI data
+      #if SANBI polygon is missing, just use MODIS
 
+        if(is.null(sanbi_sf)){
 
+          max_i <- max(stack(raster_i,previous_raster))
+          max_i[max_i==0] <- NA
 
-    max_i <- max(stack(raster_i,previous_raster))
+        }else{
+
+          #if SANBI sf is present, construct a raster and use all three
+
+            sanbi_sf %>%
+              filter(most_recent_burn < input_files$date[i]) %>%
+              fasterize(raster = raster_i,field = "numeric_most_recent_burn") -> sanbi_raster_i
+
+          sanbi_raster_i[is.na(values(sanbi_raster_i))] <- 0 #safe to use 0 because no fires occured on that day
+
+          max_i <- max(stack(raster_i,previous_raster,sanbi_raster_i))
+          max_i[max_i == 0] <- NA
+
+        }
+
 
     #save output
       raster::writeRaster(x = max_i,
