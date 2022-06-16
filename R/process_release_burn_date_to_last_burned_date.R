@@ -2,6 +2,7 @@ library(sf)
 library(piggyback)
 library(tidyverse)
 library(lubridate)
+library(fasterize)
 # add information on date uncertainty
 
 # check why parquet files aren't updating -> update functions to return latest raster date or timestamp
