@@ -47,7 +47,7 @@ process_release_burn_date_to_last_burned_date <- function(input_tag = "processed
 
 
 
-  #Make sure there is a release by attempting to create one.  If it already exists, this will fail
+  #Make sure there is a release, create if needed
 
     if(!output_tag %in% pb_assests$tag){
 
@@ -282,7 +282,7 @@ process_release_burn_date_to_last_burned_date <- function(input_tag = "processed
     if(!is.null(sanbi_sf)){
 
       st_transform(x = sanbi_sf,
-                   crs = st_crs(raster_i)) -> sanbi_sf
+                   crs = st_crs(previous_raster)) -> sanbi_sf
 
 
 
@@ -319,7 +319,7 @@ process_release_burn_date_to_last_burned_date <- function(input_tag = "processed
               filter(most_recent_burn < input_files$date[i]) %>%
               fasterize(raster = raster_i,field = "numeric_most_recent_burn") -> sanbi_raster_i
 
-          sanbi_raster_i[is.na(values(sanbi_raster_i))] <- 0 #safe to use 0 because no fires occured on that day
+          sanbi_raster_i[is.na(terra::values(sanbi_raster_i))] <- 0 #safe to use 0 because no fires occured on that day
 
           max_i <- max(stack(raster_i,previous_raster,sanbi_raster_i))
           max_i[max_i == 0] <- NA
