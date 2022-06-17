@@ -129,7 +129,9 @@ process_release_burn_date_to_last_burned_date <- function(input_tag = "processed
   #If all input has been processed, skip
 
     if(nrow(input_files) == 0) {
+
       message("Finished processing fire dates")
+
       return(
         pb_assests %>%
           filter(tag == input_tag) %>%
@@ -138,7 +140,7 @@ process_release_burn_date_to_last_burned_date <- function(input_tag = "processed
           filter(grepl(pattern = ".tif$", x = file_name)) %>%
           mutate(date_format = gsub(pattern = ".tif",
                                     replacement = "",
-                                    x = file_name))%>%
+                                    x = file_name)) %>%
           mutate(date_format = gsub(pattern = "_", replacement = "-", x = date_format)) %>%
           dplyr::pull(date_format) %>%
           max()
@@ -300,7 +302,7 @@ process_release_burn_date_to_last_burned_date <- function(input_tag = "processed
                        tag = input_tag,
                        overwrite = TRUE,
                        max_attempts = 10,
-                       sleep_time = 2)
+                       sleep_time = sleep_time)
 
     #Load the raster
     raster_i <- raster(file.path(temp_directory_input,input_files$file_name[i]))
