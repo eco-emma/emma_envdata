@@ -228,7 +228,7 @@ list(
                                                   output_tag = "processed_most_recent_burn_dates",
                                                   temp_directory_input = "data/temp/processed_data/fire_dates/",
                                                   temp_directory_output = "data/temp/processed_data/most_recent_burn_dates/",
-                                                  sleep_time = 60,
+                                                  sleep_time = 90,
                                                   sanbi_sf = sanbi_fires_shp,
                                                   expiration_date = "2022-05-20",
                                                   ... = fire_doy_to_unix_date_release)
