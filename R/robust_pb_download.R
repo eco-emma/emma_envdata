@@ -69,6 +69,17 @@ robust_pb_download <- function(file, dest, repo, tag, overwrite = TRUE, max_atte
 
 
     }
+
+    # If this is a gpkg, check that it loads.  If it throws an error, try again
+
+    if(grepl(pattern = ".gpkg", x = release_files$file_name[i])){
+
+      if(!tryCatch({sf::st_read(file.path(dest, release_files$file_name[i])); TRUE},
+                   error = function(e) FALSE)){ bad_files <- c(bad_files,release_files$file_name[i]) }
+
+    }
+
+
   } #end local file checking
 
 
@@ -168,6 +179,17 @@ robust_pb_download_solo <- function(file, dest, repo, tag, overwrite = TRUE, max
     if(grepl(pattern = ".parquet", x = file)){
 
       if(!tryCatch({arrow::open_dataset(sources = file.path(dest, file)); TRUE}, error = function(e) FALSE)){
+        Sys.sleep(sleep_time)
+        next
+      }
+
+    }
+
+    # If this is a gpkg, check that it loads.  If it throws an error, try again
+
+    if(grepl(pattern = ".gpkg", x = file)){
+
+      if(!tryCatch({sf::st_read(sources = file.path(dest, file)); TRUE}, error = function(e) FALSE)){
         Sys.sleep(sleep_time)
         next
       }
