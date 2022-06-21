@@ -11,9 +11,9 @@ robust_pb_download <- function(file, dest, repo, tag, overwrite = TRUE, max_atte
 
   # make a directory if one doesn't exist yet
 
-  if(!dir.exists(dest)){
-    dir.create(dest, recursive = TRUE)
-  }
+    if(!dir.exists(dest)){
+      dir.create(dest, recursive = TRUE)
+    }
 
 
   # Get a list of remote files
@@ -33,12 +33,14 @@ robust_pb_download <- function(file, dest, repo, tag, overwrite = TRUE, max_atte
 
   # First attempt bulk download
 
-  pb_download(file = file,
-              dest = dest,
-              repo = repo,
-              tag = tag,
-              overwrite = overwrite,
-              ...)
+    pb_download(file = file,
+                dest = dest,
+                repo = repo,
+                tag = tag,
+                overwrite = overwrite,
+                ...)
+
+    Sys.sleep(sleep_time)
 
 
   # validate local files
@@ -174,6 +176,7 @@ robust_pb_download_solo <- function(file, dest, repo, tag, overwrite = TRUE, max
 
     # If the file has gotten this far, it seems good and we can move on
 
+    Sys.sleep(sleep_time)
     return(dest)
 
 
