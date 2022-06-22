@@ -52,29 +52,30 @@ list(
     country,
     national_boundary()
   )
+,
+
+  tar_target(
+    vegmap,
+    get_vegmap(vegmap_shp)
+  ),
+
+  tar_target(
+    domain,
+    domain_define(vegmap = vegmap, country)
+  ),
+
+
+# Infrequent updates via releases
+
+  tar_age(
+    alos_release,
+    get_release_alos(temp_directory = "data/temp/raw_data/alos/",
+                     tag = "raw_static",
+                     domain = domain),
+
+    age = as.difftime(52, units = "weeks")
+  )
 #,
-#
-#   tar_target(
-#     vegmap,
-#     get_vegmap(vegmap_shp)
-#   ),
-#
-#   tar_target(
-#     domain,
-#     domain_define(vegmap = vegmap, country)
-#   ),
-#
-#
-# # Infrequent updates via releases
-#
-#   tar_age(
-#     alos_release,
-#     get_release_alos(temp_directory = "data/temp/raw_data/alos/",
-#                      tag = "raw_static",
-#                      domain = domain),
-#
-#     age = as.difftime(52, units = "weeks")
-#   ),
 #
 #   tar_age(
 #     climate_chelsa_release,
