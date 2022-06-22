@@ -51,7 +51,8 @@ list(
   tar_target(
     country,
     national_boundary()
-  ),
+  )
+#,
 #
 #   tar_target(
 #     vegmap,
