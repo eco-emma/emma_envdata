@@ -323,17 +323,17 @@ tar_target(
                                ... = landcover_za_release)
 )
   ,
-
-  tar_target(
-    projected_precipitation_chelsa_release,
-    process_release_precipitation_chelsa(input_tag = "raw_static",
-                                         output_tag = "processed_static",
-                                         temp_directory = "data/temp/raw_data/precipitation_chelsa/",
-                                         template_release,
-                                         sleep_time = 30,
-                                         ... = precipitation_chelsa_release)
-
-  ),
+#
+#   tar_target(
+#     projected_precipitation_chelsa_release,
+#     process_release_precipitation_chelsa(input_tag = "raw_static",
+#                                          output_tag = "processed_static",
+#                                          temp_directory = "data/temp/raw_data/precipitation_chelsa/",
+#                                          template_release,
+#                                          sleep_time = 30,
+#                                          ... = precipitation_chelsa_release)
+#
+#   ),
 
 tar_target(
   projected_soil_gcfr_release,
