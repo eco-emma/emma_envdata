@@ -341,7 +341,7 @@ tar_target(
                             output_tag = "processed_static",
                             temp_directory = "data/temp/raw_data/soil_gcfr/",
                             template_release,
-                            sleep_time = 30,
+                            sleep_time = 60,
                             ... = soil_gcfr_release)
 
 )
