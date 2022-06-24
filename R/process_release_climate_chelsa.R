@@ -8,6 +8,7 @@ process_release_climate_chelsa <- function(input_tag = "raw_static",
                                            output_tag = "processed_static",
                                            temp_directory = "data/temp/raw_data/climate_chelsa/",
                                            template_release,
+                                           sleep_time = 30,
                                            ...){
 
   # Ensure directory is empty
@@ -30,7 +31,7 @@ process_release_climate_chelsa <- function(input_tag = "raw_static",
                        repo = template_release$repo,
                        tag = template_release$tag,
                        max_attempts = 10,
-                       sleep_time = 5)
+                       sleep_time = sleep_time)
 
     template <- terra::rast(file.path(temp_directory, template_release$file))
 
@@ -46,7 +47,8 @@ process_release_climate_chelsa <- function(input_tag = "raw_static",
                        dest = temp_directory,
                        repo = "AdamWilsonLab/emma_envdata",
                        tag = input_tag,
-                       max_attempts = 10)
+                       max_attempts = 10,
+                       sleep_time = sleep_time)
 
 
 

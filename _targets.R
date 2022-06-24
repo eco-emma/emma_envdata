@@ -284,26 +284,26 @@ list(
                          sleep_time = 60,
                          ... = alos_release)
   ),
-  #
-  #
-  # tar_target(
-  #   projected_climate_chelsa_release,
-  #   process_release_climate_chelsa(input_tag = "raw_static",
-  #                                  output_tag = "processed_static",
-  #                                  temp_directory = "data/temp/raw_data/climate_chelsa/",
-  #                                  template_release = template_release,
-  #                                  ... = climate_chelsa_release)
-  #   ),
 
-  # tar_target(
-  #   projected_clouds_wilson_release,
-  #   process_release_clouds_wilson(input_tag = "raw_static",
-  #                                 output_tag = "processed_static",
-  #                                 temp_directory = "data/temp/raw_data/clouds_wilson/",
-  #                                 template_release = template_release,
-  #                                 sleep_time = 180,
-  #                                 ... = clouds_wilson_release)
-  # ),
+
+  tar_target(
+    projected_climate_chelsa_release,
+    process_release_climate_chelsa(input_tag = "raw_static",
+                                   output_tag = "processed_static",
+                                   temp_directory = "data/temp/raw_data/climate_chelsa/",
+                                   template_release = template_release,
+                                   ... = climate_chelsa_release)
+    ),
+
+  tar_target(
+    projected_clouds_wilson_release,
+    process_release_clouds_wilson(input_tag = "raw_static",
+                                  output_tag = "processed_static",
+                                  temp_directory = "data/temp/raw_data/clouds_wilson/",
+                                  template_release = template_release,
+                                  sleep_time = 180,
+                                  ... = clouds_wilson_release)
+  ),
 
   # tar_target(
   #   projected_elevation_nasadem_release,
