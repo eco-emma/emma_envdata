@@ -363,37 +363,37 @@ list(
                                 ... = remnant_distance_release,
                                 ... = projected_soil_gcfr_release)
     )
-#,
+  ,
 
-#   tar_target(
-#     ndvi_to_parquet_release,
-#     process_release_dynamic_data_to_parquet(temp_directory = "data/temp/raw_data/ndvi_modis/",
-#                                     input_tag = "raw_ndvi_modis",
-#                                     output_tag = "current",
-#                                     variable_name = "ndvi",
-#                                     sleep_time = 30,
-#                                     ... = correct_ndvi_release_proj)
-#     ),
-#
-# tar_target(
-#   fire_dates_to_parquet_release,
-#   process_release_dynamic_data_to_parquet(temp_directory = "data/temp/processed_data/ndvi_relative_time_since_fire/",
-#                                   input_tag = "processed_ndvi_relative_days_since_fire",
-#                                   output_tag = "current",
-#                                   variable_name = "time_since_fire",
-#                                   sleep_time = 30,
-#                                   ... = ndvi_relative_days_since_fire_release)
-# ),
-#
-# tar_target(
-#   most_recent_fire_dates_to_parquet_release,
-#   process_release_dynamic_data_to_parquet(temp_directory = "data/temp/processed_data/most_recent_burn_dates/",
-#                                   input_tag = "processed_most_recent_burn_dates",
-#                                   output_tag = "current",
-#                                   variable_name = "most_recent_burn_dates",
-#                                   sleep_time = 30,
-#                                   ... = burn_date_to_last_burned_date_release)
-# )
+  tar_target(
+    ndvi_to_parquet_release,
+    process_release_dynamic_data_to_parquet(temp_directory = "data/temp/raw_data/ndvi_modis/",
+                                    input_tag = "raw_ndvi_modis",
+                                    output_tag = "current",
+                                    variable_name = "ndvi",
+                                    sleep_time = 30,
+                                    ... = correct_ndvi_release_proj)
+    ),
+
+  tar_target(
+    fire_dates_to_parquet_release,
+    process_release_dynamic_data_to_parquet(temp_directory = "data/temp/processed_data/ndvi_relative_time_since_fire/",
+                                    input_tag = "processed_ndvi_relative_days_since_fire",
+                                    output_tag = "current",
+                                    variable_name = "time_since_fire",
+                                    sleep_time = 30,
+                                    ... = ndvi_relative_days_since_fire_release)
+  ),
+
+  tar_target(
+    most_recent_fire_dates_to_parquet_release,
+    process_release_dynamic_data_to_parquet(temp_directory = "data/temp/processed_data/most_recent_burn_dates/",
+                                    input_tag = "processed_most_recent_burn_dates",
+                                    output_tag = "current",
+                                    variable_name = "most_recent_burn_dates",
+                                    sleep_time = 30,
+                                    ... = burn_date_to_last_burned_date_release)
+  )
 
 )
 
