@@ -249,13 +249,13 @@ list(
                                                   ... = correct_ndvi_dates_release_proj)
     ),
 
-  # tar_target(
-  #   template_release,
-  #   get_release_template_raster(input_tag = "processed_fire_dates",
-  #                       output_tag = "raw_static",
-  #                       temp_directory = "data/temp/template",
-  #                       ... = correct_fire_release_proj)
-  # ),
+  tar_target(
+    template_release,
+    get_release_template_raster(input_tag = "processed_fire_dates",
+                        output_tag = "raw_static",
+                        temp_directory = "data/temp/template",
+                        ... = correct_fire_release_proj)
+  ),
   #
   # tar_target(
   #   remnants_release,
