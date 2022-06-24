@@ -311,6 +311,7 @@ list(
                                       output_tag = "processed_static",
                                       temp_directory = "data/temp/raw_data/elevation_nasadem/",
                                       template_release = template_release,
+                                      sleep_time = 60,
                                       ... = elevation_nasadem_release)
   ),
 
@@ -331,7 +332,7 @@ tar_target(
                                          output_tag = "processed_static",
                                          temp_directory = "data/temp/raw_data/precipitation_chelsa/",
                                          template_release,
-                                         sleep_time = 30,
+                                         sleep_time = 60,
                                          ... = precipitation_chelsa_release)
 
   ),

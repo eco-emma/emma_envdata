@@ -9,6 +9,7 @@ process_release_elevation_nasadem <- function(input_tag = "raw_static",
                                               output_tag = "processed_static",
                                               temp_directory = "data/temp/raw_data/elevation_nasadem/",
                                               template_release,
+                                              sleep_time = 30,
                                               ...){
 
   #  #Ensure directory is empty if it exists
@@ -31,7 +32,7 @@ process_release_elevation_nasadem <- function(input_tag = "raw_static",
                        repo = template_release$repo,
                        tag = template_release$tag,
                        max_attempts = 10,
-                       sleep_time = 10)
+                       sleep_time = sleep_time)
 
     #template <- terra::rast(file.path(temp_directory, template_release$file))
     template <- raster::raster(file.path(temp_directory, template_release$file))
@@ -49,7 +50,7 @@ process_release_elevation_nasadem <- function(input_tag = "raw_static",
                        repo = "AdamWilsonLab/emma_envdata",
                        tag = input_tag,
                        max_attempts = 10,
-                       sleep_time = 10)
+                       sleep_time = sleep_time)
 
 
     # reformat and save each
@@ -94,6 +95,8 @@ process_release_elevation_nasadem <- function(input_tag = "raw_static",
         rm(raster_i)
         file.remove( file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = "")) )
         file.remove( file.path(temp_directory, raster_list$file_name[i]) )
+
+        Sys.sleep(sleep_time)
 
 
     } #i loop
