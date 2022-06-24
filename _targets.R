@@ -249,31 +249,31 @@ list(
                                                   ... = correct_ndvi_dates_release_proj)
     ),
 
-  tar_target(
-    template_release,
-    get_release_template_raster(input_tag = "processed_fire_dates",
-                        output_tag = "raw_static",
-                        temp_directory = "data/temp/template",
-                        ... = correct_fire_release_proj)
-  ),
-
-  tar_target(
-    remnants_release,
-    domain_remnants_release(domain = domain,
-                            remnants_shp = remnants_shp,
-                            template_release,
-                            temp_directory = "data/temp/remnants",
-                            out_file = "remnants.tif",
-                            out_tag = "processed_static")
-  ),
-
-  tar_target(
-    remnant_distance_release,
-    domain_distance_release(remnants_release = remnants_release,
-                            out_file="remnant_distance.tif",
-                            temp_directory = "data/temp/remnants",
-                            out_tag = "processed_static")
-    ),
+  # tar_target(
+  #   template_release,
+  #   get_release_template_raster(input_tag = "processed_fire_dates",
+  #                       output_tag = "raw_static",
+  #                       temp_directory = "data/temp/template",
+  #                       ... = correct_fire_release_proj)
+  # ),
+  #
+  # tar_target(
+  #   remnants_release,
+  #   domain_remnants_release(domain = domain,
+  #                           remnants_shp = remnants_shp,
+  #                           template_release,
+  #                           temp_directory = "data/temp/remnants",
+  #                           out_file = "remnants.tif",
+  #                           out_tag = "processed_static")
+  # ),
+  #
+  # tar_target(
+  #   remnant_distance_release,
+  #   domain_distance_release(remnants_release = remnants_release,
+  #                           out_file="remnant_distance.tif",
+  #                           temp_directory = "data/temp/remnants",
+  #                           out_tag = "processed_static")
+  #   ),
 
   # tar_target(
   #   projected_alos_release,
