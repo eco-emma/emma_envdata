@@ -104,12 +104,14 @@ process_release_precipitation_chelsa <- function(input_tag = "raw_static",
 
     file.remove( file.path(temp_directory, raster_list$file_name[i]) )
     file.remove( file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = "")) )
+    gc()
 
   } #i loop
 
   #Clear out the folder
 
   unlink(file.path(temp_directory), recursive = TRUE, force = TRUE)
+  gc()
 
 
   #End functions

@@ -104,6 +104,7 @@ process_release_elevation_nasadem <- function(input_tag = "raw_static",
   # Clear out the folder
 
     unlink(file.path(temp_directory), recursive = TRUE, force = TRUE)
+    gc()
 
   # End functions
 
