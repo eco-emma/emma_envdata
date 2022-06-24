@@ -305,14 +305,14 @@ list(
                                   ... = clouds_wilson_release)
   ),
 
-  # tar_target(
-  #   projected_elevation_nasadem_release,
-  #   process_release_elevation_nasadem(input_tag = "raw_static",
-  #                                     output_tag = "processed_static",
-  #                                     temp_directory = "data/temp/raw_data/elevation_nasadem/",
-  #                                     template_release = template_release,
-  #                                     ... = elevation_nasadem_release)
-  # ),
+  tar_target(
+    projected_elevation_nasadem_release,
+    process_release_elevation_nasadem(input_tag = "raw_static",
+                                      output_tag = "processed_static",
+                                      temp_directory = "data/temp/raw_data/elevation_nasadem/",
+                                      template_release = template_release,
+                                      ... = elevation_nasadem_release)
+  ),
 
 tar_target(
   projected_landcover_za_release,
@@ -324,17 +324,17 @@ tar_target(
                                ... = landcover_za_release)
 )
   ,
-#
-#   tar_target(
-#     projected_precipitation_chelsa_release,
-#     process_release_precipitation_chelsa(input_tag = "raw_static",
-#                                          output_tag = "processed_static",
-#                                          temp_directory = "data/temp/raw_data/precipitation_chelsa/",
-#                                          template_release,
-#                                          sleep_time = 30,
-#                                          ... = precipitation_chelsa_release)
-#
-#   ),
+
+  tar_target(
+    projected_precipitation_chelsa_release,
+    process_release_precipitation_chelsa(input_tag = "raw_static",
+                                         output_tag = "processed_static",
+                                         temp_directory = "data/temp/raw_data/precipitation_chelsa/",
+                                         template_release,
+                                         sleep_time = 30,
+                                         ... = precipitation_chelsa_release)
+
+  ),
 
 tar_target(
   projected_soil_gcfr_release,
@@ -346,24 +346,25 @@ tar_target(
                             ... = soil_gcfr_release)
 
 )
+,
+
+# # # Prep model data
+  tar_target(
+    stable_data_release,
+    process_release_stable_data(temp_directory = "data/temp/processed_data/static/",
+                                input_tag = "processed_static",
+                                output_tag = "current",
+                                ... = projected_precipitation_chelsa_release,
+                                ... = projected_landcover_za_release,
+                                ... = projected_elevation_nasadem_release,
+                                ... = projected_clouds_wilson_release,
+                                ... = projected_climate_chelsa_release,
+                                ... = projected_alos_release,
+                                ... = remnant_distance_release,
+                                ... = projected_soil_gcfr_release)
+    )
 #,
-#
-# # # # Prep model data
-#   tar_target(
-#     stable_data_release,
-#     process_release_stable_data(temp_directory = "data/temp/processed_data/static/",
-#                                 input_tag = "processed_static",
-#                                 output_tag = "current",
-#                                 ... = projected_precipitation_chelsa_release,
-#                                 ... = projected_landcover_za_release,
-#                                 ... = projected_elevation_nasadem_release,
-#                                 ... = projected_clouds_wilson_release,
-#                                 ... = projected_climate_chelsa_release,
-#                                 ... = projected_alos_release,
-#                                 ... = remnant_distance_release,
-#                                 ... = projected_soil_gcfr_release)
-#     ),
-#
+
 #   tar_target(
 #     ndvi_to_parquet_release,
 #     process_release_dynamic_data_to_parquet(temp_directory = "data/temp/raw_data/ndvi_modis/",
