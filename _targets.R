@@ -118,13 +118,13 @@ list(
     age = as.difftime(62, units = "weeks")
   ),
 
-  # tar_age(
-  #   soil_gcfr_release,
-  #   get_release_soil_gcfr(temp_directory = "data/temp/raw_data/soil_gcfr/",
-  #                         tag = "raw_static",
-  #                         domain),
-  #   age = as.difftime(64, units = "weeks")
-  # ),
+  tar_age(
+    soil_gcfr_release,
+    get_release_soil_gcfr(temp_directory = "data/temp/raw_data/soil_gcfr/",
+                          tag = "raw_static",
+                          domain),
+    age = as.difftime(64, units = "weeks")
+  ),
 
 
 # # # Frequent updates via releases
@@ -275,14 +275,14 @@ list(
                             out_tag = "processed_static")
     ),
 
-  # tar_target(
-  #   projected_alos_release,
-  #   process_release_alos(input_tag = "raw_static",
-  #                        output_tag = "processed_static",
-  #                        temp_directory = "data/temp/raw_data/alos/",
-  #                        template_release = template_release,
-  #                        ... = alos_release)
-  # ),
+  tar_target(
+    projected_alos_release,
+    process_release_alos(input_tag = "raw_static",
+                         output_tag = "processed_static",
+                         temp_directory = "data/temp/raw_data/alos/",
+                         template_release = template_release,
+                         ... = alos_release)
+  ),
   #
   #
   # tar_target(
