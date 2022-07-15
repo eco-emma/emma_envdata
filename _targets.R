@@ -173,6 +173,18 @@ list(
     #age = as.difftime(0, units = "hours")
   ),
 
+  tar_age(
+    ndvi_viirs_release,
+    get_release_ndvi_viirs(temp_directory = "data/temp/raw_data/ndvi_viirs/",
+                           tag = "raw_ndvi_viirs",
+                           domain,
+                           max_layers = 25,
+                           sleep_time = 30),
+    #age = as.difftime(7, units = "days")
+    age = as.difftime(0, units = "hours")
+  ),
+
+
 # # # Fixing projection via releases
 
   tar_target(
