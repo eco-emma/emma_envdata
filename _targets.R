@@ -178,7 +178,7 @@ list(
     get_release_ndvi_viirs(temp_directory = "data/temp/raw_data/ndvi_viirs/",
                            tag = "raw_ndvi_viirs",
                            domain,
-                           max_layers = 25,
+                           max_layers = 10,
                            sleep_time = 30),
     #age = as.difftime(7, units = "days")
     age = as.difftime(0, units = "hours")
