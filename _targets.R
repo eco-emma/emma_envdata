@@ -435,7 +435,17 @@ tar_target(
                                     variable_name = "most_recent_burn_dates",
                                     sleep_time = 30,
                                     ... = burn_date_to_last_burned_date_release)
-  )
+  ),
+
+# periodically clean up google drive folder
+
+tar_age(
+  remove_ee_backup,
+  ee_clean_container(name = "rgee_backup",type = "drive",quiet = FALSE),
+  age = as.difftime(7, units = "days")
+  #age = as.difftime(0, units = "hours")
+)
+
 
 )
 
