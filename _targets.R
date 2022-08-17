@@ -441,7 +441,7 @@ tar_target(
 
 tar_age(
   remove_ee_backup,
-  ee_clean_container(name = "rgee_backup",type = "drive",quiet = FALSE),
+  clean_up(),
   age = as.difftime(7, units = "days")
   #age = as.difftime(0, units = "hours")
 )
