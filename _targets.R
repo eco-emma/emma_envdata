@@ -221,7 +221,7 @@ tar_target(
   process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/ndvi_viirs/",
                                        tag = "raw_ndvi_viirs",
                                        max_layers = NULL,
-                                       sleep_time = 30,
+                                       sleep_time = 45,
                                        ... = ndvi_viirs_release)
 ),
 
@@ -249,7 +249,7 @@ tar_target(
     process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/kndvi_modis/",
                                          tag = "raw_kndvi_modis",
                                          max_layers = NULL,
-                                         sleep_time = 30,
+                                         sleep_time = 45,
                                          ... = kndvi_modis_release)
   ),
 
@@ -273,7 +273,7 @@ tar_target(
                                                   temp_directory_output = "data/temp/processed_data/most_recent_burn_dates/",
                                                   sleep_time = 180,
                                                   sanbi_sf = sanbi_fires_shp,
-                                                  expiration_date = "2022-05-20",
+                                                  expiration_date = "2022-08-17",
                                                   ... = fire_doy_to_unix_date_release)
   ),
 
