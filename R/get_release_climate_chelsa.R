@@ -1,6 +1,5 @@
 #R script to download climate data (CHELSA)
 
-#library(ClimDatDownloadR)
 library(terra)
 
 #' @author Brian Maitner

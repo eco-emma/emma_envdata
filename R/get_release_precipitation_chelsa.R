@@ -4,7 +4,7 @@
 
 #' @author Brian Maitner
 
-library(ClimDatDownloadR)
+library(terra)
 
 #' @param temp_directory Where to save the files, defaults to "data/raw_data/precipitation_chelsa/"
 #' @param tag Tag for release, default is "raw_static"
@@ -28,55 +28,92 @@ get_release_precipitation_chelsa <- function(temp_directory = "data/temp/raw_dat
 
   #Transform domain to wgs84 to get the coordinates
 
-    domain_extent <- sf::sf_project(from = crs(domain)@projargs,
-                                    to =   crs("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")@projargs,
-                                    pts = t(as.matrix(extent(domain))))
+    # domain_extent <- sf::sf_project(from = crs(domain)@projargs,
+    #                                 to =   crs("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")@projargs,
+    #                                 pts = t(as.matrix(extent(domain))))
 
-  # Download the data
-  # Note that it would be useful to clip these to a polygon to save space
-  # It would also be useful if only the relevant data could be downloaded (rather than downloading and THEN pruning)
 
-    ClimDatDownloadR::Chelsa.Clim.download(save.location = temp_directory,
-                                           parameter = "prec",
-                                           month.var = c(1,7),
-                                           version.var = c("1.2"),
-                                           clip.extent = domain_extent[c(1,2,3,4)],
-                                           clipping = TRUE,
-                                           delete.raw.data = TRUE
+  domain_tf <-
+    domain %>%
+    st_transform(crs("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")@projargs)
+
+
+  #Download the data
+    precip_vec <-
+      c("01","07")
+
+  for(i in precip_vec){
+
+    # download files
+    download.file(url = paste("https://os.zhdk.cloud.switch.ch/envicloud/chelsa/chelsa_V1/climatologies/prec/CHELSA_prec_",i,"_V1.2_land.tif",sep = ""),
+                  destfile = file.path(temp_directory,paste("CHELSA_prec_",i,"_V1.2_land.tif",sep = ""))
     )
 
+    # load
+    rast_i <- terra::rast(file.path(temp_directory,paste("CHELSA_prec_",i,"_V1.2_land.tif",sep = "")))
 
-  #Rename the files
+    # crop
 
+    rast_i <- terra::crop(x = rast_i,
+                          y = ext(domain_tf))
 
-    file.rename(from = list.files(temp_directory,full.names = TRUE,recursive = TRUE,pattern = ".tif"),
-                to = gsub(pattern = "_clipped",replacement = "",x = list.files(temp_directory,full.names = TRUE,recursive = TRUE,pattern = ".tif"))
-    )
+    # mask
+    rast_i <-
+      terra::mask(rast_i,
+                  mask = terra::vect(domain_tf))
 
+    # save raster
+    terra::writeRaster(x = rast_i,
+                       filename = file.path(temp_directory,paste("CHELSA_prec_",i,"_V1.2_land.tif",sep = "")),
+                       overwrite = TRUE)
+
+    # plot
+    # plot(rast_i)
+    # plot(domain_tf,add=TRUE,col=NA)
+
+    rm(rast_i)
+
+  }
+
+  rm(i,precip_vec)
 
 
   #Make .grd version
 
-      sapply(X = list.files(path = paste(temp_directory,"prec/",sep = ""),
-                            full.names = T,recursive = T,pattern = ".tif"),
-             FUN = function(x){
-               writeRaster(x = raster(x),
-                           filename = gsub(pattern = ".tif",
-                                           replacement = ".grd",
-                                           fixed = T,
-                                           x = x),
-                           overwrite = TRUE
-               )
-             }
-      )
 
-  # Release file
 
-      pb_upload(repo = "AdamWilsonLab/emma_envdata",
-                file = list.files(file.path(temp_directory),
-                                  recursive = TRUE,
-                                  full.names = TRUE),
-                tag = tag)
+
+  sapply(X = list.files(path = file.path(temp_directory),
+                        full.names = T,recursive = T,pattern = ".tif"),
+         FUN = function(x){
+           writeRaster(x = raster(x),
+                       filename = gsub(pattern = ".tif",
+                                       replacement = ".grd",
+                                       fixed = T,
+                                       x = x),
+                       overwrite = TRUE
+           )
+         }
+  )
+
+
+
+  # release
+  to_release <-
+    list.files(path = file.path(temp_directory),
+               recursive = TRUE,
+               full.names = TRUE)
+
+
+  to_release <-
+    to_release[grepl(pattern = "CHELSA_prec_",
+                     ignore.case = TRUE,
+                     x = basename(to_release))]
+
+  pb_upload(repo = "AdamWilsonLab/emma_envdata",
+            file = to_release,
+            tag = tag)
+
 
   # Delete directory and contents
 
@@ -86,7 +123,7 @@ get_release_precipitation_chelsa <- function(temp_directory = "data/temp/raw_dat
   #Message that things are done
 
     message("Finished downloading CHELSA precipitation files")
-    return(invisible(NULL))
+    return(Sys.Date())
 
 
 
