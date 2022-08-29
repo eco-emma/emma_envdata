@@ -1,6 +1,7 @@
 #R script to download climate data (CHELSA)
 
-library(ClimDatDownloadR)
+#library(ClimDatDownloadR)
+library(terra)
 
 #' @author Brian Maitner
 #' @description This function will download CHELSA climate data if it isn't present, and (invisibly) return a NULL if it is present
@@ -40,34 +41,59 @@ get_release_climate_chelsa <- function(temp_directory = "data/temp/raw_data/clim
 
   #Transform domain to wgs84 to get the coordinates
 
-    domain_extent <- sf::sf_project(from = crs(domain)@projargs,
-                                    to =   crs("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")@projargs,
-                                    pts = t(as.matrix(extent(domain))))
+  # domain_extent <-
+  #   domain %>%
+  #     st_transform(crs("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")@projargs)%>%
+  #     extent()
+
+  domain_tf <-
+    domain %>%
+      st_transform(crs("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")@projargs)
 
 
   # Download the data
   # Note that it would be useful to clip these to a polygon to save space
   # It would also be useful if only the relevant data could be downloaded (rather than downloading and THEN pruning)
 
+  bio_vec <-
+  c("01","02","03","04","05","06","07","08","09",
+    "10","11","12","13","14","15","16","17","18","19")
 
-      ClimDatDownloadR::Chelsa.Clim.download(save.location = temp_directory,
-                                             parameter = "bio",
-                                             clip.extent = domain_extent[c(1,2,3,4)],
-                                             clipping = TRUE,
-                                             delete.raw.data = TRUE
-      )
+  for(i in bio_vec){
 
-    #fix names
+    # download files
+      download.file(url = paste("https://os.zhdk.cloud.switch.ch/envicloud/chelsa/chelsa_V1/climatologies/bio/CHELSA_bio10_",i,".tif",sep = ""),
+                    destfile = file.path(temp_directory,paste("CHELSA_bio10_",i,"_V1.2.tif",sep = ""))
+                    )
 
-      to_rename <- list.files(path = file.path(temp_directory),
-                              pattern = "_clipped.tif",full.names = TRUE,recursive = TRUE)
+    # load
+      rast_i <- terra::rast(file.path(temp_directory,paste("CHELSA_bio10_",i,"_V1.2.tif",sep = "")))
 
-      for(i in 1:length(to_rename)){
-        file.rename(from = to_rename[i],
-                    to = gsub(pattern = "_clipped.tif",
-                              replacement = ".tif",
-                              x = to_rename[i]))
-        }
+    # crop
+
+      rast_i <- terra::crop(x = rast_i,
+                  y = ext(domain_tf))
+
+    # mask
+      rast_i <-
+      terra::mask(rast_i,
+                  mask = terra::vect(domain_tf))
+
+    # save raster
+      terra::writeRaster(x = rast_i,
+                         filename = file.path(temp_directory,paste("CHELSA_bio10_",i,"_V1.2.tif",sep = "")),
+                         overwrite = TRUE)
+
+    # plot
+      # plot(rast_i)
+      # plot(domain_tf,add=TRUE,col=NA)
+
+    rm(rast_i)
+
+  }
+
+  rm(i,bio_vec)
+
 
     # release
       to_release <-
@@ -91,7 +117,7 @@ get_release_climate_chelsa <- function(temp_directory = "data/temp/raw_data/clim
 
 
   message("CHELSA climate files downloaded")
-  return(tag)
+  return(Sys.Date())
 
 
 } # end fx
