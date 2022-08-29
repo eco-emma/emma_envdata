@@ -7,7 +7,7 @@ library(terra)
 #' @param temp_directory Where to save the files, defaults to "data/raw_data/climate_chelsa/"
 #' @param domain domain (sf polygon) used for masking
 #' @param tag Tag for the release
-#' @import ClimDatDownloadR
+#' @import terra
 get_release_climate_chelsa <- function(temp_directory = "data/temp/raw_data/climate_chelsa/",
                                        tag = "raw_static",
                                        domain){
