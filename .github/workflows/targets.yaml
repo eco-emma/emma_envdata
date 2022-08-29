@@ -69,6 +69,7 @@ jobs:
 #        continue-on-error: true
       - name: Install R Package Dependencies
         run: |-
+          Rscript -e "install.packages('gdalUtilities')"
           Rscript -e "install.packages('https://gitlab.rrz.uni-hamburg.de/helgejentsch/climdatdownloadr/-/archive/master/climdatdownloadr-master.tar.gz', repos = NULL, type = 'source', dependencies = TRUE)"
           Rscript -e "questionr::qscan(list.files(pattern='*.R',recursive=T), load = TRUE, detail = FALSE)" # this scans all scripts and installs any needed packages
           Rscript -e "remotes::install_github('ROpenSci/bibtex')"
