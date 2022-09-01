@@ -56,13 +56,30 @@ get_release_clouds_wilson <- function(temp_directory = "data/temp/raw_data/cloud
     # split out the filename from the location
       filename <- strsplit(x = layer_i,split = "/")[[1]][length(strsplit(x = layer_i,split = "/")[[1]])]
 
-    # download the full file
-      download.file(url = links[i],
-                    destfile = file.path(temp_directory, filename))
+
+      if(.Platform$OS.type == "windows") {
+
+        download.file(url = links[i],
+                      destfile = file.path(temp_directory, filename),
+                      quiet = FALSE,
+                      mode = "wb")
+
+      } else {
+
+
+        # download the full file
+          download.file(url = links[i],
+                        destfile = file.path(temp_directory, filename))
+
+
+
+      }
+
+
+
 
     # Load in the downloaded file
       raster_i <- raster::raster(file.path(temp_directory, filename))
-
 
     # Transform domain
       domain_tf <- sf::st_transform(x = domain,
@@ -76,6 +93,9 @@ get_release_clouds_wilson <- function(temp_directory = "data/temp/raw_data/cloud
     # Mask to domain
       raster_i <- mask(x = raster_i,
                        mask = domain_tf)
+
+    # Plot
+      plot(raster_i,main = filename)
 
     # Save the cropped/masked raster
       writeRaster(x = raster_i,
