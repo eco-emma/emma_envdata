@@ -186,15 +186,15 @@ get_release_kndvi_modis <- function(temp_directory = "data/temp/raw_data/kndvi_m
   }# end if maxlayers is not null
 
 
-
-  #Adjust gain and offset
-    adjust_gain_and_offset <- function(img){
-      img$add(1)$multiply(100)$round()
-
-    }
-
-
-  kndvi_clean_and_new <- kndvi_clean_and_new$map(adjust_gain_and_offset)
+  # This section causes errors in later layer (since early 2022).  Despite months of an open ticket on earth engine, the issue persists so I'll do it with R instead
+  # #Adjust gain and offset
+  #   adjust_gain_and_offset <- function(img){
+  #     img$add(1)$multiply(100)$round()
+  #
+  #   }
+#
+#
+#   kndvi_clean_and_new <- kndvi_clean_and_new$map(adjust_gain_and_offset)
 
 
   # Check if anything to download
@@ -246,6 +246,28 @@ get_release_kndvi_modis <- function(temp_directory = "data/temp/raw_data/kndvi_m
       # loop through and release everything
 
       for( i in 1:nrow(local_files)){
+
+        # adjusting gain and offset
+        # Note: this section could be omitted if earth engine fixes their modis import
+
+        # load the file
+
+        rast_i  <- terra::rast(local_files$local_filename[i])
+
+        # reformat
+          rast_i <- ((rast_i + 1)*100) %>%
+            round()
+
+        # save
+
+        terra::writeRaster(x = rast_i,
+                           filename = local_files$local_filename[i],
+                           overwrite=TRUE)
+
+        #cleanup
+        rm(rast_i)
+
+        # End gain and offset bit
 
         Sys.sleep(sleep_time) #We need to limit our rate in order to keep Github happy
 

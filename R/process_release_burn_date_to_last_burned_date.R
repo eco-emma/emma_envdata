@@ -113,7 +113,10 @@ process_release_burn_date_to_last_burned_date <- function(input_tag = "processed
       mutate(date = gsub(pattern = "/",replacement = "",x = .$date)) %>%
       mutate(date = as_date(date)) %>%
       mutate(number = as.numeric(date)) %>%
+      mutate(end_date = ceiling_date(date, unit = "month")-1)%>%
+      mutate(end_number = as.numeric(end_date))%>%
       arrange(number) -> input_files
+
 
 
   #Ensure output files are properly ordered
@@ -124,6 +127,8 @@ process_release_burn_date_to_last_burned_date <- function(input_tag = "processed
       mutate(date = gsub(pattern = "/",replacement = "",x = .$date)) %>%
       mutate(date = as_date(date)) %>%
       mutate(number = as.numeric(date)) %>%
+      mutate(end_date = ceiling_date(date, unit = "month")-1)%>%
+      mutate(end_number = as.numeric(end_date))%>%
       arrange(number) -> output_files
 
   #If all input has been processed, skip
@@ -277,8 +282,11 @@ process_release_burn_date_to_last_burned_date <- function(input_tag = "processed
         previous_raster <- raster(file.path(temp_directory_output,
                                             output_files$file_name[nrow(output_files)]))
 
-
       }
+
+    previous_raster[which(getValues(previous_raster)==0)] <- NA
+
+
 
   #Fix sf projection
 
@@ -287,9 +295,11 @@ process_release_burn_date_to_last_burned_date <- function(input_tag = "processed
       st_transform(x = sanbi_sf,
                    crs = st_crs(previous_raster)) -> sanbi_sf
 
-
-
     }
+
+  # temp
+    if(st_crs(sanbi_sf)!=st_crs(previous_raster)){stop("projection error")}
+  # temp
 
 
   #Iterate through all rasters, keeping a running tally of most recent burn
@@ -306,12 +316,13 @@ process_release_burn_date_to_last_burned_date <- function(input_tag = "processed
 
     #Load the raster
     raster_i <- raster(file.path(temp_directory_input,input_files$file_name[i]))
+    raster_i[which(getValues(raster_i)==0)]<-NA
 
       #if SANBI polygon is missing, just use MODIS
 
         if(is.null(sanbi_sf)){
-
-          max_i <- max(stack(raster_i,previous_raster))
+          stop("Need to fix code here too")
+          max_i <- max(stack(raster_i, previous_raster))
           max_i[max_i==0] <- NA
 
         }else{
@@ -319,15 +330,24 @@ process_release_burn_date_to_last_burned_date <- function(input_tag = "processed
           #if SANBI sf is present, construct a raster and use all three
 
             sanbi_sf %>%
-              filter(most_recent_burn < input_files$date[i]) %>%
-              fasterize(raster = raster_i,field = "numeric_most_recent_burn") -> sanbi_raster_i
+              filter(most_recent_burn < input_files$end_date[i]) %>%
+              fasterize(raster = raster_i, field = "numeric_most_recent_burn") -> sanbi_raster_i
 
-          sanbi_raster_i[is.na(terra::values(sanbi_raster_i))] <- 0 #safe to use 0 because no fires occured on that day
+          #double check
 
-          max_i <- max(stack(raster_i,previous_raster,sanbi_raster_i))
-          max_i[max_i == 0] <- NA
+            if(max(na.omit(getValues(sanbi_raster_i))) > input_files$end_date[i]){
+              stop("Issue with SANBI burn dates")}
+
+          #for some reason the app function throws odd errors, so i'll try another route
+          # terra::app(x = sds(rast(raster_i),rast(previous_raster),rast(sanbi_raster_i)),
+          #     fun = robust_max)
+
+          max_i <- raster::calc(x = stack(raster_i,previous_raster,sanbi_raster_i),
+                       fun = robust_max)
+
 
         }
+
 
 
     #save output
@@ -381,3 +401,27 @@ process_release_burn_date_to_last_burned_date <- function(input_tag = "processed
 
 
 }#end fx
+
+
+#############################################
+
+robust_max <- function(x){
+
+  if(all(is.na(x))){
+    return(NA)
+  }else{
+      return(base::max(x, na.rm = TRUE))
+    }
+
+}
+
+robust_min <- function(x){
+
+  if(all(is.na(x))){
+    return(NA)
+  }else{
+    return(min(x, na.rm = TRUE))
+  }
+
+}
+

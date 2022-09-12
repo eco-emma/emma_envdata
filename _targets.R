@@ -162,16 +162,16 @@ list(
     #age = as.difftime(0, units = "hours")
   ),
 
-  tar_age(
-    ndvi_viirs_release,
-    get_release_ndvi_viirs(temp_directory = "data/temp/raw_data/ndvi_viirs/",
-                           tag = "raw_ndvi_viirs",
-                           domain,
-                           max_layers = 10,
-                           sleep_time = 30),
-    age = as.difftime(7, units = "days")
-    #age = as.difftime(0, units = "hours")
-  ),
+  # tar_age(
+  #   ndvi_viirs_release,
+  #   get_release_ndvi_viirs(temp_directory = "data/temp/raw_data/ndvi_viirs/",
+  #                          tag = "raw_ndvi_viirs",
+  #                          domain,
+  #                          max_layers = 10,
+  #                          sleep_time = 30),
+  #   age = as.difftime(7, units = "days")
+  #   #age = as.difftime(0, units = "hours")
+  # ),
 
 
   tar_age(
@@ -185,16 +185,16 @@ list(
     #age = as.difftime(0, units = "hours")
   ),
 
-tar_age(
-  ndvi_dates_viirs_release,
-  get_release_ndvi_dates_viirs(temp_directory = "data/temp/raw_data/ndvi_dates_viirs/",
-                               tag = "raw_ndvi_dates_viirs",
-                               domain = domain,
-                               max_layers = 10,
-                               sleep_time = 30),
-  #age = as.difftime(7, units = "days")
-  age = as.difftime(0, units = "hours")
-),
+# tar_age(
+#   ndvi_dates_viirs_release,
+#   get_release_ndvi_dates_viirs(temp_directory = "data/temp/raw_data/ndvi_dates_viirs/",
+#                                tag = "raw_ndvi_dates_viirs",
+#                                domain = domain,
+#                                max_layers = 10,
+#                                sleep_time = 30),
+#   #age = as.difftime(7, units = "days")
+#   age = as.difftime(0, units = "hours")
+# ),
 
 # # # Fixing projection via releases
 
@@ -347,15 +347,15 @@ tar_target(
                                   ... = clouds_wilson_release)
   ),
 
-  tar_target(
-    projected_elevation_nasadem_release,
-    process_release_elevation_nasadem(input_tag = "raw_static",
-                                      output_tag = "processed_static",
-                                      temp_directory = "data/temp/raw_data/elevation_nasadem/",
-                                      template_release = template_release,
-                                      sleep_time = 60,
-                                      ... = elevation_nasadem_release)
-  ),
+  # tar_target(
+  #   projected_elevation_nasadem_release,
+  #   process_release_elevation_nasadem(input_tag = "raw_static",
+  #                                     output_tag = "processed_static",
+  #                                     temp_directory = "data/temp/raw_data/elevation_nasadem/",
+  #                                     template_release = template_release,
+  #                                     sleep_time = 60,
+  #                                     ... = elevation_nasadem_release)
+  # ),
 
   tar_target(
     projected_landcover_za_release,
