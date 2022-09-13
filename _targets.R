@@ -76,32 +76,32 @@ list(
     age = as.difftime(52, units = "weeks")
   ),
 
-  tar_age(
-    climate_chelsa_release,
-    get_release_climate_chelsa(temp_directory = "data/temp/raw_data/climate_chelsa/",
-                               tag = "raw_static",
-                               domain = domain),
-
-    age = as.difftime(54, units = "weeks")
-  ),
-
-  tar_age(
-    clouds_wilson_release,
-    get_release_clouds_wilson(temp_directory = "data/temp/raw_data/clouds_wilson/",
-                              tag = "raw_static",
-                              domain,
-                              sleep_time = 180),
-    age = as.difftime(56, units = "weeks")
-  ),
-
-  tar_age(
-    elevation_nasadem_release,
-    get_release_elevation_nasadem(temp_directory = "data/temp/raw_data/elevation_nasadem/",
-                                  tag = "raw_static",
-                                  domain),
-    age = as.difftime(58, units = "weeks")
-  ),
-
+  # tar_age(
+  #   climate_chelsa_release,
+  #   get_release_climate_chelsa(temp_directory = "data/temp/raw_data/climate_chelsa/",
+  #                              tag = "raw_static",
+  #                              domain = domain),
+  #
+  #   age = as.difftime(54, units = "weeks")
+  # ),
+  #
+  # tar_age(
+  #   clouds_wilson_release,
+  #   get_release_clouds_wilson(temp_directory = "data/temp/raw_data/clouds_wilson/",
+  #                             tag = "raw_static",
+  #                             domain,
+  #                             sleep_time = 180),
+  #   age = as.difftime(56, units = "weeks")
+  # ),
+  #
+  # tar_age(
+  #   elevation_nasadem_release,
+  #   get_release_elevation_nasadem(temp_directory = "data/temp/raw_data/elevation_nasadem/",
+  #                                 tag = "raw_static",
+  #                                 domain),
+  #   age = as.difftime(58, units = "weeks")
+  # ),
+  #
   tar_age(
     landcover_za_release,
     get_release_landcover_za(temp_directory = "data/temp/raw_data/landcover_za/",
@@ -391,21 +391,21 @@ tar_target(
   ),
 
 # # # Prep model data
-  tar_target(
-    stable_data_release,
-    process_release_stable_data(temp_directory = "data/temp/processed_data/static/",
-                                input_tag = "processed_static",
-                                output_tag = "current",
-                                ... = projected_precipitation_chelsa_release,
-                                ... = projected_landcover_za_release,
-                                ... = projected_elevation_nasadem_release,
-                                ... = projected_clouds_wilson_release,
-                                ... = projected_climate_chelsa_release,
-                                ... = projected_alos_release,
-                                ... = remnant_distance_release,
-                                ... = projected_soil_gcfr_release)
-    )
-  ,
+  # tar_target(
+  #   stable_data_release,
+  #   process_release_stable_data(temp_directory = "data/temp/processed_data/static/",
+  #                               input_tag = "processed_static",
+  #                               output_tag = "current",
+  #                               ... = projected_precipitation_chelsa_release,
+  #                               ... = projected_landcover_za_release,
+  #                               ... = projected_elevation_nasadem_release,
+  #                               ... = projected_clouds_wilson_release,
+  #                               ... = projected_climate_chelsa_release,
+  #                               ... = projected_alos_release,
+  #                               ... = remnant_distance_release,
+  #                               ... = projected_soil_gcfr_release)
+  #   )
+  # ,
 
   tar_target(
     ndvi_to_parquet_release,
