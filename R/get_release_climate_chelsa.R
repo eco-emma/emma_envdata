@@ -61,9 +61,15 @@ get_release_climate_chelsa <- function(temp_directory = "data/temp/raw_data/clim
   for(i in bio_vec){
 
     # download files
-      download.file(url = paste("https://os.zhdk.cloud.switch.ch/envicloud/chelsa/chelsa_V1/climatologies/bio/CHELSA_bio10_",i,".tif",sep = ""),
-                    destfile = file.path(temp_directory,paste("CHELSA_bio10_",i,"_V1.2.tif",sep = ""))
-                    )
+      # download.file(url = paste("https://os.zhdk.cloud.switch.ch/envicloud/chelsa/chelsa_V1/climatologies/bio/CHELSA_bio10_",i,".tif",sep = ""),
+      #               destfile = file.path(temp_directory,paste("CHELSA_bio10_",i,"_V1.2.tif",sep = ""))
+      #               )
+
+      robust_download_file(url = paste("https://os.zhdk.cloud.switch.ch/envicloud/chelsa/chelsa_V1/climatologies/bio/CHELSA_bio10_",i,".tif",sep = ""),
+                           destfile = file.path(temp_directory,paste("CHELSA_bio10_",i,"_V1.2.tif",sep = "")),
+                           max_attempts = 10,
+                           sleep_time = 10
+                           )
 
     # load
       rast_i <- terra::rast(file.path(temp_directory,paste("CHELSA_bio10_",i,"_V1.2.tif",sep = "")))

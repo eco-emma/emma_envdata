@@ -21,17 +21,24 @@ get_release_clouds_wilson <- function(temp_directory = "data/temp/raw_data/cloud
                                       domain,
                                       sleep_time = 180) {
 
+
+  #  #Ensure directory is empty if it exists
+
+    if(dir.exists(temp_directory)){
+      unlink(file.path(temp_directory), recursive = TRUE, force = TRUE)
+    }
+
+
   #Create directory if needed
 
     if(!dir.exists(temp_directory)){
       dir.create(temp_directory,recursive = TRUE)
     }
 
-
   #Adjust the download timeout duration (this needs to be large enough to allow the download to complete)
 
-    if(getOption('timeout') < 1000){
-      options(timeout = 1000)
+    if(getOption('timeout') < 10000){
+      options(timeout = 10000)
     }
 
 
@@ -56,26 +63,29 @@ get_release_clouds_wilson <- function(temp_directory = "data/temp/raw_data/cloud
     # split out the filename from the location
       filename <- strsplit(x = layer_i,split = "/")[[1]][length(strsplit(x = layer_i,split = "/")[[1]])]
 
-
-      if(.Platform$OS.type == "windows") {
-
-        download.file(url = links[i],
-                      destfile = file.path(temp_directory, filename),
-                      quiet = FALSE,
-                      mode = "wb")
-
-      } else {
+      robust_download_file(url = links[i],
+                           destfile = file.path(temp_directory, filename),
+                           max_attempts = 10,
+                           sleep_time = 10)
 
 
-        # download the full file
-          download.file(url = links[i],
-                        destfile = file.path(temp_directory, filename))
-
-
-
-      }
-
-
+      # if(.Platform$OS.type == "windows") {
+      #
+      #   download.file(url = links[i],
+      #                 destfile = file.path(temp_directory, filename),
+      #                 quiet = FALSE,
+      #                 mode = "wb")
+      #
+      # } else {
+      #
+      #
+      #   # download the full file
+      #     download.file(url = links[i],
+      #                   destfile = file.path(temp_directory, filename))
+      #
+      #
+      #
+      # }
 
 
     # Load in the downloaded file
