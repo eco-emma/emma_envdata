@@ -67,32 +67,32 @@ list(
 
 # Infrequent updates via releases
 
-  # tar_age(
-  #   alos_release,
-  #   get_release_alos(temp_directory = "data/temp/raw_data/alos/",
-  #                    tag = "raw_static",
-  #                    domain = domain),
-  #
-  #   age = as.difftime(52, units = "weeks")
-  # ),
-  #
-  # tar_age(
-  #   climate_chelsa_release,
-  #   get_release_climate_chelsa(temp_directory = "data/temp/raw_data/climate_chelsa/",
-  #                              tag = "raw_static",
-  #                              domain = domain),
-  #
-  #   age = as.difftime(54, units = "weeks")
-  # ),
-  #
-  # tar_age(
-  #   clouds_wilson_release,
-  #   get_release_clouds_wilson(temp_directory = "data/temp/raw_data/clouds_wilson/",
-  #                             tag = "raw_static",
-  #                             domain,
-  #                             sleep_time = 180),
-  #   age = as.difftime(56, units = "weeks")
-  # ),
+  tar_age(
+    alos_release,
+    get_release_alos(temp_directory = "data/temp/raw_data/alos/",
+                     tag = "raw_static",
+                     domain = domain),
+
+    age = as.difftime(52, units = "weeks")
+  ),
+
+  tar_age(
+    climate_chelsa_release,
+    get_release_climate_chelsa(temp_directory = "data/temp/raw_data/climate_chelsa/",
+                               tag = "raw_static",
+                               domain = domain),
+
+    age = as.difftime(54, units = "weeks")
+  ),
+
+  tar_age(
+    clouds_wilson_release,
+    get_release_clouds_wilson(temp_directory = "data/temp/raw_data/clouds_wilson/",
+                              tag = "raw_static",
+                              domain,
+                              sleep_time = 180),
+    age = as.difftime(56, units = "weeks")
+  ),
 
   # tar_age(
   #   elevation_nasadem_release,
