@@ -90,9 +90,10 @@ process_release_elevation_nasadem <- function(input_tag = "raw_static",
       if(terra::crs(rast(file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = ""))),proj=TRUE) != terra::crs(template,proj=TRUE)){
 
         message("raster ",i," crs = ",terra::crs(rast(file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = ""))),proj=TRUE))
-        message("template crs = ",terra::crs(rast(file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = ""))),proj=TRUE))
+        message("template crs = ",terra::crs(template,proj=TRUE))
 
         stop("Issue with reprojection")
+
       }
 
 
