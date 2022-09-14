@@ -292,104 +292,104 @@ list(
                                                   ... = correct_ndvi_dates_release_proj)
     ),
 
-  tar_target(
-    template_release,
-    get_release_template_raster(input_tag = "processed_fire_dates",
-                        output_tag = "raw_static",
-                        temp_directory = "data/temp/template",
-                        ... = correct_fire_release_proj)
-  ),
-
-  tar_target(
-    remnants_release,
-    domain_remnants_release(domain = domain,
-                            remnants_shp = remnants_shp,
-                            template_release,
-                            temp_directory = "data/temp/remnants",
-                            out_file = "remnants.tif",
-                            out_tag = "processed_static")
-  ),
-
-  tar_target(
-    remnant_distance_release,
-    domain_distance_release(remnants_release = remnants_release,
-                            out_file="remnant_distance.tif",
-                            temp_directory = "data/temp/remnants",
-                            out_tag = "processed_static")
+    tar_target(
+      template_release,
+      get_release_template_raster(input_tag = "processed_fire_dates",
+                          output_tag = "raw_static",
+                          temp_directory = "data/temp/template",
+                          ... = correct_fire_release_proj)
     ),
 
-  tar_target(
-    projected_alos_release,
-    process_release_alos(input_tag = "raw_static",
-                         output_tag = "processed_static",
-                         temp_directory = "data/temp/raw_data/alos/",
-                         template_release = template_release,
-                         sleep_time = 60,
-                         ... = alos_release)
-  ),
+    tar_target(
+      remnants_release,
+      domain_remnants_release(domain = domain,
+                              remnants_shp = remnants_shp,
+                              template_release,
+                              temp_directory = "data/temp/remnants",
+                              out_file = "remnants.tif",
+                              out_tag = "processed_static")
+    ),
+
+    tar_target(
+      remnant_distance_release,
+      domain_distance_release(remnants_release = remnants_release,
+                              out_file="remnant_distance.tif",
+                              temp_directory = "data/temp/remnants",
+                              out_tag = "processed_static")
+      ),
+
+    tar_target(
+      projected_alos_release,
+      process_release_alos(input_tag = "raw_static",
+                           output_tag = "processed_static",
+                           temp_directory = "data/temp/raw_data/alos/",
+                           template_release = template_release,
+                           sleep_time = 60,
+                           ... = alos_release)
+    ),
 
 
-  tar_target(
-    projected_climate_chelsa_release,
-    process_release_climate_chelsa(input_tag = "raw_static",
+    tar_target(
+      projected_climate_chelsa_release,
+      process_release_climate_chelsa(input_tag = "raw_static",
+                                     output_tag = "processed_static",
+                                     temp_directory = "data/temp/raw_data/climate_chelsa/",
+                                     template_release = template_release,
+                                     ... = climate_chelsa_release)
+      ),
+
+    tar_target(
+      projected_clouds_wilson_release,
+      process_release_clouds_wilson(input_tag = "raw_static",
+                                    output_tag = "processed_static",
+                                    temp_directory = "data/temp/raw_data/clouds_wilson/",
+                                    template_release = template_release,
+                                    sleep_time = 180,
+                                    ... = clouds_wilson_release)
+    ),
+
+    tar_target(
+      projected_elevation_nasadem_release,
+      process_release_elevation_nasadem(input_tag = "raw_static",
+                                        output_tag = "processed_static",
+                                        temp_directory = "data/temp/raw_data/elevation_nasadem/",
+                                        template_release = template_release,
+                                        sleep_time = 60,
+                                        ... = elevation_nasadem_release)
+    ),
+
+    tar_target(
+      projected_landcover_za_release,
+      process_release_landcover_za(input_tag = "raw_static",
                                    output_tag = "processed_static",
-                                   temp_directory = "data/temp/raw_data/climate_chelsa/",
-                                   template_release = template_release,
-                                   ... = climate_chelsa_release)
+                                   temp_directory = "data/temp/raw_data/landcover_za/",
+                                   template_release,
+                                   sleep_time = 60,
+                                   ... = landcover_za_release)
+    )
+    ,
+
+    tar_target(
+      projected_precipitation_chelsa_release,
+      process_release_precipitation_chelsa(input_tag = "raw_static",
+                                           output_tag = "processed_static",
+                                           temp_directory = "data/temp/raw_data/precipitation_chelsa/",
+                                           template_release,
+                                           sleep_time = 60,
+                                           ... = precipitation_chelsa_release)
+
     ),
 
-  # tar_target(
-  #   projected_clouds_wilson_release,
-  #   process_release_clouds_wilson(input_tag = "raw_static",
-  #                                 output_tag = "processed_static",
-  #                                 temp_directory = "data/temp/raw_data/clouds_wilson/",
-  #                                 template_release = template_release,
-  #                                 sleep_time = 180,
-  #                                 ... = clouds_wilson_release)
-  # ),
-  #
-  # tar_target(
-  #   projected_elevation_nasadem_release,
-  #   process_release_elevation_nasadem(input_tag = "raw_static",
-  #                                     output_tag = "processed_static",
-  #                                     temp_directory = "data/temp/raw_data/elevation_nasadem/",
-  #                                     template_release = template_release,
-  #                                     sleep_time = 60,
-  #                                     ... = elevation_nasadem_release)
-  # ),
+    tar_target(
+      projected_soil_gcfr_release,
+      process_release_soil_gcfr(input_tag = "raw_static",
+                                output_tag = "processed_static",
+                                temp_directory = "data/temp/raw_data/soil_gcfr/",
+                                template_release,
+                                sleep_time = 60,
+                                ... = soil_gcfr_release)
 
-  # tar_target(
-  #   projected_landcover_za_release,
-  #   process_release_landcover_za(input_tag = "raw_static",
-  #                                output_tag = "processed_static",
-  #                                temp_directory = "data/temp/raw_data/landcover_za/",
-  #                                template_release,
-  #                                sleep_time = 60,
-  #                                ... = landcover_za_release)
-  # )
-  # ,
-  #
-  # tar_target(
-  #   projected_precipitation_chelsa_release,
-  #   process_release_precipitation_chelsa(input_tag = "raw_static",
-  #                                        output_tag = "processed_static",
-  #                                        temp_directory = "data/temp/raw_data/precipitation_chelsa/",
-  #                                        template_release,
-  #                                        sleep_time = 60,
-  #                                        ... = precipitation_chelsa_release)
-  #
-  # ),
-  #
-  # tar_target(
-  #   projected_soil_gcfr_release,
-  #   process_release_soil_gcfr(input_tag = "raw_static",
-  #                             output_tag = "processed_static",
-  #                             temp_directory = "data/temp/raw_data/soil_gcfr/",
-  #                             template_release,
-  #                             sleep_time = 60,
-  #                             ... = soil_gcfr_release)
-  #
-  # ),
+    ),
 
 # # # Prep model data
   # tar_target(
