@@ -34,8 +34,8 @@ process_release_elevation_nasadem <- function(input_tag = "raw_static",
                        max_attempts = 10,
                        sleep_time = sleep_time)
 
-    #template <- terra::rast(file.path(temp_directory, template_release$file))
-    template <- raster::raster(file.path(temp_directory, template_release$file))
+    template <- terra::rast(file.path(temp_directory, template_release$file))
+    #template <- raster::raster(file.path(temp_directory, template_release$file))
 
 
     # get input rasters
@@ -57,20 +57,20 @@ process_release_elevation_nasadem <- function(input_tag = "raw_static",
 
     for(i in 1:nrow(raster_list)){
 
-      raster_i <- raster::raster(file.path(temp_directory, raster_list$file_name[i]))
-      #raster_i <- terra::rast(file.path(temp_directory, raster_list$file_name[i]))
+      #raster_i <- raster::raster(file.path(temp_directory, raster_list$file_name[i]))
+      raster_i <- terra::rast(file.path(temp_directory, raster_list$file_name[i]))
 
 
       #Use bilinear for everything
 
         method <- "bilinear"
 
-      raster::projectRaster(from = raster_i,
-                            to = template,
-                            method = method,
-                            filename = file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = "")),
-                            overwrite = TRUE
-                            )
+      # raster::projectRaster(from = raster_i,
+      #                       to = template,
+      #                       method = method,
+      #                       filename = file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = "")),
+      #                       overwrite = TRUE
+      #                       )
 
       #Terra is currently having some problems with reading and writing so I've switched back to raster for now
       # terra::project(x = raster_i,
@@ -79,11 +79,17 @@ process_release_elevation_nasadem <- function(input_tag = "raw_static",
       #                filename = file.path(temp_directory, paste("temp_",raster_list$file_name[i],sep = "")),
       #                overwrite = TRUE)
 
+      terra::resample(x = raster_i,
+                     y = template,
+                     method = method,
+                     filename = file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = "")),
+                     overwrite = TRUE)
+
       # Double check projection
 
-        if(projection(raster(file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = "")))) != projection(template)){
-          stop("Issue with reprojection")
-          }
+      if(terra::crs(rast(file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = "")))) != terra::crs(template)){
+        stop("Issue with reprojection")
+      }
 
 
       pb_upload(file = file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = "")),
@@ -109,7 +115,7 @@ process_release_elevation_nasadem <- function(input_tag = "raw_static",
   # End functions
 
     message("Finished processing elevation layer")
-    return(invisible(NULL))
+    return(as.character(Sys.Date()))
 
 
 } #end fx
