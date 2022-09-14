@@ -82,24 +82,39 @@ process_release_clouds_wilson <- function(input_tag = "raw_static",
 #                           )
 
     #Terra is currently having some problems with reading and writing so I've switched back to raster for now
-    # terra::project(x = raster_i,
-    #                y = template,
-    #                method = method,
-    #                filename = file.path(temp_directory, paste("temp_",raster_list$file_name[i],sep = "")),
-    #                overwrite = TRUE)
+    terra::project(x = raster_i,
+                   y = template,
+                   method = method,
+                   filename = file.path(temp_directory, paste("temp_",raster_list$file_name[i],sep = "")),
+                   overwrite = TRUE)
 
-      terra::resample(x = raster_i,
-                      y = template,
-                      method = method,
-                      filename = file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = "")),
-                      overwrite = TRUE)
+      # terra::resample(x = raster_i,
+      #                 y = template,
+      #                 method = method,
+      #                 filename = file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = "")),
+      #                 overwrite = TRUE)
 
 
       # Double check projection
 
-        if(terra::crs(rast(file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = "")))) != terra::crs(template)){
-          stop("Issue with reprojection")
-        }
+      # Double check projection, crs, extent
+
+      if((terra::crs(rast(file.path(temp_directory, paste("temp_",raster_list$file_name[i],sep = ""))),proj=TRUE) != terra::crs(template,proj=TRUE))|
+         (terra::res(rast(file.path(temp_directory, paste("temp_",raster_list$file_name[i],sep = ""))))[1] != terra::res(template)[1])|
+         (terra::ext(rast(file.path(temp_directory, paste("temp_",raster_list$file_name[i],sep = "")))) != terra::ext(template))){
+
+        message("template crs = ",terra::crs(template,proj=TRUE))
+
+        # message("resampled raster on disk",i," crs = ",terra::crs(rast(file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = ""))),proj=TRUE))
+        # message("resampled raster in memory crs = ",terra::crs(tf_i,proj=TRUE))
+
+        message("reprojected raster in disk",i," crs = ",terra::crs(rast(file.path(temp_directory, paste("temp_",raster_list$file_name[i],sep = ""))),proj=TRUE))
+        #message("reprojected raster in memory crs = ",terra::crs(temp_i,proj=TRUE))
+
+
+        stop("Issue with reprojection")
+
+      }
 
     # upload transformed version
 
