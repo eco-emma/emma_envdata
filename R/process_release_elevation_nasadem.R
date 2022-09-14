@@ -24,8 +24,6 @@ process_release_elevation_nasadem <- function(input_tag = "raw_static",
       dir.create(temp_directory, recursive = TRUE)
     }
 
-  message("files in temp dir: ", list.files(temp_directory,recursive = TRUE)," \n")
-
 
   # get template raster
 
@@ -75,31 +73,36 @@ process_release_elevation_nasadem <- function(input_tag = "raw_static",
       #                       )
 
       #Terra is currently having some problems with reading and writing so I've switched back to raster for now
-      temp_i <-
+        #ok, oddly enough terra resample seems to fail on github, but work locally.
+        #even weirder, terra project seems to work on both
+
+    #temp_i <-
       terra::project(x = raster_i,
                      y = template,
                      method = method,
                      filename = file.path(temp_directory, paste("temp_",raster_list$file_name[i],sep = "")),
                      overwrite = TRUE)
 
-      tf_i <-
-      terra::resample(x = raster_i,
-                     y = template,
-                     method = method,
-                     filename = file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = "")),
-                     overwrite = TRUE)
+      # tf_i <-
+      # terra::resample(x = raster_i,
+      #                y = template,
+      #                method = method,
+      #                filename = file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = "")),
+      #                overwrite = TRUE)
 
-      # Double check projection
+      # Double check projection, crs, extent
 
-      if(terra::crs(rast(file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = ""))),proj=TRUE) != terra::crs(template,proj=TRUE)){
+      if((terra::crs(rast(file.path(temp_directory, paste("temp_",raster_list$file_name[i],sep = ""))),proj=TRUE) != terra::crs(template,proj=TRUE))|
+         (terra::res(rast(file.path(temp_directory, paste("temp_",raster_list$file_name[i],sep = ""))))[1] != terra::res(template)[1])|
+         (terra::ext(rast(file.path(temp_directory, paste("temp_",raster_list$file_name[i],sep = "")))) != terra::ext(template))){
 
         message("template crs = ",terra::crs(template,proj=TRUE))
 
-        message("resampled raster on disk",i," crs = ",terra::crs(rast(file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = ""))),proj=TRUE))
-        message("resampled raster in memory crs = ",terra::crs(tf_i,proj=TRUE))
+        # message("resampled raster on disk",i," crs = ",terra::crs(rast(file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = ""))),proj=TRUE))
+        # message("resampled raster in memory crs = ",terra::crs(tf_i,proj=TRUE))
 
         message("reprojected raster in disk",i," crs = ",terra::crs(rast(file.path(temp_directory, paste("temp_",raster_list$file_name[i],sep = ""))),proj=TRUE))
-        message("reprojected raster in memory crs = ",terra::crs(temp_i,proj=TRUE))
+        #message("reprojected raster in memory crs = ",terra::crs(temp_i,proj=TRUE))
 
 
         stop("Issue with reprojection")
@@ -107,14 +110,14 @@ process_release_elevation_nasadem <- function(input_tag = "raw_static",
       }
 
 
-      pb_upload(file = file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = "")),
+      pb_upload(file = file.path(temp_directory, paste("temp_",raster_list$file_name[i],sep = "")),
                 repo = "AdamWilsonLab/emma_envdata",
                 tag = output_tag,
                 name = raster_list$file_name[i])
 
       # cleanup
         rm(raster_i)
-        file.remove( file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = "")) )
+        file.remove( file.path(temp_directory, paste("temp_",raster_list$file_name[i],sep = "")) )
         file.remove( file.path(temp_directory, raster_list$file_name[i]) )
 
         Sys.sleep(sleep_time)
