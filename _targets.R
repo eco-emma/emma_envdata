@@ -299,45 +299,45 @@ list(
                         temp_directory = "data/temp/template",
                         ... = correct_fire_release_proj)
   ),
-  #
-  # tar_target(
-  #   remnants_release,
-  #   domain_remnants_release(domain = domain,
-  #                           remnants_shp = remnants_shp,
-  #                           template_release,
-  #                           temp_directory = "data/temp/remnants",
-  #                           out_file = "remnants.tif",
-  #                           out_tag = "processed_static")
-  # ),
-  #
-  # tar_target(
-  #   remnant_distance_release,
-  #   domain_distance_release(remnants_release = remnants_release,
-  #                           out_file="remnant_distance.tif",
-  #                           temp_directory = "data/temp/remnants",
-  #                           out_tag = "processed_static")
-  #   ),
-  #
-  # tar_target(
-  #   projected_alos_release,
-  #   process_release_alos(input_tag = "raw_static",
-  #                        output_tag = "processed_static",
-  #                        temp_directory = "data/temp/raw_data/alos/",
-  #                        template_release = template_release,
-  #                        sleep_time = 60,
-  #                        ... = alos_release)
-  # ),
-  #
-  #
-  # tar_target(
-  #   projected_climate_chelsa_release,
-  #   process_release_climate_chelsa(input_tag = "raw_static",
-  #                                  output_tag = "processed_static",
-  #                                  temp_directory = "data/temp/raw_data/climate_chelsa/",
-  #                                  template_release = template_release,
-  #                                  ... = climate_chelsa_release)
-  #   ),
-  #
+
+  tar_target(
+    remnants_release,
+    domain_remnants_release(domain = domain,
+                            remnants_shp = remnants_shp,
+                            template_release,
+                            temp_directory = "data/temp/remnants",
+                            out_file = "remnants.tif",
+                            out_tag = "processed_static")
+  ),
+
+  tar_target(
+    remnant_distance_release,
+    domain_distance_release(remnants_release = remnants_release,
+                            out_file="remnant_distance.tif",
+                            temp_directory = "data/temp/remnants",
+                            out_tag = "processed_static")
+    ),
+
+  tar_target(
+    projected_alos_release,
+    process_release_alos(input_tag = "raw_static",
+                         output_tag = "processed_static",
+                         temp_directory = "data/temp/raw_data/alos/",
+                         template_release = template_release,
+                         sleep_time = 60,
+                         ... = alos_release)
+  ),
+
+
+  tar_target(
+    projected_climate_chelsa_release,
+    process_release_climate_chelsa(input_tag = "raw_static",
+                                   output_tag = "processed_static",
+                                   temp_directory = "data/temp/raw_data/climate_chelsa/",
+                                   template_release = template_release,
+                                   ... = climate_chelsa_release)
+    ),
+
   # tar_target(
   #   projected_clouds_wilson_release,
   #   process_release_clouds_wilson(input_tag = "raw_static",
