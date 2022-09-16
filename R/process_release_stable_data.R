@@ -30,13 +30,13 @@ process_release_stable_data <- function(temp_directory = "data/temp/processed_da
 
   # load files
 
-    message("Getting list of rasters to include")
+    message("Getting list of rasters to include ", Sys.time())
 
     raster_list <- pb_list(repo = "AdamWilsonLab/emma_envdata",
                            tag = input_tag) %>%
       filter(file_name != "template.tif")
 
-    message("Starting Raster Download")
+    message("Starting Raster Download ", Sys.time())
 
     robust_pb_download(file = raster_list$file_name,
                        dest = temp_directory,
@@ -45,11 +45,11 @@ process_release_stable_data <- function(temp_directory = "data/temp/processed_da
                        max_attempts = 10,
                        sleep_time = 10)
 
-    message("Finished Raster Download")
+    message("Finished Raster Download ", Sys.time())
 
   # Check that all raster projections, resolution, ext are identical (these will throw errors if they aren't identical)
 
-    message("Checking raster metadata")
+    message("Checking raster metadata ", Sys.time())
 
       terra::ext(rast(file.path(temp_directory,raster_list$file_name)))
       terra::res(rast(file.path(temp_directory,raster_list$file_name)))
@@ -57,7 +57,7 @@ process_release_stable_data <- function(temp_directory = "data/temp/processed_da
 
   # process data
 
-    message("Creating gzip file")
+    message("Creating gzip file ", Sys.time())
 
     file.path(temp_directory,raster_list$file_name) |>
     stars::read_stars() |>
@@ -78,14 +78,14 @@ process_release_stable_data <- function(temp_directory = "data/temp/processed_da
 
   # Release
 
-    message("Starting upload of stable parquet")
+    message("Starting upload of stable parquet ", Sys.time())
 
     pb_upload(file = file.path(temp_directory,"stable_data.gz.parquet"),
               repo = "AdamWilsonLab/emma_envdata",
               tag = output_tag,
               show_progress = TRUE)
 
-    message("Finished upload of stable parquet")
+    message("Finished upload of stable parquet ", Sys.time())
 
 
   #cleanup
