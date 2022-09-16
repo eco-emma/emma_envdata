@@ -30,10 +30,13 @@ process_release_stable_data <- function(temp_directory = "data/temp/processed_da
 
   # load files
 
+    message("Getting list of rasters to include")
+
     raster_list <- pb_list(repo = "AdamWilsonLab/emma_envdata",
                            tag = input_tag) %>%
       filter(file_name != "template.tif")
 
+    message("Starting Raster Download")
 
     robust_pb_download(file = raster_list$file_name,
                        dest = temp_directory,
@@ -42,7 +45,19 @@ process_release_stable_data <- function(temp_directory = "data/temp/processed_da
                        max_attempts = 10,
                        sleep_time = 10)
 
+    message("Finished Raster Download")
+
+  # Check that all raster projections, resolution, ext are identical (these will throw errors if they aren't identical)
+
+    message("Checking raster metadata")
+
+      terra::ext(rast(file.path(temp_directory,raster_list$file_name)))
+      terra::res(rast(file.path(temp_directory,raster_list$file_name)))
+      terra::crs(rast(file.path(temp_directory,raster_list$file_name)),proj=TRUE)
+
   # process data
+
+    message("Creating gzip file")
 
     file.path(temp_directory,raster_list$file_name) |>
     stars::read_stars() |>
@@ -63,15 +78,20 @@ process_release_stable_data <- function(temp_directory = "data/temp/processed_da
 
   # Release
 
+    message("Starting upload of stable parquet")
 
     pb_upload(file = file.path(temp_directory,"stable_data.gz.parquet"),
               repo = "AdamWilsonLab/emma_envdata",
-              tag = output_tag)
+              tag = output_tag,
+              show_progress = TRUE)
+
+    message("Finished upload of stable parquet")
 
 
   #cleanup
 
     unlink(x = file.path(temp_directory), recursive = TRUE, force = TRUE)
+
     gc()
 
 
