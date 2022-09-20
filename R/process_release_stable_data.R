@@ -57,16 +57,40 @@ process_release_stable_data <- function(temp_directory = "data/temp/processed_da
 
   # process data
 
-    message("Creating gzip file ", Sys.time())
+    for(i in 1:length(raster_list$file_name)){
 
-    file.path(temp_directory,raster_list$file_name) |>
-    stars::read_stars() |>
-    as.data.frame() |>
-    mutate(cellID = row_number()) %>%
-    filter(SA_NLC_2020_GEO.tif != 0) %>%
-    write_parquet(sink = file.path(temp_directory,"stable_data.gz.parquet"),
-                  compression = "gzip",
-                  chunk_size = 1000) #note: chunk size here details the number of chunks written at once
+      message("Creating gzip file ",raster_list$file_name[i]," ", Sys.time())
+
+      file.path(temp_directory,raster_list$file_name[i]) |>
+        stars::read_stars() |>
+        as.data.frame() |>
+        mutate(cellID = row_number()) %>%
+        #filter(SA_NLC_2020_GEO.tif != 0) %>%
+        write_parquet(sink = file.path(temp_directory,paste(raster_list$file_name[i],".gz.parquet",sep = "")),
+                      compression = "gzip") #note: chunk size here details the number of chunks written at once
+
+
+    }
+
+      message("Creating gzip files ", Sys.time())
+
+      pb_upload(file = file.path(temp_directory,paste(raster_list$file_name,".gz.parquet",sep = "")),
+                repo = "AdamWilsonLab/emma_envdata",
+                tag = output_tag,
+                show_progress = TRUE)
+
+    #Note: switched from uploading a single file to multiples as github was having problems with the big file
+
+    # message("Creating gzip file ", Sys.time())
+
+    # file.path(temp_directory,raster_list$file_name) |>
+    # stars::read_stars() |>
+    # as.data.frame() |>
+    # mutate(cellID = row_number()) %>%
+    # filter(SA_NLC_2020_GEO.tif != 0) %>%
+    # write_parquet(sink = file.path(temp_directory,"stable_data.gz.parquet"),
+    #               compression = "gzip",
+    #               chunk_size = 1000) #note: chunk size here details the number of chunks written at once
 
 
   #The following line of code can be used to break things down by a grouping variable
@@ -79,14 +103,14 @@ process_release_stable_data <- function(temp_directory = "data/temp/processed_da
 
   # Release
 
-    message("Starting upload of stable parquet ", Sys.time())
-
-    pb_upload(file = file.path(temp_directory,"stable_data.gz.parquet"),
-              repo = "AdamWilsonLab/emma_envdata",
-              tag = output_tag,
-              show_progress = TRUE)
-
-    message("Finished upload of stable parquet ", Sys.time())
+    # message("Starting upload of stable parquet ", Sys.time())
+    #
+    # pb_upload(file = file.path(temp_directory,"stable_data.gz.parquet"),
+    #           repo = "AdamWilsonLab/emma_envdata",
+    #           tag = output_tag,
+    #           show_progress = TRUE)
+    #
+    # message("Finished upload of stable parquet ", Sys.time())
 
 
   #cleanup
