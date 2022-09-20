@@ -12,6 +12,7 @@ library(arrow)
 process_release_stable_data <- function(temp_directory = "data/temp/processed_data/static/",
                                         input_tag = "processed_static",
                                         output_tag = "current",
+                                        sleep_time = 30,
                                         ...) {
 
 
@@ -70,14 +71,19 @@ process_release_stable_data <- function(temp_directory = "data/temp/processed_da
                       compression = "gzip") #note: chunk size here details the number of chunks written at once
 
 
-    }
+      message("Uploading gzip files",raster_list$file_name[i]," ", Sys.time())
 
-      message("Creating gzip files ", Sys.time())
-
-      pb_upload(file = file.path(temp_directory,paste(raster_list$file_name,".gz.parquet",sep = "")),
+      pb_upload(file = file.path(temp_directory,paste(raster_list$file_name[i],".gz.parquet",sep = "")),
                 repo = "AdamWilsonLab/emma_envdata",
                 tag = output_tag,
                 show_progress = TRUE)
+
+      Sys.sleep(sleep_time)
+
+
+    }
+
+
 
     #Note: switched from uploading a single file to multiples as github was having problems with the big file
 
