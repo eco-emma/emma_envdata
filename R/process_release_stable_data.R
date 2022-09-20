@@ -65,7 +65,8 @@ process_release_stable_data <- function(temp_directory = "data/temp/processed_da
     mutate(cellID = row_number()) %>%
     filter(SA_NLC_2020_GEO.tif != 0) %>%
     write_parquet(sink = file.path(temp_directory,"stable_data.gz.parquet"),
-                  compression = "gzip")
+                  compression = "gzip",
+                  chunk_size = 1000) #note: chunk size here details the number of chunks written at once
 
 
   #The following line of code can be used to break things down by a grouping variable
