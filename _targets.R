@@ -186,16 +186,16 @@ list(
     #age = as.difftime(0, units = "hours")
   ),
 
-# tar_age(
-#   ndvi_dates_viirs_release,
-#   get_release_ndvi_dates_viirs(temp_directory = "data/temp/raw_data/ndvi_dates_viirs/",
-#                                tag = "raw_ndvi_dates_viirs",
-#                                domain = domain,
-#                                max_layers = 10,
-#                                sleep_time = 30),
-#   #age = as.difftime(7, units = "days")
-#   age = as.difftime(0, units = "hours")
-# ),
+  tar_age(
+    ndvi_dates_viirs_release,
+    get_release_ndvi_dates_viirs(temp_directory = "data/temp/raw_data/ndvi_dates_viirs/",
+                                 tag = "raw_ndvi_dates_viirs",
+                                 domain = domain,
+                                 max_layers = 10,
+                                 sleep_time = 30),
+    #age = as.difftime(7, units = "days")
+    age = as.difftime(0, units = "hours")
+  ),
 
 # # # Fixing projection via releases
 
@@ -236,14 +236,14 @@ list(
                                          ... = ndvi_dates_modis_release)
   ),
 
-# tar_target(
-#   correct_ndvi_dates_viirs_release_proj,
-#   process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/ndvi_dates_viirs/",
-#                                        tag = "raw_ndvi_dates_viirs",
-#                                        max_layers = NULL,
-#                                        sleep_time = 30,
-#                                        ... = ndvi_dates_viirs_release)
-# ),
+  tar_target(
+    correct_ndvi_dates_viirs_release_proj,
+    process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/ndvi_dates_viirs/",
+                                         tag = "raw_ndvi_dates_viirs",
+                                         max_layers = NULL,
+                                         sleep_time = 30,
+                                         ... = ndvi_dates_viirs_release)
+  ),
 
   tar_target(
     correct_kndvi_release_proj,
