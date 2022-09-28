@@ -85,15 +85,15 @@ list(
     age = as.difftime(54, units = "weeks")
   ),
 
-  # tar_age(
-  #   clouds_wilson_release,
-  #   get_release_clouds_wilson(temp_directory = "data/temp/raw_data/clouds_wilson/",
-  #                             tag = "raw_static",
-  #                             domain,
-  #                             sleep_time = 180),
-  #   age = as.difftime(56, units = "weeks")
-  # ),
-  #
+  tar_age(
+    clouds_wilson_release,
+    get_release_clouds_wilson(temp_directory = "data/temp/raw_data/clouds_wilson/",
+                              tag = "raw_static",
+                              domain,
+                              sleep_time = 180),
+    age = as.difftime(56, units = "weeks")
+  ),
+
   # tar_age(
   #   elevation_nasadem_release,
   #   get_release_elevation_nasadem(temp_directory = "data/temp/raw_data/elevation_nasadem/",
