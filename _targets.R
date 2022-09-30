@@ -227,32 +227,32 @@ list(
     ),
 
 
-  # tar_target(
-  #   correct_ndvi_dates_release_proj,
-  #   process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/ndvi_dates_modis/",
-  #                                        tag = "raw_ndvi_dates_modis",
-  #                                        max_layers = NULL,
-  #                                        sleep_time = 30,
-  #                                        ... = ndvi_dates_modis_release)
-  # ),
-  #
-  # tar_target(
-  #   correct_ndvi_dates_viirs_release_proj,
-  #   process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/ndvi_dates_viirs/",
-  #                                        tag = "raw_ndvi_dates_viirs",
-  #                                        max_layers = NULL,
-  #                                        sleep_time = 30,
-  #                                        ... = ndvi_dates_viirs_release)
-  # ),
-  #
-  # tar_target(
-  #   correct_kndvi_release_proj,
-  #   process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/kndvi_modis/",
-  #                                        tag = "raw_kndvi_modis",
-  #                                        max_layers = NULL,
-  #                                        sleep_time = 45,
-  #                                        ... = kndvi_modis_release)
-  # ),
+    tar_target(
+      correct_ndvi_dates_release_proj,
+      process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/ndvi_dates_modis/",
+                                           tag = "raw_ndvi_dates_modis",
+                                           max_layers = NULL,
+                                           sleep_time = 30,
+                                           ... = ndvi_dates_modis_release)
+    ),
+
+    tar_target(
+      correct_ndvi_dates_viirs_release_proj,
+      process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/ndvi_dates_viirs/",
+                                           tag = "raw_ndvi_dates_viirs",
+                                           max_layers = NULL,
+                                           sleep_time = 30,
+                                           ... = ndvi_dates_viirs_release)
+    ),
+
+    tar_target(
+      correct_kndvi_release_proj,
+      process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/kndvi_modis/",
+                                           tag = "raw_kndvi_modis",
+                                           max_layers = NULL,
+                                           sleep_time = 45,
+                                           ... = kndvi_modis_release)
+    ),
 
 
 # # # Processing via release
