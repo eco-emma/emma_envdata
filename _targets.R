@@ -398,7 +398,7 @@ list(
         process_release_stable_data(temp_directory = "data/temp/processed_data/static/",
                                     input_tag = "processed_static",
                                     output_tag = "current",
-                                    sleep_time = 90,
+                                    sleep_time = 120,
                                     ... = projected_precipitation_chelsa_release,
                                     ... = projected_landcover_za_release,
                                     ... = projected_elevation_nasadem_release,
