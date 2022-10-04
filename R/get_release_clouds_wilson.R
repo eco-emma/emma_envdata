@@ -69,26 +69,8 @@ get_release_clouds_wilson <- function(temp_directory = "data/temp/raw_data/cloud
                            sleep_time = 10)
 
 
-      # if(.Platform$OS.type == "windows") {
-      #
-      #   download.file(url = links[i],
-      #                 destfile = file.path(temp_directory, filename),
-      #                 quiet = FALSE,
-      #                 mode = "wb")
-      #
-      # } else {
-      #
-      #
-      #   # download the full file
-      #     download.file(url = links[i],
-      #                   destfile = file.path(temp_directory, filename))
-      #
-      #
-      #
-      # }
-
-
     # Load in the downloaded file
+      #raster_i <- terra::rast(file.path(temp_directory, filename)) doesn't work
       raster_i <- raster::raster(file.path(temp_directory, filename))
 
     # Transform domain
@@ -101,17 +83,16 @@ get_release_clouds_wilson <- function(temp_directory = "data/temp/raw_data/cloud
       )
 
     # Mask to domain
-      raster_i <- mask(x = raster_i,
-                       mask = domain_tf)
+      raster_i <- raster::mask(x = raster_i,
+                               mask = domain_tf)
 
     # Plot
-      plot(raster_i,main = filename)
+      plot(terra::rast(raster_i),main = filename)
 
     # Save the cropped/masked raster
-      writeRaster(x = raster_i,
+      writeRaster(x = terra::rast(raster_i), #this conversion to terra is odd.  But for some reason if you don't include it, the output layer contains only NA values
                   filename = file.path(temp_directory, filename),
                   overwrite = TRUE)
-
 
     # Push release
 
