@@ -87,4 +87,5 @@ stan_spatial %>%
     rasterFromXYZ()
 }
 ```
+[![DOI](https://zenodo.org/badge/421127852.svg)](https://zenodo.org/badge/latestdoi/421127852)
 
