@@ -53,22 +53,32 @@ process_release_biome_raster <- function(template_release,
 
 
     n <- 10 #number of subcells to use for aggregation
+
     r <- disagg(template, n) #break raster into smaller one
+
     r <- rasterize(x = vect(vegmap_za),
                    y =  r,
                    field = "biome_18") #rasterize at fine resolution
+
     out_rast <- aggregate(r, n, "modal") #re-aggregate using modal  biome
 
-    # save output version
-    writeRaster(x = out_rast,
-                filename = file.path(temp_directory,"biome_raster_modis_proj.tif"))
+  # save output version
 
-    # upload transformed version
+    writeRaster(x = out_rast,
+                filename = file.path(temp_directory,"biome_raster_modis_proj.tif"),
+                overwrite=TRUE)
+
+  # upload transformed version
 
     pb_upload(file = file.path(temp_directory,"biome_raster_modis_proj.tif"),
               repo = "AdamWilsonLab/emma_envdata",
               tag = "processed_static",
               name = "biome_raster_modis_proj.tif")
+
+    pb_upload(file = file.path(temp_directory,"biome_raster_modis_proj.tif.aux.xml"),
+              repo = "AdamWilsonLab/emma_envdata",
+              tag = "processed_static",
+              name = "biome_raster_modis_proj.tif.aux.xml")
 
     # cleanup
 
@@ -78,7 +88,6 @@ process_release_biome_raster <- function(template_release,
 
       message("Finished rasterizing vegmap")
       return(as.character(Sys.Date()))
-
 
 
 }
