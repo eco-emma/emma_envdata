@@ -106,8 +106,8 @@ get_release_fire_modis <- function(temp_directory = "data/temp/raw_data/fire_mod
 
     released_files <-
       released_files %>%
-      filter(file_name != "") %>%
-      filter(file_name != "log.csv")
+      dplyr::filter(file_name != "") %>%
+      dplyr::filter(file_name != "log.csv")
 
 
   # check to see if any images have been downloaded already
