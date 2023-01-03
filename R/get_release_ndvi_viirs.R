@@ -87,12 +87,12 @@ get_release_ndvi_viirs <- function(temp_directory = "data/temp/raw_data/ndvi_vii
 
     released_files  <-
     release_assetts %>%
-      filter(tag == release_tag) %>%
+      dplyr::filter(tag == release_tag) %>%
       mutate(date = gsub(pattern = ".tif",
                          replacement = "",
                          x = file_name)) %>%
-      filter(file_name != "") %>%
-      filter(file_name != "log.csv")
+      dplyr::filter(file_name != "") %>%
+      dplyr::filter(file_name != "log.csv")
 
 
   #check to see if any images have been downloaded already
@@ -225,7 +225,7 @@ get_release_ndvi_viirs <- function(temp_directory = "data/temp/raw_data/ndvi_vii
   message("\nFinished Downloading VIIRS NDVI layers")
 
   local_files %>%
-    filter(grepl(pattern = ".tif$",x = local_filename)) %>%
+    dplyr::filter(grepl(pattern = ".tif$",x = local_filename)) %>%
     mutate(date_format = basename(local_filename)) %>%
     mutate(date_format = gsub(pattern = ".tif",replacement = "",x = date_format)) %>%
     mutate(date_format = gsub(pattern = "_",replacement = "-",x = date_format)) %>%
