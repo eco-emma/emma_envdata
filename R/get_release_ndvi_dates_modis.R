@@ -207,7 +207,7 @@ get_release_ndvi_dates_modis <- function(temp_directory = "data/temp/raw_data/nd
       message("Finished Downloading NDVI date layers")
 
       local_files %>%
-        filter(grepl(pattern = ".tif$",x = local_filename)) %>%
+        dplyr::filter(grepl(pattern = ".tif$",x = local_filename)) %>%
         mutate(date_format = basename(local_filename)) %>%
         mutate(date_format = gsub(pattern = ".tif",replacement = "",x = date_format)) %>%
         mutate(date_format = gsub(pattern = "_",replacement = "-",x = date_format)) %>%

@@ -111,8 +111,8 @@ get_release_ndvi_dates_viirs <- function(temp_directory = "data/temp/raw_data/nd
 
     released_files <-
       released_files %>%
-      filter(file_name != "") %>%
-      filter(file_name != "log.csv")
+      dplyr::filter(file_name != "") %>%
+      dplyr::filter(file_name != "log.csv")
 
 
     #check to see if any images have been downloaded already
@@ -142,6 +142,7 @@ get_release_ndvi_dates_viirs <- function(temp_directory = "data/temp/raw_data/nd
       if(!is.null(max_layers)){
 
         info <- ndvi_integer_dates_new$getInfo()
+
         to_download <- unlist(lapply(X = info$features,FUN = function(x){x$properties$`system:index`}))
 
         to_download <- gsub(pattern = "_",replacement = "-",x = to_download)
@@ -223,11 +224,11 @@ get_release_ndvi_dates_viirs <- function(temp_directory = "data/temp/raw_data/nd
       message("Finished Downloading NDVI date layers")
 
       local_files %>%
-        filter(grepl(pattern = ".tif$",x = local_filename)) %>%
+        dplyr::filter(grepl(pattern = ".tif$",x = local_filename)) %>%
         mutate(date_format = basename(local_filename)) %>%
         mutate(date_format = gsub(pattern = ".tif",replacement = "",x = date_format)) %>%
         mutate(date_format = gsub(pattern = "_",replacement = "-",x = date_format)) %>%
-        mutate(date_format = lubridate::as_date(date_format))%>%
+        mutate(date_format = lubridate::as_date(date_format)) %>%
         dplyr::select(date_format) -> local_files
 
       return(as.character(max(local_files$date_format))) # return the date of the latest file that was updated
