@@ -52,6 +52,9 @@ process_release_stable_data <- function(temp_directory = "data/temp/processed_da
 
     message("Checking raster metadata ", Sys.time())
 
+      raster_list |>
+        dplyr::filter(grepl(pattern = ".tif$",x = file_name)) -> raster_list
+
       terra::ext(rast(file.path(temp_directory,raster_list$file_name)))
       terra::res(rast(file.path(temp_directory,raster_list$file_name)))
       terra::crs(rast(file.path(temp_directory,raster_list$file_name)),proj=TRUE)
