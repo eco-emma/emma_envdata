@@ -183,7 +183,7 @@ list(
     tar_age(
       ndvi_dates_modis_release,
       get_release_ndvi_dates_modis(temp_directory = "data/temp/raw_data/ndvi_dates_modis/",
-                             tag = "raw_ndvi_dates_modis",
+                             repo_tag = "raw_ndvi_dates_modis",
                              domain = domain,
                              max_layers = 25,
                              sleep_time = 10),

@@ -42,7 +42,7 @@ get_integer_date <-function(img) {
 #' Probably not going to cause a problem, but worth noting out of caution.
 #'
 get_release_ndvi_dates_modis <- function(temp_directory = "data/temp/raw_data/ndvi_dates_modis/",
-                                         tag = "raw_ndvi_dates_modis",
+                                         repo_tag = "raw_ndvi_dates_modis",
                                          domain,
                                          max_layers = 50,
                                          sleep_time = 1) {
@@ -65,12 +65,12 @@ get_release_ndvi_dates_modis <- function(temp_directory = "data/temp/raw_data/nd
 
   #Create releases if needed
 
-    if(!tag %in% release_assetts$tag){
+    if(!repo_tag %in% release_assetts$tag){
 
       #Make sure there is a release by attempting to create one.  If it already exists, this will fail
 
       tryCatch(expr =   pb_new_release(repo = "AdamWilsonLab/emma_envdata",
-                                       tag =  tag),
+                                       tag =  repo_tag),
                error = function(e){message("Previous release found")})
 
     }
@@ -97,7 +97,7 @@ get_release_ndvi_dates_modis <- function(temp_directory = "data/temp/raw_data/nd
     #Get a list of files already released
 
     release_assetts %>%
-      dplyr::filter(tag == .GlobalEnv$tag) -> released_files
+      dplyr::filter(tag == repo_tag) -> released_files
 
     # released_files  <- pb_list(repo = "AdamWilsonLab/emma_envdata",
     #                            tag = tag)
@@ -207,7 +207,7 @@ get_release_ndvi_dates_modis <- function(temp_directory = "data/temp/raw_data/nd
 
           pb_upload(file = local_files$local_filename[i],
                     repo = "AdamWilsonLab/emma_envdata",
-                    tag = tag)
+                    tag = repo_tag)
 
         } # end i loop
 
