@@ -59,11 +59,21 @@ get_release_ndvi_dates_modis <- function(temp_directory = "data/temp/raw_data/nd
       dir.create(temp_directory, recursive = TRUE)
     }
 
-  #Make sure there is a release by attempting to create one.  If it already exists, this will fail
+  #Get release assetts
 
-    tryCatch(expr =   pb_new_release(repo = "AdamWilsonLab/emma_envdata",
-                                     tag =  tag),
-             error = function(e){message("Previous release found")})
+    release_assetts <- pb_list(repo = "AdamWilsonLab/emma_envdata")
+
+  #Create releases if needed
+
+    if(!tag %in% release_assetts$tag){
+
+      #Make sure there is a release by attempting to create one.  If it already exists, this will fail
+
+      tryCatch(expr =   pb_new_release(repo = "AdamWilsonLab/emma_envdata",
+                                       tag =  tag),
+               error = function(e){message("Previous release found")})
+
+    }
 
   #Initialize earth engine (for targets works better if called here)
 
@@ -86,8 +96,11 @@ get_release_ndvi_dates_modis <- function(temp_directory = "data/temp/raw_data/nd
 
     #Get a list of files already released
 
-    released_files  <- pb_list(repo = "AdamWilsonLab/emma_envdata",
-                               tag = tag)
+    release_assetts %>%
+      dplyr::filter(tag == .GlobalEnv$tag) -> released_files
+
+    # released_files  <- pb_list(repo = "AdamWilsonLab/emma_envdata",
+    #                            tag = tag)
 
     released_files$date <- gsub(pattern = ".tif",
                                 replacement = "",
