@@ -30,7 +30,49 @@ get_integer_date <-function(img) {
   day_values$add(daydiff)
 }
 
+#' @author Brian Maitner
+#' @description This is an internal function used to convert the ee date to the UNIX standard date. It is meant to be an R equivalent the the earth engine code above
+#' @note Ideally, this code is temporary and can be deleted or commented out once GEE fixes the problems with newer MODIS layers
+#' @note internal
+convert_integer_date_R <- function(temp_directory){
 
+  date_rasters <- list.files(temp_directory,pattern = ".tif$",full.names = TRUE)
+
+  if(length(date_rasters)==0){return(NULL)}
+
+    for(i in 1:length(date_rasters)){
+
+      # load raster
+       rast_i <- rast(date_rasters[i])
+
+      # get first day of year
+      year_start_date <-
+       date_rasters[i] %>%
+        strsplit(split = "/") %>%
+        as.data.frame() %>%
+        slice_tail(n = 1) %>%
+        gsub(pattern = ".tif",replacement = "") %>%
+        as_date() %>%
+        lubridate::floor_date(unit = "year") %>%
+        as.numeric()-1 #subtract one because there is no zeroth day of the year.
+
+
+  # Convert the raster to unix date
+      rast_i <-
+      rast_i %>%
+        mask(mask = rast_i>0,
+             maskvalue = 0,
+             updatevalue=NA,)+year_start_date
+
+  # save output
+
+      terra::writeRaster(x = rast_i,
+                         filename = date_rasters[i],overwrite=TRUE)
+
+    }#i loop
+
+
+}#interger date R function
 
 #' @author Brian Maitner, with tips from csaybar
 #' @description This code is designed to modify the MODIS "DayOfYear" band to a "days relative to Jan 01 1970" band to facilitate comparisons with fire data and across years.
@@ -90,7 +132,9 @@ get_release_ndvi_dates_modis <- function(temp_directory = "data/temp/raw_data/nd
 
   # convert date to UNIX standard (ie days from 1-1-1970)
 
-    ndvi_integer_dates <- modis_ndvi$map(get_integer_date)
+    #ndvi_integer_dates <- modis_ndvi$map(get_integer_date) # MODIS in GEE is currently broken and this causes an error on data 2-2-22 or later
+
+    ndvi_integer_dates <- modis_ndvi$select("DayOfYear") #comment this line out if the above is uncommented
 
   # Download to local
 
@@ -181,6 +225,14 @@ get_release_ndvi_dates_modis <- function(temp_directory = "data/temp/raw_data/nd
              error = function(e){message("Captured an error in rgee/earth engine processing of NDVI dates.")}
     )
 
+  # Convert the dates
+
+      #note that this section could be omitted if ndvi_integer_dates <- modis_ndvi$map(get_integer_date) is used
+
+      convert_integer_date_R(temp_directory = temp_directory)
+
+  # end date conversion
+
   # Push files to release
 
       # Get a list of the local files
@@ -188,6 +240,7 @@ get_release_ndvi_dates_modis <- function(temp_directory = "data/temp/raw_data/nd
       local_files <- data.frame(local_filename = list.files(path = temp_directory,
                                                             recursive = TRUE,
                                                             full.names = TRUE))
+
 
       # End if there are no new/updated files to release
 
