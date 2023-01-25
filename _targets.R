@@ -281,7 +281,7 @@ list(
                                                     temp_directory_output = "data/temp/processed_data/most_recent_burn_dates/",
                                                     sleep_time = 180,
                                                     sanbi_sf = sanbi_fires_shp,
-                                                    expiration_date = "2022-08-17",
+                                                    expiration_date = NULL,
                                                     ... = fire_doy_to_unix_date_release)
     ),
 
