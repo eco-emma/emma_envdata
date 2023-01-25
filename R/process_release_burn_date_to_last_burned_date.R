@@ -47,19 +47,6 @@ process_release_burn_date_to_last_burned_date <- function(input_tag = "processed
     }
 
 
-
-  #Make sure there is a release, create if needed
-
-    if(!output_tag %in% pb_assests$tag){
-
-      tryCatch(expr =   pb_new_release(repo = "AdamWilsonLab/emma_envdata",
-                                       tag =  output_tag),
-               error = function(e){message("Previous release found")})
-
-      Sys.sleep(sleep_time) #We need to limit our rate in order to keep Github happy
-
-    }
-
   # get files
 
     input_files  <-  pb_assests %>%
