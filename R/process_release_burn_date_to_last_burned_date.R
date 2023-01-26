@@ -11,6 +11,7 @@ library(fasterize)
 #' @description This function converts rasters containing burn dates (in UNIX date format) to rasters containing the most recent burn date (also in UNIX format)
 #' @param sanbi_sf The SANBI fire polygons, loaded as an sf object. Ignored if NUL
 #' @param expiration_date If supplied as a date, layers processed before this will be re-processed.  Ignored if NULL.  If specifying, should be "yyyy-mm-dd" format.
+#' @note As currently written, layers AFTER the expiration date won't be processed.  In other words, it should be set temporarily and then set back to NULL if a refresh of layers is needed. Or Brian should improve the code.
 
 process_release_burn_date_to_last_burned_date <- function(input_tag = "processed_fire_dates",
                                                           output_tag = "processed_most_recent_burn_dates",
