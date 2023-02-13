@@ -41,3 +41,6 @@ data/other_data/
 #*/meta
 img/network.html
 img/network*
+scratch_code/*.json
+scratch_code/!*.json.gpg
+
