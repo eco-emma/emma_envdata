@@ -6,8 +6,6 @@
 # This code was written to work with a particular docker instance, to set it up (modifying your directory accordingly):
 # docker run -d -e DISABLE_AUTH=true -p 8787:8787 -v C:/Users/"Brian Maitner"/Desktop/current_projects/emma_envdata:/home/rstudio/emma_envdata adamwilsonlab/emma:latest
 
-#the code below would be more useful (wouldn't require the change in wd), but causes problem for installation
-## docker run -d -e DISABLE_AUTH=true -p 8787:8787 -v C:/Users/"Brian Maitner"/Desktop/current_projects/emma_envdata:/home/rstudio adamwilsonlab/emma_docker:latest
 
 # Code to ensure the directory in docker matches the directory in the github project in rstudio
 if(getwd() == "/home/rstudio"){setwd("/home/rstudio/emma_envdata/")}
@@ -20,11 +18,10 @@ if(getwd() == "/home/rstudio"){setwd("/home/rstudio/emma_envdata/")}
 library(rgee)
 library(targets)
 
-#Initialize rgee
-ee_Initialize(drive = TRUE)
+library(remotes)
+install_github("r-spatial/rgee")
 
-#If we need to extract values, use exactextractor
-library(exactextractr)
+#Note!! For setting up rgee the first time (on an interactive docker instance), see the file "auth_on_server.R"
 
 # source all files in R folder
 lapply(list.files("R",pattern="[.]R",full.names = T), source)
@@ -32,20 +29,30 @@ lapply(list.files("R",pattern="[.]R",full.names = T), source)
 
 #For updating github credentials
 
+#drive_auth(path = "/path/to/your/service-account-token.json")
+library(googledrive)
+googledrive::drive_deauth()
+
+googledrive::drive_auth(path = "scratch_code/maitner-f590bfc7be54.json")
+
+################################
+# Setting up encrypted credentials: see https://docs.github.com/en/enterprise-server@3.5/actions/security-guides/encrypted-secrets
+
+  # Encrypting
+
+    # $gpg --symmetric --cipher-algo AES256 my_secret.json
+
+  # Decrypting
+
+    # $gpg --quiet --batch --yes --decrypt --passphrase="SecretPhrase" --output my_secret.json my_secret.json.gpg
+
+
 
 ################################################################################
 
 # Notes:
 
-# Have single-file scripts return directory names instead of NULL
-
-# Figure out bug in ee_imagecollection_to_local causing it to omit file names and just give things the extensions
-
-# Note: should update code that processes unix date into most recent burn to optionally take in the SA burn polygons
-
-# add polygon data to modis fire product
-
-# add a function to remove the files from the rgee backup folder
+# https://lpdaac.usgs.gov/products/vnp64a1v001/ VIIRS fire data is forthcoming but not available yet
 
 #https://books.ropensci.org/targets/walkthrough.html
 
@@ -56,8 +63,20 @@ lapply(list.files("R",pattern="[.]R",full.names = T), source)
 library(targets)
 library(rgee)
 
-ee_install()
-ee_Initialize()
+#?#curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-415.0.0-linux-x86_64.tar.gz
+
+  #tar -xf google-cloud-cli-415.0.0-linux-x86.tar.gz
+
+  #./google-cloud-sdk/install.sh
+
+ee_clean_pyenv()
+rgee::ee_install()
+rgee::ee_install_upgrade()
+rgee::ee_Initialize()
+
+ee_users()
+ee_clean_credentials("ndef")
+
 
 # Inspect the pipeline
   tar_manifest()
@@ -95,6 +114,9 @@ webshot::webshot(url = "scratch_code/current_network.html",
 #
   gitcreds::gitcreds_set()
 
+
+
+
 library(arrow)
 # Example code for working with arrow library
 
@@ -112,6 +134,16 @@ x  %>%
   collect()
 
 gitcreds::gitcreds_set()
+
+#############################
+#Whats in the repo?
+
+all_releases <- pb_list("AdamWilsonLab/emma_envdata")
+
+all_releases %>%
+  group_by(tag)%>%
+  summarize(n=n())
+
 
 
 #######################
