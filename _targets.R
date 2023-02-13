@@ -102,7 +102,6 @@ list(
     age = as.difftime(58, units = "weeks")
   ),
 
-
   tar_age(
     landcover_za_release,
     get_release_landcover_za(temp_directory = "data/temp/raw_data/landcover_za/",
@@ -127,7 +126,6 @@ list(
     age = as.difftime(64, units = "weeks")
   ),
 
-
 # # # Frequent updates via releases
 
       tar_age(
@@ -137,10 +135,9 @@ list(
                                domain = domain,
                                max_layers = 25,
                                sleep_time = 5),
-        #age = as.difftime(7, units = "days")
+        age = as.difftime(7, units = "days")
         #age = as.difftime(1, units = "days")
-        age = as.difftime(0, units = "hours")
-
+        #age = as.difftime(0, units = "hours")
       ),
 
       tar_age(
@@ -150,9 +147,9 @@ list(
                                domain = domain,
                                max_layers = 25,
                                sleep_time = 5),
-        #age = as.difftime(7, units = "days")
+        age = as.difftime(7, units = "days")
         #age = as.difftime(1, units = "days")
-        age = as.difftime(0, units = "hours")
+        #age = as.difftime(0, units = "hours")
     ),
 
     tar_age(
@@ -162,9 +159,9 @@ list(
                               domain = domain,
                               max_layers = 25,
                              sleep_time = 5),
-      #age = as.difftime(7, units = "days")
+      age = as.difftime(7, units = "days")
       #age = as.difftime(1, units = "days")
-      age = as.difftime(0, units = "hours")
+      #age = as.difftime(0, units = "hours")
     ),
 
     tar_age(
@@ -174,9 +171,9 @@ list(
                              domain,
                              max_layers = 10,
                              sleep_time = 30),
-      #age = as.difftime(7, units = "days")
+      age = as.difftime(7, units = "days")
       #age = as.difftime(1, units = "days")
-      age = as.difftime(0, units = "hours")
+      #age = as.difftime(0, units = "hours")
     ),
 
 
@@ -187,9 +184,9 @@ list(
                              domain = domain,
                              max_layers = 25,
                              sleep_time = 10),
-      #age = as.difftime(7, units = "days")
+      age = as.difftime(7, units = "days")
       #age = as.difftime(1, units = "days")
-      age = as.difftime(0, units = "hours")
+      #age = as.difftime(0, units = "hours")
     ),
 
     tar_age(
@@ -199,9 +196,9 @@ list(
                                    domain = domain,
                                    max_layers = 5,
                                    sleep_time = 30),
-      #age = as.difftime(7, units = "days")
+      age = as.difftime(7, units = "days")
       #age = as.difftime(1, units = "days")
-      age = as.difftime(0, units = "hours")
+      #age = as.difftime(0, units = "hours")
     ),
 
 # # # Fixing projection via releases
@@ -334,7 +331,6 @@ list(
                              sleep_time = 60,
                              ... = alos_release)
       ),
-
 
       tar_target(
         projected_climate_chelsa_release,
