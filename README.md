@@ -43,7 +43,7 @@ Github releases with the tag “current”.
 
 ## Runtime and frequency
 
-Github places some constrains on actions, including memory limits and
+Github places some constraints on actions, including memory limits and
 run time limits. To prevent this workflow from taking too long to run
 (and thereby losing all progress), there are a few key parameters that
 can be changed. In the \_targets.R file, the argument “max_layers”
