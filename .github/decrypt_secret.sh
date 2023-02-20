@@ -39,16 +39,15 @@ gpg --quiet --batch --yes --decrypt --passphrase="$RGEE_SECRET" \
 
 echo " gd1 "
 
-gpg --quiet --batch --yes --decrypt --passphrase="$GD_SECRET" \
+gpg --batch --yes --decrypt --passphrase="$GD_SECRET" \
 --output /home/rstudio/.config/earthengine/ndef/maitner-f590bfc7be54.json ./scratch_code/maitner-f590bfc7be54.json.gpg
 
 echo " gd2 "
 
-gpg --quiet --batch --yes --decrypt --passphrase="$GD_SECRET" \
+gpg --batch --yes --decrypt --passphrase="$GD_SECRET" \
 --output $HOME/.config/earthengine/ndef/maitner-f590bfc7be54.json ./scratch_code/maitner-f590bfc7be54.json.gpg
 
 echo " gd3 "
 
-
-gpg --quiet --batch --yes --decrypt --passphrase="$GD_SECRET" \
---output $HOME/.config/earthengine/ndef/maitner-f590bfc7be54.json ./scratch_code/maitner-f590bfc7be54.json.gpg
+gpg --batch --yes --decrypt --passphrase="$GD_SECRET" \
+--output ./scratch_code/maitner-f590bfc7be54.json ./scratch_code/maitner-f590bfc7be54.json.gpg
