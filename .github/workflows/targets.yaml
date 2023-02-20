@@ -128,6 +128,13 @@ jobs:
         env:
           RGEE_SECRET: ${{ secrets.RGEE_SECRET }}
         continue-on-error: true
+      - name: Verify GD credentials
+        run: |
+          ./.github/decrypt_secret_gd.sh
+          ls ~/.config/earthengine
+        env:
+          GD_SECRET: ${{ secrets.GD_SECRET }}
+        continue-on-error: true
 #      - name: check on files
 #        run: |
 #          file data/raw_data/ndvi_modis/2021_12_19.tif
