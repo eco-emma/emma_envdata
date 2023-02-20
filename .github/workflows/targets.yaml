@@ -125,7 +125,8 @@ jobs:
           ./.github/decrypt_secret.sh
           ls ~/.config/earthengine
           earthengine -h
-          ls ~/emma_envdata/scratch_code
+          echo " main dir"
+          ls
           Rscript -e "googledrive::drive_auth(path = "scratch_code/maitner_creds2.json")"
         env:
           RGEE_SECRET: ${{ secrets.RGEE_SECRET }}
