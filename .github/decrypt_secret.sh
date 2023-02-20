@@ -8,7 +8,6 @@ mkdir -p /home/rstudio/.config/earthengine/ndef/
 
 mkdir -p /github/home/config/earthengine
 
-
 # --batch to prevent interactive command
 # --yes to assume "yes" for questions
 
@@ -36,10 +35,12 @@ gpg --quiet --batch --yes --decrypt --passphrase="$RGEE_SECRET" \
 --output /home/rstudio/.config/earthengine/ndef/20061abcbc1c6ecf51bd9cf7e37350f6_bmaitner@gmail.com ./scratch_code/20061abcbc1c6ecf51bd9cf7e37350f6_bmaitner@gmail.com.gpg
 
 # Decrypt google drive credentials (newer version)
-gpg --quiet --batch --yes --decrypt --passphrase="$RGEE_SECRET" \
+gpg --quiet --batch --yes --decrypt --passphrase="$GD_SECRET" \
 --output /home/rstudio/.config/earthengine/ndef/maitner-f590bfc7be54.json ./scratch_code/maitner-f590bfc7be54.json.gpg
 
-gpg --quiet --batch --yes --decrypt --passphrase="$RGEE_SECRET" \
+gpg --quiet --batch --yes --decrypt --passphrase="$GD_SECRET" \
 --output $HOME/.config/earthengine/ndef/maitner-f590bfc7be54.json ./scratch_code/maitner-f590bfc7be54.json.gpg
 
+gpg --quiet --batch --yes --decrypt --passphrase="$GD_SECRET" \
+--output $HOME/.config/earthengine/ndef/maitner-f590bfc7be54.json ./scratch_code/maitner-f590bfc7be54.json.gpg
 
