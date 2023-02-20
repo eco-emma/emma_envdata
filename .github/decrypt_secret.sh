@@ -35,9 +35,9 @@ gpg --quiet --batch --yes --decrypt --passphrase="$RGEE_SECRET" \
 gpg --quiet --batch --yes --decrypt --passphrase="$RGEE_SECRET" \
 --output /home/rstudio/.config/earthengine/ndef/20061abcbc1c6ecf51bd9cf7e37350f6_bmaitner@gmail.com ./scratch_code/20061abcbc1c6ecf51bd9cf7e37350f6_bmaitner@gmail.com.gpg
 
-# Decrypt google drive credentials
+# Decrypt google drive credentials (newer version)
 gpg --quiet --batch --yes --decrypt --passphrase="$RGEE_SECRET" \
---output ./scratch_code/maitner-f590bfc7be54.json.gpg ./scratch_code/maitner-f590bfc7be54.json.gpg
+--output ./scratch_code/maitner-f590bfc7be54.json ./scratch_code/maitner-f590bfc7be54.json.gpg
 
 
 
