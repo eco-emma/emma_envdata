@@ -51,3 +51,16 @@ echo " gd3 "
 
 gpg --batch --yes --decrypt --passphrase="$GD_SECRET" \
 --output ./scratch_code/maitner-f590bfc7be54.json ./scratch_code/maitner-f590bfc7be54.json.gpg
+
+
+
+# Decrypt test
+
+echo " test 1 "
+gpg --batch --yes --decrypt --passphrase="$TEST" \
+--output ./scratch_code/output.json ./scratch_code/output.json.gpg
+
+echo " test 2 "
+
+gpg --batch --yes --decrypt --passphrase="test" \
+--output ./scratch_code/output2.json ./scratch_code/output.json.gpg
