@@ -128,7 +128,7 @@ jobs:
         env:
           RGEE_SECRET: ${{ secrets.RGEE_SECRET }}
           GD_SECRET: ${{ secrets.GD_SECRET }}
-          GD_SECRET: ${{ secrets.TEST }}
+          TEST: ${{ secrets.TEST }}
         continue-on-error: true
       - name: Verify GD credentials
         run: |
