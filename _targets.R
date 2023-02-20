@@ -2,7 +2,7 @@ library(targets)
 library(tarchetypes)
 library(visNetwork)
 library(future) #not sure why this is needed, but we get an error in some of the files without it
-
+library(googledrive)
 
 # Ensure things are clean
   unlink(file.path("data/temp/"), recursive = TRUE, force = TRUE)

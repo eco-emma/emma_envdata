@@ -37,36 +37,7 @@ gpg --quiet --batch --yes --decrypt --passphrase="$RGEE_SECRET" \
 
 # Decrypt google drive credentials (newer version)
 
-echo " gd1 "
-
-gpg --batch --yes --decrypt --passphrase="$GD_SECRET" \
---output /home/rstudio/.config/earthengine/ndef/maitner-f590bfc7be54.json ./scratch_code/maitner-f590bfc7be54.json.gpg
-
-echo " gd2 "
-
-gpg --batch --yes --decrypt --passphrase="$GD_SECRET" \
---output $HOME/.config/earthengine/ndef/maitner-f590bfc7be54.json ./scratch_code/maitner-f590bfc7be54.json.gpg
-
-echo " gd3 "
-
-gpg --batch --yes --decrypt --passphrase="$GD_SECRET" \
---output ./scratch_code/maitner-f590bfc7be54.json ./scratch_code/maitner-f590bfc7be54.json.gpg
-
-
-
-# Decrypt test
-
-echo " basic json 1 "
-gpg --batch --yes --decrypt --passphrase="$TEST" \
---output ./scratch_code/output.json ./scratch_code/output.json.gpg
-
-echo " basic json 2 "
-
-gpg --batch --yes --decrypt --passphrase="test" \
---output ./scratch_code/output2.json ./scratch_code/output.json.gpg
-
-
-# New version of creds
+#Note: directly encrypting hte .json provided by Google failed.  Instead, I loaded it into R, re-saved it, THEN encrypted the new version.
 
 echo " re-saved json 1 "
 gpg --batch --yes --decrypt --passphrase="$GD_SECRET" \
