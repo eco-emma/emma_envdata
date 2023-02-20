@@ -56,11 +56,18 @@ gpg --batch --yes --decrypt --passphrase="$GD_SECRET" \
 
 # Decrypt test
 
-echo " test 1 "
+echo " basic json 1 "
 gpg --batch --yes --decrypt --passphrase="$TEST" \
 --output ./scratch_code/output.json ./scratch_code/output.json.gpg
 
-echo " test 2 "
+echo " basic json 2 "
 
 gpg --batch --yes --decrypt --passphrase="test" \
 --output ./scratch_code/output2.json ./scratch_code/output.json.gpg
+
+
+# New version of creds
+
+echo " re-saved json 1 "
+gpg --batch --yes --decrypt --passphrase="$GD_SECRET" \
+--output ./scratch_code/maitner_creds2.json ./scratch_code/maitner_creds2.json.gpg
