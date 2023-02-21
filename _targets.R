@@ -135,9 +135,9 @@ list(
                                domain = domain,
                                max_layers = 25,
                                sleep_time = 5),
-        age = as.difftime(7, units = "days")
+        #age = as.difftime(7, units = "days")
         #age = as.difftime(1, units = "days")
-        #age = as.difftime(0, units = "hours")
+        age = as.difftime(0, units = "hours")
       ),
 
       tar_age(
@@ -147,9 +147,9 @@ list(
                                domain = domain,
                                max_layers = 25,
                                sleep_time = 5),
-        age = as.difftime(7, units = "days")
+        #age = as.difftime(7, units = "days")
         #age = as.difftime(1, units = "days")
-        #age = as.difftime(0, units = "hours")
+        age = as.difftime(0, units = "hours")
     ),
 
     tar_age(
@@ -159,9 +159,9 @@ list(
                               domain = domain,
                               max_layers = 25,
                              sleep_time = 5),
-      age = as.difftime(7, units = "days")
+      #age = as.difftime(7, units = "days")
       #age = as.difftime(1, units = "days")
-      #age = as.difftime(0, units = "hours")
+      age = as.difftime(0, units = "hours")
     ),
 
     tar_age(
