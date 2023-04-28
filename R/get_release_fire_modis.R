@@ -58,7 +58,8 @@ get_release_fire_modis <- function(temp_directory = "data/temp/raw_data/fire_mod
                                    tag = "raw_fire_modis",
                                    domain,
                                    max_layers = 50,
-                                   sleep_time = 1) {
+                                   sleep_time = 1,
+                                   json_token) {
 
   #  #Ensure directory is empty if it exists
 
@@ -80,7 +81,7 @@ get_release_fire_modis <- function(temp_directory = "data/temp/raw_data/fire_mod
 
 
   # Initialize earth engine (for targets works better if called here)
-    ee_Initialize()
+    #ee_Initialize()
 
   # Load ee image collection
 
@@ -161,7 +162,8 @@ get_release_fire_modis <- function(temp_directory = "data/temp/raw_data/fire_mod
 
     ee_imagecollection_to_local(ic = fire_new_and_clean,
                                 region = domain,
-                                dsn = temp_directory)
+                                dsn = temp_directory,
+                                drive_cred_path = json_token)
 
 
     #Push files to release

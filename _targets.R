@@ -152,7 +152,8 @@ list(
                                tag = "raw_fire_modis",
                                domain = domain,
                                max_layers = 25,
-                               sleep_time = 5),
+                               sleep_time = 5,
+                               json_token = json_token),
         age = as.difftime(7, units = "days")
         #age = as.difftime(1, units = "days")
         #age = as.difftime(0, units = "hours")
@@ -177,7 +178,8 @@ list(
                               tag = "raw_ndvi_modis",
                               domain = domain,
                               max_layers = 25,
-                             sleep_time = 5),
+                             sleep_time = 5,
+                             json_token = json_token),
       #age = as.difftime(7, units = "days")
       #age = as.difftime(1, units = "days")
       age = as.difftime(0, units = "hours")
@@ -203,7 +205,8 @@ list(
                              repo_tag = "raw_ndvi_dates_modis",
                              domain = domain,
                              max_layers = 25,
-                             sleep_time = 10),
+                             sleep_time = 10,
+                             json_token = json_token),
       age = as.difftime(7, units = "days")
       #age = as.difftime(1, units = "days")
       #age = as.difftime(0, units = "hours")
