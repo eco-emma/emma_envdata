@@ -19,10 +19,28 @@ tar_option_set(packages = c("cmdstanr", "posterior", "bayesplot", "tidyverse",
                             "stringr","knitr","sf","stars","units",
                             "cubelyr","rgee"))
 
+#set JSON token location (should be authorized for drive and earth engine)
+json_token <- "secrets/ee-wilsonlab-emma-2fe07b3504b8.json"
+
 # ee authentication
 if(T) {
+
   library(rgee)
-  ee$Initialize()
+  #Initializing with service account key
+
+  service_account <- jsonlite::read_json(json_token)$client_email
+  credentials <- ee$ServiceAccountCredentials(service_account, json_token)
+  ee$Initialize(credentials = credentials)
+
+  #Setting up needed objects for rgee
+
+  ee_Initialize(drive = TRUE,
+                gcs = FALSE,
+                use_oob = FALSE,
+                drive_cred_path = json_token,
+                gcs_cred_path = json_token,
+                ee_cred_path = json_token)
+
 }
 
 
@@ -146,7 +164,8 @@ list(
                                tag = "raw_kndvi_modis",
                                domain = domain,
                                max_layers = 25,
-                               sleep_time = 5),
+                               sleep_time = 5,
+                               json_token = json_token),
         #age = as.difftime(7, units = "days")
         #age = as.difftime(1, units = "days")
         age = as.difftime(0, units = "hours")
@@ -170,7 +189,8 @@ list(
                              tag = "raw_ndvi_viirs",
                              domain,
                              max_layers = 10,
-                             sleep_time = 30),
+                             sleep_time = 30,
+                             json_token = json_token),
       age = as.difftime(7, units = "days")
       #age = as.difftime(1, units = "days")
       #age = as.difftime(0, units = "hours")
@@ -195,7 +215,8 @@ list(
                                    tag = "raw_ndvi_dates_viirs",
                                    domain = domain,
                                    max_layers = 5,
-                                   sleep_time = 30),
+                                   sleep_time = 30,
+                                   json_token = json_token),
       age = as.difftime(7, units = "days")
       #age = as.difftime(1, units = "days")
       #age = as.difftime(0, units = "hours")

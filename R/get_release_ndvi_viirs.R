@@ -14,7 +14,8 @@ get_release_ndvi_viirs <- function(temp_directory = "data/temp/raw_data/ndvi_vii
                                    tag = "raw_ndvi_viirs",
                                    domain,
                                    max_layers = 50,
-                                   sleep_time = 1) {
+                                   sleep_time = 1,
+                                   json_token) {
 
   #  #Ensure directory is empty if it exists
 
@@ -47,7 +48,7 @@ get_release_ndvi_viirs <- function(temp_directory = "data/temp/raw_data/ndvi_vii
     }
 
   #Initialize earth engine (for targets works better if called here)
-    ee_Initialize()
+    #ee_Initialize()
 
   # Load the image collection
     viirs_ndvi <- ee$ImageCollection("NOAA/VIIRS/001/VNP13A1") #500 m v 6.1
@@ -179,7 +180,8 @@ get_release_ndvi_viirs <- function(temp_directory = "data/temp/raw_data/ndvi_vii
                ee_imagecollection_to_local(ic = ndvi_clean_and_new,
                                            region = domain,
                                            dsn = temp_directory,
-                                           formatOptions = c(cloudOptimized = true)
+                                           formatOptions = c(cloudOptimized = true),
+                                           drive_cred_path = json_token
                                            #,scale = 463.3127
                                            ),
              error = function(e){message("Captured an error in rgee/earth engine processing of NDVI.")}

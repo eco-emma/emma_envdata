@@ -47,7 +47,8 @@ get_release_ndvi_dates_viirs <- function(temp_directory = "data/temp/raw_data/nd
                                          tag = "raw_ndvi_dates_viirs",
                                          domain,
                                          max_layers = 50,
-                                         sleep_time = 1) {
+                                         sleep_time = 1,
+                                         json_token) {
 
   # clean out directory if it exists
 
@@ -79,7 +80,7 @@ get_release_ndvi_dates_viirs <- function(temp_directory = "data/temp/raw_data/nd
 
   #Initialize earth engine (for targets works better if called here)
 
-    ee_Initialize()
+    #ee_Initialize()
 
   # Load the collection
 
@@ -181,7 +182,8 @@ get_release_ndvi_dates_viirs <- function(temp_directory = "data/temp/raw_data/nd
     tryCatch(expr =
                ee_imagecollection_to_local(ic = ndvi_integer_dates_new,
                                            region = domain,
-                                           dsn = temp_directory),
+                                           dsn = temp_directory,
+                                           drive_cred_path = json_token),
              error = function(e){message("Captured an error in rgee/earth engine processing of VIIRS NDVI dates.")}
     )
 

@@ -47,7 +47,7 @@ get_release_ndvi_modis <- function(temp_directory = "data/temp/raw_data/ndvi_mod
     }
 
   #Initialize earth engine (for targets works better if called here)
-    ee_Initialize()
+    #ee_Initialize()
 
   # Load the image collection
     #modis_ndvi <- ee$ImageCollection("MODIS/006/MOD13A1") #500 m

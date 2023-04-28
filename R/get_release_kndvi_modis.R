@@ -14,7 +14,8 @@ get_release_kndvi_modis <- function(temp_directory = "data/temp/raw_data/kndvi_m
                                     tag = "raw_kndvi_modis",
                                     domain,
                                     max_layers = 50,
-                                    sleep_time = 1) {
+                                    sleep_time = 1,
+                                    json_token) {
 
 
   #  #Ensure directory is empty if it exists
@@ -40,7 +41,7 @@ get_release_kndvi_modis <- function(temp_directory = "data/temp/raw_data/kndvi_m
 
   #Initialize earth engine (for targets works better if called here)
 
-    ee_Initialize()
+    #ee_Initialize() #commenting this out since it wipes out manually added credentials
 
   # Load the image collection
 
@@ -212,7 +213,8 @@ get_release_kndvi_modis <- function(temp_directory = "data/temp/raw_data/kndvi_m
   tryCatch(expr = ee_imagecollection_to_local(ic = kndvi_clean_and_new,
                                               region = domain,
                                               dsn = temp_directory,
-                                              formatOptions = c(cloudOptimized = true)), #not sure the cloudOptimized is specified correctly
+                                              formatOptions = c(cloudOptimized = true),
+                                              drive_cred_path = json_token), #not sure the cloudOptimized is specified correctly
            error = function(e){
              message("\ Captured an error in rgee/earth engine processing of KNDVI.")
              }
