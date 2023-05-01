@@ -43,4 +43,6 @@ img/network.html
 img/network*
 scratch_code/*.json
 scratch_code/!*.json.gpg
-
+.secrets
+secrets
+debugging_auth.R
