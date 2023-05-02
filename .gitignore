@@ -47,4 +47,5 @@ scratch_code/!*.json.gpg
 secrets
 secrets/
 secrets/*
+secrets/*.json
 debugging_auth.R
