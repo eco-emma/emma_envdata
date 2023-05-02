@@ -47,8 +47,7 @@ get_release_climate_chelsa <- function(temp_directory = "data/temp/raw_data/clim
 
   domain_tf <-
     domain %>%
-      st_transform(crs("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")@projargs)
-
+      sf::st_transform(crs("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
 
   # Download the data
   # Note that it would be useful to clip these to a polygon to save space
