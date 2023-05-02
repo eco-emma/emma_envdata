@@ -48,4 +48,5 @@ secrets
 secrets/
 secrets/*
 secrets/*.json
+scratch_code/!*.json.gpg
 debugging_auth.R
