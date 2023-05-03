@@ -44,7 +44,7 @@ gpg --quiet --batch --yes --decrypt --passphrase="$RGEE_SECRET" \
 echo " json token "
 
 gpg --batch --yes --decrypt --passphrase="$RGEE_SECRET" \
---output ./secrets/ee-wilsonlab-emma-e7d8f39311f1.json ./scratch_code/ee-wilsonlab-emma-e7d8f39311f1.json.gpg
+--output ./secrets/ee-wilsonlab-emma-ef416058504a.json ./scratch_code/ee-wilsonlab-emma-ef416058504a.json.gpg
 
 #Encrypting
 
