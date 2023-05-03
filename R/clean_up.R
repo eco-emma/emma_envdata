@@ -7,11 +7,12 @@ clean_up <- function(){
 
   #ee_Initialize()
 
-  tryCatch(expr = ee_clean_container(name = "rgee_backup",
-                                     type = "drive",
-                                     quiet = TRUE),
-           error=function(e){message("No rgee backup to delete")}
-           )
+  #clean up google drive
+    tryCatch(expr = ee_clean_container(name = "rgee_backup",
+                                       type = "drive",
+                                       quiet = TRUE),
+             error=function(e){message("No rgee backup to delete")}
+             )
 
 
 }
