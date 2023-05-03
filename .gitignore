@@ -50,3 +50,4 @@ secrets/*
 secrets/*.json
 secrets/!*.json.gpg
 debugging_auth.R
+*.json
