@@ -20,7 +20,7 @@ tar_option_set(packages = c("cmdstanr", "posterior", "bayesplot", "tidyverse",
                             "cubelyr","rgee"))
 
 #set JSON token location (should be authorized for drive and earth engine)
-json_token <- "secrets/ee-wilsonlab-emma-e7d8f39311f1.json"
+json_token <- "secrets/ee-wilsonlab-emma-ef416058504a.json"
 
 # ee authentication
 if(T) {
