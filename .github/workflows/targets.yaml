@@ -135,11 +135,6 @@ jobs:
           RGEE_SECRET: ${{ secrets.RGEE_SECRET }}
           GD_SECRET: ${{ secrets.GD_SECRET }}
         continue-on-error: true
-#      - name: check on files
-#        run: |
-#          file data/raw_data/ndvi_modis/2021_12_19.tif
-#          file data/raw_data/ndvi_modis/2022_01_01.tif
-#        continue-on-error: true
       - name: Install custom rgee
         run: |
           devtools::install_github(repo = "bmaitner/rgee",
@@ -179,8 +174,8 @@ jobs:
           git lfs track _targets/metadata/* #track metadata
           git lfs track *.tif
           git add .gitattributes
-          git add --all -- ':!renv'
-          for file in $(git ls-files -mo --exclude=renv)
+          git add --all -- ':!renv' ':!*json'
+          for file in $(git ls-files ':!*.json' -mo --exclude=renv)
           do
             git add -f $file
           done
