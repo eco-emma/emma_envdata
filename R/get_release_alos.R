@@ -8,7 +8,8 @@
 #' @param dir directory to save data in
 #' @param domain domain (sf polygon) used for masking
 #' @note This code is only designed to work with a handful of images by CSP/ERGo
-get_alos_data <- function(image_text, dir, domain){
+get_alos_data <- function(image_text, dir, domain,
+                          json_token){
 
   #Load the image
 
@@ -32,7 +33,8 @@ get_alos_data <- function(image_text, dir, domain){
                region = domain,
                #scale = 100, #used to adjust the scale. commenting out uses the default
                dsn = file.path(dir,focal_name),
-               maxPixels = 10000000000)
+               maxPixels = 10000000000,
+               drive_cred_path = json_token)
 
 
 }# end function
@@ -43,7 +45,10 @@ get_alos_data <- function(image_text, dir, domain){
 #' @param domain domain (sf polygon) used for masking
 #' @param temp_directory Where to save the files, defaults to "data/raw_data/alos/"
 #' @param tag tag for the release you want the data stored in
-get_release_alos <- function(temp_directory = "data/temp/raw_data/alos/", tag = "raw_static", domain){
+get_release_alos <- function(temp_directory = "data/temp/raw_data/alos/",
+                             tag = "raw_static",
+                             domain,
+                             json_token){
 
   #make a directory if one doesn't exist yet
 
@@ -61,7 +66,7 @@ get_release_alos <- function(temp_directory = "data/temp/raw_data/alos/", tag = 
 
   #Initialize earth engine (for targets works better if called here)
 
-    ee_Initialize()
+    #ee_Initialize()
 
   # Get files that have been downloaded
 
@@ -74,7 +79,8 @@ get_release_alos <- function(temp_directory = "data/temp/raw_data/alos/", tag = 
 
       get_alos_data(image_text = "CSP/ERGo/1_0/Global/ALOS_mTPI",
                     dir = temp_directory,
-                    domain = domain)
+                    domain = domain,
+                    json_token = json_token)
 
     }
 
@@ -93,7 +99,8 @@ get_release_alos <- function(temp_directory = "data/temp/raw_data/alos/", tag = 
 
       get_alos_data(image_text = "CSP/ERGo/1_0/Global/ALOS_CHILI",
                     dir = temp_directory,
-                    domain = domain)
+                    domain = domain,
+                    json_token = json_token)
 
     }
 
@@ -111,7 +118,8 @@ get_release_alos <- function(temp_directory = "data/temp/raw_data/alos/", tag = 
     if(!length(grep(pattern = "landforms",x = alos_files)) > 0){
       get_alos_data(image_text = 'CSP/ERGo/1_0/Global/ALOS_landforms',
                     dir = temp_directory,
-                    domain = domain)
+                    domain = domain,
+                    json_token = json_token)
     }
 
         # release
@@ -128,7 +136,8 @@ get_release_alos <- function(temp_directory = "data/temp/raw_data/alos/", tag = 
     if(!length(grep(pattern = "topographic",x = alos_files)) > 0){
       get_alos_data(image_text = 'CSP/ERGo/1_0/Global/ALOS_topoDiversity',
                     dir = temp_directory,
-                    domain = domain)
+                    domain = domain,
+                    json_token = json_token)
     }
 
         # release

@@ -89,7 +89,8 @@ list(
     alos_release,
     get_release_alos(temp_directory = "data/temp/raw_data/alos/",
                      tag = "raw_static",
-                     domain = domain),
+                     domain = domain,
+                     json_token),
 
     age = as.difftime(52, units = "weeks")
   ),
