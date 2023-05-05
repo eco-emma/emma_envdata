@@ -112,14 +112,14 @@ list(
                               sleep_time = 180)
     ),
 
-  # tar_age(
-  #   elevation_nasadem_release,
-  #   get_release_elevation_nasadem(temp_directory = "data/temp/raw_data/elevation_nasadem/",
-  #                                 tag = "raw_static",
-  #                                 domain),
-  #   age = as.difftime(58, units = "weeks")
-  # ),
-  #
+  tar_age(
+    elevation_nasadem_release,
+    get_release_elevation_nasadem(temp_directory = "data/temp/raw_data/elevation_nasadem/",
+                                  tag = "raw_static",
+                                  domain),
+    age = as.difftime(58, units = "weeks")
+  ),
+
   # tar_age(
   #   landcover_za_release,
   #   get_release_landcover_za(temp_directory = "data/temp/raw_data/landcover_za/",
