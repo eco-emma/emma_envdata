@@ -120,13 +120,13 @@ list(
     age = as.difftime(58, units = "weeks")
   ),
 
-  # tar_age(
-  #   landcover_za_release,
-  #   get_release_landcover_za(temp_directory = "data/temp/raw_data/landcover_za/",
-  #                            tag = "raw_static",
-  #                            domain = domain),
-  #   age = as.difftime(60, units = "weeks")
-  # ),
+  tar_age(
+    landcover_za_release,
+    get_release_landcover_za(temp_directory = "data/temp/raw_data/landcover_za/",
+                             tag = "raw_static",
+                             domain = domain),
+    age = as.difftime(60, units = "weeks")
+  ),
 
   tar_age(
     precipitation_chelsa_release,
@@ -136,13 +136,12 @@ list(
     age = as.difftime(62, units = "weeks")
   ),
 
-  # tar_age(
-  #   soil_gcfr_release,
-  #   get_release_soil_gcfr(temp_directory = "data/temp/raw_data/soil_gcfr/",
-  #                         tag = "raw_static",
-  #                         domain),
-  #   age = as.difftime(64, units = "weeks")
-  # ),
+  tar_target(
+    soil_gcfr_release,
+    get_release_soil_gcfr(temp_directory = "data/temp/raw_data/soil_gcfr/",
+                          tag = "raw_static",
+                          domain)
+  ),
 
 # # # Frequent updates via releases
 
