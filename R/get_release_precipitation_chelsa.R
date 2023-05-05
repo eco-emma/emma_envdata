@@ -35,7 +35,7 @@ get_release_precipitation_chelsa <- function(temp_directory = "data/temp/raw_dat
 
   domain_tf <-
     domain %>%
-    st_transform(crs("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")@projargs)
+    st_transform(crs("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
 
 
   #Download the data
