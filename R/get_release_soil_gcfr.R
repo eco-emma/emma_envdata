@@ -45,58 +45,58 @@ get_release_soil_gcfr <- function(temp_directory = "data/temp/raw_data/soil_gcfr
 
   # Move the files to a permanent location (rdryad doesn't give you an option)
 
-    # file.copy(from = locations[[1]],
-    #           to = temp_directory,
-    #           overwrite = TRUE)
+  file.copy(from = locations[[1]],
+            to = temp_directory,
+            overwrite = TRUE)
 
   # Delete the old copies from the temporary location
-#
-#     unlink(dirname(dirname(locations[[1]])),recursive = TRUE,force = TRUE)
+
+    unlink(dirname(dirname(locations[[1]])),recursive = TRUE,force = TRUE)
 
   # Clean up
 
-    # rm(locations)
+    rm(locations)
 
   #Crop and mask
 
   # Get file names
 
-    # files <- list.files(path = temp_directory,
-    #                     pattern = ".tif",
-    #                     full.names = T)
+  files <- list.files(path = temp_directory,
+                      pattern = ".tif",
+                      full.names = T)
 
 
   # Iteratively crop and mask
 
-  for( i in 1:length(locations)){
+  for( i in 1:length(files)){
 
     # append soil_ to the name to make things easier downstream
 
-    file_name_i <- basename(locations[i]) %>%
+    file_name_i <- basename(files[i]) %>%
       gsub(pattern = "%",replacement = "pct")
 
     #if its a tif, do projection and masking
 
-    if(!grepl(pattern = ".csv$",x = locations[i])){
+    if(!grepl(pattern = ".csv$",x = files[i])){
 
       file_name_i <- paste("soil_",file_name_i,sep = "")
 
-      raster_i <- raster::raster(x = locations[i])
+      raster_i <- terra::rast(x = files[i])
 
       # Reproject domain if not done already
       if(i == 1){
 
         #Reproject domain to match raster
         domain <- sf::st_transform(x = domain,
-                                   crs = raster::crs(raster_i))
+                                   crs = terra::crs(raster_i))
 
 
-        ext <- raster::extent(domain)
+        ext <- terra::ext(domain)
 
       }
 
       #Crop to extent
-      raster_i <- raster::crop(x = raster_i,
+      raster_i <- terra::crop(x = raster_i,
                                y = ext)
 
       # do a mask
@@ -112,7 +112,7 @@ get_release_soil_gcfr <- function(temp_directory = "data/temp/raw_data/soil_gcfr
 
     }else{
 
-      file.copy(from = locations[i],
+      file.copy(from = files[i],
                 to = file.path(temp_directory, file_name_i),
                 overwrite = TRUE)
 
@@ -124,7 +124,7 @@ get_release_soil_gcfr <- function(temp_directory = "data/temp/raw_data/soil_gcfr
 
     # Release
 
-  rm(locations)
+  rm(files)
 
   # # Release
     pb_upload(repo = "AdamWilsonLab/emma_envdata",
