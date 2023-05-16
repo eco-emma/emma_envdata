@@ -345,24 +345,24 @@ list(
 #                                 out_tag = "processed_static")
 #         ),
 #
-#       tar_target(
-#         projected_alos_release,
-#         process_release_alos(input_tag = "raw_static",
-#                              output_tag = "processed_static",
-#                              temp_directory = "data/temp/raw_data/alos/",
-#                              template_release = template_release,
-#                              sleep_time = 60,
-#                              ... = alos_release)
-#       ),
-#
-#       tar_target(
-#         projected_climate_chelsa_release,
-#         process_release_climate_chelsa(input_tag = "raw_static",
-#                                        output_tag = "processed_static",
-#                                        temp_directory = "data/temp/raw_data/climate_chelsa/",
-#                                        template_release = template_release,
-#                                        ... = climate_chelsa_release)
-#         ),
+      tar_target(
+        projected_alos_release,
+        process_release_alos(input_tag = "raw_static",
+                             output_tag = "processed_static",
+                             temp_directory = "data/temp/raw_data/alos/",
+                             template_release = template_release,
+                             sleep_time = 60,
+                             ... = alos_release)
+      ),
+
+      tar_target(
+        projected_climate_chelsa_release,
+        process_release_climate_chelsa(input_tag = "raw_static",
+                                       output_tag = "processed_static",
+                                       temp_directory = "data/temp/raw_data/climate_chelsa/",
+                                       template_release = template_release,
+                                       ... = climate_chelsa_release)
+        ),
 #
 #       tar_target(
 #         projected_clouds_wilson_release,
