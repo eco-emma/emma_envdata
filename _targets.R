@@ -284,49 +284,49 @@ list(
 
 # # # Processing via release
 
-    # tar_target(
-    #   fire_doy_to_unix_date_release,
-    #   process_release_fire_doy_to_unix_date(input_tag = "raw_fire_modis",
-    #                                         output_tag = "processed_fire_dates",
-    #                                         temp_directory = "data/temp/processed_data/fire_dates/",
-    #                                         sleep_time = 20,
-    #                                         ... = correct_fire_release_proj)
-    #   ),
-    #
-    # tar_target(
-    #   burn_date_to_last_burned_date_release,
-    #   process_release_burn_date_to_last_burned_date(input_tag = "processed_fire_dates",
-    #                                                 output_tag = "processed_most_recent_burn_dates",
-    #                                                 temp_directory_input = "data/temp/processed_data/fire_dates/",
-    #                                                 temp_directory_output = "data/temp/processed_data/most_recent_burn_dates/",
-    #                                                 sleep_time = 180,
-    #                                                 sanbi_sf = sanbi_fires_shp,
-    #                                                 expiration_date = NULL,
-    #                                                 ... = fire_doy_to_unix_date_release)
-    # ),
-    #
-    #
-    # tar_target(
-    #   ndvi_relative_days_since_fire_release,
-    #   process_release_ndvi_relative_days_since_fire(temp_input_ndvi_date_folder = "data/temp/raw_data/ndvi_dates_modis/",
-    #                                                 temp_input_fire_date_folder = "data/temp/processed_data/most_recent_burn_dates/",
-    #                                                 temp_fire_output_folder = "data/temp/processed_data/ndvi_relative_time_since_fire/",
-    #                                                 input_fire_dates_tag = "processed_most_recent_burn_dates",
-    #                                                 input_modis_dates_tag = "raw_ndvi_dates_modis",
-    #                                                 output_tag = "processed_ndvi_relative_days_since_fire",
-    #                                                 sleep_time = 60,
-    #                                                 ... = burn_date_to_last_burned_date_release,
-    #                                                 ... = correct_ndvi_dates_release_proj)
-    #   ),
-    #
-    #   tar_target(
-    #     template_release,
-    #     get_release_template_raster(input_tag = "processed_fire_dates",
-    #                         output_tag = "raw_static",
-    #                         temp_directory = "data/temp/template",
-    #                         ... = correct_fire_release_proj)
-    #   ),
-    #
+    tar_target(
+      fire_doy_to_unix_date_release,
+      process_release_fire_doy_to_unix_date(input_tag = "raw_fire_modis",
+                                            output_tag = "processed_fire_dates",
+                                            temp_directory = "data/temp/processed_data/fire_dates/",
+                                            sleep_time = 20,
+                                            ... = correct_fire_release_proj)
+      ),
+
+    tar_target(
+      burn_date_to_last_burned_date_release,
+      process_release_burn_date_to_last_burned_date(input_tag = "processed_fire_dates",
+                                                    output_tag = "processed_most_recent_burn_dates",
+                                                    temp_directory_input = "data/temp/processed_data/fire_dates/",
+                                                    temp_directory_output = "data/temp/processed_data/most_recent_burn_dates/",
+                                                    sleep_time = 180,
+                                                    sanbi_sf = sanbi_fires_shp,
+                                                    expiration_date = NULL,
+                                                    ... = fire_doy_to_unix_date_release)
+    ),
+
+
+    tar_target(
+      ndvi_relative_days_since_fire_release,
+      process_release_ndvi_relative_days_since_fire(temp_input_ndvi_date_folder = "data/temp/raw_data/ndvi_dates_modis/",
+                                                    temp_input_fire_date_folder = "data/temp/processed_data/most_recent_burn_dates/",
+                                                    temp_fire_output_folder = "data/temp/processed_data/ndvi_relative_time_since_fire/",
+                                                    input_fire_dates_tag = "processed_most_recent_burn_dates",
+                                                    input_modis_dates_tag = "raw_ndvi_dates_modis",
+                                                    output_tag = "processed_ndvi_relative_days_since_fire",
+                                                    sleep_time = 60,
+                                                    ... = burn_date_to_last_burned_date_release,
+                                                    ... = correct_ndvi_dates_release_proj)
+      ),
+
+      tar_target(
+        template_release,
+        get_release_template_raster(input_tag = "processed_fire_dates",
+                            output_tag = "raw_static",
+                            temp_directory = "data/temp/template",
+                            ... = correct_fire_release_proj)
+      ),
+
     #   tar_target(
     #     remnants_release,
     #     domain_remnants_release(domain = domain,
