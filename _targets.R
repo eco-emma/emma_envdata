@@ -4,6 +4,8 @@ library(visNetwork)
 library(future) #not sure why this is needed, but we get an error in some of the files without it
 library(googledrive)
 
+#If running this locally, make sure to set up github credentials using gitcreds::gitcreds::gitcreds_set()
+
 # Ensure things are clean
   unlink(file.path("data/temp/"), recursive = TRUE, force = TRUE)
   unlink(file.path("data/raw_data/", recursive = TRUE, force = TRUE))
@@ -120,13 +122,13 @@ list(
   #   age = as.difftime(58, units = "weeks")
   # ),
 
-  # tar_age(
-  #   landcover_za_release,
-  #   get_release_landcover_za(temp_directory = "data/temp/raw_data/landcover_za/",
-  #                            tag = "raw_static",
-  #                            domain = domain),
-  #   age = as.difftime(60, units = "weeks")
-  # ),
+  tar_age(
+    landcover_za_release,
+    get_release_landcover_za(temp_directory = "data/temp/raw_data/landcover_za/",
+                             tag = "raw_static",
+                             domain = domain),
+    age = as.difftime(60, units = "weeks")
+  ),
 
   tar_age(
     precipitation_chelsa_release,

@@ -47,7 +47,8 @@ get_release_landcover_za <- function(temp_directory = "data/temp/raw_data/landco
                   destfile = file.path(temp_directory, filename))
 
   #Unzip the file
-    unzip(zipfile = file.path(temp_directory, filename), exdir = file.path(temp_directory))
+    unzip(zipfile = file.path(temp_directory, filename),
+          exdir = file.path(temp_directory))
 
   #Delete the zipped version (which isn't much smaller anyway)
 
@@ -55,7 +56,7 @@ get_release_landcover_za <- function(temp_directory = "data/temp/raw_data/landco
 
   # Load the raster
 
-    raster_i <- raster::raster(x = list.files(temp_directory,
+    raster_i <- terra::rast(x = list.files(temp_directory,
                                               pattern = ".tif$",
                                               full.names = TRUE))
 
@@ -66,7 +67,7 @@ get_release_landcover_za <- function(temp_directory = "data/temp/raw_data/landco
 
   # Crop to extent
 
-    raster_i <- raster::crop(x = raster_i,
+    raster_i <- terra::crop(x = raster_i,
                              y = extent(domain_tf))
 
   # Mask to domain
@@ -76,11 +77,11 @@ get_release_landcover_za <- function(temp_directory = "data/temp/raw_data/landco
 
   # Save the cropped/masked raster
 
-    writeRaster(x = raster_i,
-                filename = list.files(temp_directory,
-                                      pattern = ".tif$",
-                                      full.names = TRUE),
-                overwrite = TRUE)
+    terra::writeRaster(x = raster_i,
+                       filename = list.files(temp_directory,
+                                             pattern = ".tif$",
+                                             full.names = TRUE),
+                       overwrite = TRUE)
 
 
   # Release
