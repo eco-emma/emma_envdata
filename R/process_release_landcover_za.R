@@ -33,10 +33,11 @@ process_release_landcover_za <- function(input_tag = "raw_static",
                        sleep_time = 10)
 
     #Pause to keep below the rate limit
-    Sys.sleep(sleep_time)
 
-    #template <- terra::rast(file.path(temp_directory, template_release$file))
-    template <- raster::raster(file.path(temp_directory, template_release$file))
+      Sys.sleep(sleep_time)
+
+    template <- terra::rast(file.path(temp_directory, template_release$file))
+    #template <- raster::raster(file.path(temp_directory, template_release$file))
 
 
     # get input rasters
@@ -62,33 +63,32 @@ process_release_landcover_za <- function(input_tag = "raw_static",
 
       for(i in 1:nrow(raster_list)){
 
-        raster_i <- raster::raster(file.path(temp_directory, raster_list$file_name[i]))
-        #raster_i <- terra::rast(file.path(temp_directory, raster_list$file_name[i]))
+        #raster_i <- raster::raster(file.path(temp_directory, raster_list$file_name[i]))
+        raster_i <- terra::rast(file.path(temp_directory, raster_list$file_name[i]))
 
 
         #Use bilinear
 
-        method <- "ngb"
+        method <- "near"
 
-
-        raster::projectRaster(from = raster_i,
-                              to = template,
-                              method = method,
-                              filename = file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = "")),
-                              overwrite = TRUE
-                              )
+#
+#         raster::projectRaster(from = raster_i,
+#                               to = template,
+#                               method = method,
+#                               filename = file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = "")),
+#                               overwrite = TRUE
+#                               )
 
         #Terra is currently having some problems with reading and writing so I've switched back to raster for now
-        # terra::project(x = raster_i,
-        #                y = template,
-        #                method = method,
-        #                filename = file.path(temp_directory, paste("temp_",raster_list$file_name[i],sep = "")),
-        #                overwrite = TRUE)
-
+        terra::project(x = raster_i,
+                       y = template,
+                       method = method,
+                       filename = file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = "")),
+                       overwrite = TRUE)
 
         # Check the projection
 
-          if(projection(raster(file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = "")))) != projection(template)){
+          if(crs(rast(file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = ""))),proj=TRUE) != crs(template,proj=TRUE)){
             stop("Issue with reprojection")
             }
 

@@ -386,17 +386,17 @@ list(
                                           ... = elevation_nasadem_release)
       ),
 
-      # tar_target(
-      #   projected_landcover_za_release,
-      #   process_release_landcover_za(input_tag = "raw_static",
-      #                                output_tag = "processed_static",
-      #                                temp_directory = "data/temp/raw_data/landcover_za/",
-      #                                template_release,
-      #                                sleep_time = 60,
-      #                                ... = landcover_za_release)
-      # )
-      # ,
-      #
+      tar_target(
+        projected_landcover_za_release,
+        process_release_landcover_za(input_tag = "raw_static",
+                                     output_tag = "processed_static",
+                                     temp_directory = "data/temp/raw_data/landcover_za/",
+                                     template_release,
+                                     sleep_time = 60,
+                                     ... = landcover_za_release)
+      )
+      ,
+
       tar_target(
         projected_precipitation_chelsa_release,
         process_release_precipitation_chelsa(input_tag = "raw_static",
