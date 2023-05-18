@@ -125,11 +125,11 @@ domain_distance_release <- function(remnants_release,
   distance_raster <-
     rast(file.path(temp_directory,remnants_release$file)) %>%
     terra::app(fun=function(x) ifelse(is.na(x),1,NA)) %>%
-    terra::gridDistance()/1000
+    terra::gridDist()/1000
     #terra::distance(grid=T)/1000
 
 
-  writeRaster(distance_raster,
+  terra::writeRaster(distance_raster,
               file = file.path(temp_directory,out_file),
               overwrite = T)
 
