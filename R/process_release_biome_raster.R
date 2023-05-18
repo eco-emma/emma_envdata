@@ -12,6 +12,7 @@
 
 process_release_biome_raster <- function(template_release,
                                          vegmap_shp,
+                                         domain,
                                          temp_directory = "data/temp/raw_data/vegmap_raster/",
                                          sleep_time = 10){
 
@@ -47,17 +48,26 @@ process_release_biome_raster <- function(template_release,
       st_make_valid() %>%
       st_transform(crs = crs(template))
 
+  #transform domain
+    domain %>% st_transform(crs = crs(template)) -> domain
+
+  #crop vegmap to save size?
+
+    vegmap_za %>%
+    st_intersection(y = domain) -> vegmap_za
+
   # rasterize vegmap
 
     # Note: the Github version of exactextractr could do this more simply using exactextractr::coverage_fraction()
 
-
     n <- 10 #number of subcells to use for aggregation
 
-    r <- disagg(template, n) #break raster into smaller one
+    template <- disagg(rast(template), n) #break raster into smaller one
+
+    #r <- disagg(template, n) #break raster into smaller one: this is more memory-intense
 
     r <- rasterize(x = vect(vegmap_za),
-                   y =  r,
+                   y =  template,
                    field = "biome_18") #rasterize at fine resolution
 
     out_rast <- aggregate(r, n, "modal") #re-aggregate using modal  biome
