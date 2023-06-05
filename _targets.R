@@ -229,9 +229,10 @@ list(
 
   tar_age(
     ndwi_modis_release,
-    get_release_ndwi_modis <- function(temp_directory = "data/temp/raw_data/NDWI_MODIS/",
-                                       tag = "current",
-                                       domain),
+    get_release_ndwi_modis(temp_directory = "data/temp/raw_data/NDWI_MODIS/",
+                           tag = "current",
+                           domain,
+                           drive_cred_path = json_token),
     age = as.difftime(7, units = "days")
     #age = as.difftime(1, units = "days")
     #age = as.difftime(0, units = "hours")
