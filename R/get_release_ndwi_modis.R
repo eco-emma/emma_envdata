@@ -93,7 +93,7 @@ get_release_ndwi_modis <- function(temp_directory = "data/temp/raw_data/NDWI_MOD
 
   # Release file
 
-    pb_upload(repo = "AdamWilsonLab/emma_report",
+    pb_upload(repo = "AdamWilsonLab/emma_envdata",
               file = file.path(temp_directory,"ndwi.tif"),
               tag = tag)
 
