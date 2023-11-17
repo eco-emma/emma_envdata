@@ -48,6 +48,8 @@ if(T) {
 
 list(
 
+  stop("Brian: Update the fire download scripts.  Need to make sure the switch from 6.0 to 6.1 works.
+       Should also migrate other modis products to 6.1")
   #Prep needed files
 
   tar_target(
