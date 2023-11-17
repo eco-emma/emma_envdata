@@ -85,7 +85,7 @@ get_release_fire_modis <- function(temp_directory = "data/temp/raw_data/fire_mod
 
   # Load ee image collection
 
-    modis_fire <- ee$ImageCollection("MODIS/006/MCD64A1")
+    modis_fire <- ee$ImageCollection("MODIS/061/MCD64A1")
 
   #Format the domain
 
