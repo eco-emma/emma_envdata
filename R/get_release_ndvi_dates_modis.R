@@ -124,7 +124,7 @@ get_release_ndvi_dates_modis <- function(temp_directory = "data/temp/raw_data/nd
 
   # Load the collection
 
-    modis_ndvi <- ee$ImageCollection("MODIS/006/MOD13A1")
+    modis_ndvi <- ee$ImageCollection("MODIS/061/MOD13A1")
 
   # Format the domain
 

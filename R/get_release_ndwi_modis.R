@@ -27,7 +27,9 @@ get_release_ndwi_modis <- function(temp_directory = "data/temp/raw_data/NDWI_MOD
 
 
   # Load the image
-    ndwi <- ee$ImageCollection("MODIS/MCD43A4_006_NDWI")
+    #ndwi <- ee$ImageCollection("MODIS/MCD43A4_006_NDWI")
+    ndwi <- ee$ImageCollection("MODIS/MCD43A4_061_NDWI")
+
 
   #Format the domain
     domain <- sf_as_ee(x = domain)

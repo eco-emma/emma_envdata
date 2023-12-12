@@ -45,7 +45,7 @@ get_release_kndvi_modis <- function(temp_directory = "data/temp/raw_data/kndvi_m
 
   # Load the image collection
 
-    modis_ndvi <- ee$ImageCollection("MODIS/006/MOD13A1") #500 m
+    modis_ndvi <- ee$ImageCollection("MODIS/061/MOD13A1") #500 m
     # modis_ndvi <- ee$ImageCollection("MODIS/006/MOD13A2") #1 km
 
 
