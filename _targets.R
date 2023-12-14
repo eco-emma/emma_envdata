@@ -304,15 +304,15 @@ list(
 
 # # # Processing via release
 
-    # tar_target(
-    #   fire_doy_to_unix_date_release,
-    #   process_release_fire_doy_to_unix_date(input_tag = "raw_fire_modis",
-    #                                         output_tag = "processed_fire_dates",
-    #                                         temp_directory = "data/temp/processed_data/fire_dates/",
-    #                                         sleep_time = 20,
-    #                                         ... = correct_fire_release_proj)
-    #   ),
-    #
+    tar_target(
+      fire_doy_to_unix_date_release,
+      process_release_fire_doy_to_unix_date(input_tag = "raw_fire_modis",
+                                            output_tag = "processed_fire_dates",
+                                            temp_directory = "data/temp/processed_data/fire_dates/",
+                                            sleep_time = 20,
+                                            ... = correct_fire_release_proj)
+      ),
+
     # tar_target(
     #   burn_date_to_last_burned_date_release,
     #   process_release_burn_date_to_last_burned_date(input_tag = "processed_fire_dates",
