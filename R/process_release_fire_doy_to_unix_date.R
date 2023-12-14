@@ -29,7 +29,7 @@ process_release_fire_doy_to_unix_date <- function( input_tag = "raw_fire_modis",
 
     }
 
-  #Make sure there is an input release or make one
+  #Make sure there is an output release or make one
     if(!output_tag %in% release_assetts$tag){
 
       #Make sure there is a release by attempting to create one.  If it already exists, this will fail
@@ -96,9 +96,10 @@ process_release_fire_doy_to_unix_date <- function( input_tag = "raw_fire_modis",
         raster_i <- raster(file.path(temp_directory,input_files$file_name[i]))
 
       #Get year and convert to numeric
-        date_i <- raster_i@data@names
 
-        date_i <- gsub(pattern = "X", replacement = "", x = date_i)
+        date_i <- input_files$file_name[i]
+
+        date_i <- gsub(pattern = ".tif", replacement = "", x = date_i)
 
         year_i <- strsplit(x = date_i,split = "_")[[1]][1]
 
