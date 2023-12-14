@@ -1,8 +1,9 @@
 library(sf)
+library(terra)
 library(piggyback)
 library(tidyverse)
 library(lubridate)
-library(fasterize)
+#library(fasterize) #commented out fasterize, because this is a terra world now
 # add information on date uncertainty
 
 # check why parquet files aren't updating -> update functions to return latest raster date or timestamp
@@ -33,7 +34,7 @@ process_release_burn_date_to_last_burned_date <- function(input_tag = "processed
     file.remove(list.files(temp_directory_input,full.names = TRUE))
     file.remove(list.files(temp_directory_output,full.names = TRUE))
 
-  #Make sure there is a release or else create one.
+  # Make sure there is a release or else create one.
 
     pb_assests <- pb_list(repo = "AdamWilsonLab/emma_envdata")
 
@@ -47,6 +48,17 @@ process_release_burn_date_to_last_burned_date <- function(input_tag = "processed
 
     }
 
+  # Make sure there is a release or else create one.
+
+      if(!output_tag %in% pb_assests$tag){
+
+        tryCatch(expr =   pb_new_release(repo = "AdamWilsonLab/emma_envdata",
+                                         tag =  output_tag),
+                 error = function(e){message("Previous release found")})
+
+        Sys.sleep(sleep_time) #We need to limit our rate in order to keep Github happy
+
+      }
 
   # get files
 
@@ -254,7 +266,7 @@ process_release_burn_date_to_last_burned_date <- function(input_tag = "processed
                              sleep_time = sleep_time)
 
 
-        previous_raster <- raster(file.path(temp_directory_input,input_files$file_name[1]))
+        previous_raster <- rast(file.path(temp_directory_input,input_files$file_name[1]))
 
       }else{
 
@@ -267,13 +279,12 @@ process_release_burn_date_to_last_burned_date <- function(input_tag = "processed
                            max_attempts = 10,
                            sleep_time = sleep_time)
 
-        previous_raster <- raster(file.path(temp_directory_output,
+        previous_raster <- rast(file.path(temp_directory_output,
                                             output_files$file_name[nrow(output_files)]))
 
       }
 
-    previous_raster[which(getValues(previous_raster)==0)] <- NA
-
+    previous_raster[previous_raster == 0] <- NA
 
 
   #Fix sf projection
@@ -285,63 +296,75 @@ process_release_burn_date_to_last_burned_date <- function(input_tag = "processed
 
     }
 
-  # temp
+  # test crs
     if(st_crs(sanbi_sf)!=st_crs(previous_raster)){stop("projection error")}
-  # temp
-
 
   #Iterate through all rasters, keeping a running tally of most recent burn
   for(i in 1:nrow(input_files)){
 
     #Get raster i
-    robust_pb_download(file = input_files$file_name[i],
-                       dest = temp_directory_input,
-                       repo = "AdamWilsonLab/emma_envdata",
-                       tag = input_tag,
-                       overwrite = TRUE,
-                       max_attempts = 10,
-                       sleep_time = sleep_time)
+
+      robust_pb_download(file = input_files$file_name[i],
+                         dest = temp_directory_input,
+                         repo = "AdamWilsonLab/emma_envdata",
+                         tag = input_tag,
+                         overwrite = TRUE,
+                         max_attempts = 10,
+                         sleep_time = sleep_time)
 
     #Load the raster
-    raster_i <- raster(file.path(temp_directory_input,input_files$file_name[i]))
-    raster_i[which(getValues(raster_i)==0)]<-NA
+
+      raster_i <- rast(file.path(temp_directory_input,input_files$file_name[i]))
+
+      raster_i[raster_i == 0] <- NA
 
       #if SANBI polygon is missing, just use MODIS
 
         if(is.null(sanbi_sf)){
           stop("Need to fix code here too")
           max_i <- max(stack(raster_i, previous_raster))
-          max_i[max_i==0] <- NA
+          max_i[max_i == 0] <- NA
 
         }else{
 
           #if SANBI sf is present, construct a raster and use all three
 
-            sanbi_sf %>%
-              filter(most_recent_burn < input_files$end_date[i]) %>%
-              fasterize(raster = raster_i, field = "numeric_most_recent_burn") -> sanbi_raster_i
+          # sanbi_sf %>%
+          #   filter(most_recent_burn < input_files$end_date[i]) %>%
+          #   fasterize(raster = raster(raster_i), field = "numeric_most_recent_burn") -> sanbi_raster_i
+
+          sanbi_sf %>%
+            filter(most_recent_burn < input_files$end_date[i]) %>%
+            terra::rasterize(y = raster_i, field = "numeric_most_recent_burn") -> sanbi_raster_i
+
 
           #double check
 
-            if(max(na.omit(getValues(sanbi_raster_i))) > input_files$end_date[i]){
-              stop("Issue with SANBI burn dates")}
+            if(as_date(max(values(sanbi_raster_i),na.rm = TRUE)) > input_files$end_date[i]){
+                stop("Issue with SANBI burn dates")
+              }
 
-          #for some reason the app function throws odd errors, so i'll try another route
-          # terra::app(x = sds(rast(raster_i),rast(previous_raster),rast(sanbi_raster_i)),
-          #     fun = robust_max)
+          # max_i <- raster::calc(x = stack(raster_i,previous_raster,sanbi_raster_i),
+          #              fun = robust_max)
 
-          max_i <- raster::calc(x = stack(raster_i,previous_raster,sanbi_raster_i),
-                       fun = robust_max)
+          max_i <- terra::app(x = c(raster_i,previous_raster,sanbi_raster_i),
+                     fun = robust_max)
+
+          # Check that max_i values are before the end data
+
+            if(as_date(max(values(max_i), na.rm = TRUE)) > input_files$end_date[i]){
+              stop("Issue with combined burn dates")
+            }
+
 
 
         }
 
-
-
     #save output
-      raster::writeRaster(x = max_i,
-                          filename = file.path(temp_directory_output,input_files$file_name[i]),
-                          overwrite=TRUE)
+
+      terra::writeRaster(x = max_i,
+                         filename = file.path(temp_directory_output,input_files$file_name[i]),
+                         overwrite=TRUE)
 
       pb_upload(file = file.path(temp_directory_output,input_files$file_name[i]),
                 repo = "AdamWilsonLab/emma_envdata",
