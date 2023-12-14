@@ -157,7 +157,7 @@ list(
         get_release_fire_modis(temp_directory = "data/temp/raw_data/fire_modis/",
                                tag = "raw_fire_modis",
                                domain = domain,
-                               max_layers = 25,
+                               max_layers = 5,
                                sleep_time = 5,
                                json_token = json_token),
         #age = as.difftime(7, units = "days")
@@ -170,7 +170,7 @@ list(
         get_release_kndvi_modis(temp_directory = "data/temp/raw_data/kndvi_modis/",
                                tag = "raw_kndvi_modis",
                                domain = domain,
-                               max_layers = 25,
+                               max_layers = 5,
                                sleep_time = 5,
                                json_token = json_token),
         age = as.difftime(7, units = "days")
@@ -183,7 +183,7 @@ list(
       get_release_ndvi_modis(temp_directory = "data/temp/raw_data/ndvi_modis/",
                               tag = "raw_ndvi_modis",
                               domain = domain,
-                              max_layers = 25,
+                              max_layers = 5,
                              sleep_time = 5,
                              json_token = json_token),
       age = as.difftime(7, units = "days")
@@ -210,7 +210,7 @@ list(
       get_release_ndvi_dates_modis(temp_directory = "data/temp/raw_data/ndvi_dates_modis/",
                              repo_tag = "raw_ndvi_dates_modis",
                              domain = domain,
-                             max_layers = 25,
+                             max_layers = 5,
                              sleep_time = 10,
                              json_token = json_token),
       age = as.difftime(7, units = "days")
