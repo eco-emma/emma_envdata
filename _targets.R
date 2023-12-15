@@ -232,16 +232,16 @@ list(
     ),
 
 
-  tar_age(
-    ndwi_modis_release,
-    get_release_ndwi_modis(temp_directory = "data/temp/raw_data/NDWI_MODIS/",
-                           tag = "current",
-                           domain,
-                           drive_cred_path = json_token),
-    age = as.difftime(7, units = "days")
-    #age = as.difftime(1, units = "days")
-    #age = as.difftime(0, units = "hours")
-  ),
+  # tar_age(
+  #   ndwi_modis_release,
+  #   get_release_ndwi_modis(temp_directory = "data/temp/raw_data/NDWI_MODIS/",
+  #                          tag = "current",
+  #                          domain,
+  #                          drive_cred_path = json_token),
+  #   age = as.difftime(7, units = "days")
+  #   #age = as.difftime(1, units = "days")
+  #   #age = as.difftime(0, units = "hours")
+  # ),
 
 
 # # # Fixing projection via releases
@@ -313,19 +313,19 @@ list(
                                             ... = correct_fire_release_proj)
       ),
 
-    # tar_target(
-    #   burn_date_to_last_burned_date_release,
-    #   process_release_burn_date_to_last_burned_date(input_tag = "processed_fire_dates",
-    #                                                 output_tag = "processed_most_recent_burn_dates",
-    #                                                 temp_directory_input = "data/temp/processed_data/fire_dates/",
-    #                                                 temp_directory_output = "data/temp/processed_data/most_recent_burn_dates/",
-    #                                                 sleep_time = 180,
-    #                                                 sanbi_sf = sanbi_fires_shp,
-    #                                                 expiration_date = NULL,
-    #                                                 ... = fire_doy_to_unix_date_release)
-    # ),
-    #
-    #
+    tar_target(
+      burn_date_to_last_burned_date_release,
+      process_release_burn_date_to_last_burned_date(input_tag = "processed_fire_dates",
+                                                    output_tag = "processed_most_recent_burn_dates",
+                                                    temp_directory_input = "data/temp/processed_data/fire_dates/",
+                                                    temp_directory_output = "data/temp/processed_data/most_recent_burn_dates/",
+                                                    sleep_time = 180,
+                                                    sanbi_sf = sanbi_fires_shp,
+                                                    expiration_date = NULL,
+                                                    ... = fire_doy_to_unix_date_release)
+    ),
+
+
     # tar_target(
     #   ndvi_relative_days_since_fire_release,
     #   process_release_ndvi_relative_days_since_fire(temp_input_ndvi_date_folder = "data/temp/raw_data/ndvi_dates_modis/",
