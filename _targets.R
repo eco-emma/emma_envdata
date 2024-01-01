@@ -4,7 +4,7 @@ library(visNetwork)
 library(future) #not sure why this is needed, but we get an error in some of the files without it
 library(googledrive)
 
-#If running this locally, make sure to set up github credentials using gitcreds::gitcreds::gitcreds_set()
+#If running this locally, make sure to set up github credentials using gitcreds::gitcreds_set()
 
 # Ensure things are clean
   unlink(file.path("data/temp/"), recursive = TRUE, force = TRUE)

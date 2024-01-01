@@ -93,6 +93,7 @@ process_release_fire_doy_to_unix_date <- function( input_tag = "raw_fire_modis",
                            max_attempts = 10)
 
       #Get raster
+
         raster_i <- raster(file.path(temp_directory,input_files$file_name[i]))
 
       #Get year and convert to numeric
@@ -105,7 +106,8 @@ process_release_fire_doy_to_unix_date <- function( input_tag = "raw_fire_modis",
 
         year_i <- as.numeric(as_date(paste(year_i, "-01-01")))
 
-      #Add numeric year to raster cells
+
+      # Add numeric year to raster cells
 
         mask_i <- raster_i > 0
 
@@ -113,6 +115,27 @@ process_release_fire_doy_to_unix_date <- function( input_tag = "raw_fire_modis",
                                  mask = mask_i,
                                  maskvalue = 0,
                                  updatevalue = NA)
+
+      # Check that input raster dates make sense
+
+        raster_vals <- values(raster_i) |> unique() |> na.omit()
+
+        if(any(raster_vals > 366)){stop("Impossible date values found: > 366")}
+
+        if(any(raster_vals < 1)){
+          stop("Impossible date values found: Less than 0")}
+
+        ceiling_date_i <- ceiling_date(as_date(date_i),unit = "month")
+
+        floor_date_i <- floor_date(as_date(date_i),unit = "month")
+
+        if(any(raster_vals >= yday(ceiling_date_i))){
+          stop("Impossible date values found: After the month")}
+
+        if(any(raster_vals < yday(floor_date_i))){
+          stop("Impossible date values found: Before the month")}
+
+      #convert to linux date
 
         raster_i <- raster_i + year_i - 1
 
