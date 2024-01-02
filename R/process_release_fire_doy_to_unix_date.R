@@ -9,8 +9,16 @@
 process_release_fire_doy_to_unix_date <- function( input_tag = "raw_fire_modis",
                                                    output_tag = "processed_fire_dates",
                                                    temp_directory = "data/temp/processed_data/fire_dates/",
+                                                   template_release = template_release,
                                                    sleep_time = 1,
                                                    ...) {
+  # Ensure directory is empty if it exists
+
+    if(dir.exists(temp_directory)){
+      unlink(file.path(temp_directory), recursive = TRUE, force = TRUE)
+    }
+
+
 
   #make folder if needed
 
@@ -82,6 +90,19 @@ process_release_fire_doy_to_unix_date <- function( input_tag = "raw_fire_modis",
 
     }
 
+
+  # IF extent checking is required, load the template used for comparison
+
+    robust_pb_download(file = template_release$file,
+                       dest = file.path(temp_directory),
+                       repo = template_release$repo,
+                       tag = template_release$tag,
+                       overwrite = TRUE,
+                       max_attempts = 10,
+                       sleep_time = 10)
+
+    template <- rast(file.path(temp_directory,template_release$file))
+
   #Do the actual processing of the fire day-of-year rasters into UNIX dates
 
     for(i in 1:nrow(input_files)){
@@ -96,7 +117,7 @@ process_release_fire_doy_to_unix_date <- function( input_tag = "raw_fire_modis",
 
       #Get raster
 
-        raster_i <- raster(file.path(temp_directory,input_files$file_name[i]))
+        raster_i <- rast(file.path(temp_directory, input_files$file_name[i]))
 
       #Get year and convert to numeric
 
@@ -108,15 +129,15 @@ process_release_fire_doy_to_unix_date <- function( input_tag = "raw_fire_modis",
 
         year_i <- as.numeric(as_date(paste(year_i, "-01-01")))
 
-
       # Add numeric year to raster cells
 
         mask_i <- raster_i > 0
 
-        raster_i <- raster::mask(x = raster_i,
+        raster_i <- terra::mask(x = raster_i,
                                  mask = mask_i,
                                  maskvalue = 0,
                                  updatevalue = NA)
+
 
     # Get some metadata for inspecting the dates for common sense
 
@@ -132,7 +153,7 @@ process_release_fire_doy_to_unix_date <- function( input_tag = "raw_fire_modis",
           all(raster_vals <= as.numeric(ceiling_date_i))){
 
 
-        raster::writeRaster(x = raster_i,
+        terra::writeRaster(x = raster_i,
                             filename = file.path(temp_directory,input_files$file_name[i]),
                             overwrite = TRUE)
 
@@ -174,9 +195,18 @@ process_release_fire_doy_to_unix_date <- function( input_tag = "raw_fire_modis",
         raster_i[!mask_i] <- 0
 
       #save output
-        raster::writeRaster(x = raster_i,
-                            filename = file.path(temp_directory,input_files$file_name[i]),
-                            overwrite = TRUE)
+
+        terra::writeRaster(x = raster_i,
+                           filename = file.path(temp_directory,input_files$file_name[i]),
+                           filetype="GTiff",
+                           overwrite = TRUE)
+
+      # check raster extent
+
+        rast_i <- rast(file.path(temp_directory,input_files$file_name[i]))
+
+        if(ext(rast_i) != ext(template)){stop("Extent incorrect")}
+
 
         pb_upload(file = file.path(temp_directory,input_files$file_name[i]),
                   repo = "AdamWilsonLab/emma_envdata",
