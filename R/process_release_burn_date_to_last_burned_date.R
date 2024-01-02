@@ -318,7 +318,11 @@ process_release_burn_date_to_last_burned_date <- function(input_tag = "processed
 
       raster_i[raster_i == 0] <- NA
 
-      #if SANBI polygon is missing, just use MODIS
+    # Check crs and extent
+
+      if(ext(raster_i) != ext(previous_raster)){stop("Extents don't match")}
+
+    # if SANBI polygon is missing, just use MODIS
 
         if(is.null(sanbi_sf)){
           stop("Need to fix code here too")

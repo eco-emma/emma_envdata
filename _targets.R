@@ -255,6 +255,17 @@ list(
                                    ... = fire_modis_release)
     ),
 
+    tar_target(
+      correct_fire_release_ext,
+      process_fix_modis_release_extent(temp_directory = "data/temp/raw_data/fire_extent/",
+                                           tag = "raw_fire_modis",
+                                           max_layers = NULL,
+                                           sleep_time = 30,
+                                           ... = fire_modis_release,
+                                           ... = correct_fire_release_proj)
+    ),
+
+
         tar_target(
           correct_ndvi_release_proj,
           process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/ndvi_modis/",
@@ -310,7 +321,8 @@ list(
                                             output_tag = "processed_fire_dates",
                                             temp_directory = "data/temp/processed_data/fire_dates/",
                                             sleep_time = 20,
-                                            ... = correct_fire_release_proj)
+                                            ... = correct_fire_release_proj,
+                                            ... = correct_fire_release_ext)
       ),
 
     tar_target(
@@ -344,7 +356,8 @@ list(
     #     get_release_template_raster(input_tag = "processed_fire_dates",
     #                         output_tag = "raw_static",
     #                         temp_directory = "data/temp/template",
-    #                         ... = correct_fire_release_proj)
+    #                         ... = correct_fire_release_proj,
+    #                         ... = correct_fire_release_ext)
     #   ),
     #
     #   tar_target(

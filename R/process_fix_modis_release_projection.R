@@ -51,8 +51,8 @@ process_fix_modis_release_projection <-
         suppressWarnings(expr =
                            cbind("file","original_proj","assigned_proj") %>%
                            write.table(x = .,
-                                       file = paste(temp_directory,"log.csv",sep = ""),
-                                       append = TRUE,
+                                       file = file.path(temp_directory,"log.csv"),
+                                       append = FALSE,
                                        col.names = FALSE,
                                        row.names=FALSE,
                                        sep = ",")
@@ -143,7 +143,7 @@ process_fix_modis_release_projection <-
           terra::writeRaster(x = rast_i,
                              filename = gsub(pattern = ".tif$",
                                              replacement =".temp.tif",
-                                             x =  paste(temp_directory,rasters[i],sep = "")),
+                                             x =  file.path(temp_directory,rasters[i])),
                              filetype="GTiff",
                              overwrite = TRUE)
 
