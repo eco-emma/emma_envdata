@@ -13,12 +13,15 @@ process_release_fire_doy_to_unix_date <- function( input_tag = "raw_fire_modis",
                                                    ...) {
 
   #make folder if needed
+
     if(!dir.exists(temp_directory)){dir.create(temp_directory, recursive = TRUE)}
 
   # check on releases
-  release_assetts <- pb_list(repo = "AdamWilsonLab/emma_envdata")
+
+    release_assetts <- pb_list(repo = "AdamWilsonLab/emma_envdata")
 
   #Make sure there is an input release or make one
+
     if(!input_tag %in% release_assetts$tag){
 
       tryCatch(expr =   pb_new_release(repo = "AdamWilsonLab/emma_envdata",
@@ -30,6 +33,7 @@ process_release_fire_doy_to_unix_date <- function( input_tag = "raw_fire_modis",
     }
 
   #Make sure there is an output release or make one
+
     if(!output_tag %in% release_assetts$tag){
 
       #Make sure there is a release by attempting to create one.  If it already exists, this will fail
@@ -38,8 +42,6 @@ process_release_fire_doy_to_unix_date <- function( input_tag = "raw_fire_modis",
                error = function(e){message("Previous release found")})
 
     }
-
-
 
   #get files
 
@@ -116,20 +118,50 @@ process_release_fire_doy_to_unix_date <- function( input_tag = "raw_fire_modis",
                                  maskvalue = 0,
                                  updatevalue = NA)
 
-      # Check that input raster dates make sense
+    # Get some metadata for inspecting the dates for common sense
+
+        ceiling_date_i <- ceiling_date(as_date(date_i),unit = "month")-1
+
+        floor_date_i <- floor_date(as_date(date_i),unit = "month")
 
         raster_vals <- values(raster_i) |> unique() |> na.omit()
+
+    # 2021-03-01 raster appears to be in UNIX date instead of DOY. Detect such issues and handle
+
+      if( all(raster_vals >= as.numeric(floor_date_i)) &
+          all(raster_vals <= as.numeric(ceiling_date_i))){
+
+
+        raster::writeRaster(x = raster_i,
+                            filename = file.path(temp_directory,input_files$file_name[i]),
+                            overwrite = TRUE)
+
+        pb_upload(file = file.path(temp_directory,input_files$file_name[i]),
+                  repo = "AdamWilsonLab/emma_envdata",
+                  tag = output_tag,
+                  name = input_files$file_name[i],
+                  overwrite = TRUE)
+
+        file.remove(file.path(temp_directory, input_files$file_name[i]))
+
+        Sys.sleep(sleep_time) #We need to limit our rate in order to keep Github happy
+
+        next
+
+
+      }
+
+
+
+      # Check that input raster dates make sense
 
         if(any(raster_vals > 366)){stop("Impossible date values found: > 366")}
 
         if(any(raster_vals < 1)){
           stop("Impossible date values found: Less than 0")}
 
-        ceiling_date_i <- ceiling_date(as_date(date_i),unit = "month")
 
-        floor_date_i <- floor_date(as_date(date_i),unit = "month")
-
-        if(any(raster_vals >= yday(ceiling_date_i))){
+        if(any(raster_vals > yday(ceiling_date_i))){
           stop("Impossible date values found: After the month")}
 
         if(any(raster_vals < yday(floor_date_i))){
