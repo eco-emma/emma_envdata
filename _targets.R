@@ -142,29 +142,29 @@ list(
                                      domain = domain),
     age = as.difftime(62, units = "weeks")
   ),
-  #
-  # tar_target(
-  #   soil_gcfr_release,
-  #   get_release_soil_gcfr(temp_directory = "data/temp/raw_data/soil_gcfr/",
-  #                         tag = "raw_static",
-  #                         domain)
-  # ),
+
+  tar_target(
+    soil_gcfr_release,
+    get_release_soil_gcfr(temp_directory = "data/temp/raw_data/soil_gcfr/",
+                          tag = "raw_static",
+                          domain)
+  ),
 
 # # # Frequent updates via releases
 
-    #   tar_age(
-    #     fire_modis_release,
-    #     get_release_fire_modis(temp_directory = "data/temp/raw_data/fire_modis/",
-    #                            tag = "raw_fire_modis",
-    #                            domain = domain,
-    #                            max_layers = 5,
-    #                            sleep_time = 5,
-    #                            json_token = json_token),
-    #     #age = as.difftime(7, units = "days")
-    #     #age = as.difftime(1, units = "days")
-    #     age = as.difftime(0, units = "hours")
-    #   ),
-    #
+      tar_age(
+        fire_modis_release,
+        get_release_fire_modis(temp_directory = "data/temp/raw_data/fire_modis/",
+                               tag = "raw_fire_modis",
+                               domain = domain,
+                               max_layers = 5,
+                               sleep_time = 5,
+                               json_token = json_token),
+        #age = as.difftime(7, units = "days")
+        #age = as.difftime(1, units = "days")
+        age = as.difftime(0, units = "hours")
+      ),
+
     #   tar_age(
     #     kndvi_modis_release,
     #     get_release_kndvi_modis(temp_directory = "data/temp/raw_data/kndvi_modis/",

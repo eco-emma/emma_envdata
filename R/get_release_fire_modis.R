@@ -61,6 +61,10 @@ get_release_fire_modis <- function(temp_directory = "data/temp/raw_data/fire_mod
                                    sleep_time = 1,
                                    json_token) {
 
+  #Garbage cleanup, just in case
+
+    gc()
+
   #  #Ensure directory is empty if it exists
 
     if(dir.exists(temp_directory)){
@@ -204,8 +208,9 @@ get_release_fire_modis <- function(temp_directory = "data/temp/raw_data/fire_mod
       } # end i loop
 
   # Delete temp files
-    unlink(x = gsub(pattern = "/$",replacement = "",x = temp_directory), #sub used to delete any trailing slashes, which interfere with unlink
-           recursive = TRUE)
+
+    unlink(file.path(temp_directory), recursive = TRUE, force = TRUE)
+
 
   # End
     message("\nFinished download MODIS fire layers")
