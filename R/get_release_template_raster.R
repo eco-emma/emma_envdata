@@ -15,6 +15,7 @@ get_release_template_raster <- function(input_tag = "processed_fire_dates",
     }
 
   # Get file
+
     files <- pb_list(repo = "AdamWilsonLab/emma_envdata",
               tag = input_tag) %>%
                 filter(grepl(x = file_name, pattern = ".tif$"))
@@ -24,11 +25,11 @@ get_release_template_raster <- function(input_tag = "processed_fire_dates",
                        tag = input_tag,
                        dest = temp_directory)
 
-    template <- raster::raster(x = file.path(temp_directory, files$file_name[1]))
+    template <- terra::rast(x = file.path(temp_directory, files$file_name[1]))
 
-    template[(1:terra::ncell(template))] <- (1:terra::ncell(template)) #this spot seems to throw a "Error in (function (x)  : attempt to apply non-function", but it doesn't seem to hurt anything
+    values(template) <- 1:ncell(template)
 
-    raster::writeRaster(x = template,
+    terra::writeRaster(x = template,
                 filename = file.path(temp_directory, "template.tif"),
                 overwrite = TRUE)
 
@@ -46,6 +47,7 @@ get_release_template_raster <- function(input_tag = "processed_fire_dates",
   #Empty old stuff
 
     unlink(x = file.path(temp_directory), recursive = TRUE, force = TRUE)
+    gc()
 
 
   #Return the template raster
