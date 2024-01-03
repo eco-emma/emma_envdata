@@ -40,22 +40,20 @@ process_release_clouds_wilson <- function(input_tag = "raw_static",
     #Sys.sleep(sleep_time)
 
   template <- terra::rast(file.path(temp_directory, template_release$file))
-  #template <- raster::raster(file.path(temp_directory, template_release$file))
-
 
   # get input rasters
 
-  raster_list <- pb_list(repo = "AdamWilsonLab/emma_envdata",
-                         tag = input_tag) %>%
-    filter(grepl(pattern = "MODCF",
-                 x = file_name))
+      raster_list <- pb_list(repo = "AdamWilsonLab/emma_envdata",
+                             tag = input_tag) %>%
+        filter(grepl(pattern = "MODCF",
+                     x = file_name))
 
-  robust_pb_download(file = raster_list$file_name,
-                     dest = temp_directory,
-                     repo = "AdamWilsonLab/emma_envdata",
-                     tag = input_tag,
-                     max_attempts = 10,
-                     sleep_time = sleep_time)
+      robust_pb_download(file = raster_list$file_name,
+                         dest = temp_directory,
+                         repo = "AdamWilsonLab/emma_envdata",
+                         tag = input_tag,
+                         max_attempts = 10,
+                         sleep_time = sleep_time)
 
   # Pause to keep below the rate limit
     #Sys.sleep(sleep_time)
@@ -65,37 +63,18 @@ process_release_clouds_wilson <- function(input_tag = "raw_static",
 
   for(i in 1:nrow(raster_list)){
 
-    #raster_i <- raster::raster(file.path(temp_directory, raster_list$file_name[i]))
     raster_i <- terra::rast(file.path(temp_directory, raster_list$file_name[i]))
-
 
     #Use bilinear for everything
 
       method <- "bilinear"
 
-#
-#     raster::projectRaster(from = raster_i,
-#                           to = template,
-#                           method = method,
-#                           filename = file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = "")),
-#                           overwrite=TRUE
-#                           )
-
-    #Terra is currently having some problems with reading and writing so I've switched back to raster for now
     terra::project(x = raster_i,
                    y = template,
                    method = method,
                    filename = file.path(temp_directory, paste("temp_",raster_list$file_name[i],sep = "")),
                    overwrite = TRUE)
 
-      # terra::resample(x = raster_i,
-      #                 y = template,
-      #                 method = method,
-      #                 filename = file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = "")),
-      #                 overwrite = TRUE)
-
-
-      # Double check projection
 
       # Double check projection, crs, extent
 
@@ -129,6 +108,7 @@ process_release_clouds_wilson <- function(input_tag = "raw_static",
 
       file.remove(file.path(temp_directory, paste("tf_",raster_list$file_name[i],sep = "")))
       file.remove(file.path(temp_directory, raster_list$file_name[i]))
+      gc()
 
     # Pause to keep below the rate limit
 
@@ -140,6 +120,7 @@ process_release_clouds_wilson <- function(input_tag = "raw_static",
   #Clear out the folder
 
     unlink(file.path(temp_directory), recursive = TRUE, force = TRUE)
+    gc()
 
   # End functions
 

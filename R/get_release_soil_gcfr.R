@@ -23,7 +23,6 @@ get_release_soil_gcfr <- function(temp_directory = "data/temp/raw_data/soil_gcfr
     if(dir.exists(temp_directory)){
       unlink(file.path(temp_directory), recursive = TRUE, force = TRUE)
     }
-    #
 
   # Set up directories if need be
 
