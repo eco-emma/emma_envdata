@@ -3,7 +3,6 @@
 #' producing a time-since-fire raster that relative to a paired with an NDVI raster
 
 library(lubridate)
-library(raster)
 library(tidyverse)
 library(piggyback)
 
@@ -16,7 +15,8 @@ process_release_ndvi_relative_days_since_fire <- function(temp_input_ndvi_date_f
                                                   sleep_time = 5,
                                                   ...){
 
-  #ensure output_folder empty
+  # ensure output_folders empty
+
     if(dir.exists(temp_fire_output_folder)){
       unlink(file.path(temp_fire_output_folder),recursive = TRUE,force = TRUE)
     }
@@ -29,7 +29,8 @@ process_release_ndvi_relative_days_since_fire <- function(temp_input_ndvi_date_f
       unlink(file.path(temp_input_ndvi_date_folder),recursive = TRUE,force = TRUE)
     }
 
-  #Make folder if needed
+  # Make folder if needed
+
     if(! dir.exists(temp_fire_output_folder)){ dir.create(temp_fire_output_folder,
                                                      recursive = TRUE) }
 
@@ -43,7 +44,7 @@ process_release_ndvi_relative_days_since_fire <- function(temp_input_ndvi_date_f
 
     release_assetts <- pb_list(repo = "AdamWilsonLab/emma_envdata")
 
-    #Create releases if needed
+  # Create releases if needed
 
       if(!input_modis_dates_tag %in% release_assetts$tag){
 
@@ -162,7 +163,7 @@ process_release_ndvi_relative_days_since_fire <- function(temp_input_ndvi_date_f
 
     Sys.sleep(sleep_time) #We need to limit our rate in order to keep Github happy
 
-    ndvi_raster_i <- raster::raster(file.path(temp_input_ndvi_date_folder,ndvi_files$file_name[i]))
+    ndvi_raster_i <- terra::rast(file.path(temp_input_ndvi_date_folder,ndvi_files$file_name[i]))
 
     start_date_i <- ndvi_files$date[i]
     start_date_numeric_i <- ndvi_files$number[i]
@@ -209,8 +210,8 @@ process_release_ndvi_relative_days_since_fire <- function(temp_input_ndvi_date_f
 
     Sys.sleep(sleep_time) #We need to limit our rate in order to keep Github happy
 
+    fire_raster_2_i <- terra::rast(file.path(temp_input_fire_date_folder,fire_files$file_name[fire_index]))
 
-    fire_raster_2_i <- raster::raster(file.path(temp_input_fire_date_folder,fire_files$file_name[fire_index]))
     fire_2_start_date <- fire_files$number[fire_index]
 
     #Grab previous fire layer, or make an empty one if needed
@@ -234,12 +235,12 @@ process_release_ndvi_relative_days_since_fire <- function(temp_input_ndvi_date_f
 
         }
 
-        fire_raster_1_i <- raster::raster(file.path(temp_input_fire_date_folder,fire_files$file_name[fire_index-1]))
+        fire_raster_1_i <- terra::rast(file.path(temp_input_fire_date_folder,fire_files$file_name[fire_index-1]))
         fire_1_start_date <- fire_files$number[fire_index-1]
 
       }else{
 
-        fire_raster_1_i <- setValues(fire_raster_2_i,values = 0)
+        fire_raster_1_i <- terra::setValues(fire_raster_2_i,values = 0)
 
       }
 
@@ -247,8 +248,17 @@ process_release_ndvi_relative_days_since_fire <- function(temp_input_ndvi_date_f
     # This code replaces any fire dates that occur after the NDVI measurement
     # with the dates from the previous fire layer
 
-    fire_raster_i <- fire_raster_2_i
-    fire_raster_i[fire_raster_2_i > ndvi_raster_i] <- fire_raster_1_i[fire_raster_i > ndvi_raster_i]
+      # Commenting this version out. Syntax doesn't work on current version of terra (as of 2024-01-03)
+      # fire_raster_i <- fire_raster_2_i
+      # fire_raster_i[fire_raster_2_i > ndvi_raster_i] <- fire_raster_1_i[fire_raster_i > ndvi_raster_i]
+
+
+    # Less elegant, but works
+
+      values_to_replace <- which(values(fire_raster_i) > values(ndvi_raster_i))
+
+      fire_raster_i[values_to_replace] <- fire_raster_1_i[values_to_replace]
+
 
     #plot(fire_raster_i)
     #plot(fire_raster_2_i - fire_raster_1_i  )
@@ -261,18 +271,25 @@ process_release_ndvi_relative_days_since_fire <- function(temp_input_ndvi_date_f
 
     output_i <- ndvi_raster_i - fire_raster_i
 
+    # Sanity check for negative days since fire
+
+      if(any(values(output_i) < 0,na.rm = TRUE)){
+        stop("Negative burn dates generated")
+      }
+
+
     #Set name of output, save to a output folder
 
-    names(output_i) <- gsub(pattern = "-",
-                            replacement = "_",
-                            x = ndvi_files$date[i])
+      names(output_i) <- gsub(pattern = "-",
+                              replacement = "_",
+                              x = ndvi_files$date[i])
 
-    raster::writeRaster(x = output_i,
-                filename = file.path(temp_fire_output_folder, ndvi_files$file_name[i]),
-                overwrite=TRUE)
+      terra::writeRaster(x = output_i,
+                          filename = file.path(temp_fire_output_folder, ndvi_files$file_name[i]),
+                          overwrite=TRUE)
+
 
     #release the saved filed
-
 
       pb_upload(file = file.path(temp_fire_output_folder, ndvi_files$file_name[i]),
                 repo = "AdamWilsonLab/emma_envdata",
@@ -298,35 +315,33 @@ process_release_ndvi_relative_days_since_fire <- function(temp_input_ndvi_date_f
       }
 
 
-
-
-
-
   }#for ndvi loop
 
-    unlink(x = file.path(temp_fire_output_folder),recursive = TRUE)
-    unlink(x = file.path(temp_input_fire_date_folder),recursive = TRUE)
-    unlink(x = file.path(temp_input_ndvi_date_folder),recursive = TRUE)
-
+    unlink(x = file.path(temp_fire_output_folder),recursive = TRUE,force = TRUE)
+    unlink(x = file.path(temp_input_fire_date_folder),recursive = TRUE,force = TRUE)
+    unlink(x = file.path(temp_input_ndvi_date_folder),recursive = TRUE,force = TRUE)
+    gc()
 
   #End function
-  message("Done processing NDVI dates")
-  return(
-    ndvi_files %>%
-      filter(tag == input_modis_dates_tag) %>%
-      dplyr::select(file_name) %>%
-      filter(file_name != "") %>%
-      filter(grepl(pattern = ".tif$", x = file_name)) %>%
-      mutate(date_format = gsub(pattern = ".tif",
-                                replacement = "",
-                                x = file_name))%>%
-      mutate(date_format = gsub(pattern = "_", replacement = "-", x = date_format)) %>%
-      dplyr::pull(date_format) %>%
-      max()
-  )
+
+    message("Done processing NDVI dates")
+
+    return(
+      ndvi_files %>%
+        filter(tag == input_modis_dates_tag) %>%
+        dplyr::select(file_name) %>%
+        filter(file_name != "") %>%
+        filter(grepl(pattern = ".tif$", x = file_name)) %>%
+        mutate(date_format = gsub(pattern = ".tif",
+                                  replacement = "",
+                                  x = file_name))%>%
+        mutate(date_format = gsub(pattern = "_", replacement = "-", x = date_format)) %>%
+        dplyr::pull(date_format) %>%
+        max()
+      )
 
 
 
-}
+}#end
 
 
