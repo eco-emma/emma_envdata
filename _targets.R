@@ -143,12 +143,12 @@ list(
     age = as.difftime(62, units = "weeks")
   ),
 
-  tar_target(
-    soil_gcfr_release,
-    get_release_soil_gcfr(temp_directory = "data/temp/raw_data/soil_gcfr/",
-                          tag = "raw_static",
-                          domain)
-  ),
+  # tar_target(
+  #   soil_gcfr_release,
+  #   get_release_soil_gcfr(temp_directory = "data/temp/raw_data/soil_gcfr/",
+  #                         tag = "raw_static",
+  #                         domain)
+  # ),
 
 # # # Frequent updates via releases
 
