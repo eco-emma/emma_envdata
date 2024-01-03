@@ -33,8 +33,7 @@ process_release_alos <- function(input_tag = "raw_static",
                        max_attempts = 10,
                        sleep_time = sleep_time)
 
-    #template <- terra::rast(file.path(temp_directory, template_release$file))
-    template <- raster::raster(file.path(temp_directory, template_release$file))
+    template <- terra::rast(file.path(temp_directory, template_release$file))
 
   # get input rasters
 
@@ -55,16 +54,14 @@ process_release_alos <- function(input_tag = "raw_static",
 
       for(i in 1:nrow(raster_list)){
 
-        raster_i <- raster::raster(file.path(temp_directory, raster_list$file_name[i]))
-        #raster_i <- terra::rast(file.path(temp_directory, raster_list$file_name[i]))
+        raster_i <- terra::rast(file.path(temp_directory, raster_list$file_name[i]))
 
 
         #Use bilinear for everything except landforms
 
           if(length(grep(pattern = "landforms", x = raster_list$file_name[i])) > 0){
 
-            #method <- "near" # uncomment for terra
-            method <- "ngb" #comment out for terra
+            method <- "near" # uncomment for terra
 
           }else{
 
@@ -72,25 +69,43 @@ process_release_alos <- function(input_tag = "raw_static",
 
           }
 
+      # terra doesn't overwrite, so I have to delete and rename
 
-        raster::projectRaster(from = raster_i,
-                              to = template,
-                              method = method,
-                              filename = file.path(temp_directory, raster_list$file_name[i]),
-                              overwrite=TRUE
-                              )
+        terra::project(x = raster_i,
+                       y = template,
+                       method = method,
+                       filename = file.path(temp_directory,
+                                            gsub(pattern = ".tif$",
+                                                 replacement = ".temp.tif",
+                                                 x = raster_list$file_name[i])),
+                       overwrite=TRUE)
 
-        if(projection(raster(file.path(temp_directory, raster_list$file_name[i]))) != projection(template)){stop("Issue with reprojection")}
+      # check the projection
 
+        if(terra::crs(rast(file.path(temp_directory,
+                                     gsub(pattern = ".tif$",
+                                          replacement = ".temp.tif",
+                                          x = raster_list$file_name[i]))),
+                      proj=TRUE) != terra::crs(template, proj=TRUE)){
+          stop("Issue with reprojection")}
 
+      # delete the original
 
-        #Terra is currently having some problems with reading and writing so I've switched back to raster for now
-        # terra::project(x = raster_i,
-        #                y = template,
-        #                method = method,
-        #                filename = file.path(temp_directory, paste("temp_",raster_list$file_name[i],sep = "")),
-        #                overwrite = TRUE)
+        file.remove(file.path(temp_directory, raster_list$file_name[i]))
 
+        file.rename(from = file.path(temp_directory,
+                                     gsub(pattern = ".tif$",
+                                          replacement = ".temp.tif",
+                                          x = raster_list$file_name[i])),
+                    to = file.path(temp_directory, raster_list$file_name[i]))
+
+        # check the new projection
+
+          if(terra::crs(rast(file.path(temp_directory, raster_list$file_name[i])),
+                        proj=TRUE) != terra::crs(template, proj=TRUE)){
+            stop("Issue with reprojection")}
+
+        # upload the new file
 
         pb_upload(file = file.path(temp_directory, raster_list$file_name[i]),
                   repo = "AdamWilsonLab/emma_envdata",
