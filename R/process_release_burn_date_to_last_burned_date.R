@@ -22,6 +22,12 @@ process_release_burn_date_to_last_burned_date <- function(input_tag = "processed
                                                           sanbi_sf = sanbi_fires_shp,
                                                           expiration_date = NULL,
                                                           ...){
+  #ensure folders are empty
+
+  if(dir.exists(temp_directory_input)){unlink(temp_directory_input, recursive = TRUE,force = TRUE)}
+
+  if(dir.exists(temp_directory_output)){unlink(temp_directory_output, recursive = TRUE,force = TRUE)}
+
 
   #make folder if needed
 
@@ -29,10 +35,6 @@ process_release_burn_date_to_last_burned_date <- function(input_tag = "processed
 
     if(!dir.exists(temp_directory_output)){dir.create(temp_directory_output, recursive = TRUE)}
 
-  # clear out any accidental remnants
-
-    file.remove(list.files(temp_directory_input,full.names = TRUE))
-    file.remove(list.files(temp_directory_output,full.names = TRUE))
 
   # Make sure there is a release or else create one.
 
@@ -116,8 +118,6 @@ process_release_burn_date_to_last_burned_date <- function(input_tag = "processed
       mutate(end_date = ceiling_date(date, unit = "month")-1)%>%
       mutate(end_number = as.numeric(end_date))%>%
       arrange(number) -> input_files
-
-
 
   #Ensure output files are properly ordered
 
