@@ -162,18 +162,18 @@ list(
       #   age = as.difftime(0, units = "hours")
       # ),
 
-    #   tar_age(
-    #     kndvi_modis_release,
-    #     get_release_kndvi_modis(temp_directory = "data/temp/raw_data/kndvi_modis/",
-    #                            tag = "raw_kndvi_modis",
-    #                            domain = domain,
-    #                            max_layers = 5,
-    #                            sleep_time = 5,
-    #                            json_token = json_token),
-    #     age = as.difftime(7, units = "days")
-    #     #age = as.difftime(1, units = "days")
-    #     #age = as.difftime(0, units = "hours")
-    # ),
+      tar_age(
+        kndvi_modis_release,
+        get_release_kndvi_modis(temp_directory = "data/temp/raw_data/kndvi_modis/",
+                               tag = "raw_kndvi_modis",
+                               domain = domain,
+                               max_layers = 5,
+                               sleep_time = 5,
+                               json_token = json_token),
+        age = as.difftime(7, units = "days")
+        #age = as.difftime(1, units = "days")
+        #age = as.difftime(0, units = "hours")
+    ),
 
     tar_age(
       ndvi_modis_release,
@@ -299,15 +299,15 @@ list(
     #                                        sleep_time = 30,
     #                                        ... = ndvi_dates_viirs_release)
     # ),
-    #
-    # tar_target(
-    #   correct_kndvi_release_proj,
-    #   process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/kndvi_modis/",
-    #                                        tag = "raw_kndvi_modis",
-    #                                        max_layers = NULL,
-    #                                        sleep_time = 45,
-    #                                        ... = kndvi_modis_release)
-    # ),
+
+    tar_target(
+      correct_kndvi_release_proj,
+      process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/kndvi_modis/",
+                                           tag = "raw_kndvi_modis",
+                                           max_layers = NULL,
+                                           sleep_time = 45,
+                                           ... = kndvi_modis_release)
+    ),
 
 
 # # # Processing via release
@@ -348,33 +348,33 @@ list(
     #                                                 ... = correct_ndvi_dates_release_proj)
     #   ),
     #
-    #   tar_target(
-    #     template_release,
-    #     get_release_template_raster(input_tag = "processed_fire_dates",
-    #                         output_tag = "raw_static",
-    #                         temp_directory = "data/temp/template",
-    #                         ... = correct_fire_release_proj,
-    #                         ... = correct_fire_release_ext)
-    #   ),
-    #
-    #   tar_target(
-    #     remnants_release,
-    #     domain_remnants_release(domain = domain,
-    #                             remnants_shp = remnants_shp,
-    #                             template_release,
-    #                             temp_directory = "data/temp/remnants",
-    #                             out_file = "remnants.tif",
-    #                             out_tag = "processed_static")
-    #   ),
-    #
-    #   tar_target(
-    #     remnant_distance_release,
-    #     domain_distance_release(remnants_release = remnants_release,
-    #                             out_file="remnant_distance.tif",
-    #                             temp_directory = "data/temp/remnants",
-    #                             out_tag = "processed_static")
-    #     ),
-    #
+      tar_target(
+        template_release,
+        get_release_template_raster(input_tag = "processed_fire_dates",
+                            output_tag = "raw_static",
+                            temp_directory = "data/temp/template",
+                            ... = correct_fire_release_proj,
+                            ... = correct_fire_release_ext)
+      ),
+
+      tar_target(
+        remnants_release,
+        domain_remnants_release(domain = domain,
+                                remnants_shp = remnants_shp,
+                                template_release,
+                                temp_directory = "data/temp/remnants",
+                                out_file = "remnants.tif",
+                                out_tag = "processed_static")
+      ),
+
+      tar_target(
+        remnant_distance_release,
+        domain_distance_release(remnants_release = remnants_release,
+                                out_file="remnant_distance.tif",
+                                temp_directory = "data/temp/remnants",
+                                out_tag = "processed_static")
+        ),
+
     #   tar_target(
     #     projected_alos_release,
     #     process_release_alos(input_tag = "raw_static",
