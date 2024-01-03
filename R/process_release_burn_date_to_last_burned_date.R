@@ -24,16 +24,20 @@ process_release_burn_date_to_last_burned_date <- function(input_tag = "processed
                                                           ...){
   #ensure folders are empty
 
-  if(dir.exists(temp_directory_input)){unlink(temp_directory_input, recursive = TRUE,force = TRUE)}
+  if(dir.exists(temp_directory_input)){
+    unlink(temp_directory_input, recursive = TRUE,force = TRUE)}
 
-  if(dir.exists(temp_directory_output)){unlink(temp_directory_output, recursive = TRUE,force = TRUE)}
+  if(dir.exists(temp_directory_output)){
+    unlink(temp_directory_output, recursive = TRUE,force = TRUE)}
 
 
   #make folder if needed
 
-    if(!dir.exists(temp_directory_input)){dir.create(temp_directory_input, recursive = TRUE)}
+    if(!dir.exists(temp_directory_input)){
+      dir.create(temp_directory_input, recursive = TRUE)}
 
-    if(!dir.exists(temp_directory_output)){dir.create(temp_directory_output, recursive = TRUE)}
+    if(!dir.exists(temp_directory_output)){
+      dir.create(temp_directory_output, recursive = TRUE)}
 
 
   # Make sure there is a release or else create one.
@@ -333,10 +337,6 @@ process_release_burn_date_to_last_burned_date <- function(input_tag = "processed
 
           #if SANBI sf is present, construct a raster and use all three
 
-          # sanbi_sf %>%
-          #   filter(most_recent_burn < input_files$end_date[i]) %>%
-          #   fasterize(raster = raster(raster_i), field = "numeric_most_recent_burn") -> sanbi_raster_i
-
           sanbi_sf %>%
             filter(most_recent_burn < input_files$end_date[i]) %>%
             terra::rasterize(y = raster_i, field = "numeric_most_recent_burn") -> sanbi_raster_i
@@ -347,9 +347,6 @@ process_release_burn_date_to_last_burned_date <- function(input_tag = "processed
             if(as_date(max(values(sanbi_raster_i),na.rm = TRUE)) > input_files$end_date[i]){
                 stop("Issue with SANBI burn dates")
               }
-
-          # max_i <- raster::calc(x = stack(raster_i,previous_raster,sanbi_raster_i),
-          #              fun = robust_max)
 
           max_i <- terra::app(x = c(raster_i,previous_raster,sanbi_raster_i),
                      fun = robust_max)
