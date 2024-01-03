@@ -8,7 +8,6 @@
 
 library(xml2)
 library(rvest)
-library(raster)
 
 #' @description This function will download the Wilson cloud layers (http://www.earthenv.org/cloud), skipping any that have been downloaded already.
 #' @author Brian Maitner
@@ -68,31 +67,32 @@ get_release_clouds_wilson <- function(temp_directory = "data/temp/raw_data/cloud
                            max_attempts = 10,
                            sleep_time = 10)
 
-
     # Load in the downloaded file
-      #raster_i <- terra::rast(file.path(temp_directory, filename)) doesn't work
-      raster_i <- raster::raster(file.path(temp_directory, filename))
+      raster_i <- terra::rast(file.path(temp_directory, filename))
 
     # Transform domain
       domain_tf <- sf::st_transform(x = domain,
                                     crs = crs(raster_i))
 
     #Crop to extent
-      raster_i <- raster::crop(x = raster_i,
-                               y = raster::extent(domain_tf)
-      )
+      raster_i <- terra::crop(x = raster_i,
+                              y = terra::ext(domain_tf))
 
     # Mask to domain
-      raster_i <- raster::mask(x = raster_i,
+      raster_i <- terra::mask(x = raster_i,
                                mask = domain_tf)
 
     # Plot
-      plot(terra::rast(raster_i),main = filename)
+      #plot(raster_i,main = filename)
 
     # Save the cropped/masked raster
-      writeRaster(x = terra::rast(raster_i), #this conversion to terra is odd.  But for some reason if you don't include it, the output layer contains only NA values
-                  filename = file.path(temp_directory, filename),
+      terra::writeRaster(x = raster_i,
+                  filename = file.path(temp_directory,filename),
                   overwrite = TRUE)
+
+    #check extent
+
+      if(round(ext(rast(file.path(temp_directory,filename)))) != round(ext(domain_tf))){stop("Extent mismatch in cloud data")}
 
     # Push release
 
@@ -115,6 +115,7 @@ get_release_clouds_wilson <- function(temp_directory = "data/temp/raw_data/cloud
     #Delete temp dir
 
     unlink(x = file.path(temp_directory), recursive = TRUE,force = TRUE)
+    gc()
 
   # End
 
