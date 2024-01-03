@@ -200,21 +200,21 @@ list(
     #   #age = as.difftime(1, units = "days")
     #   #age = as.difftime(0, units = "hours")
     # ),
-    #
-    #
-    # tar_age(
-    #   ndvi_dates_modis_release,
-    #   get_release_ndvi_dates_modis(temp_directory = "data/temp/raw_data/ndvi_dates_modis/",
-    #                          repo_tag = "raw_ndvi_dates_modis",
-    #                          domain = domain,
-    #                          max_layers = 5,
-    #                          sleep_time = 10,
-    #                          json_token = json_token),
-    #   age = as.difftime(7, units = "days")
-    #   #age = as.difftime(1, units = "days")
-    #   #age = as.difftime(0, units = "hours")
-    # ),
-    #
+
+
+    tar_age(
+      ndvi_dates_modis_release,
+      get_release_ndvi_dates_modis(temp_directory = "data/temp/raw_data/ndvi_dates_modis/",
+                             repo_tag = "raw_ndvi_dates_modis",
+                             domain = domain,
+                             max_layers = 5,
+                             sleep_time = 10,
+                             json_token = json_token),
+      age = as.difftime(7, units = "days")
+      #age = as.difftime(1, units = "days")
+      #age = as.difftime(0, units = "hours")
+    ),
+
     # tar_age(
     #   ndvi_dates_viirs_release,
     #   get_release_ndvi_dates_viirs(temp_directory = "data/temp/raw_data/ndvi_dates_viirs/",
@@ -261,17 +261,17 @@ list(
     #                                        ... = fire_modis_release,
     #                                        ... = correct_fire_release_proj)
     # ),
-    #
-    #
-    #     tar_target(
-    #       correct_ndvi_release_proj,
-    #       process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/ndvi_modis/",
-    #                                            tag = "raw_ndvi_modis",
-    #                                            max_layers = NULL,
-    #                                            sleep_time = 30,
-    #                                            ... = ndvi_modis_release)
-    #     ),
-    #
+
+
+        tar_target(
+          correct_ndvi_release_proj,
+          process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/ndvi_modis/",
+                                               tag = "raw_ndvi_modis",
+                                               max_layers = NULL,
+                                               sleep_time = 30,
+                                               ... = ndvi_modis_release)
+        ),
+
     # tar_target(
     #   correct_ndvi_viirs_release_proj,
     #   process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/ndvi_viirs/",
@@ -280,17 +280,17 @@ list(
     #                                        sleep_time = 45,
     #                                        ... = ndvi_viirs_release)
     # ),
-    #
-    #
-    # tar_target(
-    #   correct_ndvi_dates_release_proj,
-    #   process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/ndvi_dates_modis/",
-    #                                        tag = "raw_ndvi_dates_modis",
-    #                                        max_layers = NULL,
-    #                                        sleep_time = 30,
-    #                                        ... = ndvi_dates_modis_release)
-    # ),
-    #
+
+
+    tar_target(
+      correct_ndvi_dates_release_proj,
+      process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/ndvi_dates_modis/",
+                                           tag = "raw_ndvi_dates_modis",
+                                           max_layers = NULL,
+                                           sleep_time = 30,
+                                           ... = ndvi_dates_modis_release)
+    ),
+
     # tar_target(
     #   correct_ndvi_dates_viirs_release_proj,
     #   process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/ndvi_dates_viirs/",
