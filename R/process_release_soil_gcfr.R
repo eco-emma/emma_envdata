@@ -36,53 +36,47 @@ process_release_soil_gcfr <- function(input_tag = "raw_static",
     #Pause to keep below the rate limit
     Sys.sleep(sleep_time)
 
-    #template <- terra::rast(file.path(temp_directory, template_release$file))
-    template <- raster::raster(file.path(temp_directory, template_release$file))
+    template <- terra::rast(file.path(temp_directory, template_release$file))
 
   # get input rasters
 
-  raster_list <- pb_list(repo = "AdamWilsonLab/emma_envdata",
-                         tag = input_tag) %>%
-    filter(grepl(pattern = "soil_",
-                 x = file_name))
+    raster_list <- pb_list(repo = "AdamWilsonLab/emma_envdata",
+                           tag = input_tag) %>%
+      filter(grepl(pattern = "soil_",
+                   x = file_name))
 
-  robust_pb_download(file = raster_list$file_name,
-                     dest = temp_directory,
-                     repo = "AdamWilsonLab/emma_envdata",
-                     tag = input_tag,
-                     max_attempts = 10,
-                     sleep_time = sleep_time)
+    robust_pb_download(file = raster_list$file_name,
+                       dest = temp_directory,
+                       repo = "AdamWilsonLab/emma_envdata",
+                       tag = input_tag,
+                       max_attempts = 10,
+                       sleep_time = sleep_time)
 
   #Pause to keep below the rate limit
-  Sys.sleep(sleep_time)
+
+    Sys.sleep(sleep_time)
 
 
   # reformat and save each
 
   for(i in 1:nrow(raster_list)){
 
-    raster_i <- raster::raster(file.path(temp_directory, raster_list$file_name[i]))
-    #raster_i <- terra::rast(file.path(temp_directory, raster_list$file_name[i]))
+    raster_i <- terra::rast(file.path(temp_directory, raster_list$file_name[i]))
 
     method <- "bilinear"
 
+    terra::project(x = raster_i,
+                   y = template,
+                   method = method,
+                   filename = file.path(temp_directory, paste("temp_",raster_list$file_name[i],sep = "")),
+                   overwrite = TRUE)
 
-    raster::projectRaster(from = raster_i,
-                          to = template,
-                          method = method,
-                          filename = file.path(temp_directory, raster_list$file_name[i]),
-                          overwrite=TRUE
-    )
+    if(crs(template,proj=TRUE) !=
+       crs(rast(file.path(temp_directory,
+                          paste("temp_",raster_list$file_name[i],sep = ""))),
+           proj=TRUE)){stop("Error in raster reprojection")}
 
-    #Terra is currently having some problems with reading and writing so I've switched back to raster for now
-    # terra::project(x = raster_i,
-    #                y = template,
-    #                method = method,
-    #                filename = file.path(temp_directory, paste("temp_",raster_list$file_name[i],sep = "")),
-    #                overwrite = TRUE)
-
-
-    pb_upload(file = file.path(temp_directory, raster_list$file_name[i]),
+    pb_upload(file = file.path(temp_directory, paste("temp_",raster_list$file_name[i],sep = "")),
               repo = "AdamWilsonLab/emma_envdata",
               tag = output_tag,
               name = raster_list$file_name[i])
@@ -90,8 +84,10 @@ process_release_soil_gcfr <- function(input_tag = "raw_static",
     rm(raster_i)
 
     file.remove(file.path(temp_directory, raster_list$file_name[i]))
+    file.remove(file.path(temp_directory, paste("temp_",raster_list$file_name[i],sep = "")))
 
-    #Pause to keep below the rate limit
+  #Pause to keep below the rate limit
+
     Sys.sleep(sleep_time)
 
   } #i loop
@@ -100,6 +96,7 @@ process_release_soil_gcfr <- function(input_tag = "raw_static",
   #Clear out the folder
 
     unlink(file.path(temp_directory), recursive = TRUE, force = TRUE)
+    gc()
 
   #End function
 
