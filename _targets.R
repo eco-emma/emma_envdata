@@ -6,6 +6,9 @@ library(googledrive)
 
 #If running this locally, make sure to set up github credentials using gitcreds::gitcreds_set()
 
+# devtools::install_github(repo = "bmaitner/rgee",
+#                          ref = "noninteractive_auth")
+
 # Ensure things are clean
   unlink(file.path("data/temp/"), recursive = TRUE, force = TRUE)
   unlink(file.path("data/raw_data/", recursive = TRUE, force = TRUE))
@@ -158,7 +161,8 @@ list(
                                domain = domain,
                                max_layers = 5,
                                sleep_time = 5,
-                               json_token = json_token),
+                               json_token = json_token,
+                               verbose = FALSE),
         #age = as.difftime(7, units = "days")
         #age = as.difftime(1, units = "days")
         age = as.difftime(0, units = "hours")
@@ -245,24 +249,24 @@ list(
 
 # # # Fixing projection via releases
 
-    # tar_target(
-    #   correct_fire_release_proj,
-    #   process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/fire_modis/",
-    #                                        tag = "raw_fire_modis",
-    #                                        max_layers = NULL,
-    #                                        sleep_time = 30,
-    #                                ... = fire_modis_release)
-    # ),
-    #
-    # tar_target(
-    #   correct_fire_release_ext,
-    #   process_fix_modis_release_extent(temp_directory = "data/temp/raw_data/fire_extent/",
-    #                                        tag = "raw_fire_modis",
-    #                                        max_layers = NULL,
-    #                                        sleep_time = 30,
-    #                                        ... = fire_modis_release,
-    #                                        ... = correct_fire_release_proj)
-    # ),
+    tar_target(
+      correct_fire_release_proj,
+      process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/fire_modis/",
+                                           tag = "raw_fire_modis",
+                                           max_layers = NULL,
+                                           sleep_time = 30,
+                                   ... = fire_modis_release)
+    ),
+
+    tar_target(
+      correct_fire_release_ext,
+      process_fix_modis_release_extent(temp_directory = "data/temp/raw_data/fire_extent/",
+                                           tag = "raw_fire_modis",
+                                           max_layers = NULL,
+                                           sleep_time = 30,
+                                           ... = fire_modis_release,
+                                           ... = correct_fire_release_proj)
+    ),
 
 
         tar_target(
@@ -314,42 +318,42 @@ list(
 
 # # # Processing via release
 
-    # tar_target(
-    #   fire_doy_to_unix_date_release,
-    #   process_release_fire_doy_to_unix_date(input_tag = "raw_fire_modis",
-    #                                         output_tag = "processed_fire_dates",
-    #                                         temp_directory = "data/temp/processed_data/fire_dates/",
-    #                                         sleep_time = 20,
-    #                                         ... = correct_fire_release_proj,
-    #                                         ... = correct_fire_release_ext)
-    #   ),
-    #
-    # tar_target(
-    #   burn_date_to_last_burned_date_release,
-    #   process_release_burn_date_to_last_burned_date(input_tag = "processed_fire_dates",
-    #                                                 output_tag = "processed_most_recent_burn_dates",
-    #                                                 temp_directory_input = "data/temp/processed_data/fire_dates/",
-    #                                                 temp_directory_output = "data/temp/processed_data/most_recent_burn_dates/",
-    #                                                 sleep_time = 180,
-    #                                                 sanbi_sf = sanbi_fires_shp,
-    #                                                 expiration_date = NULL,
-    #                                                 ... = fire_doy_to_unix_date_release)
-    # ),
+    tar_target(
+      fire_doy_to_unix_date_release,
+      process_release_fire_doy_to_unix_date(input_tag = "raw_fire_modis",
+                                            output_tag = "processed_fire_dates",
+                                            temp_directory = "data/temp/processed_data/fire_dates/",
+                                            sleep_time = 20,
+                                            ... = correct_fire_release_proj,
+                                            ... = correct_fire_release_ext)
+      ),
+
+    tar_target(
+      burn_date_to_last_burned_date_release,
+      process_release_burn_date_to_last_burned_date(input_tag = "processed_fire_dates",
+                                                    output_tag = "processed_most_recent_burn_dates",
+                                                    temp_directory_input = "data/temp/processed_data/fire_dates/",
+                                                    temp_directory_output = "data/temp/processed_data/most_recent_burn_dates/",
+                                                    sleep_time = 180,
+                                                    sanbi_sf = sanbi_fires_shp,
+                                                    expiration_date = NULL,
+                                                    ... = fire_doy_to_unix_date_release)
+    ),
 
 
-    # tar_target(
-    #   ndvi_relative_days_since_fire_release,
-    #   process_release_ndvi_relative_days_since_fire(temp_input_ndvi_date_folder = "data/temp/raw_data/ndvi_dates_modis/",
-    #                                                 temp_input_fire_date_folder = "data/temp/processed_data/most_recent_burn_dates/",
-    #                                                 temp_fire_output_folder = "data/temp/processed_data/ndvi_relative_time_since_fire/",
-    #                                                 input_fire_dates_tag = "processed_most_recent_burn_dates",
-    #                                                 input_modis_dates_tag = "raw_ndvi_dates_modis",
-    #                                                 output_tag = "processed_ndvi_relative_days_since_fire",
-    #                                                 sleep_time = 60,
-    #                                                 ... = burn_date_to_last_burned_date_release,
-    #                                                 ... = correct_ndvi_dates_release_proj)
-    #   ),
-    #
+    tar_target(
+      ndvi_relative_days_since_fire_release,
+      process_release_ndvi_relative_days_since_fire(temp_input_ndvi_date_folder = "data/temp/raw_data/ndvi_dates_modis/",
+                                                    temp_input_fire_date_folder = "data/temp/processed_data/most_recent_burn_dates/",
+                                                    temp_fire_output_folder = "data/temp/processed_data/ndvi_relative_time_since_fire/",
+                                                    input_fire_dates_tag = "processed_most_recent_burn_dates",
+                                                    input_modis_dates_tag = "raw_ndvi_dates_modis",
+                                                    output_tag = "processed_ndvi_relative_days_since_fire",
+                                                    sleep_time = 60,
+                                                    ... = burn_date_to_last_burned_date_release,
+                                                    ... = correct_ndvi_dates_release_proj)
+      ),
+
       tar_target(
         template_release,
         get_release_template_raster(input_tag = "processed_fire_dates",
