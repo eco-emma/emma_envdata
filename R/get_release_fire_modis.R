@@ -178,13 +178,19 @@ get_release_fire_modis <- function(temp_directory = "data/temp/raw_data/fire_mod
 
   if(!is.null(max_layers)){
 
-    if(verbose){message("Pruning download to the maximum number of layers")}
+    if(verbose){message("Comparing number of layers to download with max_layers")}
 
-    info <- fire_new_and_clean$getInfo()
-    to_download <- unlist(lapply(X = info$features,FUN = function(x){x$properties$`system:index`}))
-    to_download <- gsub(pattern = "_",replacement = "-",x = to_download)
+    if(verbose){message("Getting info on cleaned fire data")}
+      info <- fire_new_and_clean$getInfo()
+
+    if(verbose){message("Preparing list to download")}
+
+      to_download <- unlist(lapply(X = info$features,FUN = function(x){x$properties$`system:index`}))
+      to_download <- gsub(pattern = "_",replacement = "-",x = to_download)
 
     if(length(to_download) > max_layers){
+
+      if(verbose){message("Pruning download to the maximum number of layers")}
 
       fire_new_and_clean <- fire_new_and_clean$filterDate(start = to_download[1],
                                                           opt_end = to_download[max_layers+1])
