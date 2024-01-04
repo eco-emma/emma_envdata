@@ -86,7 +86,7 @@ get_release_fire_modis <- function(temp_directory = "data/temp/raw_data/fire_mod
 
   # get list releases
 
-    if(verbose){message("Getting releases")}
+    if(verbose){message("Getting metadata for releases")}
 
     released_files  <- pb_list(repo = "AdamWilsonLab/emma_envdata")
 
@@ -110,22 +110,24 @@ get_release_fire_modis <- function(temp_directory = "data/temp/raw_data/fire_mod
     #ee_Initialize()
 
   # Load ee image collection
-
+    if(verbose){message("Loading image collection")}
     modis_fire <- ee$ImageCollection("MODIS/061/MCD64A1")
 
   #Format the domain
 
+    if(verbose){message("Formatting the domain")}
     domain <- sf_as_ee(x = domain)
     domain <- domain$geometry()
 
 
   # Clean data using QA
 
+    if(verbose){message("Cleaning the data")}
     fire_clean <- modis_fire$map(MCD64A1_clean)
 
   #Get a list of files already released
-    released_files  <- pb_list(repo = "AdamWilsonLab/emma_envdata",
-                               tag = tag)
+
+    if(verbose){message("Getting list of previously processed files")}
 
     release_tag <- tag
 
