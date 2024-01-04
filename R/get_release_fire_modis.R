@@ -127,22 +127,28 @@ get_release_fire_modis <- function(temp_directory = "data/temp/raw_data/fire_mod
 
   #Get a list of files already released
 
-    if(verbose){message("Getting list of previously processed files")}
+    if(verbose){message("Renaming release tag object")}
 
-    release_tag <- tag
+      release_tag <- tag
 
-    released_files <-
-    released_files %>%
-      filter(tag == release_tag)
+    if(verbose){message("Filtering to list of previously processed files")}
 
-    released_files$date <- gsub(pattern = ".tif",
-                                replacement = "",
-                                x = released_files$file_name)
-
-    released_files <-
+      released_files <-
       released_files %>%
-      dplyr::filter(file_name != "") %>%
-      dplyr::filter(file_name != "log.csv")
+        filter(tag == release_tag)
+
+    if(verbose){message("Making date column in file info")}
+
+      released_files$date <- gsub(pattern = ".tif",
+                                  replacement = "",
+                                  x = released_files$file_name)
+
+    if(verbose){message("Filtering out non-tifs")}
+
+      released_files <-
+        released_files %>%
+        dplyr::filter(file_name != "") %>%
+        dplyr::filter(file_name != "log.csv")
 
 
   # check to see if any images have been downloaded already
