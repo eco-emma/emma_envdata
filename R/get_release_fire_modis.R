@@ -183,7 +183,6 @@ get_release_fire_modis <- function(temp_directory = "data/temp/raw_data/fire_mod
 
     if(verbose){message("Getting info on cleaned fire data")}
 
-      # this step is causing the problems
       info <- fire_new_and_clean$getInfo()
 
     if(verbose){message("Preparing list to download")}
