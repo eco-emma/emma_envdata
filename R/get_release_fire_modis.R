@@ -148,7 +148,8 @@ get_release_fire_modis <- function(temp_directory = "data/temp/raw_data/fire_mod
       released_files <-
         released_files %>%
         dplyr::filter(file_name != "") %>%
-        dplyr::filter(file_name != "log.csv")
+        dplyr::filter(file_name != "log.csv") %>%
+        dplyr::filter(file_name != "extent_log.csv")
 
 
   # check to see if any images have been downloaded already
@@ -181,6 +182,8 @@ get_release_fire_modis <- function(temp_directory = "data/temp/raw_data/fire_mod
     if(verbose){message("Comparing number of layers to download with max_layers")}
 
     if(verbose){message("Getting info on cleaned fire data")}
+
+      # this step is causing the problems
       info <- fire_new_and_clean$getInfo()
 
     if(verbose){message("Preparing list to download")}
