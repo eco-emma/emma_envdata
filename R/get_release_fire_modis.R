@@ -153,25 +153,32 @@ get_release_fire_modis <- function(temp_directory = "data/temp/raw_data/fire_mod
 
   # check to see if any images have been downloaded already
 
-  if(nrow(released_files) == 0){
+    if(verbose){message("Checking for previous downloads and setting date accordingly")}
 
-    newest <- lubridate::as_date(-1) #if nothing is downloaded, start in 1970
+      if(nrow(released_files) == 0){
 
-  }else{
+        newest <- lubridate::as_date(-1) #if nothing is downloaded, start in 1970
 
-    newest <- max(lubridate::as_date(released_files$date)) #if there are images, start with the most recent
+      }else{
 
-  }
+        newest <- max(lubridate::as_date(released_files$date)) #if there are images, start with the most recent
+
+      }
 
 
   # Filter the data to exclude anything you've already downloaded (or older)
-    fire_new_and_clean <- fire_clean$filterDate(start = paste(as.Date(newest+1),sep = ""),
-                                                opt_end = paste(format(Sys.time(), "%Y-%m-%d"),sep = "") )
+
+    if(verbose){message("Filtering by date")}
+
+      fire_new_and_clean <- fire_clean$filterDate(start = paste(as.Date(newest+1),sep = ""),
+                                                  opt_end = paste(format(Sys.time(), "%Y-%m-%d"),sep = "") )
 
 
   # Function to optionally limit the number of layers downloaded at once
 
   if(!is.null(max_layers)){
+
+    if(verbose){message("Pruning download to the maximum number of layers")}
 
     info <- fire_new_and_clean$getInfo()
     to_download <- unlist(lapply(X = info$features,FUN = function(x){x$properties$`system:index`}))
@@ -200,6 +207,8 @@ get_release_fire_modis <- function(temp_directory = "data/temp/raw_data/fire_mod
 
   # Download
 
+    if(verbose){message("Downloading image collection")}
+
     ee_imagecollection_to_local(ic = fire_new_and_clean,
                                 region = domain,
                                 dsn = temp_directory,
@@ -209,6 +218,8 @@ get_release_fire_modis <- function(temp_directory = "data/temp/raw_data/fire_mod
     #Push files to release
 
     # Get a list of the local files
+
+    if(verbose){message("Getting list of downloaded files")}
 
     local_files <- data.frame(local_filename = list.files(path = temp_directory,
                                                           recursive = TRUE,
@@ -225,15 +236,14 @@ get_release_fire_modis <- function(temp_directory = "data/temp/raw_data/fire_mod
 
   #Push files to release
 
-    # Get a lost of the local files
-      local_files <- data.frame(local_filename = list.files(path = temp_directory,
-                                                            recursive = TRUE,
-                                                            full.names = TRUE))
-
 
       # loop through and release everything
 
+      if(verbose){message("Pushing files to releases")}
+
       for( i in 1:nrow(local_files)){
+
+        if(verbose){message("Uploading file ",i, " of ", nrow(local_files))}
 
         Sys.sleep(sleep_time) #We need to limit our rate in order to keep Github happy
 
@@ -244,6 +254,8 @@ get_release_fire_modis <- function(temp_directory = "data/temp/raw_data/fire_mod
       } # end i loop
 
   # Delete temp files
+
+    if(verbose){message("Deleting temporary directory")}
 
     unlink(file.path(temp_directory), recursive = TRUE, force = TRUE)
 
