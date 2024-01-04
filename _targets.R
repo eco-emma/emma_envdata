@@ -478,17 +478,17 @@ list(
     #                               ... = projected_soil_gcfr_release)
     #   )
     # ,
-    #
-    # tar_target(
-    #   ndvi_to_parquet_release,
-    #   process_release_dynamic_data_to_parquet(temp_directory = "data/temp/raw_data/ndvi_modis/",
-    #                                   input_tag = "raw_ndvi_modis",
-    #                                   output_tag = "current",
-    #                                   variable_name = "ndvi",
-    #                                   sleep_time = 30,
-    #                                   ... = correct_ndvi_release_proj)
-    #   ),
-    #
+
+    tar_target(
+      ndvi_to_parquet_release,
+      process_release_dynamic_data_to_parquet(temp_directory = "data/temp/raw_data/ndvi_modis/",
+                                      input_tag = "raw_ndvi_modis",
+                                      output_tag = "current",
+                                      variable_name = "ndvi",
+                                      sleep_time = 30,
+                                      ... = correct_ndvi_release_proj)
+      ),
+
     # tar_target(
     #   fire_dates_to_parquet_release,
     #   process_release_dynamic_data_to_parquet(temp_directory = "data/temp/processed_data/ndvi_relative_time_since_fire/",
