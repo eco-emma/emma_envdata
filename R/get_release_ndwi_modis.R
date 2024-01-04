@@ -14,21 +14,23 @@ get_release_ndwi_modis <- function(temp_directory = "data/temp/raw_data/NDWI_MOD
 
   #  #Ensure directory is empty if it exists
 
-  if(dir.exists(temp_directory)){
-    unlink(file.path(temp_directory), recursive = TRUE, force = TRUE)
-  }
+    if(dir.exists(temp_directory)){
+      unlink(file.path(temp_directory), recursive = TRUE, force = TRUE)
+    }
 
 
   # make a directory if one doesn't exist yet
 
-  if(!dir.exists(temp_directory)){
-    dir.create(temp_directory, recursive = TRUE)
-  }
+    if(!dir.exists(temp_directory)){
+      dir.create(temp_directory, recursive = TRUE)
+    }
 
 
   # Load the image
-    #ndwi <- ee$ImageCollection("MODIS/MCD43A4_006_NDWI")
-    ndwi <- ee$ImageCollection("MODIS/MCD43A4_061_NDWI")
+
+    warning("NDWI is only available for MODIS v 6.0 in GEE.  Check for v 6.1 in the future")
+    ndwi <- ee$ImageCollection("MODIS/MCD43A4_006_NDWI")
+    #ndwi <- ee$ImageCollection("MODIS/MCD43A4_061_NDWI")
 
 
   #Format the domain
