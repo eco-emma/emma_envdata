@@ -59,7 +59,8 @@ get_release_fire_modis <- function(temp_directory = "data/temp/raw_data/fire_mod
                                    domain,
                                    max_layers = 50,
                                    sleep_time = 1,
-                                   json_token) {
+                                   json_token,
+                                   verbose = TRUE) {
 
   #Garbage cleanup, just in case
 
@@ -68,20 +69,41 @@ get_release_fire_modis <- function(temp_directory = "data/temp/raw_data/fire_mod
   #  #Ensure directory is empty if it exists
 
     if(dir.exists(temp_directory)){
+
+      if(verbose){message("Deleting directory")}
       unlink(file.path(temp_directory), recursive = TRUE, force = TRUE)
+
     }
 
   # make a directory if one doesn't exist yet
 
     if(!dir.exists(temp_directory)){
+
+      if(verbose){message("Creating directory")}
       dir.create(temp_directory, recursive = TRUE)
+
     }
+
+  # get list releases
+
+    if(verbose){message("Getting releases")}
+
+    released_files  <- pb_list(repo = "AdamWilsonLab/emma_envdata")
+
 
   #Make sure there is a release by attempting to create one.  If it already exists, this will fail
 
-    tryCatch(expr =   pb_new_release(repo = "AdamWilsonLab/emma_envdata",
-                                     tag =  tag),
-             error = function(e){message("Previous release found")})
+      if(!tag %in% released_files$tag){
+
+        if(verbose){message("Creating a new release")}
+
+        tryCatch(expr =   pb_new_release(repo = "AdamWilsonLab/emma_envdata",
+                                         tag =  tag),
+                 error = function(e){message("Previous release found")})
+
+
+      }
+
 
 
   # Initialize earth engine (for targets works better if called here)
@@ -104,6 +126,12 @@ get_release_fire_modis <- function(temp_directory = "data/temp/raw_data/fire_mod
   #Get a list of files already released
     released_files  <- pb_list(repo = "AdamWilsonLab/emma_envdata",
                                tag = tag)
+
+    release_tag <- tag
+
+    released_files <-
+    released_files %>%
+      filter(tag == release_tag)
 
     released_files$date <- gsub(pattern = ".tif",
                                 replacement = "",
