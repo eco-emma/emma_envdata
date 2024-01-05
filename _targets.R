@@ -358,11 +358,10 @@ list(
 
       tar_target(
         template_release,
-        get_release_template_raster(input_tag = "processed_fire_dates",
+        get_release_template_raster(input_tag = "raw_ndvi_modis",
                             output_tag = "raw_static",
                             temp_directory = "data/temp/template",
-                            ... = correct_fire_release_proj,
-                            ... = correct_fire_release_ext)
+                            ... = correct_ndvi_release_proj)
       ),
 
       tar_target(
