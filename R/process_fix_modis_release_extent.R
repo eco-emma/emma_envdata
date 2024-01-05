@@ -14,9 +14,12 @@ process_fix_modis_release_extent <- function(temp_directory,
                                              template_release = template_release,
                                              max_layers = NULL,
                                              sleep_time = 0.1,
+                                             verbose=FALSE,
                                              ...){
 
   # get a list of released files
+
+      if(verbose){message("Downloading list of releases")}
 
       released_files  <- pb_list(repo = "AdamWilsonLab/emma_envdata",
                                  tag = tag)
@@ -24,6 +27,9 @@ process_fix_modis_release_extent <- function(temp_directory,
   #  #Ensure directory is empty if it exists
 
       if(dir.exists(temp_directory)){
+
+        if(verbose){message("Emptying directory")}
+
         unlink(file.path(temp_directory), recursive = TRUE, force = TRUE)
       }
 
@@ -31,12 +37,19 @@ process_fix_modis_release_extent <- function(temp_directory,
   # make a directory if one doesn't exist yet
 
       if(!dir.exists(temp_directory)){
+
+        if(verbose){message("Creating directory")}
+
         dir.create(temp_directory, recursive = TRUE)
+
       }
 
   #set up a  change log if needed
 
       if("extent_log.csv" %in% released_files$file_name){
+
+        if(verbose){message("Downloading log")}
+
 
         robust_pb_download(file =  "extent_log.csv",
                            dest = temp_directory,
@@ -48,6 +61,8 @@ process_fix_modis_release_extent <- function(temp_directory,
 
 
       }else{
+
+        if(verbose){message("Creating log")}
 
         suppressWarnings(expr =
                            cbind("file","original_extent","final_extent") %>%
@@ -64,6 +79,8 @@ process_fix_modis_release_extent <- function(temp_directory,
 
 
   # Get a list of raster that haven't been fixed by comparison with the log
+
+      if(verbose){message("Identifying rasters in need of processing")}
 
       rasters <- released_files$file_name[grep(x = released_files$file_name, pattern = ".tif")]
 
@@ -110,6 +127,8 @@ process_fix_modis_release_extent <- function(temp_directory,
 
       # IF extent checking is required, load the template used for comparison
 
+          if(verbose){message("Downloading template")}
+
           robust_pb_download(file = template_release$file,
                              dest = file.path(temp_directory),
                              repo = template_release$repo,
@@ -125,6 +144,8 @@ process_fix_modis_release_extent <- function(temp_directory,
         # iterate and fix
 
           for(i in 1:length(rasters)){
+
+            if(verbose){message("Checking raster ", i, " of ", length(rasters))}
 
             # download ith raster
 
@@ -239,6 +260,9 @@ process_fix_modis_release_extent <- function(temp_directory,
           } #for i rasters loop
 
     # Cleanup and end
+
+        if(verbose){message("Cleaning up")}
+
 
         # Delete temp files
           unlink(x = file.path(temp_directory), recursive = TRUE, force = TRUE)

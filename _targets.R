@@ -261,11 +261,13 @@ list(
     tar_target(
       correct_fire_release_ext,
       process_fix_modis_release_extent(temp_directory = "data/temp/raw_data/fire_extent/",
-                                           tag = "raw_fire_modis",
-                                           max_layers = NULL,
-                                           sleep_time = 30,
-                                           ... = fire_modis_release,
-                                           ... = correct_fire_release_proj)
+                                       tag = "raw_fire_modis",
+                                       template_release = template_release,
+                                       max_layers = NULL,
+                                       sleep_time = 30,
+                                       verbose = TRUE,
+                                       ... = fire_modis_release,
+                                       ... = correct_fire_release_proj)
     ),
 
 
