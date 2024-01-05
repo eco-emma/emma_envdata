@@ -326,6 +326,7 @@ list(
                                             output_tag = "processed_fire_dates",
                                             temp_directory = "data/temp/processed_data/fire_dates/",
                                             sleep_time = 20,
+                                            template_release = template_release,
                                             ... = correct_fire_release_proj,
                                             ... = correct_fire_release_ext)
       ),
