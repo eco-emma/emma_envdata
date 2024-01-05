@@ -165,9 +165,23 @@ process_release_ndvi_relative_days_since_fire <- function(temp_input_ndvi_date_f
 
     ndvi_raster_i <- terra::rast(file.path(temp_input_ndvi_date_folder,ndvi_files$file_name[i]))
 
-    start_date_i <- ndvi_files$date[i]
-    start_date_numeric_i <- ndvi_files$number[i]
-    end_date_numeric_i <- ndvi_files$number[i] + 16
+
+    # Get NDVI date metadata
+
+      start_date_i <- ndvi_files$date[i]
+      start_date_numeric_i <- ndvi_files$number[i]
+      end_date_numeric_i <- ndvi_files$number[i] + 16
+
+
+    # Check that ndvi dates and start/end dates make sense
+
+      ndvi_raster_dates <- sort(unique(values(ndvi_raster_i)))
+
+      if(any(ndvi_raster_dates < start_date_numeric_i |
+             ndvi_raster_dates > end_date_numeric_i)) {
+        stop(" Nonsensical NDVI dates")
+      }
+
 
     #Get the next fire date raster that occurs after
       suppressWarnings(fire_index <- min(which(fire_files$end_number >= end_date_numeric_i)))
@@ -244,6 +258,42 @@ process_release_ndvi_relative_days_since_fire <- function(temp_input_ndvi_date_f
 
       }
 
+    #Grab previous fire layer, or make an empty one if needed
+
+    if(fire_index > 2){
+
+
+      # download the file if needed
+      if(!file.exists(file.path(temp_input_fire_date_folder,fire_files$file_name[fire_index-2]))){
+
+        robust_pb_download(file = fire_files$file_name[fire_index - 2],
+                           dest = temp_input_fire_date_folder,
+                           repo = "AdamWilsonLab/emma_envdata",
+                           tag = input_fire_dates_tag,
+                           overwrite = TRUE,
+                           max_attempts = 10,
+                           sleep_time = sleep_time)
+
+        Sys.sleep(sleep_time) #We need to limit our rate in order to keep Github happy
+
+
+      }
+
+      fire_raster_0_i <- terra::rast(file.path(temp_input_fire_date_folder,fire_files$file_name[fire_index-2]))
+      fire_0_start_date <- fire_files$number[fire_index-2]
+
+    }else{
+
+      fire_raster_0_i <- terra::setValues(fire_raster_2_i,values = 0)
+
+    }
+
+
+
+    # Sanity checks on fire layers
+
+      # Do all last fires occur within the specified month (or earlier?)
+
     # Make a fire layer that doesn't include anything after the end of the ndvi
     # This code replaces any fire dates that occur after the NDVI measurement
     # with the dates from the previous fire layer
@@ -255,14 +305,20 @@ process_release_ndvi_relative_days_since_fire <- function(temp_input_ndvi_date_f
 
     # Less elegant, but works
 
+      fire_raster_i <- fire_raster_2_i
+
       values_to_replace <- which(values(fire_raster_i) > values(ndvi_raster_i))
 
       fire_raster_i[values_to_replace] <- fire_raster_1_i[values_to_replace]
 
+      values_to_replace <- which(values(fire_raster_i) > values(ndvi_raster_i))
+
+      fire_raster_i[values_to_replace] <- fire_raster_0_i[values_to_replace]
+
 
     #plot(fire_raster_i)
     #plot(fire_raster_2_i - fire_raster_1_i  )
-      rm(fire_raster_1_i,fire_raster_2_i)
+      rm(fire_raster_1_i,fire_raster_2_i,fire_raster_0_i)
 
     #Set fire dates of zero to NA (since its unlikely any occurred on precisely that date)
       fire_raster_i[fire_raster_i == 0] <- NA
@@ -304,14 +360,13 @@ process_release_ndvi_relative_days_since_fire <- function(temp_input_ndvi_date_f
     #Delete any files that are no longer needed
       rm(ndvi_raster_i, output_i)
 
-
         file.remove(file.path(temp_fire_output_folder,ndvi_files$file_name[i]))
         file.remove(file.path(temp_input_ndvi_date_folder,ndvi_files$file_name[i]))
 
         #unlink(file.path(temp_fire_output_folder,ndvi_files$file_name[i]),force = TRUE)
 
-      if(file.exists(file.path(temp_input_fire_date_folder,fire_files$file_name[fire_index-2]))){
-        file.remove(file.path(temp_input_fire_date_folder,fire_files$file_name[fire_index-2]))
+      if(file.exists(file.path(temp_input_fire_date_folder,fire_files$file_name[fire_index-3]))){
+        file.remove(file.path(temp_input_fire_date_folder,fire_files$file_name[fire_index-3]))
       }
 
 
