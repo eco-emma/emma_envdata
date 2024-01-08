@@ -179,7 +179,24 @@ process_release_ndvi_relative_days_since_fire <- function(temp_input_ndvi_date_f
 
       if(any(ndvi_raster_dates < start_date_numeric_i |
              ndvi_raster_dates > end_date_numeric_i)) {
-        stop(" Nonsensical NDVI dates")
+
+        warning("NDVI dates outside the 16 day window. Setting these to NAs")
+
+        values_to_NA <-
+          which(values(ndvi_raster_i< start_date_numeric_i)==1 |
+                  values(ndvi_raster_i > end_date_numeric_i)==1)
+
+        ndvi_raster_i[values_to_NA] <- NA
+
+      }
+
+      ndvi_raster_dates <- sort(unique(values(ndvi_raster_i)))
+
+
+      if(any(ndvi_raster_dates < start_date_numeric_i |
+             ndvi_raster_dates > end_date_numeric_i)) {
+        stop("NDVI dates outside the 16 day window remaining.")
+
       }
 
 
@@ -329,7 +346,7 @@ process_release_ndvi_relative_days_since_fire <- function(temp_input_ndvi_date_f
 
     # Sanity check for negative days since fire
 
-      if(any(values(output_i) < 0,na.rm = TRUE)){
+      if(any(values(output_i) < 0, na.rm = TRUE)){
         stop("Negative burn dates generated")
       }
 
