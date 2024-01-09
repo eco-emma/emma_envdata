@@ -175,20 +175,35 @@ process_fix_modis_release_projection <-
 
         # push the updated raster
 
-          pb_upload(file = file.path(temp_directory,rasters[i]),
+          # pb_upload(file = file.path(temp_directory,rasters[i]),
+          #           repo = "AdamWilsonLab/emma_envdata",
+          #           tag = tag,
+          #           name = rasters[i], overwrite = TRUE)
+
+          robust_pb_upload(file = file.path(temp_directory,rasters[i]),
                     repo = "AdamWilsonLab/emma_envdata",
                     tag = tag,
-                    name = rasters[i], overwrite = TRUE)
+                    name = rasters[i],
+                    overwrite = TRUE,
+                    sleep_time = sleep_time)
 
-          Sys.sleep(sleep_time)
+          #Sys.sleep(sleep_time)
+
+
 
         # push the updated log
 
-          pb_upload(file = file.path(temp_directory,"log.csv"),
-                    repo = "AdamWilsonLab/emma_envdata",
-                    tag = tag)
+          # pb_upload(file = file.path(temp_directory,"log.csv"),
+          #           repo = "AdamWilsonLab/emma_envdata",
+          #           tag = tag)
+          #
+          # Sys.sleep(sleep_time)
 
-          Sys.sleep(sleep_time)
+          robust_pb_upload(file = file.path(temp_directory,"log.csv"),
+                    repo = "AdamWilsonLab/emma_envdata",
+                    tag = tag,
+                    sleep_time = sleep_time)
+
 
         # Delete the new raster
 
@@ -209,11 +224,17 @@ process_fix_modis_release_projection <-
                       row.names=FALSE,
                       sep = ",")
 
-          pb_upload(file = file.path(temp_directory,"log.csv"),
-                    repo = "AdamWilsonLab/emma_envdata",
-                    tag = tag)
+          # pb_upload(file = file.path(temp_directory,"log.csv"),
+          #           repo = "AdamWilsonLab/emma_envdata",
+          #           tag = tag)
+          #
+          # Sys.sleep(sleep_time)
 
-          Sys.sleep(sleep_time)
+        robust_pb_upload(file = file.path(temp_directory,"log.csv"),
+                         repo = "AdamWilsonLab/emma_envdata",
+                         tag = tag,
+                         sleep_time = sleep_time)
+
 
           unlink(file.path(temp_directory,rasters[i]))
 
