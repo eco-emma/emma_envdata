@@ -5,11 +5,13 @@
 #' @param tag tag associated with the Github release
 #' @param max_layers the maximum number of layers to correct at once.  Default (NULL) is to use all.
 #' @param sleep_time amount of time to pause after using pb_upload/download.  Used to keep Git happy
+#' @param verbose.  More messages are shown
 process_fix_modis_release_projection <-
   function(temp_directory,
            tag,
            max_layers = NULL,
            sleep_time = 0.1,
+           verbose = TRUE,
            ...){
 
     # specify the correct projection
@@ -110,6 +112,8 @@ process_fix_modis_release_projection <-
 
     #iterate and fix
     for(i in 1:length(rasters)){
+
+      if(verbose){message("Checking raster ", i, " of ", length(rasters))}
 
       # download ith raster
 

@@ -33,8 +33,7 @@ process_release_soil_gcfr <- function(input_tag = "raw_static",
                        max_attempts = 10,
                        sleep_time = sleep_time)
 
-    #Pause to keep below the rate limit
-    Sys.sleep(sleep_time)
+  # Load template
 
     template <- terra::rast(file.path(temp_directory, template_release$file))
 
@@ -51,11 +50,6 @@ process_release_soil_gcfr <- function(input_tag = "raw_static",
                        tag = input_tag,
                        max_attempts = 10,
                        sleep_time = sleep_time)
-
-  #Pause to keep below the rate limit
-
-    Sys.sleep(sleep_time)
-
 
   # reformat and save each
 

@@ -112,8 +112,9 @@ robust_pb_upload <- function(files,
 
       if(file_uploaded & file_downloaded){
 
-
         file.remove(file.path(temp_directory,basename(files[i])))
+
+        message("File upload appears successful")
 
         break
 
