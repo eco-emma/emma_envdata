@@ -138,7 +138,8 @@ process_fix_modis_release_projection <-
       # check whether the raster matches the correct projection
       if(!identical(nasa_proj, original_proj)){
 
-        message("Detected error in MODIS projection, correcting and logging the change")
+        message("Detected error in MODIS projection for raster ",rasters[i],
+                " correcting and logging the change")
 
         crs(rast_i) <- nasa_proj
 
@@ -217,6 +218,8 @@ process_fix_modis_release_projection <-
 
         #if the projection is correct, log it
 
+        if(verbose){message("Projection for raster ", rasters[i], "looks correct")}
+
         data.frame(file = rasters[i],
                    original_proj = original_proj,
                    assigned_proj = nasa_proj) %>%
@@ -237,6 +240,7 @@ process_fix_modis_release_projection <-
         robust_pb_upload(file = file.path(temp_directory,"log.csv"),
                          repo = "AdamWilsonLab/emma_envdata",
                          tag = tag,
+                         name = NULL,
                          sleep_time = sleep_time)
 
 

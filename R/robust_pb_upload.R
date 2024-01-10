@@ -1,6 +1,6 @@
 #' @description Download using piggyback but make sure it worked
 #' @author Brian Maitner
-#' @param files as in pb_upload
+#' @param file as in pb_upload
 #' @param repo as in upload
 #' @param tag as in pb_upload
 #' @param max_attempts The maximum number of attempts before giving up
@@ -9,7 +9,7 @@
 #' @param name As in pb_upload.  Default, NULL, uses the filename.
 #' @param overwrite SHould release be overwritten? Default is TRUE
 #' @note This version forces overwriting of the files in the release, and uses a lot of GH queries.  Best reserved for cases you expect to fail or which are critical.
-robust_pb_upload <- function(files,
+robust_pb_upload <- function(file,
                              repo="AdamWilsonLab/emma_model",
                              tag,
                              max_attempts = 10,
@@ -44,9 +44,9 @@ robust_pb_upload <- function(files,
   # loop through files
 
 
-  for(i in 1:length(files)){
+  for(i in 1:length(file)){
 
-    message("attempting to upload file ", i, " of ",length(files),": ",files[i])
+    message("attempting to upload file ", i, " of ",length(file),": ",file[i])
 
     attempts <- 1
 
@@ -57,7 +57,7 @@ robust_pb_upload <- function(files,
 
       #try to upload the file
 
-      pb_upload(file = files[i],
+      pb_upload(file = file[i],
                 repo = repo,
                 tag = tag,
                 overwrite = overwrite,
@@ -69,7 +69,7 @@ robust_pb_upload <- function(files,
 
       repo_status <- pb_list(repo = repo,tag = tag)
 
-      if(basename(files[i]) %in% repo_status$file_name){
+      if(basename(file[i]) %in% repo_status$file_name){
 
         file_uploaded <- TRUE
 
@@ -91,14 +91,14 @@ robust_pb_upload <- function(files,
 
       # attempt to download the file
 
-        pb_download(file = basename(files[i]),
+        pb_download(file = basename(file[i]),
                     dest = temp_directory,
                     repo = repo,
                     tag = tag)
 
      # record if file was successfully downloaded
 
-      if(file.exists(file.path(temp_directory,basename(files[i])))){
+      if(file.exists(file.path(temp_directory,basename(file[i])))){
 
         file_downloaded <- TRUE
 
@@ -112,7 +112,7 @@ robust_pb_upload <- function(files,
 
       if(file_uploaded & file_downloaded){
 
-        file.remove(file.path(temp_directory,basename(files[i])))
+        file.remove(file.path(temp_directory,basename(file[i])))
 
         message("File upload appears successful")
 
@@ -129,12 +129,12 @@ robust_pb_upload <- function(files,
 
     #message if failed
       if(attempts >= max_attempts){
-        message("Uploading file ",files[i] ," failed. Giving up.")
+        message("Uploading file ",file[i] ," failed. Giving up.")
 
       }
 
     }#while loop
-  }# i files loop
+  }# i file loop
 
   return(as.character(Sys.Date()))
 

@@ -143,7 +143,10 @@ list(
     age = as.difftime(62, units = "weeks")
   ),
 
-  ## commented out at present due to API/rdryad issues. Emailed dryad folks on 2024/01/04
+  ## commented out soil_gcfr_release at present due to API/rdryad issues.
+  ## Emailed dryad folks on 2024/01/04, it seems the API update broke RDryad
+  ## and RDryad updates are waiting for funding and transition from RDryad to
+  ## the "deposits" R package
 
   # tar_target(
   #   soil_gcfr_release,
@@ -249,15 +252,15 @@ list(
 
 # # # Fixing projection via releases
 
-    # tar_target(
-    #   correct_fire_release_proj,
-    #   process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/fire_modis/",
-    #                                        tag = "raw_fire_modis",
-    #                                        max_layers = NULL,
-    #                                        sleep_time = 30,
-    #                                ... = fire_modis_release)
-    # ),
-    #
+      tar_target(
+        correct_fire_release_proj,
+        process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/fire_modis/",
+                                             tag = "raw_fire_modis",
+                                             max_layers = NULL,
+                                             sleep_time = 30,
+                                     ... = fire_modis_release)
+      ),
+
     # tar_target(
     #   correct_fire_release_ext,
     #   process_fix_modis_release_extent(temp_directory = "data/temp/raw_data/fire_extent/",
