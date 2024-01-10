@@ -212,20 +212,22 @@ process_fix_modis_release_extent <- function(temp_directory,
 
               # push the updated raster
 
-              pb_upload(file = file.path(temp_directory,rasters[i]),
-                        repo = "AdamWilsonLab/emma_envdata",
-                        tag = tag,
-                        name = rasters[i], overwrite = TRUE)
-
-              Sys.sleep(sleep_time)
+              robust_pb_upload(file = file.path(temp_directory,rasters[i]),
+                               repo = "AdamWilsonLab/emma_envdata",
+                               tag = tag,
+                               name = rasters[i],
+                               overwrite = TRUE,
+                               max_attempts = 10,
+                               sleep_time = sleep_time)
 
               # push the updated log
 
-              pb_upload(file = file.path(temp_directory,"extent_log.csv"),
-                        repo = "AdamWilsonLab/emma_envdata",
-                        tag = tag)
-
-              Sys.sleep(sleep_time)
+              robust_pb_upload(file = file.path(temp_directory,"extent_log.csv"),
+                               repo = "AdamWilsonLab/emma_envdata",
+                               tag = tag,
+                               max_attempts = 10,
+                               sleep_time = sleep_time,
+                               overwrite = TRUE)
 
               # Delete the new raster
 
@@ -246,14 +248,16 @@ process_fix_modis_release_extent <- function(temp_directory,
                             row.names=FALSE,
                             sep = ",")
 
-              pb_upload(file = file.path(temp_directory,"extent_log.csv"),
-                        repo = "AdamWilsonLab/emma_envdata",
-                        tag = tag)
+              robust_pb_upload(file = file.path(temp_directory,"extent_log.csv"),
+                               repo = "AdamWilsonLab/emma_envdata",
+                               tag = tag,
+                               max_attempts = 10,
+                               sleep_time = sleep_time,
+                               overwrite = TRUE)
 
               Sys.sleep(sleep_time)
 
               unlink(file.path(temp_directory,rasters[i]))
-
 
             }
 
@@ -277,10 +281,5 @@ process_fix_modis_release_extent <- function(temp_directory,
               gsub(pattern = "_",replacement = "-") |>
               max()
           )
-
-
-
-
-
 
 } #end fx
