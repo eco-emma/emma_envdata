@@ -218,7 +218,7 @@ process_fix_modis_release_projection <-
 
         #if the projection is correct, log it
 
-        if(verbose){message("Projection for raster ", rasters[i], "looks correct")}
+        if(verbose){message("Projection for raster ", rasters[i], " looks correct")}
 
         data.frame(file = rasters[i],
                    original_proj = original_proj,
