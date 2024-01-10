@@ -278,7 +278,7 @@ list(
       process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/ndvi_modis/",
                                            tag = "raw_ndvi_modis",
                                            max_layers = NULL,
-                                           sleep_time = 60,
+                                           sleep_time = 120,
                                            ... = ndvi_modis_release)
     ),
 
