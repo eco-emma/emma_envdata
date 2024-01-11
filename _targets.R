@@ -252,35 +252,39 @@ list(
 
 # # # Fixing projection via releases
 
+
       tar_target(
-        correct_fire_release_proj,
-        process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/fire_modis/",
-                                             tag = "raw_fire_modis",
-                                             max_layers = NULL,
-                                             sleep_time = 60,
-                                     ... = fire_modis_release)
+        correct_fire_release_proj_and_extent,
+        process_fix_modis_release_projection_and_extent(temp_directory = "data/temp/raw_data/fire_modis/",
+                                                        input_tag = "raw_fire_modis",
+                                                        output_tag = "clean_fire_modis",
+                                                        max_layers = NULL,
+                                                        sleep_time = 30,
+                                                        verbose = TRUE,
+                                                        ... = fire_modis_release)
+        ),
+
+    tar_target(
+      correct_ndvi_release_proj_and_extent,
+      process_fix_modis_release_projection_and_extent(temp_directory = "data/temp/raw_data/ndvi_modis/",
+                                                      input_tag = "raw_ndvi_modis",
+                                                      output_tag = "clean_ndvi_modis",
+                                                      max_layers = NULL,
+                                                      sleep_time = 30,
+                                                      verbose = TRUE,
+                                                      ... = ndvi_modis_release)
       ),
 
-    tar_target(
-      correct_fire_release_ext,
-      process_fix_modis_release_extent(temp_directory = "data/temp/raw_data/fire_extent/",
-                                       tag = "raw_fire_modis",
-                                       template_release = template_release,
-                                       max_layers = NULL,
-                                       sleep_time = 30,
-                                       verbose = TRUE,
-                                       ... = fire_modis_release,
-                                       ... = correct_fire_release_proj)
-    ),
-
-    tar_target(
-      correct_ndvi_release_proj,
-      process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/ndvi_modis/",
-                                           tag = "raw_ndvi_modis",
-                                           max_layers = NULL,
-                                           sleep_time = 120,
-                                           ... = ndvi_modis_release)
-    ),
+  tar_target(
+    correct_ndvi_dates_release_proj_and_extent,
+    process_fix_modis_release_projection_and_extent(temp_directory = "data/temp/raw_data/ndvi_dates_modis/",
+                                                    input_tag = "raw_ndvi_dates_modis",
+                                                    output_tag = "clean_ndvi_dates_modis",
+                                                    max_layers = NULL,
+                                                    sleep_time = 30,
+                                                    verbose = TRUE,
+                                                    ... = ndvi_dates_modis_release)
+  ),
 
     # tar_target(
     #   correct_ndvi_viirs_release_proj,
@@ -291,15 +295,6 @@ list(
     #                                        ... = ndvi_viirs_release)
     # ),
 
-
-    # tar_target(
-    #   correct_ndvi_dates_release_proj,
-    #   process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/ndvi_dates_modis/",
-    #                                        tag = "raw_ndvi_dates_modis",
-    #                                        max_layers = NULL,
-    #                                        sleep_time = 30,
-    #                                        ... = ndvi_dates_modis_release)
-    # ),
 
     # tar_target(
     #   correct_ndvi_dates_viirs_release_proj,
@@ -324,13 +319,12 @@ list(
 
     # tar_target(
     #   fire_doy_to_unix_date_release,
-    #   process_release_fire_doy_to_unix_date(input_tag = "raw_fire_modis",
+    #   process_release_fire_doy_to_unix_date(input_tag = "clean_fire_modis",
     #                                         output_tag = "processed_fire_dates",
     #                                         temp_directory = "data/temp/processed_data/fire_dates/",
     #                                         sleep_time = 20,
     #                                         template_release = template_release,
-    #                                         ... = correct_fire_release_proj,
-    #                                         ... = correct_fire_release_ext)
+    #                                         ... = correct_fire_release_proj_and_extent)
     #   ),
     #
     # tar_target(
@@ -356,15 +350,15 @@ list(
     #                                                 output_tag = "processed_ndvi_relative_days_since_fire",
     #                                                 sleep_time = 60,
     #                                                 ... = burn_date_to_last_burned_date_release,
-    #                                                 ... = correct_ndvi_dates_release_proj)
+    #                                                 ... = correct_ndvi_dates_release_proj_and_extent)
     #   ),
     #
     #   tar_target(
     #     template_release,
-    #     get_release_template_raster(input_tag = "raw_ndvi_modis",
+    #     get_release_template_raster(input_tag = "clean_ndvi_modis",
     #                         output_tag = "raw_static",
     #                         temp_directory = "data/temp/template",
-    #                         ... = correct_ndvi_release_proj)
+    #                         ... = correct_ndvi_release_proj_and_extent)
     #   ),
     #
     #   tar_target(
@@ -492,11 +486,11 @@ list(
     # tar_target(
     #   ndvi_to_parquet_release,
     #   process_release_dynamic_data_to_parquet(temp_directory = "data/temp/raw_data/ndvi_modis/",
-    #                                   input_tag = "raw_ndvi_modis",
+    #                                   input_tag = "clean_ndvi_modis",
     #                                   output_tag = "current",
     #                                   variable_name = "ndvi",
     #                                   sleep_time = 30,
-    #                                   ... = correct_ndvi_release_proj)
+    #                                   ... = correct_ndvi_release_proj_and_extent)
     #   ),
     #
     # tar_target(
@@ -521,12 +515,12 @@ list(
 
 # periodically clean up google drive folder
 
-tar_age(
-  remove_ee_backup,
-  clean_up(),
-  age = as.difftime(7, units = "days")
-  #age = as.difftime(0, units = "hours")
-)
+  tar_age(
+    remove_ee_backup,
+    clean_up(),
+    age = as.difftime(7, units = "days")
+    #age = as.difftime(0, units = "hours")
+  )
 
 
 )
