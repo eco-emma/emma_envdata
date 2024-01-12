@@ -165,18 +165,40 @@ get_release_ndvi_modis <- function(temp_directory = "data/temp/raw_data/ndvi_mod
     }
 
 
-  #Download layers
+    #Download layers
 
-    tryCatch(expr =
-               ee_imagecollection_to_local(ic = ndvi_clean_and_new,
-                                           region = domain,
-                                           dsn = temp_directory,
-                                           formatOptions = c(cloudOptimized = true),
-                                           drive_cred_path = json_token
-                                           #,scale = 463.3127
-                                           ),
-             error = function(e){message("Captured an error in rgee/earth engine processing of NDVI.")}
-    )
+    if(length(ndvi_clean_and_new$getInfo()$features) == 1 ){
+
+      # assign name
+
+      file_name <- ndvi_clean_and_new$getInfo()$features[[1]]$properties$`system:index`
+
+      tryCatch(expr =
+                 ee_as_stars(image = ndvi_clean_and_new_image,
+                             region = domain,
+                             dsn = file.path(temp_directory,file_name),
+                             formatOptions = c(cloudOptimized = true),
+                             drive_cred_path = json_token
+                 ),
+               error = function(e){message("Captured an error in rgee/earth engine processing of NDVI.")}
+      )#trycatch
+
+    }else{
+
+      tryCatch(expr =
+                 ee_imagecollection_to_local(ic = ndvi_clean_and_new,
+                                             region = domain,
+                                             dsn = temp_directory,
+                                             formatOptions = c(cloudOptimized = true),
+                                             drive_cred_path = json_token
+                                             #,scale = 463.3127
+                 ),
+               error = function(e){message("Captured an error in rgee/earth engine processing of NDVI.")}
+      )
+
+
+
+    }#else
 
     #message("Done downloading NDVI layers for release")
 

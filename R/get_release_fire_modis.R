@@ -217,10 +217,46 @@ get_release_fire_modis <- function(temp_directory = "data/temp/raw_data/fire_mod
 
     if(verbose){message("Downloading image collection")}
 
-    ee_imagecollection_to_local(ic = fire_new_and_clean,
-                                region = domain,
-                                dsn = temp_directory,
-                                drive_cred_path = json_token)
+      #Download layers
+      if(length(fire_new_and_clean$getInfo()$features) == 1 ){
+
+        # assign name
+
+        file_name <- fire_new_and_clean$getInfo()$features[[1]]$properties$`system:index`
+
+        # convert to image
+
+        fire_new_and_clean_image <- fire_new_and_clean %>%
+          ee$ImageCollection$toList(count = 1, offset = 0) %>%
+          ee$List$get(0) %>%
+          ee$Image()
+
+        # download single image
+
+        tryCatch(expr =
+                   ee_as_stars(image = fire_new_and_clean_image,
+                               region = domain,
+                               dsn = file.path(temp_directory,file_name),
+                               formatOptions = c(cloudOptimized = true),
+                               drive_cred_path = json_token
+                   ),
+                 error = function(e){message("Captured an error in rgee/earth engine processing of NDVI.")}
+        )#trycatch
+
+      }else{
+
+        tryCatch(expr =
+                   ee_imagecollection_to_local(ic = fire_new_and_clean,
+                                               region = domain,
+                                               dsn = temp_directory,
+                                               formatOptions = c(cloudOptimized = true),
+                                               drive_cred_path = json_token
+                                               #,scale = 463.3127
+                   ),
+                 error = function(e){message("Captured an error in rgee/earth engine processing of NDVI.")}
+        )
+
+      }#else
 
 
     #Push files to release
