@@ -288,24 +288,30 @@ list(
                                                     ... = ndvi_dates_modis_release)
   ),
 
-    # tar_target(
-    #   correct_ndvi_viirs_release_proj,
-    #   process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/ndvi_viirs/",
-    #                                        tag = "raw_ndvi_viirs",
-    #                                        max_layers = NULL,
-    #                                        sleep_time = 45,
-    #                                        ... = ndvi_viirs_release)
-    # ),
+
+  tar_target(
+    correct_ndvi_viirs_release_proj_and_extent,
+    process_fix_modis_release_projection_and_extent(temp_directory = "data/temp/raw_data/ndvi_viirs/",
+                                                    input_tag = "raw_ndvi_viirs",
+                                                    output_tag = "clean_ndvi_viirs",
+                                                    max_layers = 30,
+                                                    sleep_time = 30,
+                                                    verbose = TRUE,
+                                                    ... = ndvi_viirs_release)
+  ),
 
 
-    # tar_target(
-    #   correct_ndvi_dates_viirs_release_proj,
-    #   process_fix_modis_release_projection(temp_directory = "data/temp/raw_data/ndvi_dates_viirs/",
-    #                                        tag = "raw_ndvi_dates_viirs",
-    #                                        max_layers = NULL,
-    #                                        sleep_time = 30,
-    #                                        ... = ndvi_dates_viirs_release)
-    # ),
+    tar_target(
+      correct_ndvi_dates_viirs_release_proj_and_extent,
+      process_fix_modis_release_projection_and_extent(temp_directory = "data/temp/raw_data/ndvi_dates_viirs/",
+                                                      input_tag = "raw_ndvi_dates_viirs",
+                                                      output_tag = "clean_ndvi_dates_viirs",
+                                                      max_layers = 30,
+                                                      sleep_time = 30,
+                                                      verbose = TRUE,
+                                                      ... = ndvi_dates_viirs_release)
+    ),
+
 
     # tar_target(
     #   correct_kndvi_release_proj,
