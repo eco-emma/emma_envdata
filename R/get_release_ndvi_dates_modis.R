@@ -219,13 +219,50 @@ get_release_ndvi_dates_modis <- function(temp_directory = "data/temp/raw_data/nd
 
   # Download the new stuff
 
-    tryCatch(expr =
-               ee_imagecollection_to_local(ic = ndvi_integer_dates_new,
-                                           region = domain,
-                                           dsn = temp_directory,
-                                           drive_cred_path = json_token),
-             error = function(e){message("Captured an error in rgee/earth engine processing of NDVI dates.")}
-    )
+      # Download
+
+      if(verbose){message("Downloading image collection")}
+
+      #Download layers
+      if(length(ndvi_integer_dates_new$getInfo()$features) == 1 ){
+
+        # assign name
+
+        file_name <- ndvi_integer_dates_new$getInfo()$features[[1]]$properties$`system:index`
+
+        # convert to image
+
+        ndvi_integer_dates_new_image <- ndvi_integer_dates_new %>%
+          ee$ImageCollection$toList(count = 1, offset = 0) %>%
+          ee$List$get(0) %>%
+          ee$Image()
+
+        # download single image
+
+        tryCatch(expr =
+                   ee_as_stars(image = ndvi_integer_dates_new_image,
+                               region = domain,
+                               dsn = file.path(temp_directory,file_name),
+                               formatOptions = c(cloudOptimized = true),
+                               drive_cred_path = json_token
+                   ),
+                 error = function(e){message("Captured an error in rgee/earth engine processing of NDVI.")}
+        )#trycatch
+
+      }else{
+
+        tryCatch(expr =
+                   ee_imagecollection_to_local(ic = ndvi_integer_dates_new,
+                                               region = domain,
+                                               dsn = temp_directory,
+                                               formatOptions = c(cloudOptimized = true),
+                                               drive_cred_path = json_token
+                                               #,scale = 463.3127
+                   ),
+                 error = function(e){message("Captured an error in rgee/earth engine processing of NDVI.")}
+        )
+
+      }#else
 
   # Convert the dates
 
