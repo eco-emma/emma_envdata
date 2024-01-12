@@ -199,18 +199,18 @@ list(
       #age = as.difftime(0, units = "hours")
     ),
 
-    # tar_age(
-    #   ndvi_viirs_release,
-    #   get_release_ndvi_viirs(temp_directory = "data/temp/raw_data/ndvi_viirs/",
-    #                          tag = "raw_ndvi_viirs",
-    #                          domain,
-    #                          max_layers = 3,
-    #                          sleep_time = 30,
-    #                          json_token = json_token),
-    #   age = as.difftime(7, units = "days")
-    #   #age = as.difftime(1, units = "days")
-    #   #age = as.difftime(0, units = "hours")
-    # ),
+    tar_age(
+      ndvi_viirs_release,
+      get_release_ndvi_viirs(temp_directory = "data/temp/raw_data/ndvi_viirs/",
+                             tag = "raw_ndvi_viirs",
+                             domain,
+                             max_layers = 3,
+                             sleep_time = 30,
+                             json_token = json_token),
+      age = as.difftime(7, units = "days")
+      #age = as.difftime(1, units = "days")
+      #age = as.difftime(0, units = "hours")
+    ),
 
 
     tar_age(
@@ -226,18 +226,18 @@ list(
       #age = as.difftime(0, units = "hours")
     ),
 
-    # tar_age(
-    #   ndvi_dates_viirs_release,
-    #   get_release_ndvi_dates_viirs(temp_directory = "data/temp/raw_data/ndvi_dates_viirs/",
-    #                                tag = "raw_ndvi_dates_viirs",
-    #                                domain = domain,
-    #                                max_layers = 3,
-    #                                sleep_time = 30,
-    #                                json_token = json_token),
-    #   age = as.difftime(7, units = "days")
-    #   #age = as.difftime(1, units = "days")
-    #   #age = as.difftime(0, units = "hours")
-    # ),
+    tar_age(
+      ndvi_dates_viirs_release,
+      get_release_ndvi_dates_viirs(temp_directory = "data/temp/raw_data/ndvi_dates_viirs/",
+                                   tag = "raw_ndvi_dates_viirs",
+                                   domain = domain,
+                                   max_layers = 3,
+                                   sleep_time = 30,
+                                   json_token = json_token),
+      age = as.difftime(7, units = "days")
+      #age = as.difftime(1, units = "days")
+      #age = as.difftime(0, units = "hours")
+    ),
 
 
   # tar_age(
