@@ -208,17 +208,47 @@ get_release_kndvi_modis <- function(temp_directory = "data/temp/raw_data/kndvi_m
     }
 
 
-  #Download
+    #Download layers
 
-  tryCatch(expr = ee_imagecollection_to_local(ic = kndvi_clean_and_new,
-                                              region = domain,
-                                              dsn = temp_directory,
-                                              formatOptions = c(cloudOptimized = true),
-                                              drive_cred_path = json_token), #not sure the cloudOptimized is specified correctly
-           error = function(e){
-             message("\ Captured an error in rgee/earth engine processing of KNDVI.")
-             }
-  )
+    if(length(kndvi_clean_and_new$getInfo()$features) == 1 ){
+
+      # assign name
+
+      file_name <- kndvi_clean_and_new$getInfo()$features[[1]]$properties$`system:index`
+
+      # convert to image
+
+      kndvi_clean_and_new_image <- kndvi_clean_and_new %>%
+        ee$ImageCollection$toList(count = 1, offset = 0) %>%
+        ee$List$get(0) %>%
+        ee$Image()
+
+      # download single image
+
+      tryCatch(expr =
+                 ee_as_stars(image = kndvi_clean_and_new_image,
+                             region = domain,
+                             dsn = file.path(temp_directory,file_name),
+                             formatOptions = c(cloudOptimized = true),
+                             drive_cred_path = json_token
+                 ),
+               error = function(e){message("Captured an error in rgee/earth engine processing of NDVI.")}
+      )#trycatch
+
+    }else{
+
+      tryCatch(expr =
+                 ee_imagecollection_to_local(ic = kndvi_clean_and_new,
+                                             region = domain,
+                                             dsn = temp_directory,
+                                             formatOptions = c(cloudOptimized = true),
+                                             drive_cred_path = json_token
+                                             #,scale = 463.3127
+                 ),
+               error = function(e){message("Captured an error in rgee/earth engine processing of NDVI.")}
+      )
+
+    }#else
 
 
 
