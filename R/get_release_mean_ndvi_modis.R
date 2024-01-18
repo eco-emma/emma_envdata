@@ -93,7 +93,7 @@ get_release_mean_ndvi_modis <- function(temp_directory = "data/temp/raw_data/mea
 
     mean_ndvi <- ndvi_clean$mean()
 
-    rgee::Map$addLayer(mean_ndvi)
+    #rgee::Map$addLayer(mean_ndvi)
 
   # This section causes errors in later layer (since early 2022).  Despite months of an open ticket on earth engine, the issue persists so I'll do it with R instead
   # #Adjust gain and offset.  The NDVI layer has a scale factor of 0.0001
@@ -121,11 +121,11 @@ get_release_mean_ndvi_modis <- function(temp_directory = "data/temp/raw_data/mea
 
   # end things if nothing was downloaded
 
-  if(nrow(local_files) == 0){
-    message("Nothing downloaded")
-    return(max(gsub(pattern = "_",replacement = "-",x = released_files$date))) #return the last date that had been done
-
-  }
+  # if(nrow(local_files) == 0){
+  #   message("Nothing downloaded")
+  #   return(max(gsub(pattern = "_",replacement = "-",x = released_files$date))) #return the last date that had been done
+  #
+  # }
 
     rast_i  <- terra::rast(file.path(temp_directory,"mean_ndvi.tif"))
 
