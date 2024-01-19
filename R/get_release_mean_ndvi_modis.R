@@ -91,7 +91,8 @@ get_release_mean_ndvi_modis <- function(temp_directory = "data/temp/raw_data/mea
 
   # take mean across dataset
 
-    mean_ndvi <- ndvi_clean$mean()
+    mean_ndvi <- ndvi_clean$mean()$reproject(crs = ndvi_clean$first()$projection(),
+                                             scale = ndvi_clean$first()$projection()$nominalScale())
 
     #rgee::Map$addLayer(mean_ndvi)
 
