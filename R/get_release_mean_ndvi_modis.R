@@ -154,8 +154,7 @@ get_release_mean_ndvi_modis <- function(temp_directory = "data/temp/raw_data/mea
       file.remove(file.path(temp_directory, "mean_ndvi.tif"))
 
       file.rename(from = file.path(temp_directory, "mean_ndvi.temp.tif"),
-                  to = file.path(temp_directory,"mean_ndvi.tif"),
-                  overwrite=TRUE)
+                  to = file.path(temp_directory,"mean_ndvi.tif"))
 
 
     # End gain and offset bit
