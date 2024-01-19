@@ -135,14 +135,28 @@ get_release_mean_ndvi_modis <- function(temp_directory = "data/temp/raw_data/mea
     rast_i <- ((rast_i + 10000)/100) %>%
       round()
 
+
+    # check crs and update if needed
+
+      nasa_proj <- "+proj=sinu +lon_0=0 +x_0=0 +y_0=0 +R=6371007.181 +units=m +no_defs"
+
+      if(!identical(crs(nasa_proj, proj = TRUE),crs(rast_i, proj = TRUE))){
+        crs(rast_i) <- nasa_proj
+      }
+
     # save
 
-    terra::writeRaster(x = rast_i,
-                       filename = file.path(temp_directory,"mean_ndvi.tif"),
-                       overwrite = TRUE)
+      writeRaster(x = rast_i,
+                  filename = file.path(temp_directory, "mean_ndvi.temp.tif"))
 
-    #cleanup
-    rm(rast_i)
+      rm(rast_i)
+
+      file.remove(file.path(temp_directory, "mean_ndvi.tif"))
+
+      file.rename(from = file.path(temp_directory, "mean_ndvi.temp.tif"),
+                  to = file.path(temp_directory,"mean_ndvi.tif"),
+                  overwrite=TRUE)
+
 
     # End gain and offset bit
 
