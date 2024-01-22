@@ -173,8 +173,9 @@ get_release_mean_ndvi_modis <- function(temp_directory = "data/temp/raw_data/mea
 
       template_extent <- ext(template) |> as.character()
 
-
       # check whether the raster matches the correct extent
+
+      original_extent <- ext(rast_i) |> as.character()
 
       if(!identical(template_extent, original_extent)){
 
