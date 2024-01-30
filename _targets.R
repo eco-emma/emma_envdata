@@ -173,18 +173,18 @@ list(
         #age = as.difftime(0, units = "hours")
       ),
 
-    #   tar_age(
-    #     kndvi_modis_release,
-    #     get_release_kndvi_modis(temp_directory = "data/temp/raw_data/kndvi_modis/",
-    #                            tag = "raw_kndvi_modis",
-    #                            domain = domain,
-    #                            max_layers = 5,
-    #                            sleep_time = 5,
-    #                            json_token = json_token),
-    #     #age = as.difftime(7, units = "days")
-    #     age = as.difftime(1, units = "days")
-    #     #age = as.difftime(0, units = "hours")
-    # ),
+      tar_age(
+        kndvi_modis_release,
+        get_release_kndvi_modis(temp_directory = "data/temp/raw_data/kndvi_modis/",
+                               tag = "raw_kndvi_modis",
+                               domain = domain,
+                               max_layers = 5,
+                               sleep_time = 5,
+                               json_token = json_token),
+        #age = as.difftime(7, units = "days")
+        #age = as.difftime(1, units = "days")
+        age = as.difftime(0, units = "hours")
+    ),
 
     tar_age(
       ndvi_modis_release,
