@@ -182,6 +182,7 @@ process_fix_modis_release_projection_and_extent <-
 
             }
 
+
         # check get the extent
 
           original_extent <- ext(rast_i) |> as.character()
@@ -221,6 +222,23 @@ process_fix_modis_release_projection_and_extent <-
                                   x =  file.path(temp_directory,rasters[i])),
                       to = file.path(temp_directory, rasters[i]))
 
+        # check that updates worked
+
+          updated_raster <- terra::rast(x = file.path(temp_directory,rasters[i]))
+
+
+          if(!identical(nasa_proj, crs(updated_raster, proj=TRUE))){
+            stop("Error in fixing CRS")
+
+            }
+
+          if(!identical(template_extent,
+                        ext(updated_raster) |> as.character())){
+
+            message("Error in fixing extent")
+
+            }
+
         # push the updated raster
 
           pb_upload(file = file.path(temp_directory,rasters[i]),
@@ -244,7 +262,6 @@ process_fix_modis_release_projection_and_extent <-
           # Delete the new raster
 
           unlink(file.path(temp_directory,rasters[i]))
-
 
       } #for i rasters loop
 

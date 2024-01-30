@@ -15,29 +15,51 @@ get_release_kndvi_modis <- function(temp_directory = "data/temp/raw_data/kndvi_m
                                     domain,
                                     max_layers = 50,
                                     sleep_time = 1,
-                                    json_token) {
+                                    json_token,
+                                    verbose = TRUE) {
 
 
   #  #Ensure directory is empty if it exists
 
+
   if(dir.exists(temp_directory)){
+
+    if(verbose){message("Clearing directory")}
     unlink(file.path(temp_directory), recursive = TRUE, force = TRUE)
+
   }
 
 
   # make a directory if one doesn't exist yet
 
     if(!dir.exists(temp_directory)){
+
+      if(verbose){message("Creating directory")}
       dir.create(temp_directory, recursive = TRUE)
+
     }
 
   #Make sure there is a release by attempting to create one.  If it already exists, this will fail
 
-    tryCatch(expr =   pb_new_release(repo = "AdamWilsonLab/emma_envdata",
-                                     tag =  tag),
-             error = function(e){message("Previous release found")})
+
+  # get list releases
+
+    if(verbose){message("Getting metadata for releases")}
+
+    released_files  <- pb_list(repo = "AdamWilsonLab/emma_envdata")
+
+  #Make sure there is a release by attempting to create one.  If it already exists, this will fail
+
+    if(!tag %in% released_files$tag){
+
+      if(verbose){message("Creating a new release")}
 
 
+      tryCatch(expr =   pb_new_release(repo = "AdamWilsonLab/emma_envdata",
+                                       tag =  tag),
+               error = function(e){message("Previous release found")})
+
+    }
 
   #Initialize earth engine (for targets works better if called here)
 
@@ -45,12 +67,14 @@ get_release_kndvi_modis <- function(temp_directory = "data/temp/raw_data/kndvi_m
 
   # Load the image collection
 
+    if(verbose){message("Loading image collection")}
     modis_ndvi <- ee$ImageCollection("MODIS/061/MOD13A1") #500 m
     # modis_ndvi <- ee$ImageCollection("MODIS/006/MOD13A2") #1 km
 
 
   #Format the domain
 
+    if(verbose){message("Formatting the domain")}
     domain <- sf_as_ee(x = domain)
     domain <- domain$geometry()
 
@@ -95,6 +119,8 @@ get_release_kndvi_modis <- function(temp_directory = "data/temp/raw_data/kndvi_m
 
     }
 
+  if(verbose){message("Generating the KNDVI data")}
+
   modis_kndvi <- modis_ndvi$map(get_kndvi)
 
   #Map$addLayer(modis_kndvi$first()$select("KNDVI"),visParams = ndviviz)
@@ -133,12 +159,16 @@ get_release_kndvi_modis <- function(temp_directory = "data/temp/raw_data/kndvi_m
 
   # Clean the dataset
 
+    if(verbose){message("Cleaning the data")}
     kndvi_clean <- modis_kndvi$map(mod13A1_clean)
 
   #Get a list of files already released
 
-    released_files  <- pb_list(repo = "AdamWilsonLab/emma_envdata",
-                               tag = tag)
+    kndvi_tag <- tag
+
+    released_files <-
+    released_files %>%
+      filter(tag == kndvi_tag)
 
     released_files$date <- gsub(pattern = ".tif",
                                 replacement = "",

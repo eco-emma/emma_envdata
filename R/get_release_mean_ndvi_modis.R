@@ -30,11 +30,11 @@ get_release_mean_ndvi_modis <- function(temp_directory = "data/temp/raw_data/mea
 
   #Get release assetts
 
-    release_assetts <- pb_list(repo = "AdamWilsonLab/emma_envdata")
+    released_assetts <- pb_list(repo = "AdamWilsonLab/emma_envdata")
 
   #Create releases if needed
 
-    if(!tag %in% release_assetts$tag){
+    if(!tag %in% released_assetts$tag){
 
       #Make sure there is a release by attempting to create one.  If it already exists, this will fail
 
@@ -135,16 +135,98 @@ get_release_mean_ndvi_modis <- function(temp_directory = "data/temp/raw_data/mea
     rast_i <- ((rast_i + 10000)/100) %>%
       round()
 
+
+    # check crs and update if needed
+
+      nasa_proj <- "+proj=sinu +lon_0=0 +x_0=0 +y_0=0 +R=6371007.181 +units=m +no_defs"
+
+      if(!identical(crs(nasa_proj, proj = TRUE),crs(rast_i, proj = TRUE))){
+        crs(rast_i) <- nasa_proj
+      }
+
+
+    # check extent
+
+      if(verbose){message("Using first MODIS layer as template")}
+
+      template <-
+        released_assetts %>%
+        filter(tag == "raw_ndvi_modis") %>%
+        arrange(file_name) %>%
+        slice_head(n=1)
+
+      robust_pb_download(file = template$file_name[1],
+                         dest = file.path(temp_directory),
+                         repo =   paste(template$owner[1],
+                                        template$repo[1],sep = "/"),
+                         tag = template$tag[1],
+                         overwrite = TRUE,
+                         max_attempts = 10,
+                         sleep_time = sleep_time)
+
+      #rename the file being used as template.  This is done for rare instances where it might confict with other names
+
+      file.rename(from = file.path(temp_directory,template$file_name[1]),
+                  to = file.path(temp_directory,"template.tif"))
+
+      template <- rast(file.path(temp_directory,"template.tif"))
+
+      template_extent <- ext(template) |> as.character()
+
+      # check whether the raster matches the correct extent
+
+      original_extent <- ext(rast_i) |> as.character()
+
+      if(!identical(template_extent, original_extent)){
+
+        message("Detected error in MODIS extent, correcting")
+
+        rast_i <- terra::resample(rast_i,y = template,method="near")
+
+      }else{
+
+        if(verbose){message("MEan NDVI extent looks good")}
+
+      }
+
+
+
+
+
     # save
 
-    terra::writeRaster(x = rast_i,
-                       filename = file.path(temp_directory,"mean_ndvi.tif"),
-                       overwrite = TRUE)
+      writeRaster(x = rast_i,
+                  filename = file.path(temp_directory, "mean_ndvi.temp.tif"))
 
-    #cleanup
-    rm(rast_i)
+      rm(rast_i)
 
-    # End gain and offset bit
+      file.remove(file.path(temp_directory, "mean_ndvi.tif"))
+
+      file.rename(from = file.path(temp_directory, "mean_ndvi.temp.tif"),
+                  to = file.path(temp_directory,"mean_ndvi.tif"))
+
+
+    # check that updates worked
+
+      updated_raster <- terra::rast(x = file.path(temp_directory,"mean_ndvi.tif"))
+
+
+      if(!identical(nasa_proj, crs(updated_raster, proj=TRUE))){
+        stop("Error in fixing CRS")
+
+      }
+
+      if(!identical(template_extent,
+                    ext(updated_raster) |> as.character())){
+
+        message("Error in fixing extent")
+
+      }
+
+
+
+
+    # Upload
 
     Sys.sleep(sleep_time) #We need to limit our rate in order to keep Github happy
 
@@ -154,6 +236,8 @@ get_release_mean_ndvi_modis <- function(temp_directory = "data/temp/raw_data/mea
 
 
   # Delete temp files
+    rm(updated_raster)
+
     unlink(x = file.path(temp_directory), recursive = TRUE)
 
 
