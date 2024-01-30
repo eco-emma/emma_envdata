@@ -157,13 +157,6 @@ list(
   #                         domain)
   # ),
 
-  tar_target(mean_ndvi_release,
-             get_release_mean_ndvi_modis(temp_directory = "data/temp/raw_data/mean_ndvi_modis/",
-                                         tag = "current",
-                                         domain = domain,
-                                         sleep_time = 1,
-                                         json_token = json_token)
-             ),
 
 # # # Frequent updates via releases
 
@@ -258,6 +251,15 @@ list(
   #   #age = as.difftime(1, units = "days")
   #   #age = as.difftime(0, units = "hours")
   # ),
+
+  tar_target(mean_ndvi_release,
+             get_release_mean_ndvi_modis(temp_directory = "data/temp/raw_data/mean_ndvi_modis/",
+                                         tag = "current",
+                                         domain = domain,
+                                         sleep_time = 1,
+                                         json_token = json_token)
+  ),
+
 
 
 # # # Fixing projection via releases
