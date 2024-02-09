@@ -42,7 +42,7 @@ get_release_ndwi_modis <- function(temp_directory = "data/temp/raw_data/NDWI_MOD
       info <-
         ndwi$
         filterDate(start = as.character(Sys.Date()-365),
-                        opt_end = as.character(Sys.Date()))$
+                        end = as.character(Sys.Date()))$
         select("NDWI")$
         getInfo()
 

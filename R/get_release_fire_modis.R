@@ -172,7 +172,7 @@ get_release_fire_modis <- function(temp_directory = "data/temp/raw_data/fire_mod
     if(verbose){message("Filtering by date")}
 
       fire_new_and_clean <- fire_clean$filterDate(start = paste(as.Date(newest+1),sep = ""),
-                                                  opt_end = paste(format(Sys.time(), "%Y-%m-%d"),sep = "") )
+                                                  end = paste(format(Sys.time(), "%Y-%m-%d"),sep = "") )
 
 
   # Function to optionally limit the number of layers downloaded at once
@@ -195,7 +195,7 @@ get_release_fire_modis <- function(temp_directory = "data/temp/raw_data/fire_mod
       if(verbose){message("Pruning download to the maximum number of layers")}
 
       fire_new_and_clean <- fire_new_and_clean$filterDate(start = to_download[1],
-                                                          opt_end = to_download[max_layers+1])
+                                                          end = to_download[max_layers+1])
 
     }
 
