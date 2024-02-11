@@ -94,35 +94,35 @@ list(
 
 # Infrequent updates via releases
 
-tar_target(
-    alos_release,
-    get_release_alos(temp_directory = "data/temp/raw_data/alos/",
-                     tag = "raw_static",
-                     domain = domain,
-                     json_token)
-    ),
-
-  tar_target(
-    climate_chelsa_release,
-    get_release_climate_chelsa(temp_directory = "data/temp/raw_data/climate_chelsa/",
-                               tag = "raw_static",
-                               domain = domain)
-    ),
-
-  tar_target(
-    clouds_wilson_release,
-    get_release_clouds_wilson(temp_directory = "data/temp/raw_data/clouds_wilson/",
-                              tag = "raw_static",
-                              domain,
-                              sleep_time = 180)
-    ),
-
-  tar_target(
-    elevation_nasadem_release,
-    get_release_elevation_nasadem(temp_directory = "data/temp/raw_data/elevation_nasadem/",
-                                  tag = "raw_static",
-                                  domain)
-    ),
+# tar_target(
+#     alos_release,
+#     get_release_alos(temp_directory = "data/temp/raw_data/alos/",
+#                      tag = "raw_static",
+#                      domain = domain,
+#                      json_token)
+#     ),
+#
+#   tar_target(
+#     climate_chelsa_release,
+#     get_release_climate_chelsa(temp_directory = "data/temp/raw_data/climate_chelsa/",
+#                                tag = "raw_static",
+#                                domain = domain)
+#     ),
+#
+#   tar_target(
+#     clouds_wilson_release,
+#     get_release_clouds_wilson(temp_directory = "data/temp/raw_data/clouds_wilson/",
+#                               tag = "raw_static",
+#                               domain,
+#                               sleep_time = 180)
+#     ),
+#
+#   tar_target(
+#     elevation_nasadem_release,
+#     get_release_elevation_nasadem(temp_directory = "data/temp/raw_data/elevation_nasadem/",
+#                                   tag = "raw_static",
+#                                   domain)
+#     ),
 
   # tar_target(
   #   landcover_za_release,
@@ -131,12 +131,12 @@ tar_target(
   #                            domain = domain)
   #   ),
 
-  tar_target(
-    precipitation_chelsa_release,
-    get_release_precipitation_chelsa(temp_directory = "data/temp/raw_data/precipitation_chelsa/",
-                                     tag = "raw_static",
-                                     domain = domain)
-    ),
+  # tar_target(
+  #   precipitation_chelsa_release,
+  #   get_release_precipitation_chelsa(temp_directory = "data/temp/raw_data/precipitation_chelsa/",
+  #                                    tag = "raw_static",
+  #                                    domain = domain)
+  #   ),
 
   ## commented out soil_gcfr_release at present due to API/rdryad issues.
   ## Emailed dryad folks on 2024/01/04, it seems the API update broke RDryad
