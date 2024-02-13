@@ -94,21 +94,21 @@ list(
 
 # Infrequent updates via releases
 
-# tar_target(
-#     alos_release,
-#     get_release_alos(temp_directory = "data/temp/raw_data/alos/",
-#                      tag = "raw_static",
-#                      domain = domain,
-#                      json_token)
-#     ),
-#
-#   tar_target(
-#     climate_chelsa_release,
-#     get_release_climate_chelsa(temp_directory = "data/temp/raw_data/climate_chelsa/",
-#                                tag = "raw_static",
-#                                domain = domain)
-#     ),
-#
+  tar_target(
+      alos_release,
+      get_release_alos(temp_directory = "data/temp/raw_data/alos/",
+                       tag = "raw_static",
+                       domain = domain,
+                       json_token)
+      ),
+
+    tar_target(
+      climate_chelsa_release,
+      get_release_climate_chelsa(temp_directory = "data/temp/raw_data/climate_chelsa/",
+                                 tag = "raw_static",
+                                 domain = domain)
+      ),
+
 #   tar_target(
 #     clouds_wilson_release,
 #     get_release_clouds_wilson(temp_directory = "data/temp/raw_data/clouds_wilson/",
