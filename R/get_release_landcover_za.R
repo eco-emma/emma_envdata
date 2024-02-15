@@ -63,12 +63,12 @@ get_release_landcover_za <- function(temp_directory = "data/temp/raw_data/landco
   # Reproject domain to match raster
 
     domain_tf <- sf::st_transform(x = domain,
-                                  crs = crs(raster_i))
+                                  crs = sf::st_crs(raster_i))
 
   # Crop to extent
 
     raster_i <- terra::crop(x = raster_i,
-                             y = extent(domain_tf))
+                             y = terra::ext(domain_tf))
 
   # Mask to domain
 
