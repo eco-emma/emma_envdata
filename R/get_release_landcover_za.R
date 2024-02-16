@@ -45,11 +45,14 @@ get_release_landcover_za <- function(temp_directory = "data/temp/raw_data/landco
 
   #Download the file
     if(verbose){message("Downloading file")}
+
     download.file(url = url,
                   destfile = file.path(temp_directory, filename))
 
   #Unzip the file
+
     if(verbose){message("Unzipping file")}
+
     unzip(zipfile = file.path(temp_directory, filename),
           exdir = file.path(temp_directory))
 
