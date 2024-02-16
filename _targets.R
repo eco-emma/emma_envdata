@@ -390,10 +390,19 @@ list(
       tar_target(
         remnant_distance_release,
         domain_distance_release(remnants_release = remnants_release,
-                                out_file="remnant_distance.tif",
+                                out_file = "remnant_distance.tif",
                                 temp_directory = "data/temp/remnants",
                                 out_tag = "processed_static")
         ),
+
+      tar_target(
+        protected_area_distance_release,
+        protected_area_distance_release(template_release,
+                                        out_file = "protected_area_distance.tif",
+                                        temp_directory = "data/temp/protected_area",
+                                        out_tag = "processed_static")
+      ),
+
 
       tar_target(
         projected_alos_release,
