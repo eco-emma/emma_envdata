@@ -125,12 +125,12 @@ list(
     ),
 
   ##Temporarily commented out, seems to be an issue with URL for landcover data at present
-  # tar_target(
-  #   landcover_za_release,
-  #   get_release_landcover_za(temp_directory = "data/temp/raw_data/landcover_za/",
-  #                            tag = "raw_static",
-  #                            domain = domain)
-  #   ),
+  tar_target(
+    landcover_za_release,
+    get_release_landcover_za(temp_directory = "data/temp/raw_data/landcover_za/",
+                             tag = "raw_static",
+                             domain = domain)
+    ),
 
   tar_target(
     precipitation_chelsa_release,
