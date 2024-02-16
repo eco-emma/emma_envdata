@@ -74,7 +74,7 @@ process_release_stable_data <- function(temp_directory = "data/temp/processed_da
                       compression = "gzip") #note: chunk size here details the number of chunks written at once
 
 
-      message("Uploading gzip files",raster_list$file_name[i]," ", Sys.time())
+      message("Uploading gzip files ",raster_list$file_name[i]," ", Sys.time())
 
       pb_upload(file = file.path(temp_directory,paste(raster_list$file_name[i],".gz.parquet",sep = "")),
                 repo = "AdamWilsonLab/emma_envdata",
