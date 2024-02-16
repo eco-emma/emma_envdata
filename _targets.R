@@ -476,18 +476,18 @@ list(
 
       ),
 
-      # tar_target(
-      #   vegmap_modis_proj,
-      #   process_release_biome_raster(template_release = template_release,
-      #                                vegmap_shp = vegmap_shp,
-      #                                domain = domain,
-      #                                temp_directory = "data/temp/raw_data/vegmap_raster/",
-      #                                sleep_time = 10)
-      #
-      # ),
-      #
-      #
-      #
+      tar_target(
+        vegmap_modis_proj,
+        process_release_biome_raster(template_release = template_release,
+                                     vegmap_shp = vegmap_shp,
+                                     domain = domain,
+                                     temp_directory = "data/temp/raw_data/vegmap_raster/",
+                                     sleep_time = 10)
+
+      ),
+
+
+
 
 # # # # Prep model data
 
