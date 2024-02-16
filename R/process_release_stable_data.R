@@ -28,7 +28,6 @@ process_release_stable_data <- function(temp_directory = "data/temp/processed_da
       dir.create(temp_directory, recursive = TRUE)
     }
 
-
   # load files
 
     message("Getting list of rasters to include ", Sys.time())
@@ -57,7 +56,8 @@ process_release_stable_data <- function(temp_directory = "data/temp/processed_da
 
       terra::ext(rast(file.path(temp_directory,raster_list$file_name)))
       terra::res(rast(file.path(temp_directory,raster_list$file_name)))
-      terra::crs(rast(file.path(temp_directory,raster_list$file_name)),proj=TRUE)
+      terra::crs(rast(file.path(temp_directory,raster_list$file_name)),
+                 proj=TRUE)
 
   # process data
 
@@ -76,17 +76,17 @@ process_release_stable_data <- function(temp_directory = "data/temp/processed_da
 
       message("Uploading gzip files ",raster_list$file_name[i]," ", Sys.time())
 
-      pb_upload(file = file.path(temp_directory,paste(raster_list$file_name[i],".gz.parquet",sep = "")),
+      pb_upload(file = file.path(temp_directory,
+                                 paste(raster_list$file_name[i],
+                                       ".gz.parquet",
+                                       sep = "")),
                 repo = "AdamWilsonLab/emma_envdata",
                 tag = output_tag,
                 show_progress = TRUE)
 
       Sys.sleep(sleep_time)
 
-
     }
-
-
 
     #Note: switched from uploading a single file to multiples as github was having problems with the big file
 
@@ -127,8 +127,6 @@ process_release_stable_data <- function(temp_directory = "data/temp/processed_da
     unlink(x = file.path(temp_directory), recursive = TRUE, force = TRUE)
 
     gc()
-
-
 
   # Return filename
 

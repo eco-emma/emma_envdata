@@ -506,8 +506,7 @@ list(
                                   ... = remnant_distance_release,
                                   ... = protected_area_distance_release,
                                   ... = projected_soil_gcfr_release)
-      )
-    ,
+      ),
 
     tar_target(
       ndvi_to_parquet_release,
