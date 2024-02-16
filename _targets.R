@@ -397,10 +397,10 @@ list(
 
       tar_target(
         protected_area_distance_release,
-        protected_area_distance_release(template_release,
-                                        out_file = "protected_area_distance.tif",
-                                        temp_directory = "data/temp/protected_area",
-                                        out_tag = "processed_static")
+        process_release_protected_area_distance(template_release,
+                                                out_file = "protected_area_distance.tif",
+                                                temp_directory = "data/temp/protected_area",
+                                                out_tag = "processed_static")
       ),
 
 

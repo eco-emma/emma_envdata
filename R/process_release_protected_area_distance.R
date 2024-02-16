@@ -9,7 +9,7 @@ library(terra)
 #' @author Adam Wilson & Brian Maitner
 #' @description This code produces a raster containing distances to protected areas
 #' @param template_release path to raster file to use as a template for reprojection
-protected_area_distance_release <- function(template_release,
+process_release_protected_area_distance <- function(template_release,
                                             out_file="protected_area_distance.tif",
                                             temp_directory = "data/temp/protected_area",
                                             out_tag = "processed_static"
