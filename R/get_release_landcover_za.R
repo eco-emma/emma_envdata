@@ -9,7 +9,8 @@
 #' @param domain domain (sf polygon) used for masking
 get_release_landcover_za <- function(temp_directory = "data/temp/raw_data/landcover_za/",
                                      tag = "raw_static",
-                                     domain) {
+                                     domain,
+                                     verbose=TRUE) {
 
   #  #Ensure directory is empty if it exists
 
@@ -43,10 +44,12 @@ get_release_landcover_za <- function(temp_directory = "data/temp/raw_data/landco
 
 
   #Download the file
+    if(verbose){message("Downloading file")}
     download.file(url = url,
                   destfile = file.path(temp_directory, filename))
 
   #Unzip the file
+    if(verbose){message("Unzipping file")}
     unzip(zipfile = file.path(temp_directory, filename),
           exdir = file.path(temp_directory))
 
@@ -56,27 +59,32 @@ get_release_landcover_za <- function(temp_directory = "data/temp/raw_data/landco
 
   # Load the raster
 
+    if(verbose){message("Loading raster")}
     raster_i <- terra::rast(x = list.files(temp_directory,
                                               pattern = ".tif$",
                                               full.names = TRUE))
 
   # Reproject domain to match raster
 
+    if(verbose){message("Reprojecting domain")}
     domain_tf <- sf::st_transform(x = domain,
                                   crs = sf::st_crs(raster_i))
 
   # Crop to extent
 
+    if(verbose){message("Cropping raster")}
     raster_i <- terra::crop(x = raster_i,
                              y = terra::ext(domain_tf))
 
   # Mask to domain
 
+    if(verbose){message("Masking raster")}
     raster_i <- terra::mask(x = raster_i,
                             mask = domain_tf)
 
   # Save the cropped/masked raster
 
+    if(verbose){message("Writing raster")}
     terra::writeRaster(x = raster_i,
                        filename = list.files(temp_directory,
                                              pattern = ".tif$",
@@ -86,6 +94,7 @@ get_release_landcover_za <- function(temp_directory = "data/temp/raw_data/landco
 
   # Release
 
+    if(verbose){message("Uploading release")}
     pb_upload(file = list.files(temp_directory,
                                 pattern = ".tif$",
                                 full.names = TRUE),
@@ -95,6 +104,9 @@ get_release_landcover_za <- function(temp_directory = "data/temp/raw_data/landco
 
 
   # Delete temp folder
+
+    if(verbose){message("Cleaning up")}
+
     rm(raster_i)
 
     unlink(x = file.path(temp_directory), recursive = TRUE, force = TRUE)
