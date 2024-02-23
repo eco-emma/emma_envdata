@@ -100,6 +100,7 @@ domain_remnants_release <- function(domain,
 
 }
 
+#' @note This function takes in the remnants raster, which has ranges from 0-1 for the fraction of each cell containing a remnant patch of veg
 domain_distance_release <- function(remnants_release,
                                     out_file="remnant_distance.tif",
                                     temp_directory = "data/temp/remnants",
@@ -122,12 +123,16 @@ domain_distance_release <- function(remnants_release,
                        sleep_time = 10)
 
   # errors thrown in this chunk when running on github, but don't seem to break anything, so...meh.
+  # distance_raster <-
+  #   rast(file.path(temp_directory,remnants_release$file)) %>%
+  #   terra::app(fun=function(x) ifelse(is.na(x),1,NA)) %>%
+  #   terra::gridDist()/1000
+  #   #terra::distance(grid=T)/1000
+
   distance_raster <-
     rast(file.path(temp_directory,remnants_release$file)) %>%
-    terra::app(fun=function(x) ifelse(is.na(x),1,NA)) %>%
-    terra::gridDist()/1000
-    #terra::distance(grid=T)/1000
-
+    terra::app(fun=function(x) ifelse(is.na(x),0,1)) %>%
+    terra::gridDist(target=1)/1000
 
   terra::writeRaster(distance_raster,
               file = file.path(temp_directory,out_file),
