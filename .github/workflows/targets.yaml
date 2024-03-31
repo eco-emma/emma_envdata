@@ -35,7 +35,8 @@ on:
   workflow_dispatch:
   schedule:
   #  - cron:  '1 0 * * 0' # runs every Sunday at 00:01
-    - cron:  '0 */6 * * *' # run every 6th hour
+      - cron: '0 0 * * *' # runs every day at midnight
+  #  - cron:  '0 */6 * * *' # run every 6th hour
 
 name: targets
 
