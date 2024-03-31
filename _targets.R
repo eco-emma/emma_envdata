@@ -163,8 +163,8 @@ list(
                                json_token = json_token,
                                verbose = FALSE),
         #age = as.difftime(7, units = "days")
-        age = as.difftime(1, units = "days")
-        #age = as.difftime(0, units = "hours")
+        #age = as.difftime(1, units = "days")
+        age = as.difftime(0, units = "hours")
       ),
 
       tar_age(
@@ -190,8 +190,8 @@ list(
                              sleep_time = 5,
                              json_token = json_token),
       #age = as.difftime(7, units = "days")
-      age = as.difftime(1, units = "days")
-      #age = as.difftime(0, units = "hours")
+      #age = as.difftime(1, units = "days")
+      age = as.difftime(0, units = "hours")
     ),
 
     tar_age(
@@ -217,8 +217,8 @@ list(
                              sleep_time = 10,
                              json_token = json_token),
       #age = as.difftime(7, units = "days")
-      age = as.difftime(1, units = "days")
-      #age = as.difftime(0, units = "hours")
+      #age = as.difftime(1, units = "days")
+      age = as.difftime(0, units = "hours")
     ),
 
     tar_age(
@@ -242,9 +242,9 @@ list(
                                        domain = domain,
                                        sleep_time = 1,
                                        json_token = json_token),
-            age = as.difftime(7, units = "days")
+            #age = as.difftime(7, units = "days")
             #age = as.difftime(1, units = "days")
-            #age = as.difftime(0, units = "hours")
+            age = as.difftime(0, units = "hours")
             ),
 
   # tar_age(
@@ -543,8 +543,8 @@ list(
   tar_age(
     remove_ee_backup,
     clean_up(),
-    age = as.difftime(7, units = "days")
-    #age = as.difftime(0, units = "hours")
+    #age = as.difftime(7, units = "days")
+    age = as.difftime(0, units = "hours")
   )
 
 
