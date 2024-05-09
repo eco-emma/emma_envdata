@@ -79,29 +79,29 @@ list(
     country,
     national_boundary()
   )
-# ,
-#
-#   tar_target(
-#     vegmap,
-#     get_vegmap(vegmap_shp)
-#   ),
-#
-#   tar_target(
-#     domain,
-#     domain_define(vegmap = vegmap, country)
-#   ),
-#
-#
+,
+
+  tar_target(
+    vegmap,
+    get_vegmap(vegmap_shp)
+  ),
+
+  tar_target(
+    domain,
+    domain_define(vegmap = vegmap, country)
+  ),
+
+
 # # Infrequent updates via releases
-#
-#   tar_target(
-#       alos_release,
-#       get_release_alos(temp_directory = "data/temp/raw_data/alos/",
-#                        tag = "raw_static",
-#                        domain = domain,
-#                        json_token)
-#       ),
-#
+
+  tar_target(
+      alos_release,
+      get_release_alos(temp_directory = "data/temp/raw_data/alos/",
+                       tag = "raw_static",
+                       domain = domain,
+                       json_token)
+      )
+#,
 #     tar_target(
 #       climate_chelsa_release,
 #       get_release_climate_chelsa(temp_directory = "data/temp/raw_data/climate_chelsa/",
