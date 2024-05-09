@@ -115,16 +115,16 @@ list(
                               tag = "raw_static",
                               domain,
                               sleep_time = 180)
+    ),
+
+  tar_target(
+    elevation_nasadem_release,
+    get_release_elevation_nasadem(temp_directory = "data/temp/raw_data/elevation_nasadem/",
+                                  tag = "raw_static",
+                                  domain)
     )
 #,
 
-#   tar_target(
-#     elevation_nasadem_release,
-#     get_release_elevation_nasadem(temp_directory = "data/temp/raw_data/elevation_nasadem/",
-#                                   tag = "raw_static",
-#                                   domain)
-#     ),
-#
 #   ##Temporarily commented out, seems to be an issue with URL for landcover data at present
 #   # tar_target(
 #   #   landcover_za_release,
