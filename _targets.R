@@ -192,62 +192,62 @@ list(
       #age = as.difftime(7, units = "days")
       #age = as.difftime(1, units = "days")
       age = as.difftime(0, units = "hours")
-    )
+    ),
+
+    tar_age(
+      ndvi_viirs_release,
+      get_release_ndvi_viirs(temp_directory = "data/temp/raw_data/ndvi_viirs/",
+                             tag = "raw_ndvi_viirs",
+                             domain,
+                             max_layers = 3,
+                             sleep_time = 30,
+                             json_token = json_token),
+      age = as.difftime(7, units = "days")
+      #age = as.difftime(1, units = "days")
+      #age = as.difftime(0, units = "hours")
+    ),
+
+
+    tar_age(
+      ndvi_dates_modis_release,
+      get_release_ndvi_dates_modis(temp_directory = "data/temp/raw_data/ndvi_dates_modis/",
+                             repo_tag = "raw_ndvi_dates_modis",
+                             domain = domain,
+                             max_layers = 5,
+                             sleep_time = 10,
+                             json_token = json_token),
+      #age = as.difftime(7, units = "days")
+      #age = as.difftime(1, units = "days")
+      age = as.difftime(0, units = "hours")
+    ),
+
+    tar_age(
+      ndvi_dates_viirs_release,
+      get_release_ndvi_dates_viirs(temp_directory = "data/temp/raw_data/ndvi_dates_viirs/",
+                                   tag = "raw_ndvi_dates_viirs",
+                                   domain = domain,
+                                   max_layers = 3,
+                                   sleep_time = 30,
+                                   json_token = json_token),
+      age = as.difftime(7, units = "days")
+      #age = as.difftime(1, units = "days")
+      #age = as.difftime(0, units = "hours")
+    ),
+
+
+
+    tar_age(mean_ndvi_release,
+            get_release_mean_ndvi_modis(temp_directory = "data/temp/raw_data/mean_ndvi_modis/",
+                                       tag = "current",
+                                       domain = domain,
+                                       sleep_time = 1,
+                                       json_token = json_token),
+            #age = as.difftime(7, units = "days")
+            #age = as.difftime(1, units = "days")
+            age = as.difftime(0, units = "hours")
+            )
 #,
 
-#     tar_age(
-#       ndvi_viirs_release,
-#       get_release_ndvi_viirs(temp_directory = "data/temp/raw_data/ndvi_viirs/",
-#                              tag = "raw_ndvi_viirs",
-#                              domain,
-#                              max_layers = 3,
-#                              sleep_time = 30,
-#                              json_token = json_token),
-#       age = as.difftime(7, units = "days")
-#       #age = as.difftime(1, units = "days")
-#       #age = as.difftime(0, units = "hours")
-#     ),
-#
-#
-#     tar_age(
-#       ndvi_dates_modis_release,
-#       get_release_ndvi_dates_modis(temp_directory = "data/temp/raw_data/ndvi_dates_modis/",
-#                              repo_tag = "raw_ndvi_dates_modis",
-#                              domain = domain,
-#                              max_layers = 5,
-#                              sleep_time = 10,
-#                              json_token = json_token),
-#       #age = as.difftime(7, units = "days")
-#       #age = as.difftime(1, units = "days")
-#       age = as.difftime(0, units = "hours")
-#     ),
-#
-#     tar_age(
-#       ndvi_dates_viirs_release,
-#       get_release_ndvi_dates_viirs(temp_directory = "data/temp/raw_data/ndvi_dates_viirs/",
-#                                    tag = "raw_ndvi_dates_viirs",
-#                                    domain = domain,
-#                                    max_layers = 3,
-#                                    sleep_time = 30,
-#                                    json_token = json_token),
-#       age = as.difftime(7, units = "days")
-#       #age = as.difftime(1, units = "days")
-#       #age = as.difftime(0, units = "hours")
-#     ),
-#
-#
-#
-#     tar_age(mean_ndvi_release,
-#             get_release_mean_ndvi_modis(temp_directory = "data/temp/raw_data/mean_ndvi_modis/",
-#                                        tag = "current",
-#                                        domain = domain,
-#                                        sleep_time = 1,
-#                                        json_token = json_token),
-#             #age = as.difftime(7, units = "days")
-#             #age = as.difftime(1, units = "days")
-#             age = as.difftime(0, units = "hours")
-#             ),
-#
 #   # tar_age(
 #   #   ndwi_modis_release,
 #   #   get_release_ndwi_modis(temp_directory = "data/temp/raw_data/NDWI_MODIS/",
