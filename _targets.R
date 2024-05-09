@@ -122,8 +122,7 @@ list(
     get_release_elevation_nasadem(temp_directory = "data/temp/raw_data/elevation_nasadem/",
                                   tag = "raw_static",
                                   domain)
-    )
-#,
+    ),
 
 #   ##Temporarily commented out, seems to be an issue with URL for landcover data at present
 #   # tar_target(
@@ -133,13 +132,14 @@ list(
 #   #                            domain = domain)
 #   #   ),
 #
-#   tar_target(
-#     precipitation_chelsa_release,
-#     get_release_precipitation_chelsa(temp_directory = "data/temp/raw_data/precipitation_chelsa/",
-#                                      tag = "raw_static",
-#                                      domain = domain)
-#     ),
-#
+  tar_target(
+    precipitation_chelsa_release,
+    get_release_precipitation_chelsa(temp_directory = "data/temp/raw_data/precipitation_chelsa/",
+                                     tag = "raw_static",
+                                     domain = domain)
+    )
+#,
+
 #   ## commented out soil_gcfr_release at present due to API/rdryad issues.
 #   ## Emailed dryad folks on 2024/01/04, it seems the API update broke RDryad
 #   ## and RDryad updates are waiting for funding and transition from RDryad to
