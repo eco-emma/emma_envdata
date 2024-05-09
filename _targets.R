@@ -4,8 +4,6 @@ library(visNetwork)
 library(future) #not sure why this is needed, but we get an error in some of the files without it
 library(googledrive)
 
-tar_destroy()
-
 #If running this locally, make sure to set up github credentials using gitcreds::gitcreds_set()
 
 # devtools::install_github(repo = "bmaitner/rgee",
