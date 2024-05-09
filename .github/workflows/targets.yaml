@@ -162,26 +162,26 @@ jobs:
           webshot::install_phantomjs()
           knitr::knit("README.Rmd")
         shell: Rscript {0}
-      - name: Upload latest run
-        run: |
-          git config --local user.name "GitHub Actions"
-          git config --local user.email "actions@github.com"
-          rm -r .gitignore .github/workflows
-          git lfs track _targets/objects/* #use git LFS to track the targets output (larger files)
-          git lfs track data/raw_data/*
-          git lfs track data/* #use git LFS to track the data output (larger files)
-          git lfs track "raw_data/**" #use git LFS to track raw_data output (larger files)
-          git lfs track "data/**"
-          git lfs track _targets/metadata/* #track metadata
-          git lfs track *.tif
-          git add .gitattributes
-          git add --all -- ':!renv' ':!*json'
-          for file in $(git ls-files ':!*.json' -mo --exclude=renv)
-          do
-            git add -f $file
-          done
-          git commit -am "Run pipeline"
-          git push origin targets-runs
+      # - name: Upload latest run
+      #   run: |
+      #     git config --local user.name "GitHub Actions"
+      #     git config --local user.email "actions@github.com"
+      #     rm -r .gitignore .github/workflows
+      #     git lfs track _targets/objects/* #use git LFS to track the targets output (larger files)
+      #     git lfs track data/raw_data/*
+      #     git lfs track data/* #use git LFS to track the data output (larger files)
+      #     git lfs track "raw_data/**" #use git LFS to track raw_data output (larger files)
+      #     git lfs track "data/**"
+      #     git lfs track _targets/metadata/* #track metadata
+      #     git lfs track *.tif
+      #     git add .gitattributes
+      #     git add --all -- ':!renv' ':!*json'
+      #     for file in $(git ls-files ':!*.json' -mo --exclude=renv)
+      #     do
+      #       git add -f $file
+      #     done
+      #     git commit -am "Run pipeline"
+      #     git push origin targets-runs
 # Move the loop below up two lines (after git add) to commit large files.
       - name: Prepare failure artifact
         if: failure()
