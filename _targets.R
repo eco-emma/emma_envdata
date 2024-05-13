@@ -488,69 +488,69 @@ list(
                                      sleep_time = 10)
 
       )
-#,
+,
 
 
 
 
-# # # # # Prep model data
-#
-#     tar_target(
-#       stable_data_release,
-#       process_release_stable_data(temp_directory = "data/temp/processed_data/static/",
-#                                   input_tag = "processed_static",
-#                                   output_tag = "current",
-#                                   sleep_time = 120,
-#                                   ... = projected_precipitation_chelsa_release,
-#                                   ... = projected_landcover_za_release,
-#                                   ... = projected_elevation_nasadem_release,
-#                                   ... = projected_clouds_wilson_release,
-#                                   ... = projected_climate_chelsa_release,
-#                                   ... = projected_alos_release,
-#                                   ... = remnant_distance_release,
-#                                   ... = protected_area_distance_release,
-#                                   ... = projected_soil_gcfr_release)
-#       ),
-#
-#     tar_target(
-#       ndvi_to_parquet_release,
-#       process_release_dynamic_data_to_parquet(temp_directory = "data/temp/raw_data/ndvi_modis/",
-#                                       input_tag = "clean_ndvi_modis",
-#                                       output_tag = "current",
-#                                       variable_name = "ndvi",
-#                                       sleep_time = 30,
-#                                       ... = correct_ndvi_release_proj_and_extent)
-#       ),
-#
-#     tar_target(
-#       fire_dates_to_parquet_release,
-#       process_release_dynamic_data_to_parquet(temp_directory = "data/temp/processed_data/ndvi_relative_time_since_fire/",
-#                                       input_tag = "processed_ndvi_relative_days_since_fire",
-#                                       output_tag = "current",
-#                                       variable_name = "time_since_fire",
-#                                       sleep_time = 30,
-#                                       ... = ndvi_relative_days_since_fire_release)
-#     ),
-#
-#     tar_target(
-#       most_recent_fire_dates_to_parquet_release,
-#       process_release_dynamic_data_to_parquet(temp_directory = "data/temp/processed_data/most_recent_burn_dates/",
-#                                       input_tag = "processed_most_recent_burn_dates",
-#                                       output_tag = "current",
-#                                       variable_name = "most_recent_burn_dates",
-#                                       sleep_time = 30,
-#                                       ... = burn_date_to_last_burned_date_release)
-#     ),
-#
-# # periodically clean up google drive folder
-#
-#   tar_age(
-#     remove_ee_backup,
-#     clean_up(),
-#     #age = as.difftime(7, units = "days")
-#     age = as.difftime(0, units = "hours")
-#   )
-#
+# # # # Prep model data
+
+    tar_target(
+      stable_data_release,
+      process_release_stable_data(temp_directory = "data/temp/processed_data/static/",
+                                  input_tag = "processed_static",
+                                  output_tag = "current",
+                                  sleep_time = 120,
+                                  ... = projected_precipitation_chelsa_release,
+                                  ... = projected_landcover_za_release,
+                                  ... = projected_elevation_nasadem_release,
+                                  ... = projected_clouds_wilson_release,
+                                  ... = projected_climate_chelsa_release,
+                                  ... = projected_alos_release,
+                                  ... = remnant_distance_release,
+                                  ... = protected_area_distance_release,
+                                  ... = projected_soil_gcfr_release)
+      ),
+
+    tar_target(
+      ndvi_to_parquet_release,
+      process_release_dynamic_data_to_parquet(temp_directory = "data/temp/raw_data/ndvi_modis/",
+                                      input_tag = "clean_ndvi_modis",
+                                      output_tag = "current",
+                                      variable_name = "ndvi",
+                                      sleep_time = 30,
+                                      ... = correct_ndvi_release_proj_and_extent)
+      ),
+
+    tar_target(
+      fire_dates_to_parquet_release,
+      process_release_dynamic_data_to_parquet(temp_directory = "data/temp/processed_data/ndvi_relative_time_since_fire/",
+                                      input_tag = "processed_ndvi_relative_days_since_fire",
+                                      output_tag = "current",
+                                      variable_name = "time_since_fire",
+                                      sleep_time = 30,
+                                      ... = ndvi_relative_days_since_fire_release)
+    ),
+
+    tar_target(
+      most_recent_fire_dates_to_parquet_release,
+      process_release_dynamic_data_to_parquet(temp_directory = "data/temp/processed_data/most_recent_burn_dates/",
+                                      input_tag = "processed_most_recent_burn_dates",
+                                      output_tag = "current",
+                                      variable_name = "most_recent_burn_dates",
+                                      sleep_time = 30,
+                                      ... = burn_date_to_last_burned_date_release)
+    ),
+
+# periodically clean up google drive folder
+
+  tar_age(
+    remove_ee_backup,
+    clean_up(),
+    #age = as.difftime(7, units = "days")
+    age = as.difftime(0, units = "hours")
+  )
+
 
 )
 
