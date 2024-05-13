@@ -38,8 +38,8 @@ get_release_landcover_za <- function(temp_directory = "data/temp/raw_data/landco
 
   #Adjust the download timeout duration (this needs to be large enough to allow the download to complete)
 
-    if(getOption('timeout') < 1000){
-      options(timeout = 1000)
+    if(getOption('timeout') < 10000){
+      options(timeout = 10000)
     }
 
 
