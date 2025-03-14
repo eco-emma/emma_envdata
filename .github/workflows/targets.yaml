@@ -75,7 +75,7 @@ jobs:
           Rscript -e "questionr::qscan(list.files(pattern='*.R',recursive=T), load = TRUE, detail = FALSE)" # this scans all scripts and installs any needed packages
           Rscript -e "remotes::install_github('ROpenSci/bibtex')"
       - name: Cache packages
-        uses: actions/cache@v1
+        uses: actions/cache@v4
         with:
           path: ${{ env.RENV_PATHS_ROOT }}
           key: ${{ runner.os }}-renv-${{ hashFiles('**/renv.lock') }}
