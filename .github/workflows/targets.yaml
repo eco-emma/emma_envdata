@@ -57,9 +57,18 @@ jobs:
       - name: Checkout LFS objects
         run: git lfs checkout
         continue-on-error: true
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
       - name: Install Python Dependencies
         run: |
-          pip install earthengine-api --upgrade
+          pip install earthengine-api
+#          pip install -r requirements.txt  # If you have other dependencies listed in a requirements file
+      - name: Verify Python Installation
+        run: |
+          python -m pip show earthengine-api
+          python -c "import ee; print(ee.__version__)"
 #      # - name: Install Linux system dependencies
 #      #   if: runner.os == 'Linux'
 #      #   run: |
