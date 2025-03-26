@@ -6,8 +6,8 @@ library(googledrive)
 
 #If running this locally, make sure to set up github credentials using gitcreds::gitcreds_set()
 
-devtools::install_github(repo = "bmaitner/rgee",
-                         ref = "noninteractive_auth")
+#devtools::install_github(repo = "bmaitner/rgee",
+#                         ref = "noninteractive_auth")
 
 # Ensure things are clean
   unlink(file.path("data/temp/"), recursive = TRUE, force = TRUE)
