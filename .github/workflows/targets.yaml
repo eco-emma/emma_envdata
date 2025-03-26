@@ -57,6 +57,9 @@ jobs:
       - name: Checkout LFS objects
         run: git lfs checkout
         continue-on-error: true
+      - name: Install Python Dependencies
+        run: |
+          pip install earthengine-api
 #      # - name: Install Linux system dependencies
 #      #   if: runner.os == 'Linux'
 #      #   run: |
