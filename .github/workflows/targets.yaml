@@ -150,9 +150,9 @@ jobs:
         continue-on-error: true
       - name: Install custom rgee
         run: |
-#          reticulate::py_install("ee")
           devtools::install_github(repo = "bmaitner/rgee",
           ref = "noninteractive_auth")
+          #          reticulate::py_install("ee")
         shell: Rscript {0}
       - name: Run targets pt 2
         run: |
