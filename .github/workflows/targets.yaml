@@ -59,7 +59,7 @@ jobs:
         continue-on-error: true
       - name: Install Python Dependencies
         run: |
-          pip install earthengine-api
+          pip install earthengine-api --upgrade
 #      # - name: Install Linux system dependencies
 #      #   if: runner.os == 'Linux'
 #      #   run: |
