@@ -153,6 +153,7 @@ jobs:
           devtools::install_github(repo = "bmaitner/rgee",
           ref = "noninteractive_auth")
           reticulate::py_install("ee")
+          rgee::ee_Initialize()
         shell: Rscript {0}
       - name: Run targets pt 2
         run: |
