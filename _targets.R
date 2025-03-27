@@ -1,3 +1,6 @@
+message("Starting tar_make()")
+print("Starting tar_make() - print")
+
 library(targets)
 library(tarchetypes)
 library(visNetwork)
