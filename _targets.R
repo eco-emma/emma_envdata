@@ -23,7 +23,7 @@ library(googledrive)
 
 
   options(tidyverse.quiet = TRUE)
-  options(clustermq.scheduler = "multicore")
+  #options(clustermq.scheduler = "multicore")
 
   tar_option_set(packages = c("cmdstanr", "posterior", "bayesplot", "tidyverse",
                               "stringr","knitr","sf","stars","units",
