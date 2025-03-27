@@ -31,7 +31,7 @@ library(googledrive)
 
 # ee authentication
   if(T) {
-
+    message("loading rgee")
     library(rgee)
     #Initializing with service account key
 
@@ -40,6 +40,8 @@ library(googledrive)
     ee$Initialize(credentials = credentials)
 
     #Setting up needed objects for rgee
+
+   message("Initializing rgee")
 
     ee_Initialize(drive = TRUE,
                   gcs = FALSE,
