@@ -156,6 +156,7 @@ jobs:
         shell: Rscript {0}
       - name: Run targets pt 2
         run: |
+          message("Starting Targets workflow in targets.yml")
           #targets::tar_destroy(destroy = "all",ask = FALSE) #uncomment to reset
           targets::tar_make()
         shell: Rscript {0}
