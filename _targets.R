@@ -27,7 +27,7 @@ library(googledrive)
 
   tar_option_set(packages = c("cmdstanr", "posterior", "bayesplot", "tidyverse",
                               "stringr","knitr","sf","stars","units",
-                              "cubelyr","rgee"))
+                              "cubelyr","rgee", "reticulate"))
 
 #set JSON token location (should be authorized for drive and earth engine)
   json_token <- "secrets/ee-wilsonlab-emma-ef416058504a.json"
