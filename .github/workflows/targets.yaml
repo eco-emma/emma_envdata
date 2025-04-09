@@ -150,8 +150,6 @@ jobs:
         continue-on-error: true
       - name: Install custom rgee
         run: |
-          #devtools::install_github(repo = "bmaitner/rgee",
-          #ref = "noninteractive_auth")
           # added below on april 9 from https://github.com/r-spatial/rgee/issues/353#issuecomment-1983765552
           library(reticulate)
           py_config() # see the name of your conda (python) environment, in my case "r-reticulate" 
@@ -162,6 +160,8 @@ jobs:
           pyl[pyl$package == "earthengine-api", ]
           # check python version with
           py_run_string("import sys; print(sys.version)")
+          devtools::install_github(repo = "bmaitner/rgee",
+          ref = "noninteractive_auth")
         shell: Rscript {0}
       - name: Run targets pt 2
         run: |
