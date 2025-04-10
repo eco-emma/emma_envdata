@@ -120,8 +120,8 @@ get_release_ndvi_modis <- function(temp_directory = "data/temp/raw_data/ndvi_mod
 
   #Filter the data to exclude anything you've already downloaded (or older)
 
-    ndvi_clean_and_new <- ndvi_clean$filterDate(start = paste(as.Date(newest+1),sep = ""),
-                                                end = paste(format(Sys.time(), "%Y-%m-%d"),sep = "") ) #I THINK I can just pull the most recent date, and then use this to download everything since then
+    ndvi_clean_and_new <- ndvi_clean$filterDate(start = paste(as.Date(newest+1),sep = ""))#, end causing problems 20250410.
+#                                                end = paste(format(Sys.time(), "%Y-%m-%d"),sep = "") ) #I THINK I can just pull the most recent date, and then use this to download everything since then
 
 
   # Function to optionally limit the number of layers downloaded at once
