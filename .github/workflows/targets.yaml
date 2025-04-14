@@ -42,7 +42,7 @@ name: targets
 
 jobs:
   targets:
-    runs-on: docker.io/library/ubuntu:noble #ubuntu-22.04
+    runs-on: ubuntu #ubuntu-22.04
     container: adamwilsonlab/emma:latest
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
