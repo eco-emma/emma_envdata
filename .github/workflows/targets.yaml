@@ -168,6 +168,7 @@ jobs:
           reticulate::py_discover_config() # print current status
           reticulate::py_config() # see the name of your conda (python) environment, in my case "r-reticulate" 
           #targets::tar_destroy(destroy = "all",ask = FALSE) #uncomment to reset
+          ee_install_set_pyenv('/usr/bin/python3','r-reticulate', confirm = F)
           targets::tar_make()
         shell: Rscript {0}
       - name: Identify files that the targets pipeline produced
