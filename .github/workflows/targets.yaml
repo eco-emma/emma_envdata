@@ -85,7 +85,6 @@ jobs:
       - name: Install R Package Dependencies
         run: |-
           Rscript -e "questionr::qscan(list.files(pattern='*.R',recursive=T), load = TRUE, detail = FALSE)" # this scans all scripts and installs any needed packages
-          Rscript -e "remotes::install_github('ROpenSci/bibtex')"
       - name: Cache packages
         uses: actions/cache@v3
         with:
@@ -129,9 +128,9 @@ jobs:
       - name: Run targets pt 1
         run: |
           Sys.setenv(HOME="/home/rstudio")
-          cmdstanr::set_cmdstan_path("/home/rstudio/.cmdstanr/cmdstan-2.28.1")
-          cmdstanr::check_cmdstan_toolchain()
-          #cmdstanr::install_cmdstan()
+#          cmdstanr::set_cmdstan_path("/home/rstudio/.cmdstanr/cmdstan-2.28.1")
+#          cmdstanr::check_cmdstan_toolchain()
+#          #cmdstanr::install_cmdstan()
         shell: Rscript {0}
       - name: Verify credentials
         run: |
@@ -148,24 +147,24 @@ jobs:
           RGEE_SECRET: ${{ secrets.RGEE_SECRET }}
           GD_SECRET: ${{ secrets.GD_SECRET }}
         continue-on-error: true
-      - name: Install custom rgee
-        run: |
-          # added below on april 9 from https://github.com/r-spatial/rgee/issues/353#issuecomment-1983765552
-          library(reticulate)
-          py_config() # see the name of your conda (python) environment, in my case "r-reticulate" 
-          reticulate::py_install('earthengine-api==0.1.370', envname='r-reticulate') 
-          # Check the installation of "earthengine-api" with 
-          py_list_packages() 
-          pyl <- py_list_packages()
-          pyl[pyl$package == "earthengine-api", ]
-          # check python version with
-          py_run_string("import sys; print(sys.version)")
-          devtools::install_github(repo = "bmaitner/rgee",
-          ref = "noninteractive_auth")
-        shell: Rscript {0}
+#      - name: Install custom rgee
+#        run: |
+#          # added below on april 9 from https://github.com/r-spatial/rgee/issues/353#issuecomment-1983765552
+#          library(reticulate)
+#          py_config() # see the name of your conda (python) environment, in my case "r-reticulate" 
+#          reticulate::py_install('earthengine-api==0.1.370', envname='r-reticulate') 
+#          # Check the installation of "earthengine-api" with 
+#          py_list_packages() 
+#          pyl <- py_list_packages()
+#          pyl[pyl$package == "earthengine-api", ]
+#          # check python version with
+#          py_run_string("import sys; print(sys.version)")
+#          devtools::install_github(repo = "bmaitner/rgee",
+#          ref = "noninteractive_auth")
+#        shell: Rscript {0}
       - name: Run targets pt 2
         run: |
-          #targets::tar_destroy(destroy = "all",ask = FALSE) #uncomment to reset
+          targets::tar_destroy(destroy = "all",ask = FALSE) #uncomment to reset
           targets::tar_make()
         shell: Rscript {0}
       - name: Identify files that the targets pipeline produced
