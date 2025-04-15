@@ -49,6 +49,7 @@ jobs:
       RENV_PATHS_ROOT: ~/.local/share/renv
       ACTIONS_RUNNER_DEBUG: true
       PYTHONPATH: PYTHONPATH:/usr/bin/python3
+      RETICULATE_PYTHON: /usr/bin/python3
     steps:
       - uses: actions/checkout@v2
         with:
