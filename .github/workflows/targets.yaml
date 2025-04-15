@@ -85,7 +85,7 @@ jobs:
 #        continue-on-error: true
       - name: Install R Package Dependencies
         run: |-
-          Rscript -e "questionr::qscan(list.files(pattern='*.R',recursive=T), load = TRUE, detail = FALSE)" # this scans all scripts and installs any needed packages
+          Rscript -e "questionr::qscan(list.files(pattern='*.R',recursive=T), load = TRUE, detail = TRUE)" # this scans all scripts and installs any needed packages
       - name: Cache packages
         uses: actions/cache@v3
         with:
