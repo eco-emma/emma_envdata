@@ -35,6 +35,7 @@ library(googledrive)
 # ee authentication
   if(T) {
     message("loading rgee")
+    rgee::ee_install_set_pyenv('/usr/bin/python3','r-reticulate', confirm = F)
     library(rgee)
     #Initializing with service account key
 
