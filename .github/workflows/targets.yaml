@@ -126,20 +126,18 @@ jobs:
 #          #cmdstanr::install_cmdstan()
 #          targets::tar_make()
 #        shell: Rscript {0}
-      - name: Run targets pt 1
-        run: |
-          Sys.setenv(HOME="/home/rstudio")
+#      - name: Run targets pt 1
+#        run: |
+#          Sys.setenv(HOME="/home/rstudio")
 #          cmdstanr::set_cmdstan_path("/home/rstudio/.cmdstanr/cmdstan-2.28.1")
 #          cmdstanr::check_cmdstan_toolchain()
 #          #cmdstanr::install_cmdstan()
-        shell: Rscript {0}
+#        shell: Rscript {0}
       - name: Verify credentials
         run: |
           ./.github/decrypt_secret.sh
           ls ~/.config/earthengine
-          which earthengine
           /usr/bin/earthengine -h
-          earthengine -h
           echo " main dir"
           ls
           echo "scratch dir"
