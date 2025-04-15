@@ -136,6 +136,8 @@ jobs:
         run: |
           ./.github/decrypt_secret.sh
           ls ~/.config/earthengine
+          which earthengine
+          /usr/bin/earthengine -h
           earthengine -h
           echo " main dir"
           ls
