@@ -166,8 +166,8 @@ jobs:
 #        shell: Rscript {0}
       - name: Run targets pt 2
         run: |
-          reticulate::use_python('/usr/bin/python3')
-          rgee::ee_set_pyenv('/usr/bin/python3','r-reticulate', confirm = F)
+          #reticulate::use_python('/usr/bin/python3')
+          #rgee::ee_set_pyenv('/usr/bin/python3','r-reticulate', confirm = F)
           #targets::tar_destroy(destroy = "all",ask = FALSE) #uncomment to reset
           targets::tar_make()
         shell: Rscript {0}
