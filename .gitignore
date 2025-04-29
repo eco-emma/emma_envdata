@@ -39,3 +39,4 @@ data/*
 img/*_files
 img/*html
 _targets/meta/meta
+*.hdf
