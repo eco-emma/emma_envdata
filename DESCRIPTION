@@ -20,6 +20,7 @@ Imports:
   knitr,
   cmdstanr, 
   posterior, 
-  bayesplot
+  bayesplot,
+  rdryad
 Suggests:
   RoxygenNote: 7.1.1

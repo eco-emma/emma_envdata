@@ -8,6 +8,7 @@ mkdir -p /home/rstudio/.config/earthengine/ndef/
 
 mkdir -p /github/home/config/earthengine
 
+mkdir -p ./secrets
 
 # --batch to prevent interactive command
 # --yes to assume "yes" for questions
@@ -36,5 +37,17 @@ gpg --quiet --batch --yes --decrypt --passphrase="$RGEE_SECRET" \
 --output /home/rstudio/.config/earthengine/ndef/20061abcbc1c6ecf51bd9cf7e37350f6_bmaitner@gmail.com ./scratch_code/20061abcbc1c6ecf51bd9cf7e37350f6_bmaitner@gmail.com.gpg
 
 
+=======
+# Decrypt google drive credentials json creds
 
+#Note: directly encrypting hte .json provided by Google failed.  Instead, I loaded it into R, re-saved it, THEN encrypted the new version.
+
+echo " json token "
+
+gpg --batch --yes --decrypt --passphrase="$RGEE_SECRET" \
+--output ./secrets/ee-wilsonlab-emma-ef416058504a.json ./scratch_code/ee-wilsonlab-emma-ef416058504a.json.gpg
+
+#Encrypting
+
+  #gpg --output your-json-token.json.gpg --symmetric your-json-token.json
 

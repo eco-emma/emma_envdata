@@ -31,12 +31,30 @@ vignettes/*.pdf
 index.md
 index_files/*
 firemodel_predict
-raw_data/
+#raw_data/
 processed_data/
-data/*
+#data/*
+*.gpkg
+data/other_data/
 */other_data/*
 .DS_Store
+<<<<<<< HEAD
 img/*_files
 img/*html
 _targets/meta/meta
 *.hdf
+=======
+#*/meta
+img/network.html
+img/network*
+scratch_code/*.json
+scratch_code/!*.json.gpg
+.secrets
+secrets
+secrets/
+secrets/*
+secrets/*.json
+secrets/!*.json.gpg
+debugging_auth.R
+*.json
+>>>>>>> main

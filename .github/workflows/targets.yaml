@@ -31,11 +31,18 @@ on:
       - main
       - master
 
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+  schedule:
+  #  - cron:  '1 0 * * 0' # runs every Sunday at 00:01
+      - cron: '0 0 * * *' # runs every day at midnight
+  #  - cron:  '0 */6 * * *' # run every 6th hour
+
 name: targets
 
 jobs:
   targets:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
     container: adamwilsonlab/emma:latest
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
@@ -45,27 +52,51 @@ jobs:
       - uses: actions/checkout@v2
         with:
           lfs:  'true'
+      - name: Whitelist directory
+        run: git config --global --add safe.directory /__w/emma_envdata/emma_envdata
       - name: Checkout LFS objects
-        run:
-          git lfs checkout
+        run: git lfs checkout
+        continue-on-error: true
+#      - name: Setup Python
+#        uses: actions/setup-python@v2
+#        with:
+#          python-version: '3.x'
+#      - name: Install Python Dependencies
+#        run: |
+#          pip install earthengine-api
+#          pip install -r requirements.txt  # If you have other dependencies listed in a requirements file
+#      - name: Verify Python Installation
+#        run: |
+#          python -m pip show earthengine-api
+#          python -c "import ee; print(ee.__version__)"
 #      # - name: Install Linux system dependencies
 #      #   if: runner.os == 'Linux'
 #      #   run: |
 #      #     sudo apt-get update
+#      - name: DECRYPT rgee SECRETS
+#        run: ./.github/decrypt_secret.sh
+#        env:
+#          RGEE_SECRET: ${{ secrets.RGEE_SECRET }}
+#        continue-on-error: true
+#      - name: Check git settings
+#        run:
+#          git config --get http.postBuffer
+#        continue-on-error: true
       - name: Install R Package Dependencies
         run: |-
           Rscript -e "questionr::qscan(list.files(pattern='*.R',recursive=T), load = TRUE, detail = FALSE)" # this scans all scripts and installs any needed packages
+          Rscript -e "remotes::install_github('ROpenSci/bibtex')"
       - name: Cache packages
-        uses: actions/cache@v1
+        uses: actions/cache@v3
         with:
           path: ${{ env.RENV_PATHS_ROOT }}
           key: ${{ runner.os }}-renv-${{ hashFiles('**/renv.lock') }}
           restore-keys: ${{ runner.os }}-renv-
-      - name: Restore packages
-        shell: Rscript {0}
-        run: |
-          if (!requireNamespace("renv", quietly = TRUE)) install.packages("renv")
-          renv::restore()
+      # - name: Restore packages
+      #   shell: Rscript {0}
+      #   run: |
+      #     if (!requireNamespace("renv", quietly = TRUE)) install.packages("renv")
+      #     renv::restore()
       - name: Check if previous runs exists
         id: runs-exist
         run: git ls-remote --exit-code --heads origin targets-runs
@@ -77,6 +108,7 @@ jobs:
           ref: targets-runs
           fetch-depth: 1
           path: .targets-runs
+          lfs:  'true' #attempting to fix issue with target-committed lfs files not being treated as lfs
       - name: Restore output files from the previous run
         if: steps.runs-exist.outcome == 'success'
         run: |
@@ -86,12 +118,45 @@ jobs:
             if (file.exists(source)) file.rename(source, dest)
           }
         shell: Rscript {0}
-      - name: Run targets pipeline
+#      - name: Run targets pipeline
+#        run: |
+#          Sys.setenv(HOME="/home/rstudio")
+#          cmdstanr::set_cmdstan_path("/home/rstudio/.cmdstanr/cmdstan-2.28.1")
+#          cmdstanr::check_cmdstan_toolchain()
+#          #cmdstanr::install_cmdstan()
+#          targets::tar_make()
+#        shell: Rscript {0}
+      - name: Run targets pt 1
         run: |
           Sys.setenv(HOME="/home/rstudio")
           cmdstanr::set_cmdstan_path("/home/rstudio/.cmdstanr/cmdstan-2.28.1")
           cmdstanr::check_cmdstan_toolchain()
           #cmdstanr::install_cmdstan()
+        shell: Rscript {0}
+      - name: Verify credentials
+        run: |
+          ./.github/decrypt_secret.sh
+          ls ~/.config/earthengine
+          earthengine -h
+          echo " main dir"
+          ls
+          echo "scratch dir"
+          ls scratch_code
+          echo "secrets dir"
+          ls secrets
+        env:
+          RGEE_SECRET: ${{ secrets.RGEE_SECRET }}
+          GD_SECRET: ${{ secrets.GD_SECRET }}
+        continue-on-error: true
+      - name: Install custom rgee
+        run: |
+          #devtools::install_github(repo = "bmaitner/rgee",
+          #ref = "noninteractive_auth")
+          #          reticulate::py_install("ee")
+        shell: Rscript {0}
+      - name: Run targets pt 2
+        run: |
+          #targets::tar_destroy(destroy = "all",ask = FALSE) #uncomment to reset
           targets::tar_make()
         shell: Rscript {0}
       - name: Identify files that the targets pipeline produced
@@ -105,17 +170,27 @@ jobs:
           rm -r .git
           mv .targets-runs/.git .
           rm -r .targets-runs
+
+      - name: update md
+        run: |
+          webshot::install_phantomjs()
+          knitr::knit("README.Rmd")
+        shell: Rscript {0}
       - name: Upload latest run
         run: |
           git config --local user.name "GitHub Actions"
           git config --local user.email "actions@github.com"
           rm -r .gitignore .github/workflows
           git lfs track _targets/objects/* #use git LFS to track the targets output (larger files)
+          git lfs track data/raw_data/*
           git lfs track data/* #use git LFS to track the data output (larger files)
           git lfs track "raw_data/**" #use git LFS to track raw_data output (larger files)
+          git lfs track "data/**"
+          git lfs track _targets/metadata/* #track metadata
+          git lfs track *.tif
           git add .gitattributes
-          git add --all -- ':!renv'
-          for file in $(git ls-files -mo --exclude=renv)
+          git add --all -- ':!renv' ':!*json'
+          for file in $(git ls-files ':!*.json' -mo --exclude=renv)
           do
             git add -f $file
           done

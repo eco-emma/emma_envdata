@@ -1,31 +1,31 @@
-library(raster)
-library(lubridate)
-library(sf)
-library(fasterize)
-
-# This script should:
-  #1) mask bad fire dates
-  #2) adjust burn date to the corresponding NDVI date
-
-# Get corresponding NDVI data
-
-  source("docker_volume/R/ndvi_modis_dates.R")
-
-# Grab fire data
-  #Ideally we can comment out the code for downloading data and leave it in ee
-  source("docker_volume/R/fire_modis.R")
-
-# Update fire data from day of the year to unix date
-  # Ideally this bit will be moved to earth engine
-  source("docker_volume/R/fire_doy_to_unix_date.R")
-  fire_doy_to_unix_date(input_folder = "docker_volume/raw_data/fire_modis/",
-                        output_folder = "docker_volume/raw_data/fire_modis_integer_date")
-
-# Create "most recent burn date raster" matched to ndvi
-  source("docker_volume/R/burn_date_to_last_burned_date.R")
-  burn_date_to_last_burned_date(input_folder = "docker_volume/raw_data/fire_modis_integer_date",
-                                output_folder = "docker_volume/raw_data/fire_modis_most_recent_burn_date")
-
+# library(raster)
+# library(lubridate)
+# library(sf)
+# library(fasterize)
+#
+# # This script should:
+#   #1) mask bad fire dates
+#   #2) adjust burn date to the corresponding NDVI date
+#
+# # Get corresponding NDVI data
+#
+#   source("docker_volume/R/ndvi_modis_dates.R")
+#
+# # Grab fire data
+#   #Ideally we can comment out the code for downloading data and leave it in ee
+#   source("docker_volume/R/fire_modis.R")
+#
+# # Update fire data from day of the year to unix date
+#   # Ideally this bit will be moved to earth engine
+#   source("docker_volume/R/fire_doy_to_unix_date.R")
+#   fire_doy_to_unix_date(input_folder = "docker_volume/raw_data/fire_modis/",
+#                         output_folder = "docker_volume/raw_data/fire_modis_integer_date")
+#
+# # Create "most recent burn date raster" matched to ndvi
+#   source("docker_volume/R/burn_date_to_last_burned_date.R")
+#   burn_date_to_last_burned_date(input_folder = "docker_volume/raw_data/fire_modis_integer_date",
+#                                 output_folder = "docker_volume/raw_data/fire_modis_most_recent_burn_date")
+#
 
 # The two collections we care about are:
 
