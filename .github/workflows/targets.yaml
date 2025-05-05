@@ -30,6 +30,7 @@ on:
     branches:
       - main
       - master
+      - dev-adam
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -57,22 +58,6 @@ jobs:
       - name: Checkout LFS objects
         run: git lfs checkout
         continue-on-error: true
-#      - name: Setup Python
-#        uses: actions/setup-python@v2
-#        with:
-#          python-version: '3.x'
-#      - name: Install Python Dependencies
-#        run: |
-#          pip install earthengine-api
-#          pip install -r requirements.txt  # If you have other dependencies listed in a requirements file
-#      - name: Verify Python Installation
-#        run: |
-#          python -m pip show earthengine-api
-#          python -c "import ee; print(ee.__version__)"
-#      # - name: Install Linux system dependencies
-#      #   if: runner.os == 'Linux'
-#      #   run: |
-#      #     sudo apt-get update
 #      - name: DECRYPT rgee SECRETS
 #        run: ./.github/decrypt_secret.sh
 #        env:
@@ -85,7 +70,6 @@ jobs:
       - name: Install R Package Dependencies
         run: |-
           Rscript -e "questionr::qscan(list.files(pattern='*.R',recursive=T), load = TRUE, detail = FALSE)" # this scans all scripts and installs any needed packages
-          Rscript -e "remotes::install_github('ROpenSci/bibtex')"
       - name: Cache packages
         uses: actions/cache@v3
         with:
@@ -118,21 +102,13 @@ jobs:
             if (file.exists(source)) file.rename(source, dest)
           }
         shell: Rscript {0}
-#      - name: Run targets pipeline
+#      - name: Run targets pt 1
 #        run: |
 #          Sys.setenv(HOME="/home/rstudio")
 #          cmdstanr::set_cmdstan_path("/home/rstudio/.cmdstanr/cmdstan-2.28.1")
 #          cmdstanr::check_cmdstan_toolchain()
 #          #cmdstanr::install_cmdstan()
-#          targets::tar_make()
 #        shell: Rscript {0}
-      - name: Run targets pt 1
-        run: |
-          Sys.setenv(HOME="/home/rstudio")
-          cmdstanr::set_cmdstan_path("/home/rstudio/.cmdstanr/cmdstan-2.28.1")
-          cmdstanr::check_cmdstan_toolchain()
-          #cmdstanr::install_cmdstan()
-        shell: Rscript {0}
       - name: Verify credentials
         run: |
           ./.github/decrypt_secret.sh

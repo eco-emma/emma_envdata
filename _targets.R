@@ -98,66 +98,7 @@ list(
   )
 ,
 
-
-<<<<<<< HEAD
-  tar_age(
-    alos,
-    get_alos(domain = domain),
-    age = as.difftime(26, units = "weeks")
-  ),
-  tar_age(
-    climate_chelsa,
-    get_climate_chelsa(domain = domain),
-    age = as.difftime(26, units = "weeks")
-  ),
-  tar_age(
-    clouds_wilson,
-    get_clouds_wilson(domain = domain),
-    age = as.difftime(26, units = "weeks")
-  ),
-  tar_age(
-    elevation_nasadem,
-    get_elevation_nasadem(domain = domain),
-    age = as.difftime(26, units = "weeks")
-  ),
-  tar_age(
-    landcover_za,
-    get_landcover_za(domain = domain),
-    age = as.difftime(26, units = "weeks")
-  ),
-  tar_age(
-    precipitation_chelsa,
-    get_precipitation_chelsa(domain = domain),
-    age = as.difftime(26, units = "weeks")
-  ),
-
-# Frequent updates
-
-  tar_age(
-    fire_modis,
-    get_fire_modis(domain = domain),
-    age = as.difftime(7, units = "days")
-  ),
-  tar_age(
-    kndvi_modis,
-    get_kndvi_modis(domain = domain),
-    age = as.difftime(7, units = "days")
-  ),
-  tar_age(
-    ndvi_modis,
-    get_ndvi_modis(domain = domain),
-    age = as.difftime(7, units = "days")
-  ),
-  tar_age(
-    ndvi_dates_modis,
-    get_ndvi_dates_modis(domain = domain),
-    age = as.difftime(7, units = "days")
-  ),
-
-# Processing
-=======
-# # # Infrequent updates via releases
->>>>>>> main
+ #infrequent updates via releases
 
   tar_target(
       alos_release,
