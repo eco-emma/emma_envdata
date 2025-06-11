@@ -52,11 +52,9 @@ library(jsonlite)
     message("Initializing rgee")
     
     ee_Initialize(
-      email = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
-      service_account = TRUE,
+      "bmaitner",
       drive = TRUE,
-      gcs = FALSE,
-      credentials = json_token
+      gcs = FALSE
     )
     message("After ee_Initialize")
     }
