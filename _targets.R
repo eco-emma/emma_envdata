@@ -47,8 +47,8 @@ library(jsonlite)
     # service_account <- jsonlite::read_json(json_token)$client_email
     # credentials <- ee$ServiceAccountCredentials(service_account, json_token)
     # ee$Initialize(credentials = credentials)
-
-    rgee::ee_delete_credentials("emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com")
+    unlink("~/.config/earthengine", recursive = TRUE, force = TRUE)
+    unlink("~/.rgee", recursive = TRUE, force = TRUE)
 
     #Setting up needed objects for rgee
     message("Initializing rgee")
