@@ -32,7 +32,7 @@ library(googledrive)
 #set JSON token location (should be authorized for drive and earth engine)
   json_token <- "secrets/ee-wilsonlab-emma-ef416058504a.json"
 
-  drive_auth(path = json_token, verbose = TRUE)
+  drive_auth(path = json_token)
 
 # ee authentication
   if(T) {
@@ -41,9 +41,9 @@ library(googledrive)
     library(rgee)
     #Initializing with service account key
 
-    service_account <- jsonlite::read_json(json_token)$client_email
-    credentials <- ee$ServiceAccountCredentials(service_account, json_token)
-    ee$Initialize(credentials = credentials)
+    # service_account <- jsonlite::read_json(json_token)$client_email
+    # credentials <- ee$ServiceAccountCredentials(service_account, json_token)
+    # ee$Initialize(credentials = credentials)
 
     #Setting up needed objects for rgee
 
