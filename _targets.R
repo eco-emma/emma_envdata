@@ -59,13 +59,12 @@ print(py_config())
     ee$Initialize(credentials = credentials)
     # unlink("~/.config/earthengine", recursive = TRUE, force = TRUE)
     # unlink("~/.rgee", recursive = TRUE, force = TRUE)
-    rgee::ee_save_credential(credentials = credentials, path = "~/.config/earthengine/ndef")
-    print(ee_user_info())
+    dir.create("~/.config/earthengine", recursive = TRUE, showWarnings = FALSE)
+    file.create("~/.config/earthengine/rgee_sessioninfo.txt")
+    options(rgee.session.info = FALSE)
 
     #Setting up needed objects for rgee
     message("Initializing rgee")
-    
-    options(rgee.session.info = FALSE)
     
     # ee_Initialize(
     #   service_account = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
