@@ -32,6 +32,8 @@ library(googledrive)
 #set JSON token location (should be authorized for drive and earth engine)
   json_token <- "secrets/ee-wilsonlab-emma-ef416058504a.json"
 
+  drive_auth(path = json_token)
+
 # ee authentication
   if(T) {
     message("loading rgee")
