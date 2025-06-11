@@ -32,7 +32,9 @@ library(googledrive)
 
 #set JSON token location (should be authorized for drive and earth engine)
   json_token <- "secrets/ee-wilsonlab-emma-ef416058504a.json"
+  Sys.setenv(GOOGLE_APPLICATION_CREDENTIALS = json_token)
 
+  drive_deauth()
   drive_auth(path = json_token)
 
 # ee authentication
@@ -47,17 +49,15 @@ library(googledrive)
     # ee$Initialize(credentials = credentials)
 
     #Setting up needed objects for rgee
-
-   message("Initializing rgee")
-
-    ee_Initialize(drive = TRUE,
-                  gcs = FALSE,
-                  use_oob = FALSE,
-                  drive_cred_path = json_token,
-                  gcs_cred_path = json_token,
-                  ee_cred_path = json_token)
-
-  }
+    message("Initializing rgee")
+    
+    ee_Initialize(
+    email = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
+    service_account = TRUE,
+    gcs = FALSE,
+    drive = TRUE,
+    user = NULL
+    )
 
 
 
