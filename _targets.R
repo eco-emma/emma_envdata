@@ -52,8 +52,6 @@ print(py_config())
     message("loading rgee")
 #    rgee::ee_install_set_pyenv('/usr/bin/python3','r-reticulate', confirm = F)
     library(rgee)
-    reticulate::py_module_available("ee")
-    rgee::ee_py_check()
     #Initializing with service account key
 
     # service_account <- jsonlite::read_json(json_token)$client_email
