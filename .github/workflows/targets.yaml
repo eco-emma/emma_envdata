@@ -60,6 +60,8 @@ jobs:
       - name: Checkout LFS objects
         run: git lfs checkout
         continue-on-error: true
+      - name: List files in scratch_code
+        run: ls -lh scratch_code/
 #      - name: Setup Python
 #        uses: actions/setup-python@v2
 #        with:
