@@ -15,7 +15,6 @@ message("------ reticulate::py_discover_config() ------")
 print(py_discover_config())
 message("------ END PY CONFIG ------")
 
-
 #If running this locally, make sure to set up github credentials using gitcreds::gitcreds_set()
 
 #devtools::install_github(repo = "bmaitner/rgee",
@@ -48,6 +47,8 @@ message("------ END PY CONFIG ------")
     message("loading rgee")
 #    rgee::ee_install_set_pyenv('/usr/bin/python3','r-reticulate', confirm = F)
     library(rgee)
+    reticulate::py_module_available("ee")
+    rgee::ee_py_check()
     #Initializing with service account key
 
     # service_account <- jsonlite::read_json(json_token)$client_email
