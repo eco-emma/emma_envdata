@@ -1,4 +1,4 @@
-Sys.setenv(GOOGLE_APPLICATION_CREDENTIALS = "secrets/ee-wilsonlab-emma-ef416058504a.json")
+# Sys.setenv(GOOGLE_APPLICATION_CREDENTIALS = "secrets/ee-wilsonlab-emma-ef416058504a.json")
 message("Starting tar_make()")
 print("Starting tar_make() - print")
 
@@ -54,14 +54,30 @@ print(py_config())
     library(rgee)
     #Initializing with service account key
 
-    service_account <- jsonlite::read_json(json_token)$client_email
-    credentials <- ee$ServiceAccountCredentials(service_account, json_token)
-    ee$Initialize(credentials = credentials)
+    # service_account <- jsonlite::read_json(json_token)$client_email
+    # credentials <- ee$ServiceAccountCredentials(service_account, json_token)
+    # ee$Initialize(credentials = credentials)
+
+    # point to your service-account JSON
+    Sys.setenv(GOOGLE_APPLICATION_CREDENTIALS = json_token)
+    
+    # preload Drive & GCS creds headlessly
+    googledrive::drive_auth(path = json_token, cache = FALSE)
+    googleCloudStorageR::gcs_auth(json_file = json_token)
+    
+    # App-Default auth for rgee (no browser)
+    ee_Initialize(
+      drive      = TRUE,
+      gcs        = TRUE,
+      auth_mode  = "appdefault",
+      auth_quiet = TRUE,
+      quiet      = TRUE
+    )
     # unlink("~/.config/earthengine", recursive = TRUE, force = TRUE)
     # unlink("~/.rgee", recursive = TRUE, force = TRUE)
-    dir.create("~/.config/earthengine", recursive = TRUE, showWarnings = FALSE)
-    file.create("~/.config/earthengine/rgee_sessioninfo.txt")
-    options(rgee.session.info = FALSE)
+    # dir.create("~/.config/earthengine", recursive = TRUE, showWarnings = FALSE)
+    # file.create("~/.config/earthengine/rgee_sessioninfo.txt")
+    # options(rgee.session.info = FALSE)
 
     #Setting up needed objects for rgee
     message("Initializing rgee")
