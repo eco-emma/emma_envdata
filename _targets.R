@@ -1,3 +1,4 @@
+Sys.setenv(GOOGLE_APPLICATION_CREDENTIALS = "secrets/ee-wilsonlab-emma-ef416058504a.json")
 message("Starting tar_make()")
 print("Starting tar_make() - print")
 
@@ -33,13 +34,7 @@ library(jsonlite)
 
 #set JSON token location (should be authorized for drive and earth engine)
   json_token <- "secrets/ee-wilsonlab-emma-ef416058504a.json"
-  Sys.setenv(GOOGLE_APPLICATION_CREDENTIALS = json_token)
 
-  f <- fromJSON(json_token)
-  print(f[c("type", "client_email", "project_id")])
-
-
-  drive_deauth()
   drive_auth(path = json_token)
 
 # ee authentication
@@ -57,11 +52,11 @@ library(jsonlite)
     message("Initializing rgee")
     
     ee_Initialize(
-    email = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
-    service_account = TRUE,
-    gcs = FALSE,
-    drive = TRUE,
-    user = NULL
+      email = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
+      service_account = TRUE,
+      drive = TRUE,
+      gcs = FALSE,
+      credentials = json_token
     )
     message("After ee_Initialize")
     }
