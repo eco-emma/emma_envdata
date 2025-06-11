@@ -13,7 +13,9 @@ library(jsonlite)
 library(reticulate)
 message("------ reticulate::py_discover_config() ------")
 print(py_discover_config())
-message("------ END PY CONFIG ------")
+message("------ available ee ------")
+reticulate::py_module_available("ee")
+reticulate::py_config()
 
 #If running this locally, make sure to set up github credentials using gitcreds::gitcreds_set()
 
