@@ -34,6 +34,9 @@ library(googledrive)
   json_token <- "secrets/ee-wilsonlab-emma-ef416058504a.json"
   Sys.setenv(GOOGLE_APPLICATION_CREDENTIALS = json_token)
 
+  print(tryCatch(fromJSON(json_token)[c("type","client_email","project_id")], error=function(e) e))
+
+
   drive_deauth()
   drive_auth(path = json_token)
 
