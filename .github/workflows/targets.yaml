@@ -50,6 +50,7 @@ jobs:
       ACTIONS_RUNNER_DEBUG: true
       PYTHONPATH: PYTHONPATH:/opt/conda/envs/r-reticulate/bin/python
       RETICULATE_PYTHON: /opt/conda/envs/r-reticulate/bin/python
+      GARGLE_AUTH_FILE: secrets/ee-wilsonlab-emma-ef416058504a.json
     steps:
       - uses: actions/checkout@v2
         with:
