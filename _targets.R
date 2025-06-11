@@ -51,14 +51,14 @@ library(jsonlite)
     #Setting up needed objects for rgee
     message("Initializing rgee")
     
-    ee_Initialize(
-      email = NULL, 
-      gcs = TRUE,
-      drive = TRUE,
-      service_account = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
-      credentials = json_token,
-      project = "ee-wilsonlab-emma"
-    )
+    # ee_Initialize(
+    #   email = NULL, 
+    #   gcs = TRUE,
+    #   drive = TRUE,
+    #   service_account = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
+    #   credentials = json_token,
+    #   project = "ee-wilsonlab-emma"
+    # )
     message("After ee_Initialize")
     }
 
