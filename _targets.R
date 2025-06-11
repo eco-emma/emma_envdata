@@ -54,7 +54,8 @@ library(jsonlite)
     ee_Initialize(
       "bmaitner",
       drive = TRUE,
-      gcs = FALSE
+      gcs = FALSE,
+      project_id = "ee-wilsonlab-emma"
     )
     message("After ee_Initialize")
     }
