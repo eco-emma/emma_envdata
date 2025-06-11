@@ -10,6 +10,12 @@ options(gargle_verbosity = "debug")
 library(googledrive)
 library(jsonlite)
 
+library(reticulate)
+message("------ reticulate::py_discover_config() ------")
+print(py_discover_config())
+message("------ END PY CONFIG ------")
+
+
 #If running this locally, make sure to set up github credentials using gitcreds::gitcreds_set()
 
 #devtools::install_github(repo = "bmaitner/rgee",
