@@ -175,6 +175,10 @@ jobs:
 #          devtools::install_github(repo = "bmaitner/rgee",
 #          ref = "noninteractive_auth")
 #        shell: Rscript {0}
+      - name: Print environment
+        run: env
+      - name: Print R session info
+        run: Rscript -e 'sessionInfo()'
       - name: Run targets pt 2
         run: |
           #reticulate::use_python('/usr/bin/python3')
