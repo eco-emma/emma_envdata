@@ -120,8 +120,10 @@ jobs:
             if (file.exists(source)) file.rename(source, dest)
           }
         shell: Rscript {0}
-      - name: Check for secrets JSON
-        run: ls -l secrets
+      - name: Find credential JSON
+        run: |
+          echo "Searching for ee-wilsonlab-emma-ef416058504a.json ..."
+          find / -name 'ee-wilsonlab-emma-ef416058504a.json' 2>/dev/null || true
 #      - name: Run targets pipeline
 #        run: |
 #          Sys.setenv(HOME="/home/rstudio")
