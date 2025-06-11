@@ -7,6 +7,7 @@ library(visNetwork)
 library(future) #not sure why this is needed, but we get an error in some of the files without it
 options(gargle_verbosity = "debug")
 library(googledrive)
+library(jsonlite)
 
 #If running this locally, make sure to set up github credentials using gitcreds::gitcreds_set()
 
@@ -34,7 +35,8 @@ library(googledrive)
   json_token <- "secrets/ee-wilsonlab-emma-ef416058504a.json"
   Sys.setenv(GOOGLE_APPLICATION_CREDENTIALS = json_token)
 
-  print(tryCatch(fromJSON(json_token)[c("type","client_email","project_id")], error=function(e) e))
+  f <- fromJSON(json_token)
+  print(f[c("type", "client_email", "project_id")])
 
 
   drive_deauth()
