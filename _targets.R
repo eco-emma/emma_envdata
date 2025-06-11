@@ -65,13 +65,13 @@ print(py_config())
     #Setting up needed objects for rgee
     message("Initializing rgee")
     
+    options(rgee.session.info = FALSE)
+    
     ee_Initialize(
-      email = NULL, 
-      gcs = TRUE,
-      drive = TRUE,
       service_account = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
-      credentials = json_token,
-      project = "ee-wilsonlab-emma"
+      credentials = "secrets/ee-wilsonlab-emma-ef416058504a.json",
+      drive = TRUE,
+      gcs = TRUE
     )
     message("After ee_Initialize")
     }
