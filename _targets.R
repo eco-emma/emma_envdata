@@ -62,8 +62,10 @@ print(py_config())
     Sys.setenv(GOOGLE_APPLICATION_CREDENTIALS = json_token)
     
     # preload Drive & GCS creds headlessly
+    dir.create("~/.config/earthengine", recursive = TRUE, showWarnings = FALSE)
     googledrive::drive_auth(path = json_token, cache = FALSE)
     googleCloudStorageR::gcs_auth(json_file = json_token)
+    message("Before ee_Initialize")
     
     # App-Default auth for rgee (no browser)
     ee_Initialize(
