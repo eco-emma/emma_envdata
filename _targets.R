@@ -54,23 +54,25 @@ print(py_config())
     library(rgee)
     #Initializing with service account key
 
-    # service_account <- jsonlite::read_json(json_token)$client_email
-    # credentials <- ee$ServiceAccountCredentials(service_account, json_token)
-    # ee$Initialize(credentials = credentials)
-    unlink("~/.config/earthengine", recursive = TRUE, force = TRUE)
-    unlink("~/.rgee", recursive = TRUE, force = TRUE)
+    service_account <- jsonlite::read_json(json_token)$client_email
+    credentials <- ee$ServiceAccountCredentials(service_account, json_token)
+    ee$Initialize(credentials = credentials)
+    # unlink("~/.config/earthengine", recursive = TRUE, force = TRUE)
+    # unlink("~/.rgee", recursive = TRUE, force = TRUE)
+    rgee::ee_save_credential(credentials = credentials, path = "~/.config/earthengine/ndef")
+    print(ee_user_info())
 
     #Setting up needed objects for rgee
     message("Initializing rgee")
     
     options(rgee.session.info = FALSE)
     
-    ee_Initialize(
-      service_account = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
-      credentials = "secrets/ee-wilsonlab-emma-ef416058504a.json",
-      drive = TRUE,
-      gcs = TRUE
-    )
+    # ee_Initialize(
+    #   service_account = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
+    #   credentials = "secrets/ee-wilsonlab-emma-ef416058504a.json",
+    #   drive = TRUE,
+    #   gcs = TRUE
+    # )
     message("After ee_Initialize")
     }
 
