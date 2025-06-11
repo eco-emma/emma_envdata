@@ -44,18 +44,20 @@ library(jsonlite)
     library(rgee)
     #Initializing with service account key
 
-    # service_account <- jsonlite::read_json(json_token)$client_email
-    # credentials <- ee$ServiceAccountCredentials(service_account, json_token)
-    # ee$Initialize(credentials = credentials)
+    service_account <- jsonlite::read_json(json_token)$client_email
+    credentials <- ee$ServiceAccountCredentials(service_account, json_token)
+    ee$Initialize(credentials = credentials)
 
     #Setting up needed objects for rgee
     message("Initializing rgee")
     
     ee_Initialize(
-      "bmaitner",
+      email = NULL, 
+      gcs = TRUE,
       drive = TRUE,
-      gcs = FALSE,
-      project_id = "ee-wilsonlab-emma"
+      service_account = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
+      credentials = json_token,
+      project = "ee-wilsonlab-emma"
     )
     message("After ee_Initialize")
     }
