@@ -62,6 +62,8 @@ jobs:
         continue-on-error: true
       - name: List files in scratch_code
         run: ls -lh scratch_code/
+      - name: List files in secrets
+        run: ls -lh secrets/
 #      - name: Setup Python
 #        uses: actions/setup-python@v2
 #        with:
