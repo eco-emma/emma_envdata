@@ -62,8 +62,6 @@ jobs:
         continue-on-error: true
       - name: List files in scratch_code
         run: ls -lh scratch_code/
-      - name: List files in secrets
-        run: ls -lh secrets/
 #      - name: Setup Python
 #        uses: actions/setup-python@v2
 #        with:
@@ -80,11 +78,13 @@ jobs:
 #      #   if: runner.os == 'Linux'
 #      #   run: |
 #      #     sudo apt-get update
-#      - name: DECRYPT rgee SECRETS
-#        run: ./.github/decrypt_secret.sh
-#        env:
-#          RGEE_SECRET: ${{ secrets.RGEE_SECRET }}
-#        continue-on-error: true
+      - name: DECRYPT rgee SECRETS
+        run: ./.github/decrypt_secret.sh
+        env:
+          RGEE_SECRET: ${{ secrets.RGEE_SECRET }}
+        continue-on-error: true
+      - name: List files in secrets
+        run: ls -lh secrets/
 #      - name: Check git settings
 #        run:
 #          git config --get http.postBuffer
