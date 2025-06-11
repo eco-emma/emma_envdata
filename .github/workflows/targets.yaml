@@ -120,6 +120,8 @@ jobs:
             if (file.exists(source)) file.rename(source, dest)
           }
         shell: Rscript {0}
+      - name: Check for secrets JSON
+        run: ls -l secrets
 #      - name: Run targets pipeline
 #        run: |
 #          Sys.setenv(HOME="/home/rstudio")
