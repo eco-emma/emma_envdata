@@ -58,11 +58,11 @@ library(reticulate)
     library(rgee)
     options(rgee.verbose = TRUE)
     options(gargle_verbosity = "debug")
-    rgee::ee_clean_credentials()
     #Initializing with service account key
 
     # service_account <- jsonlite::read_json(json_token)$client_email
     # credentials <- ee$ServiceAccountCredentials(service_account, json_token)
+    unlink("~/.config/earthengine", recursive = TRUE, force = TRUE)
     ee$Initialize(project="ee-wilsonlab-emma")
 
     # point to your service-account JSON
