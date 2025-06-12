@@ -58,6 +58,7 @@ library(reticulate)
     library(rgee)
     options(rgee.verbose = TRUE)
     options(gargle_verbosity = "debug")
+    ee_clean_credentials()
     #Initializing with service account key
 
     # service_account <- jsonlite::read_json(json_token)$client_email
@@ -82,7 +83,7 @@ library(reticulate)
               
     #         )
     # googledrive::drive_auth(token = token)
-    ee_Authenticate(auth_mode='gcloud', quiet=TRUE)
+    ee_Authenticate(auth_mode='gcloud')
     message("Authenticte is completed")
     ee_Initialize(
       #user = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
