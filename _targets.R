@@ -70,7 +70,8 @@ print(py_config())
     message("Before ee_Initialize")
     
     # App-Default auth for rgee (no browser)
-    drive_auth(path = json_token, cache = FALSE)
+    # drive_auth(path = json_token, cache = FALSE)
+    drive_deauth()
     ee_Initialize(
       service_account = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
       credentials     = "secrets/ee-wilsonlab-emma-ef416058504a.json",
