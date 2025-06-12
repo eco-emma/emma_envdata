@@ -75,8 +75,8 @@ print(py_config())
       drive      = TRUE,
       gcs        = TRUE,
       auth_mode  = "appdefault",
-      auth_quiet = TRUE,
-      quiet      = TRUE
+      #auth_quiet = TRUE,
+      #quiet      = TRUE
     )
     # unlink("~/.config/earthengine", recursive = TRUE, force = TRUE)
     # unlink("~/.rgee", recursive = TRUE, force = TRUE)
