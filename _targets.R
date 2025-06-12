@@ -82,7 +82,7 @@ library(reticulate)
               
     #         )
     # googledrive::drive_auth(token = token)
-    ee_Authenticate(auth_mode='gcloud', quiet=TRUE)
+    ee_Authenticate(auth_mode='appdefault', quiet=TRUE)
     message("Authenticte is completed")
     ee_Initialize(
       #user = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
@@ -91,7 +91,7 @@ library(reticulate)
       # drive           = TRUE,
       # gcs             = FALSE,
       # project           = "ee-wilsonlab-emma",
-      auth_mode       = "gcloud",
+      auth_mode       = "appdeafault",
       # auth_quiet      = TRUE,
       quiet           = TRUE
     )
