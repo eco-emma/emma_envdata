@@ -63,7 +63,7 @@ library(reticulate)
     # service_account <- jsonlite::read_json(json_token)$client_email
     # credentials <- ee$ServiceAccountCredentials(service_account, json_token)
     # unlink("~/.config/earthengine", recursive = TRUE, force = TRUE)
-    ee_Authenticate(auth_mode='gcloud')
+    ee_Authenticate(path=json_token, use_oob=TRUE)
     # rgee::ee_clean_credentials()
     ee$Initialize(project="ee-wilsonlab-emma")
 
