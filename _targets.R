@@ -11,18 +11,18 @@ library(googledrive)
 library(jsonlite)
 
 library(jsonlite)
-tok <- fromJSON("secrets/ee-wilsonlab-emma-ef416058504a.json")
-print(tok$scopes)  # or tok$scopes
+# tok <- fromJSON("secrets/ee-wilsonlab-emma-ef416058504a.json")
+# print(tok$scopes)  # or tok$scopes
 
 library(reticulate)
-message("------ reticulate::py_discover_config() ------")
-print(py_discover_config())
+# message("------ reticulate::py_discover_config() ------")
+# print(py_discover_config())
 
-message("------ checking ee module availability ------")
-print(py_module_available("ee"))
+# message("------ checking ee module availability ------")
+# print(py_module_available("ee"))
 
-message("------ py_config() output ------")
-print(py_config())
+# message("------ py_config() output ------")
+# print(py_config())
 
 #If running this locally, make sure to set up github credentials using gitcreds::gitcreds_set()
 
@@ -60,9 +60,9 @@ print(py_config())
     options(gargle_verbosity = "debug")
     #Initializing with service account key
 
-    # service_account <- jsonlite::read_json(json_token)$client_email
-    # credentials <- ee$ServiceAccountCredentials(service_account, json_token)
-    # ee$Initialize(credentials = credentials)
+    service_account <- jsonlite::read_json(json_token)$client_email
+    credentials <- ee$ServiceAccountCredentials(service_account, json_token)
+    ee$Initialize(credentials = credentials)
 
     # point to your service-account JSON
     Sys.setenv(GOOGLE_APPLICATION_CREDENTIALS = json_token)
@@ -75,22 +75,22 @@ print(py_config())
     
     # App-Default auth for rgee (no browser)
     # drive_auth(path = json_token, cache = FALSE)
-    gargle::gargle_oauth_cache()
-    token <- gargle::credentials_service_account(
-              path   = json_token,
-              scopes = NULL
+    # gargle::gargle_oauth_cache()
+    # token <- gargle::credentials_service_account(
+    #           path   = json_token,
+    #           scopes = NULL
               
-            )
-    googledrive::drive_auth(token = token)
-    ee_Initialize(
-      service_account = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
-      credentials     = "secrets/ee-wilsonlab-emma-ef416058504a.json",
-      drive           = TRUE,
-      gcs             = FALSE,
-      auth_mode       = "service_account",
-      auth_quiet      = TRUE,
-      quiet           = TRUE
-    )
+    #         )
+    # googledrive::drive_auth(token = token)
+    # ee_Initialize(
+    #   service_account = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
+    #   credentials     = "secrets/ee-wilsonlab-emma-ef416058504a.json",
+    #   drive           = TRUE,
+    #   gcs             = FALSE,
+    #   auth_mode       = "service_account",
+    #   auth_quiet      = TRUE,
+    #   quiet           = TRUE
+    # )
     # unlink("~/.config/earthengine", recursive = TRUE, force = TRUE)
     # unlink("~/.rgee", recursive = TRUE, force = TRUE)
     # dir.create("~/.config/earthengine", recursive = TRUE, showWarnings = FALSE)
