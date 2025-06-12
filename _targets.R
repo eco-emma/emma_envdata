@@ -10,6 +10,10 @@ options(gargle_verbosity = "debug")
 library(googledrive)
 library(jsonlite)
 
+library(jsonlite)
+tok <- fromJSON("secrets/ee-wilsonlab-emma-ef416058504a.json")
+print(tok$scopes)  # or tok$scopes
+
 library(reticulate)
 message("------ reticulate::py_discover_config() ------")
 print(py_discover_config())
