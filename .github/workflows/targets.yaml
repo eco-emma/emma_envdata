@@ -104,6 +104,10 @@ jobs:
       - name: Install R Package Dependencies
         run: |-
           Rscript -e "questionr::qscan(list.files(pattern='*.R',recursive=T), load = TRUE, detail = TRUE)" # this scans all scripts and installs any needed packages
+      - name: Upgrade rgee to latest from GitHub
+        run: |
+          Rscript -e "if (!requireNamespace('devtools', quietly = TRUE)) install.packages('devtools')"
+          Rscript -e "devtools::install_github('r-spatial/rgee')"
       - name: Parse _targets.R
         run: Rscript -e "parse('_targets.R')"
       - name: Cache packages
