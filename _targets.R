@@ -58,7 +58,7 @@ library(reticulate)
     library(rgee)
     options(rgee.verbose = TRUE)
     options(gargle_verbosity = "debug")
-    ee_clean_credentials()
+    rgee::ee_clean_credentials()
     #Initializing with service account key
 
     # service_account <- jsonlite::read_json(json_token)$client_email
