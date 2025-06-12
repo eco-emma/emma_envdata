@@ -82,19 +82,19 @@ jobs:
 #      #     sudo apt-get update
       - name: Install Google Cloud SDK in container
         run: |
-          apt-get update \
-            && apt-get install -y curl apt-transport-https ca-certificates gnupg \
-            && echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" \
-               | tee /etc/apt/sources.list.d/google-cloud-sdk.list \
-            && curl https://packages.cloud.google.com/apt/doc/apt-key.gpg \
-               | apt-key --keyring /usr/share/keyrings/cloud.google.gpg add - \
-            && apt-get update \
-            && apt-get install -y google-cloud-cli
-            - name: DECRYPT rgee SECRETS
-              run: ./.github/decrypt_secret.sh
-              env:
-                RGEE_SECRET: ${{ secrets.RGEE_SECRET }}
-              continue-on-error: true
+          apt-get update
+          apt-get install -y curl apt-transport-https ca-certificates gnupg
+          echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" \
+            | tee /etc/apt/sources.list.d/google-cloud-sdk.list
+          curl https://packages.cloud.google.com/apt/doc/apt-key.gpg \
+            | apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
+          apt-get update
+          apt-get install -y google-cloud-cli
+      - name: DECRYPT rgee SECRETS
+        run: ./.github/decrypt_secret.sh
+        env:
+          RGEE_SECRET: ${{ secrets.RGEE_SECRET }}
+        continue-on-error: true
       - name: List files in secrets
         run: ls -lh secrets/
 #      - name: Check git settings
