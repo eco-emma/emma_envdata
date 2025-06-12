@@ -82,7 +82,7 @@ library(reticulate)
               
     #         )
     # googledrive::drive_auth(token = token)
-    ee_Authenticate()
+    ee_Authenticate(auth_mode='appdefault', quiet=TRUE)
     message("Authenticte is completed")
     ee_Initialize(
       # service_account = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
