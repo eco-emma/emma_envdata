@@ -71,12 +71,12 @@ print(py_config())
     
     # App-Default auth for rgee (no browser)
     ee_Initialize(
-      project    = "ee-wilsonlab-emma",
-      drive      = TRUE,
-      gcs        = TRUE,
-      auth_mode  = "appdefault",
-      #auth_quiet = TRUE,
-      #quiet      = TRUE
+      service_account = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
+      credentials     = "secrets/ee-wilsonlab-emma-ef416058504a.json",
+      drive           = TRUE,
+      gcs             = TRUE,
+      auth_mode       = "service_account",
+      quiet           = TRUE
     )
     # unlink("~/.config/earthengine", recursive = TRUE, force = TRUE)
     # unlink("~/.rgee", recursive = TRUE, force = TRUE)
