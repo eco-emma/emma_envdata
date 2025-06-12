@@ -118,7 +118,7 @@ jobs:
           ref: targets-runs
           fetch-depth: 1
           path: .targets-runs
-          lfs:  'true' #attempting to fix issue with target-committed lfs files not being treated as lfs
+          lfs:  false #'true' #attempting to fix issue with target-committed lfs files not being treated as lfs
       - name: Restore output files from the previous run
         if: steps.runs-exist.outcome == 'success'
         run: |
