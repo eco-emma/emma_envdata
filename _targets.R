@@ -70,12 +70,12 @@ print(py_config())
     message("Before ee_Initialize")
     
     # App-Default auth for rgee (no browser)
-    drive_auth(path = json_token, cache = FALSE)
-    # token <- gargle::credentials_service_account(
-    #           json   = json_token,
-    #           scopes = googledrive::drive_scopes()
-    #         )
-    # googledrive::drive_auth(token = token)
+    # drive_auth(path = json_token, cache = FALSE)
+    token <- gargle::credentials_service_account(
+              path   = json_token,
+              scopes = googledrive::drive_scopes()
+            )
+    googledrive::drive_auth(token = token)
     ee_Initialize(
       service_account = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
       credentials     = "secrets/ee-wilsonlab-emma-ef416058504a.json",
