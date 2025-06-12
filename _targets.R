@@ -82,16 +82,16 @@ library(reticulate)
               
     #         )
     # googledrive::drive_auth(token = token)
-    ee_Authenticate(auth_mode='appdefault', quiet=TRUE)
+    ee_Authenticate(auth_mode='gcloud', quiet=TRUE)
     message("Authenticte is completed")
     ee_Initialize(
-      user = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
-      credentials     = "persistent",# "secrets/ee-wilsonlab-emma-ef416058504a.json",
+      #user = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
+      #credentials     = "persistent",# "secrets/ee-wilsonlab-emma-ef416058504a.json",
       # credentials = "/github/home/.config/earthengine/service-account-key.json",
       # drive           = TRUE,
       # gcs             = FALSE,
-      project           = "ee-wilsonlab-emma",
-      auth_mode       = "appdefault",
+      # project           = "ee-wilsonlab-emma",
+      auth_mode       = "gcloud",
       # auth_quiet      = TRUE,
       quiet           = TRUE
     )
