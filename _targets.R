@@ -91,7 +91,7 @@ library(reticulate)
       # drive           = TRUE,
       # gcs             = FALSE,
       # project           = "ee-wilsonlab-emma",
-      auth_mode       = "appdeafault",
+      auth_mode       = "appdefault",
       # auth_quiet      = TRUE,
       quiet           = TRUE
     )
