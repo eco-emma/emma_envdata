@@ -1,4 +1,4 @@
-# Sys.setenv(GOOGLE_APPLICATION_CREDENTIALS = "secrets/ee-wilsonlab-emma-ef416058504a.json")
+Sys.setenv(GOOGLE_APPLICATION_CREDENTIALS = "secrets/ee-wilsonlab-emma-ef416058504a.json")
 message("Starting tar_make()")
 print("Starting tar_make() - print")
 
@@ -65,7 +65,7 @@ library(reticulate)
     ee$Initialize(credentials = credentials)
 
     # point to your service-account JSON
-    Sys.setenv(GOOGLE_APPLICATION_CREDENTIALS = json_token)
+    # Sys.setenv(GOOGLE_APPLICATION_CREDENTIALS = json_token)
     
     # preload Drive & GCS creds headlessly
     #googledrive::drive_auth(path = json_token, cache = FALSE)
@@ -82,15 +82,15 @@ library(reticulate)
               
     #         )
     # googledrive::drive_auth(token = token)
-    # ee_Initialize(
-    #   service_account = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
-    #   credentials     = "secrets/ee-wilsonlab-emma-ef416058504a.json",
-    #   drive           = TRUE,
-    #   gcs             = FALSE,
-    #   auth_mode       = "service_account",
-    #   auth_quiet      = TRUE,
-    #   quiet           = TRUE
-    # )
+    ee_Initialize(
+      # service_account = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
+      # credentials     = "secrets/ee-wilsonlab-emma-ef416058504a.json",
+      # drive           = TRUE,
+      # gcs             = FALSE,
+      # auth_mode       = "service_account",
+      # auth_quiet      = TRUE,
+      # quiet           = TRUE
+    )
     # unlink("~/.config/earthengine", recursive = TRUE, force = TRUE)
     # unlink("~/.rgee", recursive = TRUE, force = TRUE)
     # dir.create("~/.config/earthengine", recursive = TRUE, showWarnings = FALSE)
