@@ -71,7 +71,7 @@ print(py_config())
     
     # App-Default auth for rgee (no browser)
     ee_Initialize(
-      project    = "ee-wilsonlab-emma"
+      project    = "ee-wilsonlab-emma",
       drive      = TRUE,
       gcs        = TRUE,
       auth_mode  = "appdefault",
