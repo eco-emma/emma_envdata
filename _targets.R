@@ -86,7 +86,7 @@ library(reticulate)
     message("Authenticte is completed")
     ee_Initialize(
       # service_account = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
-      credentials     = "persistent"# "secrets/ee-wilsonlab-emma-ef416058504a.json",
+      credentials     = "persistent",# "secrets/ee-wilsonlab-emma-ef416058504a.json",
       # credentials = "/github/home/.config/earthengine/service-account-key.json",
       # drive           = TRUE,
       # gcs             = FALSE,
