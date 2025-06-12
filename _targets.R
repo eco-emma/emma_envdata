@@ -85,13 +85,13 @@ library(reticulate)
     ee_Authenticate(auth_mode='appdefault', quiet=TRUE)
     message("Authenticte is completed")
     ee_Initialize(
-      user = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
-      credentials     = "persistent",# "secrets/ee-wilsonlab-emma-ef416058504a.json",
+      # user = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
+      # credentials     = "persistent",# "secrets/ee-wilsonlab-emma-ef416058504a.json",
       # credentials = "/github/home/.config/earthengine/service-account-key.json",
       # drive           = TRUE,
       # gcs             = FALSE,
       auth_mode       = "appdefault",
-      auth_quiet      = TRUE,
+      # auth_quiet      = TRUE,
       # quiet           = TRUE
     )
     # unlink("~/.config/earthengine", recursive = TRUE, force = TRUE)
