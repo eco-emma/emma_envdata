@@ -62,7 +62,8 @@ library(reticulate)
 
     # service_account <- jsonlite::read_json(json_token)$client_email
     # credentials <- ee$ServiceAccountCredentials(service_account, json_token)
-    unlink("~/.config/earthengine", recursive = TRUE, force = TRUE)
+    # unlink("~/.config/earthengine", recursive = TRUE, force = TRUE)
+    ee_clean_credentials()
     ee$Initialize(project="ee-wilsonlab-emma")
 
     # point to your service-account JSON
