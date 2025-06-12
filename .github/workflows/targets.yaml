@@ -181,6 +181,11 @@ jobs:
         run: env
       - name: Print R session info
         run: Rscript -e 'sessionInfo()'
+      - name: “Set up gcloud CLI”
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ secrets.GCP_PROJECT }}
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
       - name: Run targets pt 2
         run: |
           #reticulate::use_python('/usr/bin/python3')
