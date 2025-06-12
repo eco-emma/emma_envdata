@@ -27,7 +27,7 @@ print(py_config())
 
 # Ensure things are clean
   unlink(file.path("data/temp/"), recursive = TRUE, force = TRUE)
-  unlink(file.path("data/raw_data/", recursive = TRUE, force = TRUE))
+  unlink(file.path("data/raw_data/"), recursive = TRUE, force = TRUE)
   message(paste("Objects:",ls(),collapse = "\n"))
 
 # source all files in R folder
@@ -605,7 +605,7 @@ list(
   )
 
 
-)[[1]]
+)
 
 
 
