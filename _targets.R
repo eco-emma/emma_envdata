@@ -83,13 +83,14 @@ library(reticulate)
     #         )
     # googledrive::drive_auth(token = token)
     ee_Authenticate()
+    message("Authenticte is completed")
     ee_Initialize(
       # service_account = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
       # credentials     = "secrets/ee-wilsonlab-emma-ef416058504a.json",
       # drive           = TRUE,
       # gcs             = FALSE,
       # auth_mode       = "service_account",
-      # auth_quiet      = TRUE,
+      auth_quiet      = TRUE,
       # quiet           = TRUE
     )
     # unlink("~/.config/earthengine", recursive = TRUE, force = TRUE)
