@@ -90,8 +90,8 @@ library(reticulate)
       # credentials = "/github/home/.config/earthengine/service-account-key.json",
       # drive           = TRUE,
       # gcs             = FALSE,
-      project           =  "ee-wilsonlab-emma",
-      auth_mode       = "appdefault",
+      project           = "ee-wilsonlab-emma",
+      # auth_mode       = "appdefault",
       # auth_quiet      = TRUE,
       # quiet           = TRUE
     )
