@@ -90,7 +90,7 @@ library(reticulate)
       # credentials = "/github/home/.config/earthengine/service-account-key.json",
       # drive           = TRUE,
       # gcs             = FALSE,
-      auth_mode       = "appdefault",
+      auth_mode       = "gcloud",
       # auth_quiet      = TRUE,
       # quiet           = TRUE
     )
