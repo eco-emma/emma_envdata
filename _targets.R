@@ -52,6 +52,8 @@ print(py_config())
     message("loading rgee")
 #    rgee::ee_install_set_pyenv('/usr/bin/python3','r-reticulate', confirm = F)
     library(rgee)
+    options(rgee.verbose = TRUE)
+    options(gargle_verbosity = "debug")
     #Initializing with service account key
 
     # service_account <- jsonlite::read_json(json_token)$client_email
@@ -62,13 +64,14 @@ print(py_config())
     Sys.setenv(GOOGLE_APPLICATION_CREDENTIALS = json_token)
     
     # preload Drive & GCS creds headlessly
-    dir.create("~/.config/earthengine", recursive = TRUE, showWarnings = FALSE)
     googledrive::drive_auth(path = json_token, cache = FALSE)
     googleCloudStorageR::gcs_auth(json_file = json_token)
+    dir.create("~/.config/earthengine", recursive = TRUE, showWarnings = FALSE)
     message("Before ee_Initialize")
     
     # App-Default auth for rgee (no browser)
     ee_Initialize(
+      project    = "ee-wilsonlab-emma"
       drive      = TRUE,
       gcs        = TRUE,
       auth_mode  = "appdefault",
