@@ -87,6 +87,7 @@ library(reticulate)
     ee_Initialize(
       # service_account = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
       # credentials     = "secrets/ee-wilsonlab-emma-ef416058504a.json",
+      credentials = "/github/home/.config/earthengine/service-account-key.json"
       # drive           = TRUE,
       # gcs             = FALSE,
       # auth_mode       = "service_account",
