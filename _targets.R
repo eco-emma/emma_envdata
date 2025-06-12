@@ -64,9 +64,9 @@ print(py_config())
     Sys.setenv(GOOGLE_APPLICATION_CREDENTIALS = json_token)
     
     # preload Drive & GCS creds headlessly
-    googledrive::drive_auth(path = json_token, cache = FALSE)
-    googleCloudStorageR::gcs_auth(json_file = json_token)
-    dir.create("~/.config/earthengine", recursive = TRUE, showWarnings = FALSE)
+    #googledrive::drive_auth(path = json_token, cache = FALSE)
+    #googleCloudStorageR::gcs_auth(json_file = json_token)
+    #dir.create("~/.config/earthengine", recursive = TRUE, showWarnings = FALSE)
     message("Before ee_Initialize")
     
     # App-Default auth for rgee (no browser)
@@ -74,8 +74,9 @@ print(py_config())
       service_account = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
       credentials     = "secrets/ee-wilsonlab-emma-ef416058504a.json",
       drive           = TRUE,
-      gcs             = TRUE,
-      auth_mode       = "service_account",
+      gcs             = FALSE,
+      auth_mode       = "appdefault",
+      auth_quiet      = TRUE,
       quiet           = TRUE
     )
     # unlink("~/.config/earthengine", recursive = TRUE, force = TRUE)
