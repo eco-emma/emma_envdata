@@ -77,7 +77,10 @@ print(py_config())
     # drive_auth(path = json_token, cache = FALSE)
     token <- gargle::credentials_service_account(
               path   = json_token,
-              scopes = "https://www.googleapis.com/auth/drive"
+              scopes = c(
+                "https://www.googleapis.com/auth/userinfo.email",
+                "https://www.googleapis.com/auth/drive"
+              )
             )
     googledrive::drive_auth(token = token)
     ee_Initialize(
