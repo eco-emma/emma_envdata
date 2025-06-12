@@ -62,7 +62,7 @@ library(reticulate)
 
     # service_account <- jsonlite::read_json(json_token)$client_email
     # credentials <- ee$ServiceAccountCredentials(service_account, json_token)
-    # ee$Initialize(credentials = credentials)
+    ee$Initialize(project="ee-wilsonlab-emma")
 
     # point to your service-account JSON
     # Sys.setenv(GOOGLE_APPLICATION_CREDENTIALS = json_token)
