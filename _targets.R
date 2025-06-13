@@ -66,7 +66,7 @@ library(reticulate)
     ee_Authenticate(auth_mode='appdefault', quiet=TRUE)
     message("Authentication is completed")
     # rgee::ee_clean_credentials()
-    ee$Initialize(project="ee-wilsonlab-emma")
+    ee$Initialize(project="ee-wilsonlab-emma", quiet=TRUE)
     message("Initialization is completed")
 
     # point to your service-account JSON
