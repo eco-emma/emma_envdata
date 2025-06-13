@@ -63,9 +63,11 @@ library(reticulate)
     # service_account <- jsonlite::read_json(json_token)$client_email
     # credentials <- ee$ServiceAccountCredentials(service_account, json_token)
     # unlink("~/.config/earthengine", recursive = TRUE, force = TRUE)
-    ee_Authenticate(auth_mode='gcloud')
+    ee_Authenticate(auth_mode='gcloud', auth_quiet=TRUE)
+    message("Authentication is completed")
     # rgee::ee_clean_credentials()
     ee$Initialize(project="ee-wilsonlab-emma")
+    message("Initialization is completed")
 
     # point to your service-account JSON
     # Sys.setenv(GOOGLE_APPLICATION_CREDENTIALS = json_token)
@@ -86,7 +88,6 @@ library(reticulate)
     #         )
     # googledrive::drive_auth(token = token)
     # ee_Authenticate(auth_mode='gcloud')
-    message("Authenticte is completed")
     ee_Initialize(
       #user = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
       #credentials     = "persistent",# "secrets/ee-wilsonlab-emma-ef416058504a.json",
