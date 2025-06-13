@@ -96,7 +96,7 @@ library(reticulate)
       # drive           = TRUE,
       # gcs             = FALSE,
       project           = "ee-wilsonlab-emma",
-      # auth_mode       = "appdefault",
+      auth_mode       = "gcloud",
       auth_quiet      = TRUE,
       quiet           = TRUE
     )
