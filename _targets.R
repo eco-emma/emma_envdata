@@ -99,7 +99,7 @@ library(reticulate)
       credentials = "/github/home/.config/earthengine/ndef/credentials",
       # # drive           = TRUE,
       # # gcs             = FALSE,
-      project           = "ee-wilsonlab-emma",
+      # project           = "ee-wilsonlab-emma",
       # # auth_mode       = 'service_account',
       auth_quiet      = TRUE,
       quiet           = TRUE
