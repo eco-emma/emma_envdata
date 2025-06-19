@@ -104,6 +104,7 @@ library(reticulate)
     #   auth_quiet      = TRUE,
     #   quiet           = TRUE
     # )
+    ee_clean_user_credentials()
     ee_Authenticate(auth_mode='appdefault', quiet=TRUE)
     ee_Initialize(auth_mode="appdefault", credentials=credentials, project = "ee-wilsonlab-emma", quiet = TRUE)
     reticulate::py_last_error()
