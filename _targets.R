@@ -119,34 +119,33 @@ library(reticulate)
 #     #   gcs = TRUE
 #     # )
 #     message("After ee_Initialize")
-
-      # 2) 서비스 계정 키 파일 경로 지정
-      key_file <- "secrets/ee-wilsonlab-emma-ef416058504a.json"
-      
       # 3) JSON에서 서비스 계정 이메일 추출
-      sa_email <- jsonlite::read_json(key_file)$client_email
+      key_path <- Sys.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+      sa_email <- read_json(key_path)$client_email
       
-      # 4) SaK(Service account Key)를 rgee 자격증명 폴더(~/.config/earthengine/$USER)에 복사
+      # 4) SaK(Service account Key)를 rgee 자격증명 폴더로 복사·검증
       ee_utils_sak_copy(
-        sakfile = key_file,
+        sakfile = key_path,
         users   = sa_email
-      )  #  [oai_citation:0‡r-spatial.github.io](https://r-spatial.github.io/rgee/articles/rgee05.html?utm_source=chatgpt.com)
-      
-      # 5) (선택) SaK가 올바르게 설정되었는지 검증
+      )
       ee_utils_sak_validate(
-        sakfile = key_file,
-        quiet   = TRUE
-      )  #  [oai_citation:1‡cran.r-project.org](https://cran.r-project.org/web/packages/rgee/vignettes/rgee05.html?utm_source=chatgpt.com)
+        users = sa_email,
+        quiet = TRUE
+      )
       
-      # 6) Earth Engine 초기화 (비대화형, 서비스 계정 모드)
+      # 5) Earth Engine 비대화형 초기화 (서비스 계정 모드)
       ee_Initialize(
         email     = sa_email,
         project   = "ee-wilsonlab-emma",
-        drive     = FALSE,
-        gcs       = FALSE,
         auth_mode = "service_account",
         quiet     = TRUE
-      )  #  [oai_citation:2‡r-spatial.github.io](https://r-spatial.github.io/rgee/articles/rgee05.html?utm_source=chatgpt.com) [oai_citation:3‡cran.r-project.org](https://cran.r-project.org/web/packages/rgee/vignettes/rgee05.html?utm_source=chatgpt.com)
+      )
+      
+      # 6) rgee_sessioninfo.txt 생성 보장
+      ee_sessioninfo(
+        email = sa_email,
+        user  = sa_email
+      )
       
       message("Earth Engine non-interactive initialization complete.")
     }
