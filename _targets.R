@@ -64,7 +64,7 @@ library(reticulate)
 
 
     # unlink("~/.config/earthengine", recursive = TRUE, force = TRUE)
-    ee_Authenticate(auth_mode='appdefault', quiet=TRUE)
+    ee$Authenticate(auth_mode='appdefault', quiet=TRUE)
     message("Authentication is completed")
     # rgee::ee_clean_credentials()
     service_account <- jsonlite::read_json(json_token)$client_email
@@ -104,6 +104,7 @@ library(reticulate)
     #   auth_quiet      = TRUE,
     #   quiet           = TRUE
     # )
+    ee_Authenticate(auth_mode='appdefault', quiet=TRUE)
     ee_Initialize(auth_mode="appdefault", quiet = TRUE)
     reticulate::py_last_error()
     message("ee_Initialize is completed")
