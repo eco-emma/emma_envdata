@@ -105,7 +105,7 @@ library(reticulate)
     #   quiet           = TRUE
     # )
     ee_Authenticate(auth_mode='appdefault', quiet=TRUE)
-    ee_Initialize(auth_mode="appdefault", credentials="secrets/ee-wilsonlab-emma-ef416058504a.json",project = "ee-wilsonlab-emma", quiet = TRUE)
+    ee_Initialize(auth_mode="appdefault", credentials=credentials, project = "ee-wilsonlab-emma", quiet = TRUE)
     reticulate::py_last_error()
     message("ee_Initialize is completed")
     # unlink("~/.config/earthengine", recursive = TRUE, force = TRUE)
