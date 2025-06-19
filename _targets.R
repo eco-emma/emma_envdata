@@ -108,6 +108,7 @@ library(reticulate)
     #ee_install_upgrade() 
     #ee_Authenticate(auth_mode='appdefault', quiet=TRUE)
     
+    ee_Authenticate()
     ee_Initialize() #auth_mode="appdefault", quiet = TRUEㅣ, credentials=credentials,  project = "ee-wilsonlab-emma", 
     reticulate::py_last_error()
     message("ee_Initialize is completed")
