@@ -93,7 +93,7 @@ library(reticulate)
     # ee_Authenticate(auth_mode='gcloud')
     print(list.files("/github/home/.config/earthengine//ndef/credentials", recursive = TRUE, full.names = TRUE))
     ee_Initialize(
-      user= "20061abcbc1c6ecf51bd9cf7e37350f6_bmaitner"
+      user= "20061abcbc1c6ecf51bd9cf7e37350f6_bmaitner",
       # # user = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
       # credentials     = "secrets/ee-wilsonlab-emma-ef416058504a.json",
       # # credentials = "/github/home/.config/earthengine/service-account-key.json",
