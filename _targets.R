@@ -105,6 +105,7 @@ library(reticulate)
     #   quiet           = TRUE
     # )
     ee_Initialize(auth_mode="appdefault", quiet = TRUE)
+    reticulate::py_last_error()
     message("ee_Initialize is completed")
     # unlink("~/.config/earthengine", recursive = TRUE, force = TRUE)
     # unlink("~/.rgee", recursive = TRUE, force = TRUE)
