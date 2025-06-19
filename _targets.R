@@ -90,7 +90,7 @@ library(reticulate)
               
     #         )
     # googledrive::drive_auth(token = token)
-    # ee_Authenticate(auth_mode='gcloud')
+    ee_Authenticate(auth_mode='gcloud')
     print(list.files("/github/home/.config/earthengine", recursive = TRUE, full.names = TRUE))
     # ee_Initialize(
     #   # user= "20061abcbc1c6ecf51bd9cf7e37350f6_bmaitner",
@@ -106,7 +106,7 @@ library(reticulate)
     # )
     #ee_clean_user_credentials()
     #ee_install_upgrade() 
-    ee_Authenticate(auth_mode='appdefault', quiet=TRUE)
+    # ee_Authenticate(auth_mode='appdefault', quiet=TRUE)
     
     #ee_Authenticate()
     ee_Initialize() #auth_mode="appdefault", quiet = TRUEㅣ, credentials=credentials,  project = "ee-wilsonlab-emma", 
