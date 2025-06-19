@@ -91,7 +91,7 @@ library(reticulate)
     #         )
     # googledrive::drive_auth(token = token)
     # ee_Authenticate(auth_mode='gcloud')
-    list.files("/github/home/.config/earthengine/", recursive = TRUE, full.names = TRUE)
+    print(list.files("/github/home/.config/earthengine/", recursive = TRUE, full.names = TRUE))
     ee_Initialize(
       # user = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
       credentials     = "secrets/ee-wilsonlab-emma-ef416058504a.json",
