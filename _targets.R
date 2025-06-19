@@ -93,15 +93,16 @@ library(reticulate)
     # ee_Authenticate(auth_mode='gcloud')
     print(list.files("/github/home/.config/earthengine/", recursive = TRUE, full.names = TRUE))
     ee_Initialize(
-      # user = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
-      credentials     = "secrets/ee-wilsonlab-emma-ef416058504a.json",
-      # credentials = "/github/home/.config/earthengine/service-account-key.json",
-      # drive           = TRUE,
-      # gcs             = FALSE,
-      project           = "ee-wilsonlab-emma",
-      # auth_mode       = 'service_account',
-      auth_quiet      = TRUE,
-      quiet           = TRUE
+      user= "bmaitner@gmail.com"
+      # # user = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
+      # credentials     = "secrets/ee-wilsonlab-emma-ef416058504a.json",
+      # # credentials = "/github/home/.config/earthengine/service-account-key.json",
+      # # drive           = TRUE,
+      # # gcs             = FALSE,
+      # project           = "ee-wilsonlab-emma",
+      # # auth_mode       = 'service_account',
+      # auth_quiet      = TRUE,
+      # quiet           = TRUE
     )
     #ee_Initialize(auth_quiet = TRUE)
     message("ee_Initialize is completed")
