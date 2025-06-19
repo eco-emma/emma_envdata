@@ -53,101 +53,103 @@ library(reticulate)
 
 # ee authentication
   if(T) {
-#     message("loading rgee")
-# #    rgee::ee_install_set_pyenv('/usr/bin/python3','r-reticulate', confirm = F)
-#     library(rgee)
-#     options(rgee.verbose = TRUE)
-#     options(gargle_verbosity = "debug")
-#     #Initializing with service account key
+    message("loading rgee")
+    py_run_string("import ee")
+    py_run_string("print(ee.__version__)")
+#    rgee::ee_install_set_pyenv('/usr/bin/python3','r-reticulate', confirm = F)
+    library(rgee)
+    options(rgee.verbose = TRUE)
+    options(gargle_verbosity = "debug")
+    #Initializing with service account key
 
 
-#     # unlink("~/.config/earthengine", recursive = TRUE, force = TRUE)
-#     ee_Authenticate(auth_mode='appdefault', quiet=TRUE)
-#     message("Authentication is completed")
-#     # rgee::ee_clean_credentials()
-#     service_account <- jsonlite::read_json(json_token)$client_email
-#     credentials <- ee$ServiceAccountCredentials(service_account, json_token)
-#     ee$Initialize(credentials=credentials)
-#     message("Initialization is completed")
+    # unlink("~/.config/earthengine", recursive = TRUE, force = TRUE)
+    ee_Authenticate(auth_mode='appdefault', quiet=TRUE)
+    message("Authentication is completed")
+    # rgee::ee_clean_credentials()
+    service_account <- jsonlite::read_json(json_token)$client_email
+    credentials <- ee$ServiceAccountCredentials(service_account, json_token)
+    ee$Initialize(credentials=credentials)
+    message("Initialization is completed")
 
-#     # point to your service-account JSON
-#     # Sys.setenv(GOOGLE_APPLICATION_CREDENTIALS = json_token)
+    # point to your service-account JSON
+    # Sys.setenv(GOOGLE_APPLICATION_CREDENTIALS = json_token)
     
-#     # preload Drive & GCS creds headlessly
-#     #googledrive::drive_auth(path = json_token, cache = FALSE)
-#     #googleCloudStorageR::gcs_auth(json_file = json_token)
-#     #dir.create("~/.config/earthengine", recursive = TRUE, showWarnings = FALSE)
-#     message("Before ee_Initialize")
+    # preload Drive & GCS creds headlessly
+    #googledrive::drive_auth(path = json_token, cache = FALSE)
+    #googleCloudStorageR::gcs_auth(json_file = json_token)
+    #dir.create("~/.config/earthengine", recursive = TRUE, showWarnings = FALSE)
+    message("Before ee_Initialize")
     
-#     # App-Default auth for rgee (no browser)
-#     # drive_auth(path = json_token, cache = FALSE)
-#     # gargle::gargle_oauth_cache()
-#     # token <- gargle::credentials_service_account(
-#     #           path   = json_token,
-#     #           scopes = NULL
+    # App-Default auth for rgee (no browser)
+    # drive_auth(path = json_token, cache = FALSE)
+    # gargle::gargle_oauth_cache()
+    # token <- gargle::credentials_service_account(
+    #           path   = json_token,
+    #           scopes = NULL
               
-#     #         )
-#     # googledrive::drive_auth(token = token)
-#     # ee_Authenticate(auth_mode='gcloud')
-#     reticulate::py_last_error()
-#     ee_Initialize(
-#       user = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
-#       # credentials     = "secrets/ee-wilsonlab-emma-ef416058504a.json",
-#       # credentials = "/github/home/.config/earthengine/service-account-key.json",
-#       # drive           = TRUE,
-#       # gcs             = FALSE,
-#       project           = "ee-wilsonlab-emma",
-#       auth_mode       = 'appdefault',
-#       auth_quiet      = TRUE,
-#       quiet           = TRUE
-#     )
-#     #ee_Initialize(auth_quiet = TRUE)
-#     message("ee_Initialize is completed")
-#     # unlink("~/.config/earthengine", recursive = TRUE, force = TRUE)
-#     # unlink("~/.rgee", recursive = TRUE, force = TRUE)
-#     # dir.create("~/.config/earthengine", recursive = TRUE, showWarnings = FALSE)
-#     # file.create("~/.config/earthengine/rgee_sessioninfo.txt")
-#     # options(rgee.session.info = FALSE)
+    #         )
+    # googledrive::drive_auth(token = token)
+    # ee_Authenticate(auth_mode='gcloud')
+    reticulate::py_last_error()
+    ee_Initialize(
+      user = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
+      # credentials     = "secrets/ee-wilsonlab-emma-ef416058504a.json",
+      # credentials = "/github/home/.config/earthengine/service-account-key.json",
+      # drive           = TRUE,
+      # gcs             = FALSE,
+      project           = "ee-wilsonlab-emma",
+      auth_mode       = 'appdefault',
+      auth_quiet      = TRUE,
+      quiet           = TRUE
+    )
+    #ee_Initialize(auth_quiet = TRUE)
+    message("ee_Initialize is completed")
+    # unlink("~/.config/earthengine", recursive = TRUE, force = TRUE)
+    # unlink("~/.rgee", recursive = TRUE, force = TRUE)
+    # dir.create("~/.config/earthengine", recursive = TRUE, showWarnings = FALSE)
+    # file.create("~/.config/earthengine/rgee_sessioninfo.txt")
+    # options(rgee.session.info = FALSE)
 
-#     #Setting up needed objects for rgee
-#     message("Initializing rgee")
+    #Setting up needed objects for rgee
+    message("Initializing rgee")
     
-#     # ee_Initialize(
-#     #   service_account = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
-#     #   credentials = "secrets/ee-wilsonlab-emma-ef416058504a.json",
-#     #   drive = TRUE,
-#     #   gcs = TRUE
-#     # )
-#     message("After ee_Initialize")
-      # 3) JSON에서 서비스 계정 이메일 추출
-      key_path <- Sys.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-      sa_email <- read_json(key_path)$client_email
+    # ee_Initialize(
+    #   service_account = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
+    #   credentials = "secrets/ee-wilsonlab-emma-ef416058504a.json",
+    #   drive = TRUE,
+    #   gcs = TRUE
+    # )
+    message("After ee_Initialize")
+      # # 3) JSON에서 서비스 계정 이메일 추출
+      # key_path <- Sys.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+      # sa_email <- read_json(key_path)$client_email
       
-      # 4) SaK(Service account Key)를 rgee 자격증명 폴더로 복사·검증
-      ee_utils_sak_copy(
-        sakfile = key_path,
-        users   = sa_email
-      )
-      ee_utils_sak_validate(
-        users = sa_email,
-        quiet = TRUE
-      )
+      # # 4) SaK(Service account Key)를 rgee 자격증명 폴더로 복사·검증
+      # ee_utils_sak_copy(
+      #   sakfile = key_path,
+      #   users   = sa_email
+      # )
+      # ee_utils_sak_validate(
+      #   users = sa_email,
+      #   quiet = TRUE
+      # )
       
-      # 5) Earth Engine 비대화형 초기화 (서비스 계정 모드)
-      ee_Initialize(
-        email     = sa_email,
-        project   = "ee-wilsonlab-emma",
-        auth_mode = "service_account",
-        quiet     = TRUE
-      )
+      # # 5) Earth Engine 비대화형 초기화 (서비스 계정 모드)
+      # ee_Initialize(
+      #   email     = sa_email,
+      #   project   = "ee-wilsonlab-emma",
+      #   auth_mode = "service_account",
+      #   quiet     = TRUE
+      # )
       
-      # 6) rgee_sessioninfo.txt 생성 보장
-      ee_sessioninfo(
-        email = sa_email,
-        user  = sa_email
-      )
+      # # 6) rgee_sessioninfo.txt 생성 보장
+      # ee_sessioninfo(
+      #   email = sa_email,
+      #   user  = sa_email
+      # )
       
-      message("Earth Engine non-interactive initialization complete.")
+      # message("Earth Engine non-interactive initialization complete.")
     }
 
 
