@@ -96,7 +96,7 @@ library(reticulate)
       # user= "20061abcbc1c6ecf51bd9cf7e37350f6_bmaitner",
       # # user = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
       # credentials     = "secrets/ee-wilsonlab-emma-ef416058504a.json",
-      credentials = "/github/home/.config/earthengine/ndef/credentials",
+      credentials = "/github/home/.config/earthengine/",
       # # drive           = TRUE,
       # # gcs             = FALSE,
       # project           = "ee-wilsonlab-emma",
