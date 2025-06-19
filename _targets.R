@@ -92,19 +92,19 @@ library(reticulate)
     # googledrive::drive_auth(token = token)
     # ee_Authenticate(auth_mode='gcloud')
     print(list.files("/github/home/.config/earthengine", recursive = TRUE, full.names = TRUE))
-    ee_Initialize(
-      # user= "20061abcbc1c6ecf51bd9cf7e37350f6_bmaitner",
-      # # user = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
-      # credentials     = "secrets/ee-wilsonlab-emma-ef416058504a.json",
-      credentials = "/github/home/.config/earthengine/",
-      # # drive           = TRUE,
-      # # gcs             = FALSE,
-      # project           = "ee-wilsonlab-emma",
-      # # auth_mode       = 'service_account',
-      auth_quiet      = TRUE,
-      quiet           = TRUE
-    )
-    #ee_Initialize(auth_quiet = TRUE)
+    # ee_Initialize(
+    #   # user= "20061abcbc1c6ecf51bd9cf7e37350f6_bmaitner",
+    #   # # user = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
+    #   # credentials     = "secrets/ee-wilsonlab-emma-ef416058504a.json",
+    #   credentials = "/github/home/.config/earthengine/",
+    #   # # drive           = TRUE,
+    #   # # gcs             = FALSE,
+    #   # project           = "ee-wilsonlab-emma",
+    #   # # auth_mode       = 'service_account',
+    #   auth_quiet      = TRUE,
+    #   quiet           = TRUE
+    # )
+    ee_Initialize(quiet = TRUE)
     message("ee_Initialize is completed")
     # unlink("~/.config/earthengine", recursive = TRUE, force = TRUE)
     # unlink("~/.rgee", recursive = TRUE, force = TRUE)
