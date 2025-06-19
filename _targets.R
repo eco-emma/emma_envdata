@@ -98,7 +98,7 @@ library(reticulate)
       # drive           = TRUE,
       # gcs             = FALSE,
       project           = "ee-wilsonlab-emma",
-      auth_mode       = 'service_account',
+      # auth_mode       = 'service_account',
       auth_quiet      = TRUE,
       quiet           = TRUE
     )
