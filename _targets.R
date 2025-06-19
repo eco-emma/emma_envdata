@@ -1,4 +1,4 @@
-Sys.setenv(GOOGLE_APPLICATION_CREDENTIALS = "secrets/ee-wilsonlab-emma-ef416058504a.json")
+# Sys.setenv(GOOGLE_APPLICATION_CREDENTIALS = "secrets/ee-wilsonlab-emma-ef416058504a.json")
 message("Starting tar_make()")
 print("Starting tar_make() - print")
 
@@ -90,7 +90,7 @@ library(reticulate)
               
     #         )
     # googledrive::drive_auth(token = token)
-    ee_Authenticate(auth_mode='gcloud')
+    ee_Authenticate(auth_mode='gcloud', quiet=TRUE)
     print(list.files("/github/home/.config/earthengine", recursive = TRUE, full.names = TRUE))
     # ee_Initialize(
     #   # user= "20061abcbc1c6ecf51bd9cf7e37350f6_bmaitner",
