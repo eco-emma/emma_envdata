@@ -101,8 +101,8 @@ library(reticulate)
       # # gcs             = FALSE,
       # project           = "ee-wilsonlab-emma",
       # # auth_mode       = 'service_account',
-      # auth_quiet      = TRUE,
-      # quiet           = TRUE
+      auth_quiet      = TRUE,
+      quiet           = TRUE
     )
     #ee_Initialize(auth_quiet = TRUE)
     message("ee_Initialize is completed")
