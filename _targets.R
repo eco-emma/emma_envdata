@@ -104,7 +104,7 @@ library(reticulate)
     #   auth_quiet      = TRUE,
     #   quiet           = TRUE
     # )
-    ee_Initialize(quiet = TRUE)
+    ee_Initialize(auth_mode="appdefault", quiet = TRUE)
     message("ee_Initialize is completed")
     # unlink("~/.config/earthengine", recursive = TRUE, force = TRUE)
     # unlink("~/.rgee", recursive = TRUE, force = TRUE)
