@@ -138,12 +138,15 @@ jobs:
             --project=ee-wilsonlab-emma \
             --quiet
 
-      - name: Authenticate to GCP (ADC with scopes)
-        run: |
-           gcloud auth application-default login \
-            --project=ee-wilsonlab-emma \
-            --scopes=https://www.googleapis.com/auth/cloud-platform \
-            --quiet
+      - name: Authenticate Earth Engine
+        run: earthengine authenticate --quiet
+
+      # - name: Authenticate to GCP (ADC with scopes)
+      #   run: |
+      #      gcloud auth application-default login \
+      #       --project=ee-wilsonlab-emma \
+      #       --scopes=https://www.googleapis.com/auth/cloud-platform \
+      #       --quiet
              
       # - name: Restore packages
       #   shell: Rscript {0}
