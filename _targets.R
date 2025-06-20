@@ -111,6 +111,7 @@ library(reticulate)
     #ee_Authenticate()
     ee_Initialize(
                     project   = "ee-wilsonlab-emma",
+                    scopes='https://www.googleapis.com/auth/cloud-platform',
                     auth_mode = "gcloud",
                     quiet     = TRUE
                   ) #auth_mode="appdefault", quiet = TRUEㅣ, credentials=credentials,  project = "ee-wilsonlab-emma", 
