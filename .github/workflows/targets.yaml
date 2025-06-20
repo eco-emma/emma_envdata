@@ -135,7 +135,9 @@ jobs:
           # activate the service account (no --scopes flag)
           gcloud auth activate-service-account \
             --key-file="secrets/ee-wilsonlab-emma-ef416058504a.json" \
-            --project=ee-wilsonlab-emma
+            --project=ee-wilsonlab-emma \
+            --scopes=https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/earthengine
+            
             
       # - name: Restore packages
       #   shell: Rscript {0}
