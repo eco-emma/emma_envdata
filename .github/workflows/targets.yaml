@@ -139,7 +139,9 @@ jobs:
             --quiet
 
       - name: Authenticate Earth Engine
-        run: earthengine authenticate --quiet
+        run: |
+              earthengine authenticate \
+              --quiet
 
       # - name: Authenticate to GCP (ADC with scopes)
       #   run: |
