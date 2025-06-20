@@ -138,10 +138,14 @@ jobs:
             --project=ee-wilsonlab-emma \
             --quiet
 
+      - name: Add r-reticulate env to PATH
+        run: echo "/opt/conda/envs/r-reticulate/bin" >> $GITHUB_PATH
+      
       - name: Authenticate Earth Engine
-        run: |
-              earthengine authenticate \
-              --quiet
+        run: earthengine authenticate \
+               --service_account \
+               --quiet \
+               --key_file=${{ runner.temp }}/gee-key.json
 
       # - name: Authenticate to GCP (ADC with scopes)
       #   run: |
