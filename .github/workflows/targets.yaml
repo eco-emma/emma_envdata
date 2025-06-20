@@ -128,11 +128,13 @@ jobs:
           restore-keys: ${{ runner.os }}-renv-
       - name: Authenticate to GCP
         run: |
-          echo "${{ secrets.GCP_SA_KEY_JSON }}" > key.json
+          # write the JSON secret to disk
+          echo "${{ secrets.GCP_SA_KEY_JSON }}" \
+            > secrets/ee-wilsonlab-emma-ef416058504a.json
+          # activate the service account (no --scopes flag)
           gcloud auth activate-service-account \
             --key-file="secrets/ee-wilsonlab-emma-ef416058504a.json" \
-            --project=ee-wilsonlab-emma \
-            --scopes=https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/earthengine
+            --project=ee-wilsonlab-emma
       # - name: Restore packages
       #   shell: Rscript {0}
       #   run: |
