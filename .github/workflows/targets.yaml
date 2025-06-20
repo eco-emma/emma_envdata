@@ -132,8 +132,6 @@ jobs:
       - name: Authenticate to GCP
         run: |
           # write the JSON secret to disk
-          echo "${{ secrets.GCP_SA_KEY }}" \
-            > secrets/ee-wilsonlab-emma-ef416058504a.json
           # activate the service account (no --scopes flag)
           gcloud auth activate-service-account \
             --key-file="secrets/ee-wilsonlab-emma-ef416058504a.json" \
