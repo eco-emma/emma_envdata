@@ -129,16 +129,24 @@ jobs:
           key: ${{ runner.os }}-renv-${{ hashFiles('**/renv.lock') }}
           restore-keys: ${{ runner.os }}-renv-
           
-      - name: Authenticate to GCP
+      # - name: Authenticate to GCP
+      #   run: |
+      #     # write the JSON secret to disk
+      #     # activate the service account (no --scopes flag)
+      #     gcloud auth activate-service-account \
+      #       --key-file="secrets/ee-wilsonlab-emma-ef416058504a.json" \
+      #       --project=ee-wilsonlab-emma \
+      #       --quiet
+
+      - name: Authenticate to GCP (ADC with scopes)
         run: |
-          # write the JSON secret to disk
-          # activate the service account (no --scopes flag)
-          gcloud auth activate-service-account \
+          mkdir -p ~/.config/gcloud
+          gcloud auth application-default activate-service-account \
             --key-file="secrets/ee-wilsonlab-emma-ef416058504a.json" \
             --project=ee-wilsonlab-emma \
+            --scopes=https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/earthengine \
             --quiet
-            
-            
+             
       # - name: Restore packages
       #   shell: Rscript {0}
       #   run: |
