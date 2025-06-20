@@ -49,7 +49,7 @@ jobs:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       RENV_PATHS_ROOT: ~/.local/share/renv
       ACTIONS_RUNNER_DEBUG: true
-      PYTHONPATH: PYTHONPATH:/opt/conda/envs/r-reticulate/bin/python
+      PYTHONPATH: /opt/conda/envs/r-reticulate/bin/python
       RETICULATE_PYTHON: /opt/conda/envs/r-reticulate/bin/python
       # GARGLE_AUTH_FILE: secrets/ee-wilsonlab-emma-ef416058504a.json
       # GOOGLE_APPLICATION_CREDENTIALS: secrets/ee-wilsonlab-emma-ef416058504a.json
@@ -118,32 +118,38 @@ jobs:
         run: |
           Rscript -e "if (!requireNamespace('devtools', quietly = TRUE)) install.packages('devtools')"
           Rscript -e "devtools::install_github('r-spatial/rgee')"
+          
       - name: Parse _targets.R
         run: Rscript -e "parse('_targets.R')"
+        
       - name: Cache packages
         uses: actions/cache@v3
         with:
           path: ${{ env.RENV_PATHS_ROOT }}
           key: ${{ runner.os }}-renv-${{ hashFiles('**/renv.lock') }}
           restore-keys: ${{ runner.os }}-renv-
+          
       - name: Authenticate to GCP
         run: |
           # write the JSON secret to disk
-          echo "${{ secrets.GCP_SA_KEY_JSON }}" \
+          echo "${{ secrets.GCP_SA_KEY }}" \
             > secrets/ee-wilsonlab-emma-ef416058504a.json
           # activate the service account (no --scopes flag)
           gcloud auth activate-service-account \
             --key-file="secrets/ee-wilsonlab-emma-ef416058504a.json" \
             --project=ee-wilsonlab-emma
+            
       # - name: Restore packages
       #   shell: Rscript {0}
       #   run: |
       #     if (!requireNamespace("renv", quietly = TRUE)) install.packages("renv")
       #     renv::restore()
+      
       - name: Check if previous runs exists
         id: runs-exist
         run: git ls-remote --exit-code --heads origin targets-runs
         continue-on-error: true
+        
       - name: Checkout previous run
         if: steps.runs-exist.outcome == 'success'
         uses: actions/checkout@v2
@@ -152,6 +158,7 @@ jobs:
           fetch-depth: 1
           path: .targets-runs
           lfs:  false #'true' #attempting to fix issue with target-committed lfs files not being treated as lfs
+          
       - name: Restore output files from the previous run
         if: steps.runs-exist.outcome == 'success'
         run: |
