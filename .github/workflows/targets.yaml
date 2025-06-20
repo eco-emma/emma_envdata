@@ -142,6 +142,7 @@ jobs:
         run: |
            gcloud auth application-default login \
             --scopes=https://www.googleapis.com/auth/cloud-platform
+            --quiet
              
       # - name: Restore packages
       #   shell: Rscript {0}
