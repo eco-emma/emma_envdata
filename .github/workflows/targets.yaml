@@ -141,7 +141,8 @@ jobs:
       - name: Authenticate to GCP (ADC with scopes)
         run: |
            gcloud auth application-default login \
-            --scopes=https://www.googleapis.com/auth/cloud-platform
+            --project=ee-wilsonlab-emma \
+            --scopes=https://www.googleapis.com/auth/cloud-platform \
             --quiet
              
       # - name: Restore packages
