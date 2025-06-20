@@ -136,7 +136,8 @@ jobs:
           gcloud auth activate-service-account \
             --key-file="secrets/ee-wilsonlab-emma-ef416058504a.json" \
             --project=ee-wilsonlab-emma \
-            --scopes=https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/drive
+            #--scopes=https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/drive
+            --quiet
             
             
       # - name: Restore packages
