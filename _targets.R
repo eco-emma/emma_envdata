@@ -113,7 +113,7 @@ library(reticulate)
                     #project   = "ee-wilsonlab-emma",
                     #scopes='https://www.googleapis.com/auth/devstorage.full_control',
                     credentials=credentials,
-                    auth_mode = "appdefault",
+                    auth_mode = "gcloud",
                     quiet     = TRUE
                   ) #auth_mode="appdefault", quiet = TRUEㅣ, credentials=credentials,  project = "ee-wilsonlab-emma", 
     reticulate::py_last_error()
