@@ -89,7 +89,7 @@ jobs:
           curl https://packages.cloud.google.com/apt/doc/apt-key.gpg \
             | apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
           apt-get update
-          apt-get install -y google-cloud-cli
+          apt-get install -y google-cloud-cli=492.0.0-0
       - name: DECRYPT rgee SECRETS
         run: ./.github/decrypt_secret.sh
         env:
