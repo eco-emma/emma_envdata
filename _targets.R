@@ -110,12 +110,12 @@ library(reticulate)
     
     #ee_Authenticate()
     ee_Initialize()
-                  #   project   = "ee-wilsonlab-emma",
-                  #   scopes='https://www.googleapis.com/auth/devstorage.full_control',
-                  #   credentials=credentials,
-                  #   auth_mode = "appdefault",
-                  #   quiet     = TRUE
-                  # ) #auth_mode="appdefault", quiet = TRUEㅣ, credentials=credentials,  project = "ee-wilsonlab-emma", 
+                    #project   = "ee-wilsonlab-emma",
+                    #scopes='https://www.googleapis.com/auth/devstorage.full_control',
+                    credentials=credentials,
+                    auth_mode = "appdefault",
+                    quiet     = TRUE
+                  ) #auth_mode="appdefault", quiet = TRUEㅣ, credentials=credentials,  project = "ee-wilsonlab-emma", 
     reticulate::py_last_error()
     message("ee_Initialize is completed")
     # unlink("~/.config/earthengine", recursive = TRUE, force = TRUE)
