@@ -58,6 +58,7 @@ library(reticulate)
     py_run_string("print(ee.__version__)")
 #    rgee::ee_install_set_pyenv('/usr/bin/python3','r-reticulate', confirm = F)
     library(rgee)
+    packageVersion("rgee")
     options(rgee.verbose = TRUE)
     options(gargle_verbosity = "debug")
     #Initializing with service account key
