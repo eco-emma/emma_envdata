@@ -102,11 +102,11 @@ jobs:
 #          git config --get http.postBuffer
 #        continue-on-error: true
 
-      - name: Display Service Account JSON
-        run: |
-          echo "=== Service Account JSON ==="
-          cat secrets/ee-wilsonlab-emma-ef416058504a.json
-          echo "============================"
+      # - name: Display Service Account JSON
+      #   run: |
+      #     echo "=== Service Account JSON ==="
+      #     cat secrets/ee-wilsonlab-emma-ef416058504a.json
+      #     echo "============================"
           
       - name: Install Earth Engine API 1.5.4 in r-reticulate env
         run: |
@@ -120,10 +120,10 @@ jobs:
       - name: Install R Package Dependencies
         run: |-
           Rscript -e "questionr::qscan(list.files(pattern='*.R',recursive=T), load = TRUE, detail = TRUE)" # this scans all scripts and installs any needed packages
-      - name: Upgrade rgee to latest from GitHub
-        run: |
-          Rscript -e "if (!requireNamespace('devtools', quietly = TRUE)) install.packages('devtools')"
-          Rscript -e "devtools::install_github('r-spatial/rgee')"
+      # - name: Upgrade rgee to latest from GitHub
+      #   run: |
+      #     Rscript -e "if (!requireNamespace('devtools', quietly = TRUE)) install.packages('devtools')"
+      #     Rscript -e "devtools::install_github('r-spatial/rgee', ref = "v1.1.2")"
           
       - name: Parse _targets.R
         run: Rscript -e "parse('_targets.R')"
