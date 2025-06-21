@@ -80,11 +80,6 @@ jobs:
 #      #   if: runner.os == 'Linux'
 #      #   run: |
 #      #     sudo apt-get update
-      - name: Display Service Account JSON
-        run: |
-          echo "=== Service Account JSON ==="
-          cat secrets/ee-wilsonlab-emma-ef416058504a.json
-          echo "============================"
       - name: Install Google Cloud SDK in container
         run: |
           apt-get update
@@ -107,6 +102,12 @@ jobs:
 #          git config --get http.postBuffer
 #        continue-on-error: true
 
+      - name: Display Service Account JSON
+        run: |
+          echo "=== Service Account JSON ==="
+          cat secrets/ee-wilsonlab-emma-ef416058504a.json
+          echo "============================"
+          
       - name: Install Earth Engine API 1.5.4 in r-reticulate env
         run: |
           /opt/conda/envs/r-reticulate/bin/pip install --upgrade earthengine-api==0.1.381
