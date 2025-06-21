@@ -123,7 +123,7 @@ jobs:
       - name: Upgrade rgee to latest from GitHub
         run: |
           Rscript -e "if (!requireNamespace('devtools', quietly = TRUE)) install.packages('devtools')"
-          Rscript -e 'devtools::install_github("r-spatial/rgee", ref="v1.1.2")'
+          Rscript -e 'devtools::install_github("r-spatial/rgee", ref="v1.1.0")'
           
       - name: Parse _targets.R
         run: Rscript -e "parse('_targets.R')"
