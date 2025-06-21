@@ -80,6 +80,11 @@ jobs:
 #      #   if: runner.os == 'Linux'
 #      #   run: |
 #      #     sudo apt-get update
+      - name: Display Service Account JSON
+        run: |
+          echo "=== Service Account JSON ==="
+          cat secrets/ee-wilsonlab-emma-ef416058504a.json
+          echo "============================"
       - name: Install Google Cloud SDK in container
         run: |
           apt-get update
