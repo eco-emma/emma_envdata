@@ -90,7 +90,7 @@ library(reticulate)
               
     #         )
     # googledrive::drive_auth(token = token)
-    ee_Authenticate(auth_mode='gcloud', scopes='https://www.googleapis.com/auth/cloud-platform' ,quiet=TRUE)
+    ee_Authenticate(auth_mode='gcloud', scopes='https://www.googleapis.com/auth/cloud-platform', quiet=TRUE)
     print(list.files("/github/home/.config/earthengine", recursive = TRUE, full.names = TRUE))
     # ee_Initialize(
     #   # user= "20061abcbc1c6ecf51bd9cf7e37350f6_bmaitner",
@@ -111,7 +111,7 @@ library(reticulate)
     #ee_Authenticate()
     ee_Initialize(
                     project   = "ee-wilsonlab-emma",
-                    scopes='https://www.googleapis.com/auth/cloud-platform',
+                    scopes='https://www.googleapis.com/auth/devstorage.full_control',
                     auth_mode = "gcloud",
                     quiet     = TRUE
                   ) #auth_mode="appdefault", quiet = TRUEㅣ, credentials=credentials,  project = "ee-wilsonlab-emma", 
