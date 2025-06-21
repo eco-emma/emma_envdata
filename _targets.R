@@ -111,6 +111,7 @@ library(reticulate)
     ee_Initialize(
                     project   = "ee-wilsonlab-emma",
                     scopes='https://www.googleapis.com/auth/devstorage.full_control',
+                    credentials=credentials,
                     auth_mode = "appdefault",
                     quiet     = TRUE
                   ) #auth_mode="appdefault", quiet = TRUEㅣ, credentials=credentials,  project = "ee-wilsonlab-emma", 
