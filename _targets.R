@@ -91,7 +91,7 @@ library(reticulate)
               
     #         )
     # googledrive::drive_auth(token = token)
-    ee_Authenticate(quiet=TRUE) # auth_mode='appdefault', scopes='https://www.googleapis.com/auth/cloud-platform', 
+    ee_Authenticate(auth_mode='appdefault', quiet=TRUE) # , scopes='https://www.googleapis.com/auth/cloud-platform', 
     # ee_Initialize(
     #   # user= "20061abcbc1c6ecf51bd9cf7e37350f6_bmaitner",
     #   # # user = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
@@ -109,13 +109,13 @@ library(reticulate)
     # ee_Authenticate(auth_mode='appdefault', quiet=TRUE)
     
     #ee_Authenticate()
-    ee_Initialize(
-                    #project   = "ee-wilsonlab-emma",
-                    #scopes='https://www.googleapis.com/auth/devstorage.full_control',
-                    credentials=credentials,
-                    auth_mode = "gcloud",
-                    quiet     = TRUE
-                  ) #auth_mode="appdefault", quiet = TRUEㅣ, credentials=credentials,  project = "ee-wilsonlab-emma", 
+    ee_Initialize()
+                  #   #project   = "ee-wilsonlab-emma",
+                  #   #scopes='https://www.googleapis.com/auth/devstorage.full_control',
+                  #   credentials=credentials,
+                  #   auth_mode = "gcloud",
+                  #   quiet     = TRUE
+                  # ) #auth_mode="appdefault", quiet = TRUEㅣ, credentials=credentials,  project = "ee-wilsonlab-emma", 
     reticulate::py_last_error()
     message("ee_Initialize is completed")
     # unlink("~/.config/earthengine", recursive = TRUE, force = TRUE)
