@@ -109,7 +109,7 @@ library(reticulate)
     # ee_Authenticate(auth_mode='appdefault', quiet=TRUE)
     
     #ee_Authenticate()
-    ee_Initialize()
+    ee_Initialize(
                     #project   = "ee-wilsonlab-emma",
                     #scopes='https://www.googleapis.com/auth/devstorage.full_control',
                     credentials=credentials,
