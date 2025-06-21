@@ -110,7 +110,7 @@ jobs:
           
       - name: Install Earth Engine API 1.5.4 in r-reticulate env
         run: |
-          /opt/conda/envs/r-reticulate/bin/pip install --upgrade earthengine-api==0.1.300 #0.1.381
+          /opt/conda/envs/r-reticulate/bin/pip install --upgrade earthengine-api==0.1.322 #0.1.381
           # conda install -n r-reticulate -y -c conda-forge earthengine-api=1.5.4
 
       - name: Verify EE API version
@@ -123,7 +123,7 @@ jobs:
       - name: Upgrade rgee to latest from GitHub
         run: |
           Rscript -e "if (!requireNamespace('devtools', quietly = TRUE)) install.packages('devtools')"
-          Rscript -e 'devtools::install_github("r-spatial/rgee", ref="v.1.1.0")'
+          Rscript -e 'devtools::install_github("r-spatial/rgee", ref="v.1.1.6")'
           
       - name: Parse _targets.R
         run: Rscript -e "parse('_targets.R')"
