@@ -108,10 +108,10 @@ jobs:
       #     cat secrets/ee-wilsonlab-emma-ef416058504a.json
       #     echo "============================"
           
-      # - name: Install Earth Engine API 1.5.4 in r-reticulate env
-      #   run: |
-      #     /opt/conda/envs/r-reticulate/bin/pip install --upgrade earthengine-api==0.1.370 #0.1.381
-      #     # conda install -n r-reticulate -y -c conda-forge earthengine-api=1.5.4
+      - name: Install Earth Engine API 1.5.4 in r-reticulate env
+        run: |
+          /opt/conda/envs/r-reticulate/bin/pip install --upgrade earthengine-api==0.1.370 #0.1.381
+          # conda install -n r-reticulate -y -c conda-forge earthengine-api=1.5.4
 
       - name: Verify EE API version
         run: |
@@ -124,10 +124,14 @@ jobs:
       #   run: |
       #     Rscript -e "if (!requireNamespace('devtools', quietly = TRUE)) install.packages('devtools')"
       #     Rscript -e 'devtools::install_github("r-spatial/rgee", ref="v.1.1.5")'
+      
       # - name: Install rgee v1.1.5 from CRAN Archive
       #   run: |
       #     Rscript -e 'if (!requireNamespace("remotes", quietly=TRUE)) install.packages("remotes", repos="https://cloud.r-project.org")'
       #     Rscript -e 'remotes::install_version("rgee", version="1.1.5", repos="https://cloud.r-project.org")'
+
+      - name: Install rgee from bmaitner/rgee
+        run: Rscript -e 'devtools::install_github(repo = "bmaitner/rgee", ref = "noninteractive_auth")'
           
       - name: Parse _targets.R
         run: Rscript -e "parse('_targets.R')"
@@ -240,23 +244,23 @@ jobs:
       #      # check python version with
       #      py_run_string("import sys; print(sys.version)")
       #      devtools::install_github(repo = "bmaitner/rgee", ref = "noninteractive_auth")
-      - name: Install custom rgee
-        run: |
-          Rscript -e "library(reticulate)"
-          Rscript -e "reticulate::py_install('earthengine-api==0.1.370', envname='r-reticulate')"
-          Rscript -e "pyl <- py_list_packages(); print(pyl[pyl$package == 'earthengine-api', ])"
-          Rscript -e "reticulate::py_run_string('import sys; print(sys.version)')"
-          Rscript -e "devtools::install_github(repo = 'bmaitner/rgee', ref = 'noninteractive_auth')"
+      # - name: Install custom rgee
+      #   run: |
+      #     Rscript -e "library(reticulate)"
+      #     Rscript -e "reticulate::py_install('earthengine-api==0.1.370', envname='r-reticulate')"
+      #     Rscript -e "pyl <- py_list_packages(); print(pyl[pyl$package == 'earthengine-api', ])"
+      #     Rscript -e "reticulate::py_run_string('import sys; print(sys.version)')"
+      #     Rscript -e "devtools::install_github(repo = 'bmaitner/rgee', ref = 'noninteractive_auth')"
 #        shell: Rscript {0}
-      - name: Print environment
-        run: env
-      - name: Print R session info
-        run: Rscript -e 'sessionInfo()'
-      - name: “Set up gcloud CLI”
-        uses: google-github-actions/setup-gcloud@v1
-        with:
-          project_id: ${{ secrets.GCP_PROJECT }}
-          service_account_key: ${{ secrets.GCP_SA_KEY }}
+      # - name: Print environment
+      #   run: env
+      # - name: Print R session info
+      #   run: Rscript -e 'sessionInfo()'
+      # - name: “Set up gcloud CLI”
+      #   uses: google-github-actions/setup-gcloud@v1
+      #   with:
+      #     project_id: ${{ secrets.GCP_PROJECT }}
+      #     service_account_key: ${{ secrets.GCP_SA_KEY }}
       - name: Run targets pt 2
         run: |
           #reticulate::use_python('/usr/bin/python3')
