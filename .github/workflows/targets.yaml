@@ -108,10 +108,10 @@ jobs:
       #     cat secrets/ee-wilsonlab-emma-ef416058504a.json
       #     echo "============================"
           
-      - name: Install Earth Engine API 1.5.4 in r-reticulate env
-        run: |
-          /opt/conda/envs/r-reticulate/bin/pip install --upgrade earthengine-api==0.1.370 #0.1.381
-          # conda install -n r-reticulate -y -c conda-forge earthengine-api=1.5.4
+      # - name: Install Earth Engine API 1.5.4 in r-reticulate env
+      #   run: |
+      #     /opt/conda/envs/r-reticulate/bin/pip install --upgrade earthengine-api==0.1.370 #0.1.381
+      #     # conda install -n r-reticulate -y -c conda-forge earthengine-api=1.5.4
 
       - name: Verify EE API version
         run: |
@@ -229,16 +229,16 @@ jobs:
         continue-on-error: true
       - name: Install custom rgee
         run: |
-           # # added below on april 9 from https://github.com/r-spatial/rgee/issues/353#issuecomment-1983765552
-           # library(reticulate)
-           # py_config() # see the name of your conda (python) environment, in my case "r-reticulate" 
-           # reticulate::py_install('earthengine-api==0.1.370', envname='r-reticulate') 
-           # # Check the installation of "earthengine-api" with 
-           # py_list_packages() 
-           # pyl <- py_list_packages()
-           # pyl[pyl$package == "earthengine-api", ]
-           # # check python version with
-           # py_run_string("import sys; print(sys.version)")
+           # added below on april 9 from https://github.com/r-spatial/rgee/issues/353#issuecomment-1983765552
+           library(reticulate)
+           py_config() # see the name of your conda (python) environment, in my case "r-reticulate" 
+           reticulate::py_install('earthengine-api==0.1.370', envname='r-reticulate') 
+           # Check the installation of "earthengine-api" with 
+           py_list_packages() 
+           pyl <- py_list_packages()
+           pyl[pyl$package == "earthengine-api", ]
+           # check python version with
+           py_run_string("import sys; print(sys.version)")
            devtools::install_github(repo = "bmaitner/rgee",
            ref = "noninteractive_auth")
 #        shell: Rscript {0}
