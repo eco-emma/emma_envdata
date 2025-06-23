@@ -239,8 +239,7 @@ jobs:
            pyl[pyl$package == "earthengine-api", ]
            # check python version with
            py_run_string("import sys; print(sys.version)")
-           devtools::install_github(repo = "bmaitner/rgee",
-           ref = "noninteractive_auth")
+           devtools::install_github(repo = "bmaitner/rgee", ref = "noninteractive_auth")
 #        shell: Rscript {0}
       - name: Print environment
         run: env
