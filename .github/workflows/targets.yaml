@@ -243,9 +243,7 @@ jobs:
       - name: Install custom rgee
         run: |
           Rscript -e "library(reticulate)"
-          Rscript -e "py_config()"
           Rscript -e "reticulate::py_install('earthengine-api==0.1.370', envname='r-reticulate')"
-          Rscript -e "py_list_packages()"
           Rscript -e "pyl <- py_list_packages(); print(pyl[pyl$package == 'earthengine-api', ])"
           Rscript -e "reticulate::py_run_string('import sys; print(sys.version)')"
           Rscript -e "devtools::install_github(repo = 'bmaitner/rgee', ref = 'noninteractive_auth')"
