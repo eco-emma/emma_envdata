@@ -55,8 +55,8 @@ jobs:
       GOOGLE_APPLICATION_CREDENTIALS: secrets/ee-wilsonlab-emma-ef416058504a.json
     steps:
       - uses: actions/checkout@v2
-        with:
-          lfs:'true'
+        with: 
+          lfs: true
       - name: Whitelist directory
         run: git config --global --add safe.directory /__w/emma_envdata/emma_envdata
       - name: Checkout LFS objects
