@@ -56,7 +56,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          lfs:  false #'true'
+          lfs:'true'
       - name: Whitelist directory
         run: git config --global --add safe.directory /__w/emma_envdata/emma_envdata
       - name: Checkout LFS objects
