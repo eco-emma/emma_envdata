@@ -47,11 +47,11 @@ get_release_precipitation_chelsa <- function(temp_directory = "data/temp/raw_dat
 
     # download files
     download.file(url = paste("https://os.zhdk.cloud.switch.ch/chelsav2/GLOBAL/climatologies/1981-2010/pr/CHELSA_pr_",i,"_1981-2010_V.2.1.tif",sep = ""),
-                  destfile = file.path(temp_directory,paste("CHELSA_prec_",i,"_V2.1_land.tif",sep = ""))
+                  destfile = file.path(temp_directory,paste("CHELSA_pr_",i,"_1981-2010_V.2.1.tif",sep = ""))
     )
 
     # load
-    rast_i <- terra::rast(file.path(temp_directory,paste("CHELSA_prec_",i,"_V2.1_land.tif",sep = "")))
+    rast_i <- terra::rast(file.path(temp_directory,paste("CHELSA_pr_",i,"_1981-2010_V.2.1.tif",sep = "")))
 
     # crop
 
@@ -65,7 +65,7 @@ get_release_precipitation_chelsa <- function(temp_directory = "data/temp/raw_dat
 
     # save raster
     terra::writeRaster(x = rast_i,
-                       filename = file.path(temp_directory,paste("CHELSA_prec_",i,"_V2.1_land.tif",sep = "")),
+                       filename = file.path(temp_directory,paste("CHELSA_pr_",i,"_1981-2010_V.2.1.tif",sep = "")),
                        overwrite = TRUE)
 
     # plot
