@@ -66,13 +66,13 @@ get_release_climate_chelsa <- function(temp_directory = "data/temp/raw_data/clim
 
       # https://os.zhdk.cloud.switch.ch/chelsav2/GLOBAL/climatologies/1981-2010/bio/CHELSA_bio1_1981-2010_V.2.1.tif
       robust_download_file(url = paste("https://os.zhdk.cloud.switch.ch/chelsav2/GLOBAL/climatologies/1981-2010/bio/CHELSA_bio",i,"_1981-2010_V.2.1.tif",sep = ""),
-                           destfile = file.path(temp_directory,paste("CHELSA_bio10_",i,"_V2.1.tif",sep = "")),
+                           destfile = file.path(temp_directory,paste("CHELSA_bio",i,"_1981-2010_V.2.1.tif",sep = "")),
                            max_attempts = 10,
                            sleep_time = 10
                            )
 
     # load
-      rast_i <- terra::rast(file.path(temp_directory,paste("CHELSA_bio",i,"_V2.1.tif",sep = "")))
+      rast_i <- terra::rast(file.path(temp_directory,paste("CHELSA_bio",i,"_1981-2010_V2.1.tif",sep = "")))
 
     # crop
 
@@ -86,7 +86,7 @@ get_release_climate_chelsa <- function(temp_directory = "data/temp/raw_data/clim
 
     # save raster
       terra::writeRaster(x = rast_i,
-                         filename = file.path(temp_directory,paste("CHELSA_bio",i,"_V2.1.tif",sep = "")),
+                         filename = file.path(temp_directory,paste("CHELSA_bio",i,"_1981-2010_V2.1.tif",sep = "")),
                          overwrite = TRUE)
 
     # plot
