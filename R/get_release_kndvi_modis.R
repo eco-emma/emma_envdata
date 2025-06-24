@@ -198,7 +198,7 @@ get_release_kndvi_modis <- function(temp_directory = "data/temp/raw_data/kndvi_m
     if(verbose){message("Filtering by date")}
 
     kndvi_clean_and_new <- kndvi_clean$filterDate(start = paste(as.Date(newest+1),sep = ""),
-                                                  end = paste(format(Sys.time(), "%Y-%m-%d"),sep = "") ) #I THINK I can just pull the most recent date, and then use this to download everything since then
+                                                  opt_end = paste(format(Sys.time(), "%Y-%m-%d"),sep = "") ) #I THINK I can just pull the most recent date, and then use this to download everything since then
 
 
 
@@ -216,7 +216,7 @@ get_release_kndvi_modis <- function(temp_directory = "data/temp/raw_data/kndvi_m
 
     if(length(to_download) > max_layers){
       kndvi_clean_and_new <- kndvi_clean_and_new$filterDate(start = to_download[1],
-                                                            end = to_download[max_layers+1])
+                                                            opt_end = to_download[max_layers+1])
 
     }
 
