@@ -72,7 +72,7 @@ get_release_climate_chelsa <- function(temp_directory = "data/temp/raw_data/clim
                            )
 
     # load
-      rast_i <- terra::rast(file.path(temp_directory,paste("CHELSA_bio",i,"_1981-2010_V2.1.tif",sep = "")))
+      rast_i <- terra::rast(file.path(temp_directory,paste("CHELSA_bio",i,"_1981-2010_V.2.1.tif",sep = "")))
 
     # crop
 
@@ -86,7 +86,7 @@ get_release_climate_chelsa <- function(temp_directory = "data/temp/raw_data/clim
 
     # save raster
       terra::writeRaster(x = rast_i,
-                         filename = file.path(temp_directory,paste("CHELSA_bio",i,"_1981-2010_V2.1.tif",sep = "")),
+                         filename = file.path(temp_directory,paste("CHELSA_bio",i,"_1981-2010_V.2.1.tif",sep = "")),
                          overwrite = TRUE)
 
     # plot
