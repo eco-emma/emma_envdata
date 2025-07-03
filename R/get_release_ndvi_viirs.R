@@ -143,7 +143,7 @@ get_release_ndvi_viirs <- function(temp_directory = "data/temp/raw_data/ndvi_vii
       if(length(to_download) > max_layers){
 
         ndvi_clean_and_new <- ndvi_clean_and_new$filterDate(start = to_download[1],
-                                                            end = to_download[max_layers+1])
+                                                            opt_end = to_download[max_layers+1])
 
       }
 
