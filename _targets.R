@@ -545,13 +545,13 @@ list(
 #                                                     ... = correct_ndvi_dates_release_proj_and_extent)
 #       ),
 
-#       tar_target(
-#         template_release,
-#         get_release_template_raster(input_tag = "clean_ndvi_modis",
-#                             output_tag = "raw_static",
-#                             temp_directory = "data/temp/template",
-#                             ... = correct_ndvi_release_proj_and_extent)
-#       ),
+      tar_target(
+        template_release,
+        get_release_template_raster(input_tag = "clean_ndvi_modis",
+                            output_tag = "raw_static",
+                            temp_directory = "data/temp/template",
+                            ... = correct_ndvi_release_proj_and_extent)
+      ),
 
 #       tar_target(
 #         remnants_release,
