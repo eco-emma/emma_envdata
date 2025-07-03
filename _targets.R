@@ -227,228 +227,228 @@ library(googledrive)
 list(
 
 
-  #Prep needed files
+#   #Prep needed files # start
 
-  tar_target(
-    vegmap_shp, # 2018 National Vegetation Map http://bgis.sanbi.org/SpatialDataset/Detail/1674
-    "data/manual_download/VEGMAP2018_AEA_16082019Final/NVM2018_AEA_V22_7_16082019_final.shp",
-    format = "file"
-  ),
+#   tar_target(
+#     vegmap_shp, # 2018 National Vegetation Map http://bgis.sanbi.org/SpatialDataset/Detail/1674
+#     "data/manual_download/VEGMAP2018_AEA_16082019Final/NVM2018_AEA_V22_7_16082019_final.shp",
+#     format = "file"
+#   ),
 
-  tar_target(
-    remnants_shp,
-    "data/manual_download/RLE_2021_Remnants/RLE_Terr_2021_June2021_Remnants_ddw.shp",
-    format = "file"
-  ),
+#   tar_target(
+#     remnants_shp,
+#     "data/manual_download/RLE_2021_Remnants/RLE_Terr_2021_June2021_Remnants_ddw.shp",
+#     format = "file"
+#   ),
 
-  tar_target(
-    sanbi_fires_shp,
-    st_read("data/manual_download/All_Fires/All_Fires_20_21_gw.shp")
-  ),
-
-
-  tar_target(
-    country,
-    national_boundary()
-  )
-,
-
-  tar_target(
-    vegmap,
-    get_vegmap(vegmap_shp)
-  ),
-
-  tar_target(
-    domain,
-    domain_define(vegmap = vegmap, country)
-  )
-,
+#   tar_target(
+#     sanbi_fires_shp,
+#     st_read("data/manual_download/All_Fires/All_Fires_20_21_gw.shp")
+#   ),
 
 
-# # # Infrequent updates via releases
+#   tar_target(
+#     country,
+#     national_boundary()
+#   )
+# ,
 
-  tar_target(
-      alos_release,
-      get_release_alos(temp_directory = "data/temp/raw_data/alos/",
-                       tag = "raw_static",
-                       domain = domain,
-                       json_token)
-      )
-,
+#   tar_target(
+#     vegmap,
+#     get_vegmap(vegmap_shp)
+#   ),
 
-    tar_target(
-      climate_chelsa_release,
-      get_release_climate_chelsa(temp_directory = "data/temp/raw_data/climate_chelsa/",
-                                 tag = "raw_static",
-                                 domain = domain)
-      )
-,
+#   tar_target(
+#     domain,
+#     domain_define(vegmap = vegmap, country)
+#   )
+# ,
 
-  tar_target(
-    clouds_wilson_release,
-    get_release_clouds_wilson(temp_directory = "data/temp/raw_data/clouds_wilson/",
-                              tag = "raw_static",
-                              domain,
-                              sleep_time = 180)
-    ),
 
-  tar_target(
-    elevation_nasadem_release,
-    get_release_elevation_nasadem(temp_directory = "data/temp/raw_data/elevation_nasadem/",
-                                  tag = "raw_static",
-                                  domain)
-    )
-,
+# # # # Infrequent updates via releases
 
-  #Temporarily commented out, seems to be an issue with URL for landcover data at present
-  # tar_target(
-  #   landcover_za_release,
-  #   get_release_landcover_za(temp_directory = "data/temp/raw_data/landcover_za/",
-  #                            tag = "raw_static",
-  #                            domain = domain)
-  #   ),
-  #
-  tar_target(
-    precipitation_chelsa_release,
-    get_release_precipitation_chelsa(temp_directory = "data/temp/raw_data/precipitation_chelsa/",
-                                     tag = "raw_static",
-                                     domain = domain)
-    ),
+#   tar_target(
+#       alos_release,
+#       get_release_alos(temp_directory = "data/temp/raw_data/alos/",
+#                        tag = "raw_static",
+#                        domain = domain,
+#                        json_token)
+#       )
+# ,
 
-#   ## commented out soil_gcfr_release at present due to API/rdryad issues.
-#   ## Emailed dryad folks on 2024/01/04, it seems the API update broke RDryad
-#   ## and RDryad updates are waiting for funding and transition from RDryad to
-#   ## the "deposits" R package
-#
+#     tar_target(
+#       climate_chelsa_release,
+#       get_release_climate_chelsa(temp_directory = "data/temp/raw_data/climate_chelsa/",
+#                                  tag = "raw_static",
+#                                  domain = domain)
+#       )
+# ,
+
+#   tar_target(
+#     clouds_wilson_release,
+#     get_release_clouds_wilson(temp_directory = "data/temp/raw_data/clouds_wilson/",
+#                               tag = "raw_static",
+#                               domain,
+#                               sleep_time = 180)
+#     ),
+
+#   tar_target(
+#     elevation_nasadem_release,
+#     get_release_elevation_nasadem(temp_directory = "data/temp/raw_data/elevation_nasadem/",
+#                                   tag = "raw_static",
+#                                   domain)
+#     )
+# ,
+
+#   #Temporarily commented out, seems to be an issue with URL for landcover data at present
 #   # tar_target(
-#   #   soil_gcfr_release,
-#   #   get_release_soil_gcfr(temp_directory = "data/temp/raw_data/soil_gcfr/",
-#   #                         tag = "raw_static",
-#   #                         domain)
-#   # ),
-#
-# # # # Frequent updates via releases
+#   #   landcover_za_release,
+#   #   get_release_landcover_za(temp_directory = "data/temp/raw_data/landcover_za/",
+#   #                            tag = "raw_static",
+#   #                            domain = domain)
+#   #   ),
+#   #
+#   tar_target(
+#     precipitation_chelsa_release,
+#     get_release_precipitation_chelsa(temp_directory = "data/temp/raw_data/precipitation_chelsa/",
+#                                      tag = "raw_static",
+#                                      domain = domain)
+#     ),
 
-      tar_age(
-        fire_modis_release,
-        get_release_fire_modis(temp_directory = "data/temp/raw_data/fire_modis/",
-                               tag = "raw_fire_modis",
-                               domain = domain,
-                               max_layers = 5,
-                               sleep_time = 5,
-                               json_token = json_token,
-                               verbose = FALSE),
-        #age = as.difftime(7, units = "days")
-        #age = as.difftime(1, units = "days")
-        age = as.difftime(0, units = "hours")
-      ),
-
-      tar_age(
-        kndvi_modis_release,
-        get_release_kndvi_modis(temp_directory = "data/temp/raw_data/kndvi_modis/",
-                               tag = "raw_kndvi_modis",
-                               domain = domain,
-                               max_layers = 5,
-                               sleep_time = 5,
-                               json_token = json_token,
-                               verbose = TRUE),
-        age = as.difftime(7, units = "days")
-        #age = as.difftime(1, units = "days")
-        #age = as.difftime(0, units = "hours")
-    ),
-
-    tar_age(
-      ndvi_modis_release,
-      get_release_ndvi_modis(temp_directory = "data/temp/raw_data/ndvi_modis/",
-                              tag = "raw_ndvi_modis",
-                              domain = domain,
-                              max_layers = 12,
-                             sleep_time = 5,
-                             json_token = json_token),
-      #age = as.difftime(7, units = "days")
-      #age = as.difftime(1, units = "days")
-      age = as.difftime(0, units = "hours")
-    ),
-
-    tar_age(
-      ndvi_viirs_release,
-      get_release_ndvi_viirs(temp_directory = "data/temp/raw_data/ndvi_viirs/",
-                             tag = "raw_ndvi_viirs",
-                             domain,
-                             max_layers = 3,
-                             sleep_time = 30,
-                             json_token = json_token),
-      age = as.difftime(7, units = "days")
-      #age = as.difftime(1, units = "days")
-      #age = as.difftime(0, units = "hours")
-    ),
-
-
-    tar_age(
-      ndvi_dates_modis_release,
-      get_release_ndvi_dates_modis(temp_directory = "data/temp/raw_data/ndvi_dates_modis/",
-                             repo_tag = "raw_ndvi_dates_modis",
-                             domain = domain,
-                             max_layers = 5,
-                             sleep_time = 10,
-                             json_token = json_token),
-      #age = as.difftime(7, units = "days")
-      #age = as.difftime(1, units = "days")
-      age = as.difftime(0, units = "hours")
-    ),
-
-    tar_age(
-      ndvi_dates_viirs_release,
-      get_release_ndvi_dates_viirs(temp_directory = "data/temp/raw_data/ndvi_dates_viirs/",
-                                   tag = "raw_ndvi_dates_viirs",
-                                   domain = domain,
-                                   max_layers = 3,
-                                   sleep_time = 30,
-                                   json_token = json_token),
-      age = as.difftime(7, units = "days")
-      #age = as.difftime(1, units = "days")
-      #age = as.difftime(0, units = "hours")
-    ),
-
-
-
-    tar_age(mean_ndvi_release,
-            get_release_mean_ndvi_modis(temp_directory = "data/temp/raw_data/mean_ndvi_modis/",
-                                       tag = "current",
-                                       domain = domain,
-                                       sleep_time = 1,
-                                       json_token = json_token),
-            #age = as.difftime(7, units = "days")
-            #age = as.difftime(1, units = "days")
-            age = as.difftime(0, units = "hours")
-            ),
-
-# #   # tar_age(
-# #   #   ndwi_modis_release,
-# #   #   get_release_ndwi_modis(temp_directory = "data/temp/raw_data/NDWI_MODIS/",
-# #   #                          tag = "current",
-# #   #                          domain,
-# #   #                          drive_cred_path = json_token),
-# #   #   age = as.difftime(7, units = "days")
-# #   #   #age = as.difftime(1, units = "days")
-# #   #   #age = as.difftime(0, units = "hours")
+# #   ## commented out soil_gcfr_release at present due to API/rdryad issues.
+# #   ## Emailed dryad folks on 2024/01/04, it seems the API update broke RDryad
+# #   ## and RDryad updates are waiting for funding and transition from RDryad to
+# #   ## the "deposits" R package
+# #
+# #   # tar_target(
+# #   #   soil_gcfr_release,
+# #   #   get_release_soil_gcfr(temp_directory = "data/temp/raw_data/soil_gcfr/",
+# #   #                         tag = "raw_static",
+# #   #                         domain)
 # #   # ),
 # #
-# #
-# #
-# # # # # Fixing projection via releases
+# # # # # Frequent updates via releases
+
+#       tar_age(
+#         fire_modis_release,
+#         get_release_fire_modis(temp_directory = "data/temp/raw_data/fire_modis/",
+#                                tag = "raw_fire_modis",
+#                                domain = domain,
+#                                max_layers = 5,
+#                                sleep_time = 5,
+#                                json_token = json_token,
+#                                verbose = FALSE),
+#         #age = as.difftime(7, units = "days")
+#         #age = as.difftime(1, units = "days")
+#         age = as.difftime(0, units = "hours")
+#       ),
+
+#       tar_age(
+#         kndvi_modis_release,
+#         get_release_kndvi_modis(temp_directory = "data/temp/raw_data/kndvi_modis/",
+#                                tag = "raw_kndvi_modis",
+#                                domain = domain,
+#                                max_layers = 5,
+#                                sleep_time = 5,
+#                                json_token = json_token,
+#                                verbose = TRUE),
+#         age = as.difftime(7, units = "days")
+#         #age = as.difftime(1, units = "days")
+#         #age = as.difftime(0, units = "hours")
+#     ),
+
+#     tar_age(
+#       ndvi_modis_release,
+#       get_release_ndvi_modis(temp_directory = "data/temp/raw_data/ndvi_modis/",
+#                               tag = "raw_ndvi_modis",
+#                               domain = domain,
+#                               max_layers = 12,
+#                              sleep_time = 5,
+#                              json_token = json_token),
+#       #age = as.difftime(7, units = "days")
+#       #age = as.difftime(1, units = "days")
+#       age = as.difftime(0, units = "hours")
+#     ),
+
+#     tar_age(
+#       ndvi_viirs_release,
+#       get_release_ndvi_viirs(temp_directory = "data/temp/raw_data/ndvi_viirs/",
+#                              tag = "raw_ndvi_viirs",
+#                              domain,
+#                              max_layers = 3,
+#                              sleep_time = 30,
+#                              json_token = json_token),
+#       age = as.difftime(7, units = "days")
+#       #age = as.difftime(1, units = "days")
+#       #age = as.difftime(0, units = "hours")
+#     ),
 
 
-      tar_target(
-        correct_fire_release_proj_and_extent,
-        process_fix_modis_release_projection_and_extent(temp_directory = "data/temp/raw_data/fire_modis/",
-                                                        input_tag = "raw_fire_modis",
-                                                        output_tag = "clean_fire_modis",
-                                                        max_layers = NULL,
-                                                        sleep_time = 30,
-                                                        verbose = TRUE,
-                                                        ... = fire_modis_release)
-        ),
+#     tar_age(
+#       ndvi_dates_modis_release,
+#       get_release_ndvi_dates_modis(temp_directory = "data/temp/raw_data/ndvi_dates_modis/",
+#                              repo_tag = "raw_ndvi_dates_modis",
+#                              domain = domain,
+#                              max_layers = 5,
+#                              sleep_time = 10,
+#                              json_token = json_token),
+#       #age = as.difftime(7, units = "days")
+#       #age = as.difftime(1, units = "days")
+#       age = as.difftime(0, units = "hours")
+#     ),
+
+#     tar_age(
+#       ndvi_dates_viirs_release,
+#       get_release_ndvi_dates_viirs(temp_directory = "data/temp/raw_data/ndvi_dates_viirs/",
+#                                    tag = "raw_ndvi_dates_viirs",
+#                                    domain = domain,
+#                                    max_layers = 3,
+#                                    sleep_time = 30,
+#                                    json_token = json_token),
+#       age = as.difftime(7, units = "days")
+#       #age = as.difftime(1, units = "days")
+#       #age = as.difftime(0, units = "hours")
+#     ),
+
+
+
+#     tar_age(mean_ndvi_release,
+#             get_release_mean_ndvi_modis(temp_directory = "data/temp/raw_data/mean_ndvi_modis/",
+#                                        tag = "current",
+#                                        domain = domain,
+#                                        sleep_time = 1,
+#                                        json_token = json_token),
+#             #age = as.difftime(7, units = "days")
+#             #age = as.difftime(1, units = "days")
+#             age = as.difftime(0, units = "hours")
+#             ),
+
+# # #   # tar_age(
+# # #   #   ndwi_modis_release,
+# # #   #   get_release_ndwi_modis(temp_directory = "data/temp/raw_data/NDWI_MODIS/",
+# # #   #                          tag = "current",
+# # #   #                          domain,
+# # #   #                          drive_cred_path = json_token),
+# # #   #   age = as.difftime(7, units = "days")
+# # #   #   #age = as.difftime(1, units = "days")
+# # #   #   #age = as.difftime(0, units = "hours")
+# # #   # ),
+# # #
+# # #
+# # #
+# # # # # # Fixing projection via releases
+
+
+#       tar_target(
+#         correct_fire_release_proj_and_extent,
+#         process_fix_modis_release_projection_and_extent(temp_directory = "data/temp/raw_data/fire_modis/",
+#                                                         input_tag = "raw_fire_modis",
+#                                                         output_tag = "clean_fire_modis",
+#                                                         max_layers = NULL,
+#                                                         sleep_time = 30,
+#                                                         verbose = TRUE,
+#                                                         ... = fire_modis_release)
+#         ), # comments end
 
     tar_target(
       correct_ndvi_release_proj_and_extent,
