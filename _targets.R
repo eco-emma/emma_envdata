@@ -553,15 +553,15 @@ list(
                             ... = correct_ndvi_release_proj_and_extent)
       ),
 
-#       tar_target(
-#         remnants_release,
-#         domain_remnants_release(domain = domain,
-#                                 remnants_shp = remnants_shp,
-#                                 template_release,
-#                                 temp_directory = "data/temp/remnants",
-#                                 out_file = "remnants.tif",
-#                                 out_tag = "processed_static")
-#       ),
+      tar_target(
+        remnants_release,
+        domain_remnants_release(domain = domain,
+                                remnants_shp = remnants_shp,
+                                template_release,
+                                temp_directory = "data/temp/remnants",
+                                out_file = "remnants.tif",
+                                out_tag = "processed_static")
+      ),
 
       tar_target(
         remnant_distance_release,
