@@ -229,40 +229,40 @@ list(
 
 #   #Prep needed files # start
 
-#   tar_target(
-#     vegmap_shp, # 2018 National Vegetation Map http://bgis.sanbi.org/SpatialDataset/Detail/1674
-#     "data/manual_download/VEGMAP2018_AEA_16082019Final/NVM2018_AEA_V22_7_16082019_final.shp",
-#     format = "file"
-#   ),
+  tar_target(
+    vegmap_shp, # 2018 National Vegetation Map http://bgis.sanbi.org/SpatialDataset/Detail/1674
+    "data/manual_download/VEGMAP2018_AEA_16082019Final/NVM2018_AEA_V22_7_16082019_final.shp",
+    format = "file"
+  ),
 
-#   tar_target(
-#     remnants_shp,
-#     "data/manual_download/RLE_2021_Remnants/RLE_Terr_2021_June2021_Remnants_ddw.shp",
-#     format = "file"
-#   ),
+  tar_target(
+    remnants_shp,
+    "data/manual_download/RLE_2021_Remnants/RLE_Terr_2021_June2021_Remnants_ddw.shp",
+    format = "file"
+  ),
 
-#   tar_target(
-#     sanbi_fires_shp,
-#     st_read("data/manual_download/All_Fires/All_Fires_20_21_gw.shp")
-#   ),
+  tar_target(
+    sanbi_fires_shp,
+    st_read("data/manual_download/All_Fires/All_Fires_20_21_gw.shp")
+  ),
 
 
-#   tar_target(
-#     country,
-#     national_boundary()
-#   )
-# ,
+  tar_target(
+    country,
+    national_boundary()
+  )
+,
 
-#   tar_target(
-#     vegmap,
-#     get_vegmap(vegmap_shp)
-#   ),
+  tar_target(
+    vegmap,
+    get_vegmap(vegmap_shp)
+  ),
 
-#   tar_target(
-#     domain,
-#     domain_define(vegmap = vegmap, country)
-#   )
-# ,
+  tar_target(
+    domain,
+    domain_define(vegmap = vegmap, country)
+  )
+,
 
 
 # # # # Infrequent updates via releases
@@ -450,118 +450,118 @@ list(
 #                                                         ... = fire_modis_release)
 #         ), # comments end
 
-    tar_target(
-      correct_ndvi_release_proj_and_extent,
-      process_fix_modis_release_projection_and_extent(temp_directory = "data/temp/raw_data/ndvi_modis/",
-                                                      input_tag = "raw_ndvi_modis",
-                                                      output_tag = "clean_ndvi_modis",
-                                                      max_layers = NULL,
-                                                      sleep_time = 30,
-                                                      verbose = TRUE,
-                                                      ... = ndvi_modis_release)
-      ),
+#     tar_target(
+#       correct_ndvi_release_proj_and_extent,
+#       process_fix_modis_release_projection_and_extent(temp_directory = "data/temp/raw_data/ndvi_modis/",
+#                                                       input_tag = "raw_ndvi_modis",
+#                                                       output_tag = "clean_ndvi_modis",
+#                                                       max_layers = NULL,
+#                                                       sleep_time = 30,
+#                                                       verbose = TRUE,
+#                                                       ... = ndvi_modis_release)
+#       ),
 
-  tar_target(
-    correct_ndvi_dates_release_proj_and_extent,
-    process_fix_modis_release_projection_and_extent(temp_directory = "data/temp/raw_data/ndvi_dates_modis/",
-                                                    input_tag = "raw_ndvi_dates_modis",
-                                                    output_tag = "clean_ndvi_dates_modis",
-                                                    max_layers = NULL,
-                                                    sleep_time = 30,
-                                                    verbose = TRUE,
-                                                    ... = ndvi_dates_modis_release)
-  ),
-
-
-  tar_target(
-    correct_ndvi_viirs_release_proj_and_extent,
-    process_fix_modis_release_projection_and_extent(temp_directory = "data/temp/raw_data/ndvi_viirs/",
-                                                    input_tag = "raw_ndvi_viirs",
-                                                    output_tag = "clean_ndvi_viirs",
-                                                    max_layers = 30,
-                                                    sleep_time = 30,
-                                                    verbose = TRUE,
-                                                    ... = ndvi_viirs_release)
-  ),
+#   tar_target(
+#     correct_ndvi_dates_release_proj_and_extent,
+#     process_fix_modis_release_projection_and_extent(temp_directory = "data/temp/raw_data/ndvi_dates_modis/",
+#                                                     input_tag = "raw_ndvi_dates_modis",
+#                                                     output_tag = "clean_ndvi_dates_modis",
+#                                                     max_layers = NULL,
+#                                                     sleep_time = 30,
+#                                                     verbose = TRUE,
+#                                                     ... = ndvi_dates_modis_release)
+#   ),
 
 
-    tar_target(
-      correct_ndvi_dates_viirs_release_proj_and_extent,
-      process_fix_modis_release_projection_and_extent(temp_directory = "data/temp/raw_data/ndvi_dates_viirs/",
-                                                      input_tag = "raw_ndvi_dates_viirs",
-                                                      output_tag = "clean_ndvi_dates_viirs",
-                                                      max_layers = 30,
-                                                      sleep_time = 30,
-                                                      verbose = TRUE,
-                                                      ... = ndvi_dates_viirs_release)
-    ),
-
-    tar_target(
-      correct_kndvi_release_proj_and_extent,
-      process_fix_modis_release_projection_and_extent(temp_directory = "data/temp/raw_data/kndvi_modis/",
-                                                      input_tag = "raw_kndvi_modis",
-                                                      output_tag = "clean_kndvi_modis",
-                                                      max_layers = 30,
-                                                      sleep_time = 45,
-                                                      verbose = TRUE,
-                                                      ... = kndvi_modis_release)
-    ),
-
-# # # # Processing via release
-
-    tar_target(
-      fire_doy_to_unix_date_release,
-      process_release_fire_doy_to_unix_date(input_tag = "clean_fire_modis",
-                                            output_tag = "processed_fire_dates",
-                                            temp_directory = "data/temp/processed_data/fire_dates/",
-                                            sleep_time = 20,
-                                            template_release = template_release,
-                                            ... = correct_fire_release_proj_and_extent)
-      ),
-
-    tar_target(
-      burn_date_to_last_burned_date_release,
-      process_release_burn_date_to_last_burned_date(input_tag = "processed_fire_dates",
-                                                    output_tag = "processed_most_recent_burn_dates",
-                                                    temp_directory_input = "data/temp/processed_data/fire_dates/",
-                                                    temp_directory_output = "data/temp/processed_data/most_recent_burn_dates/",
-                                                    sleep_time = 180,
-                                                    sanbi_sf = sanbi_fires_shp,
-                                                    expiration_date = NULL,
-                                                    ... = fire_doy_to_unix_date_release)
-    ),
+#   tar_target(
+#     correct_ndvi_viirs_release_proj_and_extent,
+#     process_fix_modis_release_projection_and_extent(temp_directory = "data/temp/raw_data/ndvi_viirs/",
+#                                                     input_tag = "raw_ndvi_viirs",
+#                                                     output_tag = "clean_ndvi_viirs",
+#                                                     max_layers = 30,
+#                                                     sleep_time = 30,
+#                                                     verbose = TRUE,
+#                                                     ... = ndvi_viirs_release)
+#   ),
 
 
-    tar_target(
-      ndvi_relative_days_since_fire_release,
-      process_release_ndvi_relative_days_since_fire(temp_input_ndvi_date_folder = "data/temp/raw_data/ndvi_dates_modis/",
-                                                    temp_input_fire_date_folder = "data/temp/processed_data/most_recent_burn_dates/",
-                                                    temp_fire_output_folder = "data/temp/processed_data/ndvi_relative_time_since_fire/",
-                                                    input_fire_dates_tag = "processed_most_recent_burn_dates",
-                                                    input_modis_dates_tag = "clean_ndvi_dates_modis",
-                                                    output_tag = "processed_ndvi_relative_days_since_fire",
-                                                    sleep_time = 60,
-                                                    ... = burn_date_to_last_burned_date_release,
-                                                    ... = correct_ndvi_dates_release_proj_and_extent)
-      ),
+#     tar_target(
+#       correct_ndvi_dates_viirs_release_proj_and_extent,
+#       process_fix_modis_release_projection_and_extent(temp_directory = "data/temp/raw_data/ndvi_dates_viirs/",
+#                                                       input_tag = "raw_ndvi_dates_viirs",
+#                                                       output_tag = "clean_ndvi_dates_viirs",
+#                                                       max_layers = 30,
+#                                                       sleep_time = 30,
+#                                                       verbose = TRUE,
+#                                                       ... = ndvi_dates_viirs_release)
+#     ),
 
-      tar_target(
-        template_release,
-        get_release_template_raster(input_tag = "clean_ndvi_modis",
-                            output_tag = "raw_static",
-                            temp_directory = "data/temp/template",
-                            ... = correct_ndvi_release_proj_and_extent)
-      ),
+#     tar_target(
+#       correct_kndvi_release_proj_and_extent,
+#       process_fix_modis_release_projection_and_extent(temp_directory = "data/temp/raw_data/kndvi_modis/",
+#                                                       input_tag = "raw_kndvi_modis",
+#                                                       output_tag = "clean_kndvi_modis",
+#                                                       max_layers = 30,
+#                                                       sleep_time = 45,
+#                                                       verbose = TRUE,
+#                                                       ... = kndvi_modis_release)
+#     ),
 
-      tar_target(
-        remnants_release,
-        domain_remnants_release(domain = domain,
-                                remnants_shp = remnants_shp,
-                                template_release,
-                                temp_directory = "data/temp/remnants",
-                                out_file = "remnants.tif",
-                                out_tag = "processed_static")
-      ),
+# # # # # Processing via release
+
+#     tar_target(
+#       fire_doy_to_unix_date_release,
+#       process_release_fire_doy_to_unix_date(input_tag = "clean_fire_modis",
+#                                             output_tag = "processed_fire_dates",
+#                                             temp_directory = "data/temp/processed_data/fire_dates/",
+#                                             sleep_time = 20,
+#                                             template_release = template_release,
+#                                             ... = correct_fire_release_proj_and_extent)
+#       ),
+
+#     tar_target(
+#       burn_date_to_last_burned_date_release,
+#       process_release_burn_date_to_last_burned_date(input_tag = "processed_fire_dates",
+#                                                     output_tag = "processed_most_recent_burn_dates",
+#                                                     temp_directory_input = "data/temp/processed_data/fire_dates/",
+#                                                     temp_directory_output = "data/temp/processed_data/most_recent_burn_dates/",
+#                                                     sleep_time = 180,
+#                                                     sanbi_sf = sanbi_fires_shp,
+#                                                     expiration_date = NULL,
+#                                                     ... = fire_doy_to_unix_date_release)
+#     ),
+
+
+#     tar_target(
+#       ndvi_relative_days_since_fire_release,
+#       process_release_ndvi_relative_days_since_fire(temp_input_ndvi_date_folder = "data/temp/raw_data/ndvi_dates_modis/",
+#                                                     temp_input_fire_date_folder = "data/temp/processed_data/most_recent_burn_dates/",
+#                                                     temp_fire_output_folder = "data/temp/processed_data/ndvi_relative_time_since_fire/",
+#                                                     input_fire_dates_tag = "processed_most_recent_burn_dates",
+#                                                     input_modis_dates_tag = "clean_ndvi_dates_modis",
+#                                                     output_tag = "processed_ndvi_relative_days_since_fire",
+#                                                     sleep_time = 60,
+#                                                     ... = burn_date_to_last_burned_date_release,
+#                                                     ... = correct_ndvi_dates_release_proj_and_extent)
+#       ),
+
+#       tar_target(
+#         template_release,
+#         get_release_template_raster(input_tag = "clean_ndvi_modis",
+#                             output_tag = "raw_static",
+#                             temp_directory = "data/temp/template",
+#                             ... = correct_ndvi_release_proj_and_extent)
+#       ),
+
+#       tar_target(
+#         remnants_release,
+#         domain_remnants_release(domain = domain,
+#                                 remnants_shp = remnants_shp,
+#                                 template_release,
+#                                 temp_directory = "data/temp/remnants",
+#                                 out_file = "remnants.tif",
+#                                 out_tag = "processed_static")
+#       ),
 
       tar_target(
         remnant_distance_release,
