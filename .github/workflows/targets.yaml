@@ -30,6 +30,7 @@ on:
     branches:
       - main
       - master
+      - dev-jiyeon
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -48,17 +49,21 @@ jobs:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       RENV_PATHS_ROOT: ~/.local/share/renv
       ACTIONS_RUNNER_DEBUG: true
-      PYTHONPATH: PYTHONPATH:/usr/bin/python3
-      RETICULATE_PYTHON: /usr/bin/python3
+      PYTHONPATH: /opt/conda/envs/r-reticulate/bin/python
+      RETICULATE_PYTHON: /opt/conda/envs/r-reticulate/bin/python
+      # GARGLE_AUTH_FILE: secrets/ee-wilsonlab-emma-ef416058504a.json
+      GOOGLE_APPLICATION_CREDENTIALS: secrets/ee-wilsonlab-emma-ef416058504a.json
     steps:
       - uses: actions/checkout@v2
-        with:
-          lfs: true
+        with: main
+         lfs: true
       - name: Whitelist directory
         run: git config --global --add safe.directory /__w/emma_envdata/emma_envdata
       - name: Checkout LFS objects
         run: git lfs checkout
         continue-on-error: true
+      # - name: List files in scratch_code
+      #   run: ls -lh scratch_code/
 #      - name: Setup Python
 #        uses: actions/setup-python@v2
 #        with:
@@ -75,33 +80,105 @@ jobs:
 #      #   if: runner.os == 'Linux'
 #      #   run: |
 #      #     sudo apt-get update
-#      - name: DECRYPT rgee SECRETS
-#        run: ./.github/decrypt_secret.sh
-#        env:
-#          RGEE_SECRET: ${{ secrets.RGEE_SECRET }}
-#        continue-on-error: true
+      - name: Install Google Cloud SDK in container
+        run: |
+          apt-get update
+          apt-get install -y curl apt-transport-https ca-certificates gnupg
+          echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" \
+            | tee /etc/apt/sources.list.d/google-cloud-sdk.list
+          curl https://packages.cloud.google.com/apt/doc/apt-key.gpg \
+            | apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
+          apt-get update
+          apt-get install -y google-cloud-cli=492.0.0-0
+      - name: DECRYPT rgee SECRETS
+        run: ./.github/decrypt_secret.sh
+        env:
+          RGEE_SECRET: ${{ secrets.RGEE_SECRET }}
+        continue-on-error: true
+      # - name: List files in secrets
+      #   run: ls -lh secrets/
 #      - name: Check git settings
 #        run:
 #          git config --get http.postBuffer
 #        continue-on-error: true
+
+      # - name: Display Service Account JSON
+      #   run: |
+      #     echo "=== Service Account JSON ==="
+      #     cat secrets/ee-wilsonlab-emma-ef416058504a.json
+      #     echo "============================"
+          
+      - name: Install Earth Engine API 1.5.4 in r-reticulate env
+        run: |
+          /opt/conda/envs/r-reticulate/bin/pip install --upgrade earthengine-api==0.1.370 #0.1.381
+          # conda install -n r-reticulate -y -c conda-forge earthengine-api=1.5.4
+
+      - name: Verify EE API version
+        run: |
+          /opt/conda/envs/r-reticulate/bin/pip show earthengine-api
+        
       - name: Install R Package Dependencies
         run: |-
           Rscript -e "questionr::qscan(list.files(pattern='*.R',recursive=T), load = TRUE, detail = TRUE)" # this scans all scripts and installs any needed packages
+      # - name: Upgrade rgee to latest from GitHub
+      #   run: |
+      #     Rscript -e "if (!requireNamespace('devtools', quietly = TRUE)) install.packages('devtools')"
+      #     Rscript -e 'devtools::install_github("r-spatial/rgee", ref="v.1.1.5")'
+      
+      # - name: Install rgee v1.1.5 from CRAN Archive
+      #   run: |
+      #     Rscript -e 'if (!requireNamespace("remotes", quietly=TRUE)) install.packages("remotes", repos="https://cloud.r-project.org")'
+      #     Rscript -e 'remotes::install_version("rgee", version="1.1.5", repos="https://cloud.r-project.org")'
+
+      - name: Install rgee from bmaitner/rgee
+        run: Rscript -e 'devtools::install_github(repo = "bmaitner/rgee", ref = "noninteractive_auth")'
+          
+      - name: Parse _targets.R
+        run: Rscript -e "parse('_targets.R')"
+        
       - name: Cache packages
         uses: actions/cache@v3
         with:
           path: ${{ env.RENV_PATHS_ROOT }}
           key: ${{ runner.os }}-renv-${{ hashFiles('**/renv.lock') }}
           restore-keys: ${{ runner.os }}-renv-
+          
+      - name: Authenticate to GCP
+        run: |
+          # write the JSON secret to disk
+          # activate the service account (no --scopes flag)
+          gcloud auth activate-service-account \
+            --key-file="secrets/ee-wilsonlab-emma-ef416058504a.json" \
+            --project=ee-wilsonlab-emma \
+            --quiet
+
+      - name: Add r-reticulate env to PATH
+        run: echo "/opt/conda/envs/r-reticulate/bin" >> $GITHUB_PATH
+      
+      # - name: Authenticate Earth Engine
+      #   run: earthengine authenticate \
+      #          --service_account \
+      #          --quiet \
+      #          #--key_file=${{ runner.temp }}/gee-key.json
+
+      # - name: Authenticate to GCP (ADC with scopes)
+      #   run: |
+      #      gcloud auth application-default login \
+      #       --project=ee-wilsonlab-emma \
+      #       --scopes=https://www.googleapis.com/auth/cloud-platform \
+      #       --quiet
+             
       # - name: Restore packages
       #   shell: Rscript {0}
       #   run: |
       #     if (!requireNamespace("renv", quietly = TRUE)) install.packages("renv")
       #     renv::restore()
+      
       - name: Check if previous runs exists
         id: runs-exist
         run: git ls-remote --exit-code --heads origin targets-runs
         continue-on-error: true
+        
       - name: Checkout previous run
         if: steps.runs-exist.outcome == 'success'
         uses: actions/checkout@v2
@@ -109,7 +186,8 @@ jobs:
           ref: targets-runs
           fetch-depth: 1
           path: .targets-runs
-          lfs:  'true' #attempting to fix issue with target-committed lfs files not being treated as lfs
+          lfs:  false #'true' #attempting to fix issue with target-committed lfs files not being treated as lfs
+          
       - name: Restore output files from the previous run
         if: steps.runs-exist.outcome == 'success'
         run: |
@@ -119,6 +197,10 @@ jobs:
             if (file.exists(source)) file.rename(source, dest)
           }
         shell: Rscript {0}
+      # - name: Find credential JSON
+      #   run: |
+      #     echo "Searching for ee-wilsonlab-emma-ef416058504a.json ..."
+      #     find / -name 'ee-wilsonlab-emma-ef416058504a.json' 2>/dev/null || true
 #      - name: Run targets pipeline
 #        run: |
 #          Sys.setenv(HOME="/home/rstudio")
@@ -149,21 +231,36 @@ jobs:
           RGEE_SECRET: ${{ secrets.RGEE_SECRET }}
           GD_SECRET: ${{ secrets.GD_SECRET }}
         continue-on-error: true
-#      - name: Install custom rgee
-#        run: |
-#          # added below on april 9 from https://github.com/r-spatial/rgee/issues/353#issuecomment-1983765552
-#          library(reticulate)
-#          py_config() # see the name of your conda (python) environment, in my case "r-reticulate" 
-#          reticulate::py_install('earthengine-api==0.1.370', envname='r-reticulate') 
-#          # Check the installation of "earthengine-api" with 
-#          py_list_packages() 
-#          pyl <- py_list_packages()
-#          pyl[pyl$package == "earthengine-api", ]
-#          # check python version with
-#          py_run_string("import sys; print(sys.version)")
-#          devtools::install_github(repo = "bmaitner/rgee",
-#          ref = "noninteractive_auth")
+      # - name: Install custom rgee
+      #   run: |
+      #      # added below on april 9 from https://github.com/r-spatial/rgee/issues/353#issuecomment-1983765552
+      #      library(reticulate)
+      #      py_config() # see the name of your conda (python) environment, in my case "r-reticulate" 
+      #      reticulate::py_install('earthengine-api==0.1.370', envname='r-reticulate') 
+      #      # Check the installation of "earthengine-api" with 
+      #      py_list_packages() 
+      #      pyl <- py_list_packages()
+      #      pyl[pyl$package == "earthengine-api", ]
+      #      # check python version with
+      #      py_run_string("import sys; print(sys.version)")
+      #      devtools::install_github(repo = "bmaitner/rgee", ref = "noninteractive_auth")
+      # - name: Install custom rgee
+      #   run: |
+      #     Rscript -e "library(reticulate)"
+      #     Rscript -e "reticulate::py_install('earthengine-api==0.1.370', envname='r-reticulate')"
+      #     Rscript -e "pyl <- py_list_packages(); print(pyl[pyl$package == 'earthengine-api', ])"
+      #     Rscript -e "reticulate::py_run_string('import sys; print(sys.version)')"
+      #     Rscript -e "devtools::install_github(repo = 'bmaitner/rgee', ref = 'noninteractive_auth')"
 #        shell: Rscript {0}
+      # - name: Print environment
+      #   run: env
+      # - name: Print R session info
+      #   run: Rscript -e 'sessionInfo()'
+      # - name: “Set up gcloud CLI”
+      #   uses: google-github-actions/setup-gcloud@v1
+      #   with:
+      #     project_id: ${{ secrets.GCP_PROJECT }}
+      #     service_account_key: ${{ secrets.GCP_SA_KEY }}
       - name: Run targets pt 2
         run: |
           #reticulate::use_python('/usr/bin/python3')
