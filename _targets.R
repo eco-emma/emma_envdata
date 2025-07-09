@@ -448,7 +448,7 @@ list(
                                                         sleep_time = 30,
                                                         verbose = TRUE,
                                                         ... = fire_modis_release)
-        )
+        ),
 
     tar_target(
       correct_ndvi_release_proj_and_extent,
