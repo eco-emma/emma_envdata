@@ -421,7 +421,7 @@ list(
             #age = as.difftime(7, units = "days")
             #age = as.difftime(1, units = "days")
             age = as.difftime(0, units = "hours")
-            ),
+            )
 
 # #   # tar_age(
 # #   #   ndwi_modis_release,
