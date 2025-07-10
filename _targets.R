@@ -439,7 +439,7 @@ list(
 # # # # # Fixing projection via releases
 
 
-      tar_target(
+    tar_target(
         correct_fire_release_proj_and_extent,
         process_fix_modis_release_projection_and_extent(temp_directory = "data/temp/raw_data/fire_modis/",
                                                         input_tag = "raw_fire_modis",
