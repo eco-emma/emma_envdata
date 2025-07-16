@@ -545,23 +545,23 @@ list(
     #                                                 ... = correct_ndvi_dates_release_proj_and_extent)
     #   ),
 
-    #   tar_target(
-    #     template_release,
-    #     get_release_template_raster(input_tag = "clean_ndvi_modis",
-    #                         output_tag = "raw_static",
-    #                         temp_directory = "data/temp/template",
-    #                         ... = correct_ndvi_release_proj_and_extent)
-    #   ),
+      tar_target(
+        template_release,
+        get_release_template_raster(input_tag = "clean_ndvi_modis",
+                            output_tag = "raw_static",
+                            temp_directory = "data/temp/template",
+                            ... = correct_ndvi_release_proj_and_extent)
+      ),
 
-    #   tar_target(
-    #     remnants_release,
-    #     domain_remnants_release(domain = domain,
-    #                             remnants_shp = remnants_shp,
-    #                             template_release,
-    #                             temp_directory = "data/temp/remnants",
-    #                             out_file = "remnants.tif",
-    #                             out_tag = "processed_static")
-    #   ), # 3-1
+      tar_target(
+        remnants_release,
+        domain_remnants_release(domain = domain,
+                                remnants_shp = remnants_shp,
+                                template_release,
+                                temp_directory = "data/temp/remnants",
+                                out_file = "remnants.tif",
+                                out_tag = "processed_static")
+      ), # 3-1
 
     #   tar_target(
     #     remnant_distance_release,
