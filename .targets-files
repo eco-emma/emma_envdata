@@ -46,5 +46,4 @@ _targets/objects/template_release
 _targets/objects/vegmap
 _targets/objects/vegmap_modis_proj
 data/domain.gpkg
-data/temp/raw_data/ndvi_dates_modis/2025_07_28.tif
 secrets/ee-wilsonlab-emma-ef416058504a.json
