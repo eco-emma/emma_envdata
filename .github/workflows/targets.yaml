@@ -54,6 +54,19 @@ jobs:
       # GARGLE_AUTH_FILE: secrets/ee-wilsonlab-emma-ef416058504a.json
       GOOGLE_APPLICATION_CREDENTIALS: secrets/ee-wilsonlab-emma-ef416058504a.json
     steps:
+      - name: Free disk space (inside container)
+        run: |
+          echo "Disk usage before cleanup:"
+          df -h
+
+          rm -rf /var/lib/apt/lists/* || true
+          rm -rf /var/cache/apt/* || true
+          rm -rf /opt/conda/pkgs/* || true
+          rm -rf /tmp/* || true
+
+          echo "Disk usage after cleanup:"
+          df -h
+          
       - uses: actions/checkout@v2
         with: main
          lfs: true
