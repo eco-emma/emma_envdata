@@ -54,7 +54,7 @@ get_release_climate_chelsa <- function(temp_directory = "data/temp/raw_data/clim
   # It would also be useful if only the relevant data could be downloaded (rather than downloading and THEN pruning)
 
   bio_vec <-
-  c("01","02","03","04","05","06","07","08","09",
+  c("1","2","3","4","5","6","7","8","9",
     "10","11","12","13","14","15","16","17","18","19")
 
   for(i in bio_vec){
@@ -64,14 +64,15 @@ get_release_climate_chelsa <- function(temp_directory = "data/temp/raw_data/clim
       #               destfile = file.path(temp_directory,paste("CHELSA_bio10_",i,"_V1.2.tif",sep = ""))
       #               )
 
-      robust_download_file(url = paste("https://os.zhdk.cloud.switch.ch/envicloud/chelsa/chelsa_V1/climatologies/bio/CHELSA_bio10_",i,".tif",sep = ""),
-                           destfile = file.path(temp_directory,paste("CHELSA_bio10_",i,"_V1.2.tif",sep = "")),
+      # https://os.zhdk.cloud.switch.ch/chelsav2/GLOBAL/climatologies/1981-2010/bio/CHELSA_bio1_1981-2010_V.2.1.tif
+      robust_download_file(url = paste("https://os.zhdk.cloud.switch.ch/chelsav2/GLOBAL/climatologies/1981-2010/bio/CHELSA_bio",i,"_1981-2010_V.2.1.tif",sep = ""),
+                           destfile = file.path(temp_directory,paste("CHELSA_bio",i,"_1981-2010_V.2.1.tif",sep = "")),
                            max_attempts = 10,
                            sleep_time = 10
                            )
 
     # load
-      rast_i <- terra::rast(file.path(temp_directory,paste("CHELSA_bio10_",i,"_V1.2.tif",sep = "")))
+      rast_i <- terra::rast(file.path(temp_directory,paste("CHELSA_bio",i,"_1981-2010_V.2.1.tif",sep = "")))
 
     # crop
 
@@ -85,7 +86,7 @@ get_release_climate_chelsa <- function(temp_directory = "data/temp/raw_data/clim
 
     # save raster
       terra::writeRaster(x = rast_i,
-                         filename = file.path(temp_directory,paste("CHELSA_bio10_",i,"_V1.2.tif",sep = "")),
+                         filename = file.path(temp_directory,paste("CHELSA_bio",i,"_1981-2010_V.2.1.tif",sep = "")),
                          overwrite = TRUE)
 
     # plot
