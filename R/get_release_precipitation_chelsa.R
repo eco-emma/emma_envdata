@@ -39,18 +39,19 @@ get_release_precipitation_chelsa <- function(temp_directory = "data/temp/raw_dat
 
 
   #Download the data
+  # https://os.zhdk.cloud.switch.ch/chelsav2/GLOBAL/climatologies/1981-2010/pr/CHELSA_pr_01_1981-2010_V.2.1.tif
     precip_vec <-
       c("01","07")
 
   for(i in precip_vec){
 
     # download files
-    download.file(url = paste("https://os.zhdk.cloud.switch.ch/envicloud/chelsa/chelsa_V1/climatologies/prec/CHELSA_prec_",i,"_V1.2_land.tif",sep = ""),
-                  destfile = file.path(temp_directory,paste("CHELSA_prec_",i,"_V1.2_land.tif",sep = ""))
+    download.file(url = paste("https://os.zhdk.cloud.switch.ch/chelsav2/GLOBAL/climatologies/1981-2010/pr/CHELSA_pr_",i,"_1981-2010_V.2.1.tif",sep = ""),
+                  destfile = file.path(temp_directory,paste("CHELSA_pr_",i,"_1981-2010_V.2.1.tif",sep = ""))
     )
 
     # load
-    rast_i <- terra::rast(file.path(temp_directory,paste("CHELSA_prec_",i,"_V1.2_land.tif",sep = "")))
+    rast_i <- terra::rast(file.path(temp_directory,paste("CHELSA_pr_",i,"_1981-2010_V.2.1.tif",sep = "")))
 
     # crop
 
@@ -64,7 +65,7 @@ get_release_precipitation_chelsa <- function(temp_directory = "data/temp/raw_dat
 
     # save raster
     terra::writeRaster(x = rast_i,
-                       filename = file.path(temp_directory,paste("CHELSA_prec_",i,"_V1.2_land.tif",sep = "")),
+                       filename = file.path(temp_directory,paste("CHELSA_pr_",i,"_1981-2010_V.2.1.tif",sep = "")),
                        overwrite = TRUE)
 
     # plot
