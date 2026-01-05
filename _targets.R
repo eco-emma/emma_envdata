@@ -50,7 +50,7 @@ list(
   ),
 
 
-  tar_target(
+  tar_terra_vect(
     country,
     national_boundary()
   )
@@ -61,7 +61,7 @@ list(
     get_vegmap(vegmap_shp)
   ),
 
-  tar_target(
+  tar_terra_vect(
     domain,
     domain_define(vegmap = vegmap, country)
   )

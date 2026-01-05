@@ -6,7 +6,6 @@
 
 
 #' @param vegmap is the domains of interest from the 2018 national vegetation map
-#' @param vegmap_shp is the path to the 2018 national vegetation map - used to get national boundary
 #' @param buffer size of domain buffer (in m)
 
 domain_define <- function(vegmap, country){
@@ -15,6 +14,7 @@ domain_define <- function(vegmap, country){
 
 
    vegmap_union=vegmap %>%
+    st_as_sf() %>%
     filter(biome_18 %in%  biomes ) %>% #filter to list above
     st_union()   # union all polygons into one multipolygon, dissolving internal boundaries
 
@@ -25,25 +25,22 @@ domain_define <- function(vegmap, country){
     st_simplify(dTolerance=100)
 
 
-
+country= st_as_sf(country) %>%
+    st_transform(crs=st_crs(vegmap_buffer))
 
   domain <-
     vegmap_buffer %>%
     st_intersection(st_transform(country,crs=st_crs(vegmap))) %>%  #only keep land areas of buffer - no ocean
     st_as_sf() %>%
-    mutate(domain=1)
+    mutate(domain=1) |>
+    vect()
 
-  #Delete file if it exists (this should be handled by the line below, but that seems to fail on github)
-    if(file.exists("data/domain.gpkg")){file.remove("data/domain.gpkg")}
-
-  # save the files
-    st_write(domain,dsn="data/domain.gpkg", append = F, delete_layer = TRUE)# overwrite layer if it exists (caused an error in targets)
 
   #release the domain
-    piggyback::pb_upload(file = "data/domain.gpkg",
-                         repo = "AdamWilsonLab/emma_envdata",
-                         tag = "raw_static",
-                         overwrite = TRUE)
+  #  piggyback::pb_upload(file = "data/domain.gpkg",
+  #                       repo = "AdamWilsonLab/emma_envdata",
+  #                       tag = "raw_static",
+  #                       overwrite = TRUE)#
 
   return(domain)
 
