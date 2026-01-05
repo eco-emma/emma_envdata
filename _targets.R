@@ -3,20 +3,18 @@ print("Starting tar_make() - print")
 
 library(targets)
 library(tarchetypes)
+library(geotargets)
 library(visNetwork)
-library(future) #not sure why this is needed, but we get an error in some of the files without it
-library(googledrive)
+library(appeears)
 library(rdryad)
+#library(future) #not sure why this is needed, but we get an error in some of the files without it
 
 #If running this locally, make sure to set up github credentials using gitcreds::gitcreds_set()
 
-#devtools::install_github(repo = "bmaitner/rgee",
-#                         ref = "noninteractive_auth")
-
 # Ensure things are clean
-  unlink(file.path("data/temp/"), recursive = TRUE, force = TRUE)
-  unlink(file.path("data/raw_data/", recursive = TRUE, force = TRUE))
-  message(paste("Objects:",ls(),collapse = "\n"))
+#  unlink(file.path("data/temp/"), recursive = TRUE, force = TRUE)
+#  unlink(file.path("data/raw_data/", recursive = TRUE, force = TRUE))
+#  message(paste("Objects:",ls(),collapse = "\n"))
 
 # source all files in R folder
   lapply(list.files("R",pattern="[.]R",full.names = T), source)
@@ -24,212 +22,16 @@ library(rdryad)
 
 
   options(tidyverse.quiet = TRUE)
-  #options(clustermq.scheduler = "multicore")
 
-  tar_option_set(packages = c("cmdstanr", "posterior", "bayesplot", "tidyverse",
-                              "stringr","knitr","sf","stars","units",
-                              "cubelyr","rgee", "reticulate"))
+  tar_option_set(packages = c("tidyverse", "stringr","knitr","sf","stars","units","geotargets",
+                              "appeears", "terra")) #"cubelyr",
 
-#set JSON token location (should be authorized for drive and earth engine)
-  json_token <- "secrets/ee-wilsonlab-emma-ef416058504a.json"
-
-# ee authentication
-  if(T) {
-    message("loading rgee")
-#    rgee::ee_install_set_pyenv('/usr/bin/python3','r-reticulate', confirm = F)
-    library(rgee)
-    #Initializing with service account key
-
-    service_account <- jsonlite::read_json(json_token)$client_email
-    credentials <- ee$ServiceAccountCredentials(service_account, json_token)
-    ee$Initialize(credentials = credentials)
-
-    #Setting up needed objects for rgee
-
-   message("Initializing rgee")
-
-    ee_Initialize(drive = TRUE,
-                  gcs = FALSE,
-                  use_oob = FALSE,
-                  drive_cred_path = json_token,
-                  gcs_cred_path = json_token,
-                  ee_cred_path = json_token)
-
-  }
-# # Sys.setenv(GOOGLE_APPLICATION_CREDENTIALS = "secrets/ee-wilsonlab-emma-ef416058504a.json")
-# message("Starting tar_make()")
-# print("Starting tar_make() - print")
-
-# library(targets)
-# library(tarchetypes)
-# library(visNetwork)
-# library(future) #not sure why this is needed, but we get an error in some of the files without it
-# options(gargle_verbosity = "debug")
-# library(googledrive)
-# library(jsonlite)
-
-# library(jsonlite)
-# # tok <- fromJSON("secrets/ee-wilsonlab-emma-ef416058504a.json")
-# # print(tok$scopes)  # or tok$scopes
-
-# library(reticulate)
-# # message("------ reticulate::py_discover_config() ------")
-# # print(py_discover_config())
-
-# # message("------ checking ee module availability ------")
-# # print(py_module_available("ee"))
-
-# # message("------ py_config() output ------")
-# # print(py_config())
-
-# #If running this locally, make sure to set up github credentials using gitcreds::gitcreds_set()
-
-# #devtools::install_github(repo = "bmaitner/rgee",
-# #                         ref = "noninteractive_auth")
-
-# # Ensure things are clean
-#   unlink(file.path("data/temp/"), recursive = TRUE, force = TRUE)
-#   unlink(file.path("data/raw_data/"), recursive = TRUE, force = TRUE)
-#   message(paste("Objects:",ls(),collapse = "\n"))
-
-# # source all files in R folder
-#   lapply(list.files("R",pattern="[.]R",full.names = T), source)
-#   message(paste("Objects:",ls(),collapse = "\n")) # To make sure all packages are loaded
-
-
-#   options(tidyverse.quiet = TRUE)
-#   #options(clustermq.scheduler = "multicore")
-
-#   tar_option_set(packages = c("cmdstanr", "posterior", "bayesplot", "tidyverse",
-#                               "stringr","knitr","sf","stars","units",
-#                               "cubelyr","rgee", "reticulate"))
-
-# #set JSON token location (should be authorized for drive and earth engine)
-#   json_token <- "secrets/ee-wilsonlab-emma-ef416058504a.json"
-
-#   # drive_auth(path = json_token)
-
-# # ee authentication
-#   if(T) {
-#     message("loading rgee")
-#     py_run_string("import ee")
-#     py_run_string("print(ee.__version__)")
-# #    rgee::ee_install_set_pyenv('/usr/bin/python3','r-reticulate', confirm = F)
-#     library(rgee)
-#     print(packageVersion("rgee"))
-#     options(rgee.verbose = TRUE)
-#     options(gargle_verbosity = "debug")
-#     #Initializing with service account key
-
-
-#     # unlink("~/.config/earthengine", recursive = TRUE, force = TRUE)
-#     #ee$Authenticate(auth_mode='appdefault', quiet=TRUE)
-#     message("Authentication is completed")
-#     # rgee::ee_clean_credentials()
-#     service_account <- jsonlite::read_json(json_token)$client_email
-#     credentials <- ee$ServiceAccountCredentials(service_account, json_token)
-#     ee$Initialize(credentials=credentials)
-#     message("Initialization is completed")
-
-#     # point to your service-account JSON
-#     # Sys.setenv(GOOGLE_APPLICATION_CREDENTIALS = json_token)
-    
-#     # preload Drive & GCS creds headlessly
-#     #googledrive::drive_auth(path = json_token, cache = FALSE)
-#     #googleCloudStorageR::gcs_auth(json_file = json_token)
-#     #dir.create("~/.config/earthengine", recursive = TRUE, showWarnings = FALSE)
-#     message("Before ee_Initialize")
-    
-#     # App-Default auth for rgee (no browser)
-#     # drive_auth(path = json_token, cache = FALSE)
-#     # gargle::gargle_oauth_cache()
-#     # token <- gargle::credentials_service_account(
-#     #           path   = json_token,
-#     #           scopes = NULL
-              
-#     #         )
-#     # googledrive::drive_auth(token = token)
-#     ee_Authenticate(auth_mode='appdefault', quiet=TRUE) # , scopes='https://www.googleapis.com/auth/cloud-platform', 
-#     # ee_Initialize(
-#     #   # user= "20061abcbc1c6ecf51bd9cf7e37350f6_bmaitner",
-#     #   # # user = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
-#     #   # credentials     = "secrets/ee-wilsonlab-emma-ef416058504a.json",
-#     #   credentials = "/github/home/.config/earthengine/",
-#     #   # # drive           = TRUE,
-#     #   # # gcs             = FALSE,
-#     #   # project           = "ee-wilsonlab-emma",
-#     #   # # auth_mode       = 'service_account',
-#     #   auth_quiet      = TRUE,
-#     #   quiet           = TRUE
-#     # )
-#     #ee_clean_user_credentials()
-#     #ee_install_upgrade() 
-#     # ee_Authenticate(auth_mode='appdefault', quiet=TRUE)
-    
-#     #ee_Authenticate()
-#     ee_Initialize()
-#                   #   #project   = "ee-wilsonlab-emma",
-#                   #   #scopes='https://www.googleapis.com/auth/devstorage.full_control',
-#                   #   credentials=credentials,
-#                   #   auth_mode = "gcloud",
-#                   #   quiet     = TRUE
-#                   # ) #auth_mode="appdefault", quiet = TRUEㅣ, credentials=credentials,  project = "ee-wilsonlab-emma", 
-#     reticulate::py_last_error()
-#     message("ee_Initialize is completed")
-#     # unlink("~/.config/earthengine", recursive = TRUE, force = TRUE)
-#     # unlink("~/.rgee", recursive = TRUE, force = TRUE)
-#     # dir.create("~/.config/earthengine", recursive = TRUE, showWarnings = FALSE)
-#     # file.create("~/.config/earthengine/rgee_sessioninfo.txt")
-#     # options(rgee.session.info = FALSE)
-
-#     #Setting up needed objects for rgee
-#     message("Initializing rgee")
-    
-#     # ee_Initialize(
-#     #   service_account = "emma-envdata@ee-wilsonlab-emma.iam.gserviceaccount.com",
-#     #   credentials = "secrets/ee-wilsonlab-emma-ef416058504a.json",
-#     #   drive = TRUE,
-#     #   gcs = TRUE
-#     # )
-#     message("After ee_Initialize")
-#       # # 3) JSON에서 서비스 계정 이메일 추출
-#       # key_path <- Sys.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-#       # sa_email <- read_json(key_path)$client_email
-      
-#       # # 4) SaK(Service account Key)를 rgee 자격증명 폴더로 복사·검증
-#       # ee_utils_sak_copy(
-#       #   sakfile = key_path,
-#       #   users   = sa_email
-#       # )
-#       # ee_utils_sak_validate(
-#       #   users = sa_email,
-#       #   quiet = TRUE
-#       # )
-      
-#       # # 5) Earth Engine 비대화형 초기화 (서비스 계정 모드)
-#       # ee_Initialize(
-#       #   email     = sa_email,
-#       #   project   = "ee-wilsonlab-emma",
-#       #   auth_mode = "service_account",
-#       #   quiet     = TRUE
-#       # )
-      
-#       # # 6) rgee_sessioninfo.txt 생성 보장
-#       # ee_sessioninfo(
-#       #   email = sa_email,
-#       #   user  = sa_email
-#       # )
-      
-#       # message("Earth Engine non-interactive initialization complete.")
-#     }
-
-
+## Authenticate with AppEEARS
+source("R/appeears_auth.R")
 
 list(
 
-
 #   #Prep needed files # start
-
   tar_target(
     vegmap_shp, # 2018 National Vegetation Map http://bgis.sanbi.org/SpatialDataset/Detail/1674
     "data/manual_download/VEGMAP2018_AEA_16082019Final/NVM2018_AEA_V22_7_16082019_final.shp",
@@ -254,7 +56,7 @@ list(
   )
 ,
 
-  tar_target(
+  tar_terra_vect(
     vegmap,
     get_vegmap(vegmap_shp)
   ),
@@ -268,14 +70,14 @@ list(
 
 # # # # Infrequent updates via releases
 
-  tar_target(
-      alos_release,
-      get_release_alos(temp_directory = "data/temp/raw_data/alos/",
-                       tag = "raw_static",
-                       domain = domain,
-                       json_token)
-      )
-,
+#  tar_target(
+#      alos_release,
+#      get_release_alos(temp_directory = "data/temp/raw_data/alos/",
+#                       tag = "raw_static",
+#                       domain = domain,
+#                       json_token)
+#      )
+#,
 
     tar_target(
       climate_chelsa_release,
@@ -293,13 +95,13 @@ list(
                               sleep_time = 180)
     ),
 
-  tar_target(
-    elevation_nasadem_release,
-    get_release_elevation_nasadem(temp_directory = "data/temp/raw_data/elevation_nasadem/",
-                                  tag = "raw_static",
-                                  domain)
-    )
-,
+ # tar_target(
+ #   elevation_nasadem_release,
+ #   get_release_elevation_nasadem(temp_directory = "data/temp/raw_data/elevation_nasadem/",
+ #                                 tag = "raw_static",
+ #                                 domain)
+ #   )
+#,
 
   #Temporarily commented out, seems to be an issue with URL for landcover data at present
   # tar_target(
@@ -332,111 +134,39 @@ list(
 
       tar_age(
         fire_modis_release,
-        get_release_fire_modis(temp_directory = "data/temp/raw_data/fire_modis/",
-                               tag = "raw_fire_modis",
+        get_release_fire_modis_appeears(temp_directory = "data/temp/raw_data/fire_modis/",
+                               tag = "raw_fire_modis_nc",
                                domain = domain,
                                max_layers = 5,
                                sleep_time = 5,
-                               json_token = json_token,
-                               verbose = FALSE),
-        #age = as.difftime(7, units = "days")
-        #age = as.difftime(1, units = "days")
-        age = as.difftime(0, units = "hours")
-      ),
-
-      tar_age(
-        kndvi_modis_release,
-        get_release_kndvi_modis(temp_directory = "data/temp/raw_data/kndvi_modis/",
-                               tag = "raw_kndvi_modis",
-                               domain = domain,
-                               max_layers = 5,
-                               sleep_time = 5,
-                               json_token = json_token,
                                verbose = TRUE),
         age = as.difftime(7, units = "days")
         #age = as.difftime(1, units = "days")
         #age = as.difftime(0, units = "hours")
-    ),
+      ),
 
     tar_age(
       ndvi_modis_release,
-      get_release_ndvi_modis(temp_directory = "data/temp/raw_data/ndvi_modis/",
-                              tag = "raw_ndvi_modis",
+      get_release_ndvi_modis_appeears(temp_directory = "data/temp/raw_data/ndvi_modis/",
+                              tag = "raw_ndvi_modis_nc",
                               domain = domain,
-                              max_layers = 12,
-                             sleep_time = 5,
-                             json_token = json_token),
-      #age = as.difftime(7, units = "days")
-      #age = as.difftime(1, units = "days")
-      age = as.difftime(0, units = "hours")
+                              sleep_time = 5,
+                              verbose = TRUE),
+      age = as.difftime(7, units = "days")
     ),
 
     tar_age(
       ndvi_viirs_release,
-      get_release_ndvi_viirs(temp_directory = "data/temp/raw_data/ndvi_viirs/",
-                             tag = "raw_ndvi_viirs",
-                             domain,
-                             max_layers = 3,
-                             sleep_time = 30,
-                             json_token = json_token),
+      get_release_ndvi_viirs_appeears(temp_directory = "data/temp/raw_data/ndvi_viirs/",
+                                       tag = "raw_ndvi_viirs_nc",
+                                       domain,
+                                       max_layers = 3,
+                                       sleep_time = 1),
       age = as.difftime(7, units = "days")
       #age = as.difftime(1, units = "days")
       #age = as.difftime(0, units = "hours")
     ),
 
-
-    tar_age(
-      ndvi_dates_modis_release,
-      get_release_ndvi_dates_modis(temp_directory = "data/temp/raw_data/ndvi_dates_modis/",
-                             repo_tag = "raw_ndvi_dates_modis",
-                             domain = domain,
-                             max_layers = 5,
-                             sleep_time = 10,
-                             json_token = json_token),
-      #age = as.difftime(7, units = "days")
-      #age = as.difftime(1, units = "days")
-      age = as.difftime(0, units = "hours")
-    ),
-
-    tar_age(
-      ndvi_dates_viirs_release,
-      get_release_ndvi_dates_viirs(temp_directory = "data/temp/raw_data/ndvi_dates_viirs/",
-                                   tag = "raw_ndvi_dates_viirs",
-                                   domain = domain,
-                                   max_layers = 3,
-                                   sleep_time = 30,
-                                   json_token = json_token),
-      age = as.difftime(7, units = "days")
-      #age = as.difftime(1, units = "days")
-      #age = as.difftime(0, units = "hours")
-    ),
-
-
-
-    tar_age(mean_ndvi_release,
-            get_release_mean_ndvi_modis(temp_directory = "data/temp/raw_data/mean_ndvi_modis/",
-                                       tag = "current",
-                                       domain = domain,
-                                       sleep_time = 1,
-                                       json_token = json_token),
-            #age = as.difftime(7, units = "days")
-            #age = as.difftime(1, units = "days")
-            age = as.difftime(0, units = "hours")
-            ),
-
-# # #   # tar_age(
-# # #   #   ndwi_modis_release,
-# # #   #   get_release_ndwi_modis(temp_directory = "data/temp/raw_data/NDWI_MODIS/",
-# # #   #                          tag = "current",
-# # #   #                          domain,
-# # #   #                          drive_cred_path = json_token),
-# # #   #   age = as.difftime(7, units = "days")
-# # #   #   #age = as.difftime(1, units = "days")
-# # #   #   #age = as.difftime(0, units = "hours")
-# # #   # ),
-# # #
-# # #
-# # #
 # # # # # # Fixing projection via releases
 
 
@@ -712,17 +442,7 @@ list(
                                       variable_name = "most_recent_burn_dates",
                                       sleep_time = 30,
                                       ... = burn_date_to_last_burned_date_release)
-    ),
-
-# periodically clean up google drive folder
-
-  tar_age(
-    remove_ee_backup,
-    clean_up(),
-    #age = as.difftime(7, units = "days")
-    age = as.difftime(0, units = "hours")
-  )
-
+    )
 
 )
 

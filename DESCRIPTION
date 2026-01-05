@@ -1,10 +1,10 @@
 Package: EMMAv1
 Type: Project
 Title: EMMA Targets Workflow
-Version: 0.1.0
+Version: 0.2.0
 Author: Adam M. Wilson <adamw@buffalo.edu>
   Maintainer: Adam M. Wilson <adamw@buffalo.edu>
-  Description: Example targets workflow for GitHub actions
+  Description: EMMA data workflow using targets, AppEEARS, and GitHub releases
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
@@ -14,13 +14,21 @@ Imports:
   viridis,
   colourvalues,
   sf,
-  raster,
+  terra,
   testthat,
   kableExtra,
   knitr,
-  cmdstanr, 
-  posterior, 
-  bayesplot,
-  rdryad
+  appeears,
+  piggyback,
+  lubridate,
+  jsonlite,
+  dplyr,
+  arrow,
+  targets,
+  geotargets,
+  janitor
 Suggests:
+  rgee,
+  reticulate,
+  raster,
   RoxygenNote: 7.1.1
