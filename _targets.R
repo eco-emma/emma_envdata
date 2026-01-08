@@ -5,9 +5,25 @@ library(targets)
 library(tarchetypes)
 library(geotargets)
 library(visNetwork)
-library(appeears)
 library(rdryad)
+library(appeears,lib.loc=Sys.getenv("R_LIBS_USER"))
+library(keyring,lib.loc=Sys.getenv("R_LIBS_USER"))
+library(filelock,lib.loc=Sys.getenv("R_LIBS_USER"))
+
+#if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes") 
+#remotes::install_deps(dependencies = TRUE)
+
 #library(future) #not sure why this is needed, but we get an error in some of the files without it
+
+
+# check what system we are on
+  sys_info <- Sys.info()
+  message(paste("System info:",paste(names(sys_info), sys_info, sep="=", collapse = "; ")))
+  # if nodename includes "ccr.buffalo.edu", set working directory to /gscratch/scrubbed/...
+  if (grepl("ccr.buffalo.edu", sys_info[["nodename"]])) {
+    setwd("~/project/projects/emma/emma_envdata")
+    message(paste("Set working directory to:", getwd()))  
+  }
 
 #If running this locally, make sure to set up github credentials using gitcreds::gitcreds_set()
 
@@ -24,7 +40,8 @@ library(rdryad)
   options(tidyverse.quiet = TRUE)
 
   tar_option_set(packages = c("tidyverse", "stringr","knitr","sf","stars","units","geotargets",
-                              "appeears", "terra")) #"cubelyr",
+                              "appeears", "terra"),library=c("/usr/local/lib/R/site-library",
+                              "/usr/local/lib/R/library", "/user/adamw/R/x86_64-pc-linux-gnu-library/4.5")) #"cubelyr",
 
 ## Authenticate with AppEEARS
 source("R/appeears_auth.R")
@@ -44,9 +61,9 @@ list(
     format = "file"
   ),
 
-  tar_target(
+  tar_terra_vect(
     sanbi_fires_shp,
-    st_read("data/manual_download/All_Fires/All_Fires_20_21_gw.shp")
+    st_read("data/manual_download/All_fires_23_24_gw/All_fires_23_24_gw.shp") |> vect()
   ),
 
 
