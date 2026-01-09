@@ -60,6 +60,10 @@ jobs:
           lfs: true
       - name: Whitelist directory
         run: git config --global --add safe.directory /__w/emma_envdata/emma_envdata
+      - name: Install system deps for keyring
+        run: |
+          apt-get update
+          apt-get install -y libsecret-1-0 libsecret-1-dev
       - name: Install R Package Dependencies
         run: |-
           Rscript -e "questionr::qscan(list.files(pattern='*.R',recursive=T), load = TRUE, detail = TRUE)" # this scans all scripts and installs any needed packages
