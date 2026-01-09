@@ -14,7 +14,7 @@ domain_define <- function(vegmap_shp, country){
 
 
    vegmap_union=st_read(vegmap_shp) %>%
-    st_as_sf() %>%
+    janitor::clean_names() %>%
     filter(biome_18 %in%  biomes ) %>% #filter to list above
     st_union()   # union all polygons into one multipolygon, dissolving internal boundaries
 
