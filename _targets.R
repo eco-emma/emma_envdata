@@ -39,8 +39,11 @@ library(filelock)#,lib.loc=Sys.getenv("R_LIBS_USER"))
 
   options(tidyverse.quiet = TRUE)
 
-  tar_option_set(packages = c("tidyverse", "stringr","knitr","sf","stars","units","geotargets",
-                              "appeears", "terra"))
+ tar_option_set(
+  packages = c("tidyverse", "stringr","knitr","sf","stars","units","geotargets",
+               "appeears", "terra"))
+
+geotargets_option_set(gdal_raster_driver = "netCDF", gdal_vector_driver = "geoparquet") 
 
 ## Authenticate with AppEEARS
 source("R/appeears_auth.R") 
@@ -57,12 +60,13 @@ list(
   tar_target(
     remnants_shp,
     "data/manual_download/RLE_2021_Remnants/RLE_Terr_2021_June2021_Remnants_ddw.shp",
-    format = "file"
+    format="file"
   ),
 
   tar_terra_vect(
-    capenature_fires,
-    st_read("data/manual_download/All_Fires_23_24_gw/All_fires_23_24_gw.shp") |> vect()
+    capenature_fires_shp,
+    "data/manual_download/All_Fires_23_24_gw/All_fires_23_24_gw.shp",
+    format="file"
   ),
 
 
@@ -80,11 +84,44 @@ list(
   tar_terra_vect(
     domain,
     domain_define(vegmap = vegmap, country)
-  )
-,
+  ),
 
+tar_terra_rast(
+  domain_raster,
+  domain_rasterize(domain = domain,remnants_shp, vegmap_shp)
+  ),
 
+tar_terra_rast(
+  vegmap_raster,
+  data_vegmap(domain_raster, vegmap_shp)
+  ),
 # # # # Infrequent updates via releases
+
+      # tar_target(
+      #   remnants_release,
+      #   domain_remnants_release(domain = domain,
+      #                           remnants_shp = remnants_shp,
+      #                           template_release,
+      #                           temp_directory = "data/temp/remnants",
+      #                           out_file = "remnants.tif",
+      #                           out_tag = "processed_static")
+      # ), # 3-1
+
+      # tar_target(
+      #   remnant_distance_release,
+      #   domain_distance_release(remnants_release = remnants_release,
+      #                           out_file = "remnant_distance.tif",
+      #                           temp_directory = "data/temp/remnants",
+      #                           out_tag = "processed_static")
+      #   ),
+
+      # tar_target(
+      #   protected_area_distance_release,
+      #   process_release_protected_area_distance(template_release,
+      #                                           out_file = "protected_area_distance.tif",
+      #                                           temp_directory = "data/temp/protected_area",
+      #                                           out_tag = "processed_static")
+      # ),
 
 #  tar_target(
 #      alos_release,
@@ -300,31 +337,7 @@ list(
 #                             ... = correct_ndvi_release_proj_and_extent)
 #       ),
 
-#       tar_target(
-#         remnants_release,
-#         domain_remnants_release(domain = domain,
-#                                 remnants_shp = remnants_shp,
-#                                 template_release,
-#                                 temp_directory = "data/temp/remnants",
-#                                 out_file = "remnants.tif",
-#                                 out_tag = "processed_static")
-#       ), # 3-1
 
-#       tar_target(
-#         remnant_distance_release,
-#         domain_distance_release(remnants_release = remnants_release,
-#                                 out_file = "remnant_distance.tif",
-#                                 temp_directory = "data/temp/remnants",
-#                                 out_tag = "processed_static")
-#         ),
-
-#       tar_target(
-#         protected_area_distance_release,
-#         process_release_protected_area_distance(template_release,
-#                                                 out_file = "protected_area_distance.tif",
-#                                                 temp_directory = "data/temp/protected_area",
-#                                                 out_tag = "processed_static")
-#       ),
 
 #       tar_target(
 #         projected_alos_release,
