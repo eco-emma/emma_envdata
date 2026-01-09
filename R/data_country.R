@@ -4,7 +4,7 @@
 #' @description Download national boundary file from the UN
 #' @source  https://data.humdata.org/dataset/cod-ab-zaf
 
-national_boundary <- function(){
+get_country <- function(){
 
   #Adjust timeout to allow for slow internet
   if(getOption('timeout') < 1000){
