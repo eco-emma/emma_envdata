@@ -26,6 +26,8 @@ domain_rasterize <- function(domain, remnants_shp, dx = 250, dy = 250) {
   remnants <- st_read(remnants_shp) %>%
     janitor::clean_names() %>%
     st_transform(crs = crs(domain)) %>%
+    st_intersection(st_as_sfc(st_bbox(domain)))|>  #crop to domain box
+    st_union() %>%
     st_make_valid()
 
 
@@ -36,7 +38,8 @@ domain_rasterize <- function(domain, remnants_shp, dx = 250, dy = 250) {
               y = domain_raster,
               field = "remnant",
               touches = T,
-              cover = T)
+              cover = T)|>
+    terra::mask(domain_raster)
 
   remnants_distance <- remnants_raster |>
     terra::app(fun=function(x) ifelse(is.na(x),0,1)) |>
