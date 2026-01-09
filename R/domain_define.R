@@ -43,7 +43,7 @@ country= st_as_sf(country) %>%
 
   domain <-
     vegmap_buffer %>%
-    st_intersection(st_transform(country,crs=st_crs(vegmap))) %>%  #only keep land areas of buffer - no ocean
+    st_intersection(st_transform(country,crs=st_crs(vegmap_union))) %>%  #only keep land areas of buffer - no ocean
     st_as_sf() %>%
     mutate(domain=1) |>
     vect()
