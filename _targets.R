@@ -69,7 +69,7 @@ list(
 
   tar_target(
     capenature_fires_shp,
-    "data/manual_download/All_Fires_23_24_gw/All_fires_23_24_gw.shp",
+    "data/manual_download/All_fires_23_24_gw/All_fires_23_24_gw.shp",
     format="file"
   ),
 
