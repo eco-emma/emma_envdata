@@ -43,7 +43,7 @@ library(filelock)#,lib.loc=Sys.getenv("R_LIBS_USER"))
   packages = c("tidyverse", "stringr","knitr","sf","stars","units","geotargets",
                "appeears", "terra"))
 
-geotargets_option_set(gdal_raster_driver = "netCDF", gdal_vector_driver = "geoparquet") 
+geotargets_option_set(gdal_raster_driver = "netCDF", gdal_vector_driver = "Parquet") 
 
 ## Authenticate with AppEEARS
 source("R/appeears_auth.R") 
@@ -88,7 +88,7 @@ list(
 
 tar_terra_rast(
   domain_raster,
-  domain_rasterize(domain = domain,remnants_shp, vegmap_shp)
+  domain_rasterize(domain = domain,remnants_shp)
   ),
 
 tar_terra_rast(
