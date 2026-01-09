@@ -61,8 +61,8 @@ list(
   ),
 
   tar_terra_vect(
-    sanbi_fires_shp,
-    st_read("data/manual_download/All_fires_23_24_gw/All_fires_23_24_gw.shp") |> vect()
+    capenature_fires,
+    st_read("data/manual_download/All_Fires_23_24_gw/All_fires_23_24_gw.shp") |> vect()
   ),
 
 
