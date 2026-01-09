@@ -10,7 +10,7 @@
 
 domain_define <- function(vegmap, country){
 
-  biomes = c("Fynbos")#,"Succulent Karoo")#,"Albany Thicket")
+  biomes = c("Fynbos","Succulent Karoo")#,"Albany Thicket")
 
 
    vegmap_union=vegmap %>%
@@ -23,6 +23,19 @@ domain_define <- function(vegmap, country){
     st_simplify(dTolerance=500) %>%
     st_buffer(50000) %>%
     st_simplify(dTolerance=100)
+
+# Further clean up the buffered domain
+# library(smoothr)
+# vegmap_buffer <- vegmap_union %>%
+#   fill_holes(set_units(100, km^2))|>
+# #  st_simplify(dTolerance=500) %>%
+#   drop_crumbs(set_units(100, km^2)) |>
+#   smooth(method = "chaikin", refinements = 5)  # or method = "ksmooth"
+#   st_buffer(1000000)|>
+# #  st_buffer(-1000000) |>
+#   st_simplify(dTolerance=100)|>
+#   st_make_valid()
+
 
 
 country= st_as_sf(country) %>%
