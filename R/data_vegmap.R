@@ -34,27 +34,26 @@ data_vegmap <- function(domain_raster, vegmap_shp, disagg_factor = 10) {
   domain_mask <- !is.na(rast(domain_raster))
   multiband <- terra::mask(multiband, domain_mask, maskvalues = 0)
 
-  # Per-band metadata
-  attr(multiband[[1]], "long_name") <- "Biome ID (biomeid_18)"
-  attr(multiband[[1]], "units")     <- "dimensionless"
+  # Set units (preserved through cache with terra_preserve_metadata = "zip")
+  units(multiband) <- c("dimensionless", "dimensionless", "dimensionless")
 
-  attr(multiband[[2]], "long_name") <- "Bioregion ID (brgnid_18)"
-  attr(multiband[[2]], "units")     <- "dimensionless"
-
-  attr(multiband[[3]], "long_name") <- "Vegetation type code (mapcode18)"
-  attr(multiband[[3]], "units")     <- "dimensionless"
-
-  # Lookup table for IDs -> names (stored as JSON for CF attributes)
+  # Lookup table for IDs -> names 
   lookup_tbl <- vegmap_sf %>%
     st_drop_geometry() %>%
     dplyr::select(biomeid_18, brgnid_18, vegtype_id, mapcode18, name_18, biome_18, bioregion) %>%
-    dplyr::rename(vegbiome = biomeid_18, vegbioregion = brgnid_18,vegtype=vegtype_id) %>%
+    dplyr::rename(vegbiome = biomeid_18, vegbioregion = brgnid_18, vegtype = vegtype_id) %>%
     dplyr::distinct()
 
-  attr(multiband, "lookup_table_json") <- jsonlite::toJSON(lookup_tbl, dataframe = "rows", auto_unbox = TRUE)
-  attr(multiband, "date_generated")    <- as.character(Sys.time())
-  attr(multiband, "crs")               <- as.character(crs(multiband))
-  attr(multiband, "Conventions")       <- "CF-1.8"
+  # Add metadata using metags (preserved in GeoTIFF)
+  metags(multiband) <- c(
+    "lookup_table_json" = jsonlite::toJSON(lookup_tbl, dataframe = "rows", auto_unbox = TRUE),
+    "vegbiome_long_name" = "Biome ID (biomeid_18)",
+    "vegbioregion_long_name" = "Bioregion ID (brgnid_18)",
+    "vegtype_long_name" = "Vegetation type code (mapcode18)",
+    "date_generated" = as.character(Sys.time()),
+    "crs" = as.character(crs(multiband)),
+    "Conventions" = "CF-1.8"
+  )
 
   multiband
 }

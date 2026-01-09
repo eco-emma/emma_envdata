@@ -57,27 +57,18 @@ domain_rasterize <- function(domain, remnants_shp, dx = 250, dy = 250) {
   # Set layer names
   names(multiband_raster) <- c("domain", "pid", "remnants", "remnants_distance")
   
-  # Add CF-compliant metadata for each layer
-  # Layer 1: domain
-  attr(multiband_raster[[1]], "long_name") <- "Domain mask (1 = in domain, NA = outside)"
-  attr(multiband_raster[[1]], "units") <- "dimensionless"
-  
-  # Layer 2: pid
-  attr(multiband_raster[[2]], "long_name") <- "Pixel ID for domain grid cells"
-  attr(multiband_raster[[2]], "units") <- "1"
-  
-  # Layer 3: remnants
-  attr(multiband_raster[[3]], "long_name") <- "Remnant vegetation indicator (1 = in remnant, NA = outside)"
-  attr(multiband_raster[[3]], "units") <- "dimensionless"
-  
-  # Layer 4: remnants_distance
-  attr(multiband_raster[[4]], "long_name") <- "Distance to nearest remnant"
-  attr(multiband_raster[[4]], "units") <- "kilometers"
-  
-  # Global attributes
-  attr(multiband_raster, "date_generated") <- as.character(Sys.time())
-  attr(multiband_raster, "crs") <- as.character(crs(multiband_raster))
-  attr(multiband_raster, "Conventions") <- "CF-1.8"
+  # Set units (preserved through cache with terra_preserve_metadata = "zip")
+  units(multiband_raster) <- c("dimensionless", "1", "dimensionless", "kilometers")
+
+  # Add metadata using metags (preserved in GeoTIFF)
+  metags(multiband_raster) <- c(
+    "domain_long_name" = "Domain mask (1 = in domain, NA = outside)",
+    "pid_long_name" = "Pixel ID for domain grid cells",
+    "remnants_long_name" = "Remnant vegetation indicator (1 = remnant, NA = not remnant)",
+    "remnants_distance_long_name" = "Distance to nearest remnant vegetation (km)",
+    "date_generated" = as.character(Sys.time()),
+    "crs" = as.character(crs(multiband_raster))
+  )
 
   multiband_raster
 }

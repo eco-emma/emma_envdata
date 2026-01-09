@@ -42,11 +42,12 @@ library(filelock)#,lib.loc=Sys.getenv("R_LIBS_USER"))
  tar_option_set(
   packages = c("tidyverse", "stringr","knitr","sf","stars","units","geotargets",
                "appeears", "terra"))
-
+terraOptions(tempdir = "data/temp/terra", memfrac = 0.6)
 geotargets_option_set(
-  gdal_raster_driver = "netCDF",  
-  gdal_raster_creation_options = c("FORMAT=NC4", "COMPRESS=DEFLATE", "ZLEVEL=9"),
-  gdal_vector_driver = "GPKG"
+  gdal_raster_driver = "GTiff",  
+  gdal_raster_creation_options = c("COMPRESS=DEFLATE", "ZLEVEL=9"),
+  gdal_vector_driver = "GPKG",
+  terra_preserve_metadata = "zip"  # Preserve names() and units() through cache
 ) 
 
 ## Authenticate with AppEEARS
@@ -76,7 +77,7 @@ list(
 
   tar_terra_vect(
     country.gpkg,
-    national_boundary()
+    get_country()
   ),
 
   tar_terra_vect(
@@ -84,34 +85,19 @@ list(
     domain_define(vegmap = vegmap_shp, country.gpkg)
   ),
 
-tar_terra_rast(
-  domain.nc,
-  domain_rasterize(domain = domain.gpkg,remnants_shp)
+  # Domain raster with metadata (names and units preserved via terra_preserve_metadata = "zip")
+  tar_terra_rast(
+    domain.tif,
+    domain_rasterize(domain = domain.gpkg, remnants_shp)
   ),
 
-tar_terra_rast(
-  vegmap.nc,
-  data_vegmap(domain.nc, vegmap_shp)
+  # Vegetation map raster with metadata
+  tar_terra_rast(
+    vegmap.tif,
+    data_vegmap(domain.tif, vegmap_shp)
   )#,
 # # # # Infrequent updates via releases
 
-      # tar_target(
-      #   remnants_release,
-      #   domain_remnants_release(domain = domain,
-      #                           remnants_shp = remnants_shp,
-      #                           template_release,
-      #                           temp_directory = "data/temp/remnants",
-      #                           out_file = "remnants.tif",
-      #                           out_tag = "processed_static")
-      # ), # 3-1
-
-      # tar_target(
-      #   remnant_distance_release,
-      #   domain_distance_release(remnants_release = remnants_release,
-      #                           out_file = "remnant_distance.tif",
-      #                           temp_directory = "data/temp/remnants",
-      #                           out_tag = "processed_static")
-      #   ),
 
       # tar_target(
       #   protected_area_distance_release,
@@ -132,7 +118,7 @@ tar_terra_rast(
 
     # tar_target(
     #   climate_chelsa_release,
-    #   get_release_climate_chelsa(temp_directory = "data/temp/raw_data/climate_chelsa/",
+    #   get_chelsa(temp_directory = "data/temp/raw_data/climate_chelsa/",
     #                              tag = "raw_static",
     #                              domain = domain)
     #   )#,
