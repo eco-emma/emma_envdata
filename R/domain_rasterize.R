@@ -8,7 +8,7 @@
 #' @param dx x resolution
 #' @param dy y resolution
 
-domain_rasterize <- function(domain, remnants_shp, vegmap_shp, dx = 250, dy = 250) {
+domain_rasterize <- function(domain, remnants_shp, dx = 250, dy = 250) {
 
   # Generate raster version of domain
   domain_template <- st_as_stars(st_bbox(domain), dx = dx, dy = dy)
@@ -41,27 +41,6 @@ domain_rasterize <- function(domain, remnants_shp, vegmap_shp, dx = 250, dy = 25
   remnants_distance <- remnants_raster |>
     terra::app(fun=function(x) ifelse(is.na(x),0,1)) |>
     terra::gridDist(target=1)/1000
-
-## Process Vegmap to add field related to biome type
-
-# load vegmap
-
-  vegmap <- st_read(vegmap_shp) %>%
-      janitor::clean_names() %>%
-      st_make_valid() %>%
-      st_transform(crs = crs(domain)) |> # project to match domain
-      st_intersection(y = st_as_sf(domain)) #crop to domain
-
-
-    # Note: the Github version of exactextractr could do this more simply using exactextractr::coverage_fraction()
-
-    n <- 10 #number of subcells to use for aggregation
-    template <- disagg(rast(domain_raster), n) #break raster into smaller ones
-    r <- rasterize(x = vegmap,
-                   y =  template,
-                   field = "biome_18") #rasterize at fine resolution
-
-    biome <- aggregate(r, n, "modal") #re-aggregate using modal  biome
 
 
 
