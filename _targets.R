@@ -81,7 +81,7 @@ list(
 
   tar_terra_vect(
     domain.gpkg,
-    domain_define(vegmap = vegmap_shp, country)
+    domain_define(vegmap = vegmap_shp, country.gpkg)
   ),
 
 tar_terra_rast(
