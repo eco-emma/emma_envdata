@@ -86,12 +86,12 @@ list(
 
 tar_terra_rast(
   domain.nc,
-  domain_rasterize(domain = domain,remnants_shp)
+  domain_rasterize(domain = domain.gpkg,remnants_shp)
   ),
 
 tar_terra_rast(
   vegmap.nc,
-  data_vegmap(domain_raster, vegmap_shp)
+  data_vegmap(domain.nc, vegmap_shp)
   )#,
 # # # # Infrequent updates via releases
 
