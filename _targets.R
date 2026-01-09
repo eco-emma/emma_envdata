@@ -132,7 +132,7 @@ list(
     get_release_precipitation_chelsa(temp_directory = "data/temp/raw_data/precipitation_chelsa/",
                                      tag = "raw_static",
                                      domain = domain)
-    ),
+    )#,
 
 #   ## commented out soil_gcfr_release at present due to API/rdryad issues.
 #   ## Emailed dryad folks on 2024/01/04, it seems the API update broke RDryad
