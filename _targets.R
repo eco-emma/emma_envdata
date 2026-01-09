@@ -40,11 +40,10 @@ library(filelock,lib.loc=Sys.getenv("R_LIBS_USER"))
   options(tidyverse.quiet = TRUE)
 
   tar_option_set(packages = c("tidyverse", "stringr","knitr","sf","stars","units","geotargets",
-                              "appeears", "terra"),library=c(Sys.getenv("R_LIBS_USER"),"/usr/local/lib/R/site-library",
-                              "/usr/local/lib/R/library", "/user/adamw/R/x86_64-pc-linux-gnu-library/4.5")) #"cubelyr",
+                              "appeears", "terra"))
 
 ## Authenticate with AppEEARS
-source("R/appeears_auth.R")
+source("R/appeears_auth.R") 
 
 list(
 
