@@ -19,3 +19,10 @@ apptainer run \
       --bind $APPTAINER_CACHEDIR/tmp:/tmp \
       --bind $APPTAINER_CACHEDIR/run:/run \
       $SIF_PATH/$SIF_FILE R       
+
+
+
+# Test github actions locally
+act -j targets \
+  --platform ubuntu-latest=adamwilsonlab/emma:latest \
+  --container-architecture linux/amd64

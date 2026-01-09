@@ -53,13 +53,10 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with: 
-          ref: main
+          ref: dev-adam-appeears
           lfs: true
       - name: Whitelist directory
         run: git config --global --add safe.directory /__w/emma_envdata/emma_envdata
-      # - name: Checkout LFS objects
-      #   run: git lfs checkout
-      #   continue-on-error: true
       - name: Install R Package Dependencies
         run: |-
           Rscript -e "questionr::qscan(list.files(pattern='*.R',recursive=T), load = TRUE, detail = TRUE)" # this scans all scripts and installs any needed packages
