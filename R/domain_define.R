@@ -8,12 +8,12 @@
 #' @param vegmap is the domains of interest from the 2018 national vegetation map
 #' @param buffer size of domain buffer (in m)
 
-domain_define <- function(vegmap, country){
+domain_define <- function(vegmap_shp, country){
 
   biomes = c("Fynbos","Succulent Karoo")#,"Albany Thicket")
 
 
-   vegmap_union=vegmap %>%
+   vegmap_union=st_read(vegmap_shp) %>%
     st_as_sf() %>%
     filter(biome_18 %in%  biomes ) %>% #filter to list above
     st_union()   # union all polygons into one multipolygon, dissolving internal boundaries
@@ -49,16 +49,6 @@ country= st_as_sf(country) %>%
     vect()
 
 
-  #release the domain
-  #  piggyback::pb_upload(file = "data/domain.gpkg",
-  #                       repo = "AdamWilsonLab/emma_envdata",
-  #                       tag = "raw_static",
-  #                       overwrite = TRUE)#
-
   return(domain)
 
 }
-
-
-
-

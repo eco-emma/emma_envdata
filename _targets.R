@@ -43,7 +43,11 @@ library(filelock)#,lib.loc=Sys.getenv("R_LIBS_USER"))
   packages = c("tidyverse", "stringr","knitr","sf","stars","units","geotargets",
                "appeears", "terra"))
 
-geotargets_option_set(gdal_raster_driver = "netCDF", gdal_vector_driver = "Parquet") 
+geotargets_option_set(
+  gdal_raster_driver = "netCDF",  
+  gdal_raster_creation_options = c("FORMAT=NC4", "COMPRESS=DEFLATE", "ZLEVEL=9"),
+  gdal_vector_driver = "GPKG"
+) 
 
 ## Authenticate with AppEEARS
 source("R/appeears_auth.R") 
@@ -63,7 +67,7 @@ list(
     format="file"
   ),
 
-  tar_terra_vect(
+  tar_target(
     capenature_fires_shp,
     "data/manual_download/All_Fires_23_24_gw/All_fires_23_24_gw.shp",
     format="file"
@@ -71,30 +75,24 @@ list(
 
 
   tar_terra_vect(
-    country,
+    country.gpkg,
     national_boundary()
-  )
-,
-
-  tar_terra_vect(
-    vegmap,
-    get_vegmap(vegmap_shp)
   ),
 
   tar_terra_vect(
-    domain,
-    domain_define(vegmap = vegmap, country)
+    domain.gpkg,
+    domain_define(vegmap = vegmap_shp, country)
   ),
 
 tar_terra_rast(
-  domain_raster,
+  domain.nc,
   domain_rasterize(domain = domain,remnants_shp)
   ),
 
 tar_terra_rast(
-  vegmap_raster,
+  vegmap.nc,
   data_vegmap(domain_raster, vegmap_shp)
-  ),
+  )#,
 # # # # Infrequent updates via releases
 
       # tar_target(
@@ -132,13 +130,12 @@ tar_terra_rast(
 #      )
 #,
 
-    tar_target(
-      climate_chelsa_release,
-      get_release_climate_chelsa(temp_directory = "data/temp/raw_data/climate_chelsa/",
-                                 tag = "raw_static",
-                                 domain = domain)
-      )
-,
+    # tar_target(
+    #   climate_chelsa_release,
+    #   get_release_climate_chelsa(temp_directory = "data/temp/raw_data/climate_chelsa/",
+    #                              tag = "raw_static",
+    #                              domain = domain)
+    #   )#,
 
   # tar_terra_rast(
   #   clouds_wilson_release,
@@ -164,12 +161,12 @@ tar_terra_rast(
   #                            domain = domain)
   #   ),
   #
-  tar_target(
-    precipitation_chelsa_release,
-    get_release_precipitation_chelsa(temp_directory = "data/temp/raw_data/precipitation_chelsa/",
-                                     tag = "raw_static",
-                                     domain = domain)
-    )#,
+  # tar_target(
+  #   precipitation_chelsa_release,
+  #   get_release_precipitation_chelsa(temp_directory = "data/temp/raw_data/precipitation_chelsa/",
+  #                                    tag = "raw_static",
+  #                                    domain = domain)
+  #   )#,
 
 #   ## commented out soil_gcfr_release at present due to API/rdryad issues.
 #   ## Emailed dryad folks on 2024/01/04, it seems the API update broke RDryad
