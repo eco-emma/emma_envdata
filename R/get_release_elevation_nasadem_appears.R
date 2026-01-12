@@ -121,7 +121,7 @@ get_release_elevation_nasadem_appears <- function(
 
   # Resample to domain grid using bilinear interpolation
   if (verbose) message("Resampling elevation to domain grid")
-  elev_resampled <- terra::resample(elev_raster, domain_raster, method = "bilinear")
+  elev_resampled <- terra::resample(elev_raster, domain_raster, method = "average")
 
   # Mask to domain (NA where domain is NA)
   elev_masked <- terra::mask(elev_resampled, domain_raster)
