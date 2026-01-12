@@ -35,6 +35,7 @@ download_vegmap_release <- function(repo, tag, file, local_dir, shapefile_name) 
       overwrite = FALSE
     )
     message("Unzipping vegmap...")
+    list.files(local_dir,recursive = T)
     zip_file <- file.path(local_dir, file)
     utils::unzip(zip_file, exdir = local_dir)
     unlink(zip_file)
