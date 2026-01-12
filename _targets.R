@@ -66,9 +66,14 @@ list(
 
 #   #Prep needed files # start
   tar_target(
-    vegmap_shp, # 2018 National Vegetation Map http://bgis.sanbi.org/SpatialDataset/Detail/1674
-    "data/manual_download/NVM2024/NVM2024Final_IEM5_12_07012025.shp",
-    format = "file"
+    vegmap_shp,
+    download_vegmap_release(
+      release_url = "https://github.com/AdamWilsonLab/emma_envdata/releases/download/vegmap2024/NVM2024Final_IEM5_12_07012025.zip",
+      local_dir = "data/manual_download/NVM2024",
+      shapefile_name = "NVM2024Final_IEM5_12_07012025.shp"
+    ),
+    format = "file",
+    cue = tar_cue(mode = "never")
   ),
 
   tar_target(
@@ -119,7 +124,7 @@ list(
 
   # Vegetation map raster with metadata
   tar_terra_rast(
-    vegmap.nc,
+    vegmap_nc,
     data_vegmap(domain_raster = terra::rast(domain_nc), vegmap_shp),
     filetype = "netCDF"
   )#,

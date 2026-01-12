@@ -44,17 +44,40 @@ data_vegmap <- function(domain_raster, vegmap_shp, disagg_factor = 10) {
     dplyr::rename(vegbiome = biomeid_18, vegbioregion = brgnid_18, vegtype = vegtype_id) %>%
     dplyr::distinct()
 
-  # Add metadata using metags (preserved in GeoTIFF)
-  metags(multiband) <- c(
-    "lookup_table_json" = jsonlite::toJSON(lookup_tbl, dataframe = "rows", auto_unbox = TRUE),
-    "vegbiome_long_name" = "Biome ID (biomeid_18)",
-    "vegbioregion_long_name" = "Bioregion ID (brgnid_18)",
-    "vegtype_long_name" = "Vegetation type code (mapcode18)",
-    "date_generated" = as.character(Sys.time()),
-    "crs" = as.character(crs(multiband)),
-    "Conventions" = "CF-1.8"
+  # Create output file path
+  output_file <- "vegmap.nc"
+  
+  # Prepare metadata
+  metadata <- list(
+    title = "Vegetation Map - Biome, Bioregion, and Vegetation Type",
+    source = "South Africa National Vegetation Map 2024",
+    Conventions = "CF-1.8",
+    lookup_table_json = jsonlite::toJSON(lookup_tbl, dataframe = "rows", auto_unbox = TRUE),
+    vegbiome_long_name = "Biome ID (biomeid_18)",
+    vegbioregion_long_name = "Bioregion ID (brgnid_18)",
+    vegtype_long_name = "Vegetation type code (mapcode18)",
+    date_generated = as.character(Sys.time()),
+    crs = as.character(crs(multiband)),
+    ancillary_variables = "lookup_table"
   )
-
-  multiband
+  
+  # Write to NetCDF with metadata
+  terra::writeCDF(
+    x = multiband,
+    filename = output_file,
+    overwrite = TRUE,
+    varnames = c("vegbiome", "vegbioregion", "vegtype"),
+    longname = c("Biome ID (biomeid_18)", "Bioregion ID (brgnid_18)", "Vegetation type code (mapcode18)"),
+    unit = c("dimensionless", "dimensionless", "dimensionless")
+  )
+  
+  # Add metadata to the NetCDF file using ncdf4
+  nc <- ncdf4::nc_open(output_file, write = TRUE)
+  for (key in names(metadata)) {
+    ncdf4::ncatt_put(nc, 0, key, metadata[[key]])
+  }
+  ncdf4::nc_close(nc)
+  
+  return(output_file)
 }
 
