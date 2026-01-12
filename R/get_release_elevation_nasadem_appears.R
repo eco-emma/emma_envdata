@@ -45,41 +45,71 @@ get_release_elevation_nasadem_appears <- function(
 
   if (verbose) message("Submitting AppEEARS NASADEM request over domain polygon")
 
-  # Build AppEEARS request
+  # Build AppEEARS request with proper structure
   req <- list(
     task_type = "area",
     task_name = paste0("NASADEM_", format(Sys.time(), "%Y%m%d%H%M%S")),
     params = list(
-      dates = list(start = "2000-02-11", end = "2000-02-11"),  # NASADEM static date
-      layers = list(
-        list(product = "NASADEM_HGT.001", layer = "NASADEM_HGT")
+      dates = list(list(
+        startDate = "02-11-2000",
+        endDate = "02-11-2000"
+      )),
+      layers = list(list(
+        product = "SRTMGL3_NC.003",
+        layer = "SRTMGL3_DEM"
+      )),
+      output = list(
+        format = list(type = "netcdf4"),
+        projection = "native"
       ),
-      output = list(format = "netcdf4", projection = "native"),
       geo = aoi_json
     )
   )
 
-  # Submit and poll for completion
-  task <- appeears::rs_request(request = req, user= Sys.getenv("EARTHDATA_USER"))
-  if (verbose) message("Submitted AppEEARS task: ", task$task_id)
+  # Convert request to JSON string (rs_request/task$download expect JSON text)
+  req_json <- jsonlite::toJSON(req, auto_unbox = TRUE)
 
+  # Submit and poll for completion
+  if (verbose) message("Submitting AppEEARS task...")
+  task <- appeears::rs_request(
+    request = req_json, 
+    user = Sys.getenv("EARTHDATA_USER"),
+    path = temp_directory,
+    transfer = FALSE,
+    verbose = verbose
+  )
+  
+  if (verbose) message("Task submitted: ", task$get_task_id())
+
+  # Poll for completion using task object methods
+  max_retries <- 60
+  retry_count <- 0
+  
   repeat {
-    st <- appeears::rs_status(task$task_id)
-    if (isTRUE(tolower(st$status) %in% c("done", "complete", "completed"))) break
-    if (isTRUE(tolower(st$status) %in% c("error", "failed"))) {
-      stop("AppEEARS task failed. Status: ", st$status)
+    retry_count <- retry_count + 1
+    task$update_status(verbose = FALSE)
+    
+    if (task$is_success()) {
+      if (verbose) message("Task completed successfully")
+      break
     }
-    Sys.sleep(30)
-    if (verbose) message("Waiting... status: ", st$status)
+    
+    if (task$is_failed()) {
+      stop("AppEEARS task failed")
+    }
+    
+    if (retry_count >= max_retries) {
+      stop("Task polling timed out after ", max_retries * 10, " seconds")
+    }
+    
+    if (verbose) message("Task status: ", task$get_status(), " (", retry_count, "/", max_retries, ")")
+    Sys.sleep(10)
   }
 
   # Download results
-  dl_paths <- appeears::rs_download(task_id = task$task_id, path = temp_directory)
-  zips <- list.files(temp_directory, pattern = "\\.zip$", full.names = TRUE, recursive = TRUE)
-  if (length(zips)) {
-    for (z in zips) utils::unzip(z, exdir = temp_directory)
-  }
-
+  if (verbose) message("Downloading files for task: ", task$get_task_id())
+  task$download(verbose = verbose)
+  
   # Load the NetCDF file
   nc_paths <- list.files(temp_directory, pattern = "\\.nc$", full.names = TRUE, recursive = TRUE)
   if (length(nc_paths) == 0) {
@@ -87,7 +117,7 @@ get_release_elevation_nasadem_appears <- function(
   }
 
   if (verbose) message("Reading elevation data from: ", nc_paths[1])
-  elev_raster <- terra::rast(nc_paths[1])
+  elev_raster <- terra::rast(nc_paths[grepl(nc_paths, pattern = "SRTMGL3_NC.003_90m_aid0001.nc")])
 
   # Resample to domain grid using bilinear interpolation
   if (verbose) message("Resampling elevation to domain grid")

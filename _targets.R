@@ -68,7 +68,9 @@ list(
   tar_target(
     vegmap_shp,
     download_vegmap_release(
-      release_url = "https://github.com/AdamWilsonLab/emma_envdata/releases/download/vegmap2024/NVM2024Final_IEM5_12_07012025.zip",
+      repo = "AdamWilsonLab/emma_envdata",
+      tag = "vegmap2024",
+      file = "NVM2024final_Shapefile.zip",
       local_dir = "data/manual_download/NVM2024",
       shapefile_name = "NVM2024Final_IEM5_12_07012025.shp"
     ),
