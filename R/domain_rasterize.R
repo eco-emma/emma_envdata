@@ -35,6 +35,7 @@ domain_rasterize <- function(domain, remnants_shp, dx = 250, dy = 250, out_file 
 
 
   remnants_raster <- remnants %>%
+    st_as_sf() |>
     mutate(remnant=1) %>%
     vect() %>%
     rasterize(x = .,
@@ -42,7 +43,7 @@ domain_rasterize <- function(domain, remnants_shp, dx = 250, dy = 250, out_file 
               field = "remnant",
               touches = T,
               cover = T)|>
-    terra::mask(domain_raster)
+    terra::mask(mask=domain_raster)
 
   remnants_distance <- remnants_raster |>
     terra::app(fun=function(x) ifelse(is.na(x),0,1)) |>
@@ -95,7 +96,7 @@ domain_rasterize <- function(domain, remnants_shp, dx = 250, dy = 250, out_file 
   # Variable-specific attributes
   attr_map <- list(
     domain = list(long_name = "Domain mask (1 = in domain, NA = outside)", units = "dimensionless"),
-    pid = list(long_name = "Pixel ID for domain grid cells", units = "1"),
+    pid = list(long_name = "Pixel ID for domain grid cells", units = "dimensionless"),
     remnants = list(long_name = "Remnant vegetation indicator (1 = remnant, NA = not remnant)", units = "dimensionless"),
     remnants_distance = list(long_name = "Distance to nearest remnant vegetation", units = "kilometers")
   )
