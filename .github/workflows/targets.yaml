@@ -84,7 +84,7 @@ jobs:
           path: _targets/
           key: targets-${{ hashFiles('_targets.R', 'R/**') }}
           restore-keys: targets-
-      - name: Run targets pt 2
+      - name: Run targets pipeline
         run: |
           targets::tar_make()
         shell: Rscript {0}
@@ -142,3 +142,73 @@ jobs:
         with:
           name: ${{ runner.os }}-results
           path: .
+
+      - name: Create review PR on failure
+        if: failure() && github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get last 100 lines of error
+          tail -100 targets-output.log > error-summary.txt
+          
+          # Create branch
+          BRANCH="auto-fix-$(date +%s)"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          
+          # Add error log
+          mkdir -p .github/workflow-logs
+          cp targets-output.log .github/workflow-logs/failure-$(date +%Y%m%d-%H%M%S).log
+          git add .github/workflow-logs/
+          git commit -m "Add workflow failure log for review" || true
+          git push origin "$BRANCH"
+          
+          # Create PR (Copilot will auto-review it)
+          gh pr create \
+            --title "🚨 Targets workflow failed - Review needed" \
+            --body "## Workflow Failure
+
+          The targets pipeline failed. GitHub Copilot will review this PR.
+
+          ### Error Summary
+          \`\`\`
+          $(cat error-summary.txt)
+          \`\`\`
+
+          ### Full Log
+          See \`.github/workflow-logs/\` for complete output.
+          
+          **Next steps:**
+          1. Review Copilot's suggestions in the PR
+          2. Apply fixes
+          3. Close this PR once resolved" \
+            --base main \
+            --head "$BRANCH" \
+            --label "bug,auto-generated"
+      
+      - name: Comment on existing PR with status
+        if: always() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          STATUS="${{ steps.targets.outcome }}"
+          if [ "$STATUS" = "success" ]; then
+            EMOJI="✅"
+            MESSAGE="Targets workflow completed successfully!"
+          else
+            EMOJI="❌"
+            MESSAGE="Targets workflow failed. See logs below."
+          fi
+          
+          gh pr comment ${{ github.event.pull_request.number }} --body "## $EMOJI Targets Workflow Result
+
+          $MESSAGE
+
+          <details>
+          <summary>Show last 50 lines of output</summary>
+
+          \`\`\`
+          $(tail -50 targets-output.log)
+          \`\`\`
+          </details>"
