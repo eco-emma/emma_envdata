@@ -74,7 +74,8 @@ domain_rasterize <- function(domain, remnants_shp, dx = 250, dy = 250, out_file 
     filename = out_file,
     varname = "domain",
     overwrite = TRUE,
-    gdal = c("FORMAT=NC4", "COMPRESS=DEFLATE", "ZLEVEL=9", "SHUFFLE=YES")
+    gdal = c("FORMAT=NC4", "COMPRESS=DEFLATE", "ZLEVEL=9", "SHUFFLE=YES"),
+    overwrite=TRUE
   )
   terra::writeCDF(layers$pid, filename = out_file, varname = "pid", overwrite = FALSE, append = TRUE,
                   gdal = c("FORMAT=NC4", "COMPRESS=DEFLATE", "ZLEVEL=9", "SHUFFLE=YES"))
