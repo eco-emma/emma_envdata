@@ -21,8 +21,11 @@
 #' @export
 download_vegmap_release <- function(repo, tag, file, local_dir, shapefile_name) {
   dir.create(local_dir, recursive = TRUE, showWarnings = FALSE)
-  shp_file <- file.path(local_dir, shapefile_name)
-  if (!file.exists(shp_file)) {
+  
+  # Check if shapefile already exists in the expected location (with shapefile subdirectory)
+  shp_file_correct <- file.path(local_dir, "shapefile", shapefile_name)
+  
+  if (!file.exists(shp_file_correct)) {
     message("Downloading vegmap from GitHub release using piggyback...")
     piggyback::pb_download(
       file = file,
@@ -36,5 +39,7 @@ download_vegmap_release <- function(repo, tag, file, local_dir, shapefile_name) 
     utils::unzip(zip_file, exdir = local_dir)
     unlink(zip_file)
   }
-  stringr::str_replace(shp_file, "NVM2024/","NVM2024/shapefile/") # fixes path issue
+  
+  # Return the correct path (shapefile is in a subdirectory after extraction)
+  shp_file_correct
 }
