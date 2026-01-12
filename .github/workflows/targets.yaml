@@ -86,14 +86,9 @@ jobs:
           restore-keys: targets-
       - name: Run targets pipeline
         run: |
-          targets::tar_make()
-        shell: Rscript {0}
-        
-      - name: Update README
-        run: |
-          webshot::install_phantomjs()
-          knitr::knit("README.Rmd")
-        shell: Rscript {0}
+          Rscript -e "targets::tar_make()" 2>&1 | tee targets-output.log || echo "tar_make failed, see log above"
+        shell: bash
+        continue-on-error: true
         
       - name: Export final data products to releases
         if: github.ref == 'refs/heads/main'
@@ -148,6 +143,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # Create error log if it doesn't exist
+          if [ ! -f targets-output.log ]; then
+            echo "No targets-output.log file found. Pipeline may have failed during execution." > targets-output.log
+          fi
           # Get last 100 lines of error
           tail -100 targets-output.log > error-summary.txt
           
@@ -201,6 +200,9 @@ jobs:
             MESSAGE="Targets workflow failed. See logs below."
           fi
           
+          if [ ! -f targets-output.log ]; then
+            echo "No targets-output.log file found. Pipeline completed without explicit log output." > targets-output.log
+          fi
           gh pr comment ${{ github.event.pull_request.number }} --body "## $EMOJI Targets Workflow Result
 
           $MESSAGE

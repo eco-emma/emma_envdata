@@ -1,142 +1,122 @@
-#Code for extracting elevation data from google earth engine
+#' @title Download NASADEM elevation via AppEEARS and resample to domain
+#' @description Submits an AppEEARS area request for NASADEM elevation data
+#' over the provided domain polygon, downloads, and resamples to domain grid.
+#' @author EMMA Team
+#' @param domain_vector A SpatVector or sf polygon defining the domain boundary
+#' @param domain_raster A SpatRaster (domain.tif) defining the output grid and mask
+#' @param temp_directory Temporary working directory for downloads
+#' @param verbose Logical for progress messages
+#' @return SpatRaster with elevation resampled to domain, with metadata
 
-#' @author Brian Maitner
-#' @description This function will download NASADEM elevation data if it isn't present, and (invisibly) return a NULL if it is present
-#' @import rgee
-#' @param directory directory to save data in. Defaults to "data/raw_data/elevation_nasadem/"
-#' @param domain domain (spatialpolygons* object) used for masking
-get_release_elevation_nasadem <- function(temp_directory = "data/temp/raw_data/elevation_nasadem/",
-                                          tag = "raw_static",
-                                          domain){
+get_release_elevation_nasadem_appears <- function(
+  domain_vector,
+  domain_raster,
+  temp_directory = "data/temp/raw_data/elevation_nasadem/",
+  verbose = TRUE
+) {
 
-  API_URL = 'https://appeears.earthdatacloud.nasa.gov/api/'
-
-
-  # Make a directory if one doesn't exist yet
-
-  if(!dir.exists(temp_directory)){
-    dir.create(temp_directory,recursive = TRUE)
+  # Package checks
+  required_pkgs <- c("appeears", "terra", "sf", "lubridate", "jsonlite")
+  missing <- required_pkgs[!sapply(required_pkgs, requireNamespace, quietly = TRUE)]
+  if (length(missing)) {
+    stop("Required packages missing: ", paste(missing, collapse = ", "))
   }
 
+  # Ensure clean temp directory
+  if (dir.exists(temp_directory)) {
+    unlink(temp_directory, recursive = TRUE, force = TRUE)
+  }
+  dir.create(temp_directory, recursive = TRUE, showWarnings = FALSE)
 
-  library(sf)
-  library(httr)
-  library(jsonlite)
-  library(lubridate)
+  # Clean terra temp
+  terra_tmp <- file.path(getwd(), "data/temp/terra")
+  unlink(terra_tmp, recursive = TRUE, force = TRUE)
+  dir.create(terra_tmp, recursive = TRUE, showWarnings = FALSE)
+  terraOptions(tempdir = terra_tmp, memfrac = 0.8)
 
-  # Helper to read .netrc credentials
-  read_netrc <- function(machine = "appeears.earthdatacloud.nasa.gov", netrc_path = "~/.netrc") {
-    lines <- readLines(path.expand(netrc_path))
-    start <- grep(paste("machine", machine), lines)
-    if (length(start) == 0) stop("Machine not found in .netrc")
-    chunk <- lines[start:min(start+2, length(lines))]
-    login <- sub(".*login\\s+", "", grep("login", chunk, value = TRUE))
-    password <- sub(".*password\\s+", "", grep("password", chunk, value = TRUE))
-    list(username = login, password = password)
+  # Convert domain vector to sf and reproject to WGS84 (required by AppEEARS)
+  domain_sf <- st_as_sf(domain_vector)
+  domain_wgs84 <- st_transform(domain_sf, crs = 4326)
+  
+  # Write to GeoJSON and read back as plain list (avoids geo_list serialization issues)
+  aoi_path <- file.path(temp_directory, "aoi.geojson")
+  suppressWarnings(sf::st_write(domain_wgs84, aoi_path, driver = "GeoJSON", delete_dsn = TRUE, quiet = TRUE))
+  aoi_json <- jsonlite::read_json(aoi_path, simplifyVector = FALSE)
+
+  if (verbose) message("Submitting AppEEARS NASADEM request over domain polygon")
+
+  # Build AppEEARS request
+  req <- list(
+    task_type = "area",
+    task_name = paste0("NASADEM_", format(Sys.time(), "%Y%m%d%H%M%S")),
+    params = list(
+      dates = list(start = "2000-02-11", end = "2000-02-11"),  # NASADEM static date
+      layers = list(
+        list(product = "NASADEM_HGT.001", layer = "NASADEM_HGT")
+      ),
+      output = list(format = "netcdf4", projection = "native"),
+      geo = aoi_json
+    )
+  )
+
+  # Submit and poll for completion
+  task <- appeears::rs_request(request = req, user= Sys.getenv("EARTHDATA_USER"))
+  if (verbose) message("Submitted AppEEARS task: ", task$task_id)
+
+  repeat {
+    st <- appeears::rs_status(task$task_id)
+    if (isTRUE(tolower(st$status) %in% c("done", "complete", "completed"))) break
+    if (isTRUE(tolower(st$status) %in% c("error", "failed"))) {
+      stop("AppEEARS task failed. Status: ", st$status)
+    }
+    Sys.sleep(30)
+    if (verbose) message("Waiting... status: ", st$status)
   }
 
-  download_nasadem_nc_from_sf <- function(aoi_sf, out_file = "nasadem.nc", netrc_path = "~/.netrc") {
-    # Authenticate using .netrc file
-    auth_response <- POST(
-      url = "https://appeears.earthdatacloud.nasa.gov/api/login",
-      #config = httr::config(netrc = TRUE, netrc_file = "~/.netrc"),
-      set_cookies("LC" = "cookies")
-    )
-    str(auth_response)
-
-    response <- GET(files[i], write_disk(filename, overwrite = TRUE), progress(),
-                    config(netrc = TRUE, netrc_file = netrc), set_cookies("LC" = "cookies"))
-
-
-    response <- httr::POST(
-      url = "https://appeears.earthdatacloud.nasa.gov/api/task",
-      body = jsonlite::toJSON(request_body, auto_unbox = TRUE),
-      config = httr::config(netrc = TRUE, netrc_file = "~/.netrc"),
-  httr::content_type_json()
-)
-
-    if (status_code(auth_response) != 200) {
-      stop("Authentication failed. Check your .netrc file.")
-    }
-
-    token <- content(auth_response)$token
-
-    # Transform AOI to WGS84 if needed
-    if (sf::st_crs(aoi_sf)$epsg != 4326) {
-      aoi_sf <- sf::st_transform(aoi_sf, crs = 4326)
-    }
-
-    # Extract coordinates
-    coords <- st_coordinates(st_geometry(st_union(aoi_sf)))[, 1:2]
-    coords <- as.matrix(coords)
-    coords <- coords[!duplicated(coords), ]
-    coords_list <- lapply(seq_len(nrow(coords)), function(i) unname(as.numeric(coords[i, ])))
-
-    # Close polygon if needed
-    if (!all.equal(coords_list[[1]], coords_list[[length(coords_list)]])) {
-      coords_list[[length(coords_list) + 1]] <- coords_list[[1]]
-    }
-
-    # Build request
-    request_body <- list(
-      task_type = "area",
-      task_name = paste0("NASADEM_", Sys.Date()),
-      params = list(
-        dates = list(list(startDate = "2020-01-01", endDate = "2020-01-01")),
-        layers = list(list(layer = "NASADEM-HGT", product = "NASADEM_HGT.001")),
-        output = list(format = "netCDF4"),
-        geo = list(
-          type = "Feature",
-          properties = new.env(),
-          geometry = list(
-            type = "Polygon",
-            coordinates = list(coords_list)
-          )
-        )
-      )
-    )
-
-    # Submit task
-    submit_response <- POST(
-      url = "https://appeears.earthdatacloud.nasa.gov/api/task",
-      body = toJSON(request_body, auto_unbox = TRUE),
-      add_headers(Authorization = paste("Bearer", token)),
-      content_type_json()
-    )
-
-    if (status_code(submit_response) != 200) {
-      stop("Failed to submit task.")
-    }
-
-    task_id <- content(submit_response)$task_id
-    message("Task submitted: ", task_id)
-
-    # Poll for completion
-    repeat {
-      Sys.sleep(10)
-      status_response <- GET(paste0("https://appeears.earthdatacloud.nasa.gov/api/status/", task_id),
-                             add_headers(Authorization = paste("Bearer", token)))
-      status <- content(status_response)$status
-      message("Task status: ", status)
-      if (status == "done") break
-      if (status == "failed") stop("Task failed.")
-    }
-
-    # Get download URL
-    bundle_response <- GET(paste0("https://appeears.earthdatacloud.nasa.gov/api/bundle/", task_id),
-                           add_headers(Authorization = paste("Bearer", token)))
-    files <- content(bundle_response)$files
-    nc_file_url <- files[[which(sapply(files, function(f) grepl("\\.nc$", f$file_name)))]]$url
-
-    # Download the file
-    GET(nc_file_url, write_disk(out_file, overwrite = TRUE),
-        add_headers(Authorization = paste("Bearer", token)))
-
-    message("Download complete: ", out_file)
+  # Download results
+  dl_paths <- appeears::rs_download(task_id = task$task_id, path = temp_directory)
+  zips <- list.files(temp_directory, pattern = "\\.zip$", full.names = TRUE, recursive = TRUE)
+  if (length(zips)) {
+    for (z in zips) utils::unzip(z, exdir = temp_directory)
   }
 
+  # Load the NetCDF file
+  nc_paths <- list.files(temp_directory, pattern = "\\.nc$", full.names = TRUE, recursive = TRUE)
+  if (length(nc_paths) == 0) {
+    stop("No NetCDF files downloaded from AppEEARS")
+  }
 
-}#end fx
+  if (verbose) message("Reading elevation data from: ", nc_paths[1])
+  elev_raster <- terra::rast(nc_paths[1])
+
+  # Resample to domain grid using bilinear interpolation
+  if (verbose) message("Resampling elevation to domain grid")
+  elev_resampled <- terra::resample(elev_raster, domain_raster, method = "bilinear")
+
+  # Mask to domain (NA where domain is NA)
+  elev_masked <- terra::mask(elev_resampled, domain_raster)
+
+  # Set metadata
+  names(elev_masked) <- "elevation"
+  units(elev_masked) <- "meters"
+
+  metags(elev_masked) <- c(
+    "elevation_long_name" = "NASADEM elevation above mean sea level",
+    "elevation_source" = "NASADEM_HGT.001 via AppEEARS",
+    "date_generated" = as.character(Sys.time()),
+    "crs" = as.character(crs(elev_masked)),
+    "Conventions" = "CF-1.8"
+  )
+
+  # Cleanup
+  unlink(temp_directory, recursive = TRUE, force = TRUE)
+  gc()
+  unlink(terra_tmp, recursive = TRUE, force = TRUE)
+
+  if (verbose) message("Elevation data ready")
+  elev_masked
+}
+
 
 
 
