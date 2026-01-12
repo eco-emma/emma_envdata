@@ -17,13 +17,16 @@ get_country <- function(){
   download.file(url,destfile = tmpfile1)
   unzip(tmpfile1,exdir=tmpdir1)
 
-  # Read the converted GeoJSON, union, and convert to SpatVector
+  # Read the converted GeoJSON, union, and convert to sf
   country <- st_read(file.path(tmpdir1, "zaf_admin0.geojson"), quiet = TRUE) |>
     st_union() |>
-    st_as_sf() |>
-    vect()
+    st_as_sf()
 
-  return(country)
+  # Write to GeoParquet
+  out_file <- "data/raw/country.parquet"
+  sfarrow::st_write_parquet(country, out_file)
+  
+  return(out_file)
 }
 # end function
 

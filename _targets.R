@@ -27,10 +27,6 @@ library(filelock)#,lib.loc=Sys.getenv("R_LIBS_USER"))
 
 #If running this locally, make sure to set up github credentials using gitcreds::gitcreds_set()
 
-# Ensure things are clean
-#  unlink(file.path("data/temp/"), recursive = TRUE, force = TRUE)
-#  unlink(file.path("data/raw_data/", recursive = TRUE, force = TRUE))
-#  message(paste("Objects:",ls(),collapse = "\n"))
 
 # source all files in R folder
   lapply(list.files("R",pattern="[.]R",full.names = T), source)
@@ -41,24 +37,37 @@ library(filelock)#,lib.loc=Sys.getenv("R_LIBS_USER"))
 
  tar_option_set(
   packages = c("tidyverse", "stringr","knitr","sf","stars","units","geotargets",
-               "appeears", "terra"))
+               "appeears", "terra", "smoothr", "janitor", "sfarrow", "jsonlite"))
+
+               
 terraOptions(tempdir = "data/temp/terra", memfrac = 0.6)
 geotargets_option_set(
-  gdal_raster_driver = "GTiff",  
-  gdal_raster_creation_options = c("COMPRESS=DEFLATE", "ZLEVEL=9"),
-  gdal_vector_driver = "GPKG",
-  terra_preserve_metadata = "zip"  # Preserve names() and units() through cache
+  gdal_raster_driver = "netCDF",  
+  gdal_raster_creation_options = c("FORMAT=NC4", "COMPRESS=DEFLATE", "ZLEVEL=9"),
+  gdal_vector_driver = "GPKG"
 ) 
 
 ## Authenticate with AppEEARS
 source("R/appeears_auth.R") 
+
+# Ensure output directories exist
+dir.create("data/raw", recursive = TRUE, showWarnings = FALSE)
+dir.create("data/temp", recursive = TRUE, showWarnings = FALSE)
+dir.create("data/releases", recursive = TRUE, showWarnings = FALSE)
+
+
+# Ensure things are clean
+#  unlink(file.path("data/temp/"), recursive = TRUE, force = TRUE)
+#  unlink(file.path("data/raw_data/", recursive = TRUE, force = TRUE))
+#  message(paste("Objects:",ls(),collapse = "\n"))
+
 
 list(
 
 #   #Prep needed files # start
   tar_target(
     vegmap_shp, # 2018 National Vegetation Map http://bgis.sanbi.org/SpatialDataset/Detail/1674
-    "data/manual_download/VEGMAP2018_AEA_16082019Final/NVM2018_AEA_V22_7_16082019_final.shp",
+    "data/manual_download/NVM2024/NVM2024Final_IEM5_12_07012025.shp",
     format = "file"
   ),
 
@@ -75,26 +84,44 @@ list(
   ),
 
 
-  tar_terra_vect(
-    country.gpkg,
-    get_country()
+  tar_target(
+    country.parquet,
+    get_country(),
+    format = "file"
   ),
 
-  tar_terra_vect(
-    domain.gpkg,
-    domain_define(vegmap = vegmap_shp, country.gpkg)
+  tar_target(
+    domain.parquet,
+    domain_define(vegmap = vegmap_shp, country = country.parquet),
+    format = "file"
   ),
 
-  # Domain raster with metadata (names and units preserved via terra_preserve_metadata = "zip")
-  tar_terra_rast(
-    domain.tif,
-    domain_rasterize(domain = domain.gpkg, remnants_shp)
+  # Stable bounding box for downloads (50km buffer around domain)
+  # Never re-downloads unless manually invalidated, even if analysis domain changes
+  tar_target(
+    domain_bbox.parquet,
+    make_domain_bbox(domain.parquet, buffer_m = 50000),
+    format = "file",
+    cue = tar_cue(mode = "never")  # Never re-download RS data unless manually invalidated - changes in domain.parquet won't affect this. 
+  ),
+
+  # Domain raster with pixel IDs, remnants, and distance to remnants (NetCDF with CF-1.8 metadata)
+  tar_target(
+    domain_nc,
+    domain_rasterize(
+      domain = sfarrow::st_read_parquet(domain.parquet), 
+      remnants_shp = remnants_shp,
+      out_file = "data/raw/domain.nc"
+    ),
+    format = "file",
+    cue = tar_cue(mode = "never") #slow - restrict to manual updates
   ),
 
   # Vegetation map raster with metadata
   tar_terra_rast(
-    vegmap.tif,
-    data_vegmap(domain.tif, vegmap_shp)
+    vegmap.nc,
+    data_vegmap(domain_raster = terra::rast(domain_nc), vegmap_shp),
+    filetype = "netCDF"
   )#,
 # # # # Infrequent updates via releases
 
