@@ -25,6 +25,14 @@ library(filelock)#,lib.loc=Sys.getenv("R_LIBS_USER"))
     message(paste("Set working directory to:", getwd()))  
   }
 
+# Determine run mode: "prime" (full processing on server) or "update" (incremental on GitHub Actions)
+  run_mode <- if (Sys.getenv("GITHUB_ACTIONS") == "true") {
+    "update" # Run incremental updates on GitHub Actions
+  } else {
+    "prime"  # Default to prime meaning all targets are run
+  }
+  message(paste("Run mode:", run_mode))
+
 #If running this locally, make sure to set up github credentials using gitcreds::gitcreds_set()
 
 
@@ -81,26 +89,30 @@ list(
   tar_target(
     remnants_shp,
     "data/manual_download/RLE_2021_Remnants/RLE_Terr_2021_June2021_Remnants_ddw.shp",
-    format="file"
+    format="file",
+    cue = tar_cue(mode = if (run_mode == "prime") "thorough" else "never")
   ),
 
   tar_target(
     capenature_fires_shp,
     "data/manual_download/All_fires_23_24_gw/All_fires_23_24_gw.shp",
-    format="file"
+    format="file",
+    cue = tar_cue(mode = if (run_mode == "prime") "thorough" else "never")
   ),
 
 
   tar_target(
     country.parquet,
     get_country(),
-    format = "file"
+    format = "file",
+    cue = tar_cue(mode = if (run_mode == "prime") "thorough" else "never")
   ),
 
   tar_target(
     domain.parquet,
     domain_define(vegmap = vegmap_shp, country = country.parquet),
-    format = "file"
+    format = "file",
+    cue = tar_cue(mode = if (run_mode == "prime") "thorough" else "never")
   ),
 
   # Stable bounding box for downloads (50km buffer around domain)
@@ -121,14 +133,17 @@ list(
       out_file = "data/raw/domain.nc"
     ),
     format = "file",
-    cue = tar_cue(mode = "never") #slow - restrict to manual updates
+    cue = tar_cue(mode = if (run_mode == "prime") "thorough" else "never")
+     # tar_invalidate(domain_nc) # run this to force recompute
+
   ),
 
   # Vegetation map raster with metadata
-  tar_terra_rast(
+  tar_target(
     vegmap_nc,
     data_vegmap(domain_raster = terra::rast(domain_nc), vegmap_shp),
-    filetype = "netCDF"
+    format = "file",
+    cue = tar_cue(mode = if (run_mode == "prime") "thorough" else "never")
   )#,
 # # # # Infrequent updates via releases
 

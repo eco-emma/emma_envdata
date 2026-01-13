@@ -108,7 +108,7 @@ domain_rasterize <- function(domain, remnants_shp, dx = 250, dy = 250, out_file 
     name = "remnants",
     units = "dimensionless",
     dim = list(dim_x, dim_y),
-    longname = "Remnant vegetation indicator (1 = remnant, NA = not remnant)",
+    longname = "Remnant vegetation proportion (100 = full remnant, 5 = 5% remnant, NA = not remnant)",
     missval = -128,
     prec = "byte",
     compression = 9
@@ -125,6 +125,8 @@ domain_rasterize <- function(domain, remnants_shp, dx = 250, dy = 250, out_file 
   )
   
   # Create NetCDF file with all variables
+unlink(out_file)
+
   nc <- ncdf4::nc_create(
     filename = out_file,
     vars = list(var_domain, var_pid, var_remnants, var_dist),
@@ -156,11 +158,24 @@ domain_rasterize <- function(domain, remnants_shp, dx = 250, dy = 250, out_file 
   ncdf4::ncatt_put(nc, 0, "crs", as.character(crs(domain_raster)))
   ncdf4::ncatt_put(nc, 0, "Conventions", "CF-1.8")
   
-  # Add CRS variable for CF compliance
+  # Add complete CRS variable for CF compliance and GIS compatibility
   crs_var <- ncdf4::ncvar_def("crs", "", list(), prec = "integer")
   nc <- ncdf4::ncvar_add(nc, crs_var)
+  
+  # Get CRS details from terra
+  crs_wkt <- as.character(crs(domain_raster, proj = TRUE))
+  crs_proj4 <- as.character(crs(domain_raster, proj = TRUE, describe = TRUE)$proj4)
+  
+  # Add comprehensive CRS attributes
   ncdf4::ncatt_put(nc, "crs", "grid_mapping_name", "albers_conical_equal_area")
-  ncdf4::ncatt_put(nc, "crs", "spatial_ref", as.character(crs(domain_raster)))
+  ncdf4::ncatt_put(nc, "crs", "crs_wkt", crs_wkt)
+  ncdf4::ncatt_put(nc, "crs", "spatial_ref", crs_wkt)
+  ncdf4::ncatt_put(nc, "crs", "proj4", crs_proj4)
+  
+  # Add geotransform for GDAL compatibility
+  ext_vals <- ext(domain_raster)
+  geotransform <- paste(ext_vals$xmin, dx, 0, ext_vals$ymax, 0, -dy)
+  ncdf4::ncatt_put(nc, "crs", "geotransform", geotransform)
   
   # Add grid_mapping attribute to all data variables
   ncdf4::ncatt_put(nc, "domain", "grid_mapping", "crs")
