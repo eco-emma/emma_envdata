@@ -8,24 +8,17 @@
 #' @param verbose Logical for progress messages
 #' @return SpatRaster with elevation resampled to domain, with metadata
 
-get_release_elevation_nasadem_appears <- function(
+get_elevation <- function(
   domain_vector,
   domain_raster,
   temp_directory = "data/temp/raw_data/elevation_nasadem/",
+  out_file = "data/raw/elevation_nasadem.nc",
   verbose = TRUE
 ) {
 
-  # Package checks
-  required_pkgs <- c("appeears", "terra", "sf", "lubridate", "jsonlite")
-  missing <- required_pkgs[!sapply(required_pkgs, requireNamespace, quietly = TRUE)]
-  if (length(missing)) {
-    stop("Required packages missing: ", paste(missing, collapse = ", "))
-  }
 
   # Ensure clean temp directory
-  if (dir.exists(temp_directory)) {
-    unlink(temp_directory, recursive = TRUE, force = TRUE)
-  }
+  unlink(temp_directory, recursive = TRUE, force = TRUE)
   dir.create(temp_directory, recursive = TRUE, showWarnings = FALSE)
 
   # Clean terra temp
@@ -34,16 +27,17 @@ get_release_elevation_nasadem_appears <- function(
   dir.create(terra_tmp, recursive = TRUE, showWarnings = FALSE)
   terraOptions(tempdir = terra_tmp, memfrac = 0.8)
 
-  # Convert domain vector to sf and reproject to WGS84 (required by AppEEARS)
-  domain_sf <- st_as_sf(domain_vector)
-  domain_wgs84 <- st_transform(domain_sf, crs = 4326)
-  
-  # Write to GeoJSON and read back as plain list (avoids geo_list serialization issues)
-  aoi_path <- file.path(temp_directory, "aoi.geojson")
-  suppressWarnings(sf::st_write(domain_wgs84, aoi_path, driver = "GeoJSON", delete_dsn = TRUE, quiet = TRUE))
-  aoi_json <- jsonlite::read_json(aoi_path, simplifyVector = FALSE)
+  # Convert domain vector to sf, fix geometry, simplify, merge, and reproject to WGS84 (required by AppEEARS)
+  domain_sf <- st_as_sf(domain_vector) %>%
+    st_simplify(dTolerance = 100, preserveTopology = TRUE) %>%
+    st_buffer(0) %>%
+    st_make_valid() %>%
+    st_transform(crs = 4326)%>%
+    geojsonsf::sf_geojson(simplify = FALSE)%>%
+    jsonlite::fromJSON()
 
-  if (verbose) message("Submitting AppEEARS NASADEM request over domain polygon")
+#  if (!all(st_is_valid(st_as_sf(domain_sf)))) stop("Domain polygon still invalid after repair; inspect input geometry.")
+
 
   # Build AppEEARS request with proper structure
   req <- list(
@@ -62,17 +56,14 @@ get_release_elevation_nasadem_appears <- function(
         format = list(type = "netcdf4"),
         projection = "native"
       ),
-      geo = aoi_json
+      geo = domain_sf
     )
   )
-
-  # Convert request to JSON string (rs_request/task$download expect JSON text)
-  req_json <- jsonlite::toJSON(req, auto_unbox = TRUE)
 
   # Submit and poll for completion
   if (verbose) message("Submitting AppEEARS task...")
   task <- appeears::rs_request(
-    request = req_json, 
+    request = req, 
     user = Sys.getenv("EARTHDATA_USER"),
     path = temp_directory,
     transfer = FALSE,
@@ -83,7 +74,7 @@ get_release_elevation_nasadem_appears <- function(
 
   # Poll for completion using task object methods
   max_retries <- 60
-  retry_count <- 0
+  retry_count <- 10
   
   repeat {
     retry_count <- retry_count + 1
@@ -119,12 +110,16 @@ get_release_elevation_nasadem_appears <- function(
   if (verbose) message("Reading elevation data from: ", nc_paths[1])
   elev_raster <- terra::rast(nc_paths[grepl(nc_paths, pattern = "SRTMGL3_NC.003_90m_aid0001.nc")])
 
-  # Resample to domain grid using bilinear interpolation
-  if (verbose) message("Resampling elevation to domain grid")
-  elev_resampled <- terra::resample(elev_raster, domain_raster, method = "average")
+  # Ensure we have a SpatRaster template (accept path or raster)
+  domain_template <- if (is.character(domain_raster)) terra::rast(domain_raster) else domain_raster
+
+  # Project to domain CRS/grid (bilinear) and mask to domain
+  if (verbose) message("Projecting elevation to domain CRS/grid")
+  elev_on_grid <- terra::project(elev_raster, domain_template, method = "average")
 
   # Mask to domain (NA where domain is NA)
-  elev_masked <- terra::mask(elev_resampled, domain_raster)
+  mask_layer <- if ("domain" %in% names(domain_template)) domain_template[["domain"]] else domain_template
+  elev_masked <- terra::mask(elev_on_grid, mask_layer)
 
   # Set metadata
   names(elev_masked) <- "elevation"
@@ -138,13 +133,57 @@ get_release_elevation_nasadem_appears <- function(
     "Conventions" = "CF-1.8"
   )
 
+  # Write NetCDF with compression and CF metadata
+  dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+  out_file <- file.path(out_dir, "elevation_nasadem.nc")
+  unlink(out_file)
+
+  ext_vals <- ext(elev_masked)
+  dx <- res(elev_masked)[1]
+  dy <- res(elev_masked)[2]
+  x_vals <- seq(ext_vals$xmin + dx/2, ext_vals$xmax - dx/2, by = dx)
+  y_vals <- seq(ext_vals$ymax - dy/2, ext_vals$ymin + dy/2, by = -dy)
+
+  dim_x <- ncdf4::ncdim_def(name = "easting", units = "meter", vals = x_vals, longname = "easting")
+  dim_y <- ncdf4::ncdim_def(name = "northing", units = "meter", vals = y_vals, longname = "northing")
+
+  var_elev <- ncdf4::ncvar_def(
+    name = "elevation",
+    units = "meters",
+    dim = list(dim_x, dim_y),
+    longname = "NASADEM elevation above mean sea level",
+    missval = -3.4e38,
+    prec = "float",
+    compression = 9
+  )
+
+  nc <- ncdf4::nc_create(filename = out_file, vars = list(var_elev), force_v4 = TRUE)
+
+  elev_matrix <- t(as.matrix(elev_masked, wide = TRUE))
+  elev_matrix[is.na(elev_matrix)] <- -3.4e38
+  ncdf4::ncvar_put(nc, var_elev, elev_matrix)
+
+  crs_wkt <- as.character(crs(elev_masked))
+  crs_var <- ncdf4::ncvar_def("crs", "", list(), prec = "integer")
+  nc <- ncdf4::ncvar_add(nc, crs_var)
+  ncdf4::ncatt_put(nc, "crs", "crs_wkt", crs_wkt)
+  ncdf4::ncatt_put(nc, "crs", "spatial_ref", crs_wkt)
+  ncdf4::ncatt_put(nc, "crs", "GeoTransform", paste(ext_vals$xmin, dx, 0, ext_vals$ymax, 0, -dy))
+  ncdf4::ncatt_put(nc, "elevation", "grid_mapping", "crs")
+
+  ncdf4::ncatt_put(nc, 0, "title", "NASADEM elevation resampled to domain")
+  ncdf4::ncatt_put(nc, 0, "source", "NASADEM_HGT.001 via AppEEARS")
+  ncdf4::ncatt_put(nc, 0, "history", paste0("created: ", Sys.time()))
+  ncdf4::ncatt_put(nc, 0, "Conventions", "CF-1.8")
+
+  ncdf4::nc_close(nc)
+
   # Cleanup
   unlink(temp_directory, recursive = TRUE, force = TRUE)
   gc()
   unlink(terra_tmp, recursive = TRUE, force = TRUE)
 
-  if (verbose) message("Elevation data ready")
-  elev_masked
+  out_file
 }
 
 
