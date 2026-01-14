@@ -23,7 +23,7 @@ get_country <- function(){
     st_as_sf()
 
   # Write to GeoParquet
-  out_file <- "data/raw/country.parquet"
+  out_file <- "data/target_outputs/country.parquet"
   sfarrow::st_write_parquet(country, out_file)
   
   return(out_file)

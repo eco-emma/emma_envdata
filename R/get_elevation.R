@@ -74,7 +74,7 @@ get_elevation <- function(
 
   # Poll for completion using task object methods
   max_retries <- 60
-  retry_count <- 10
+  retry_count <- 0
   
   repeat {
     retry_count <- retry_count + 1
@@ -94,7 +94,7 @@ get_elevation <- function(
     }
     
     if (verbose) message("Task status: ", task$get_status(), " (", retry_count, "/", max_retries, ")")
-    Sys.sleep(10)
+    Sys.sleep(60)
   }
 
   # Download results
@@ -123,19 +123,18 @@ get_elevation <- function(
 
   # Set metadata
   names(elev_masked) <- "elevation"
-  units(elev_masked) <- "meters"
 
   metags(elev_masked) <- c(
     "elevation_long_name" = "NASADEM elevation above mean sea level",
     "elevation_source" = "NASADEM_HGT.001 via AppEEARS",
+    "units" = "meters",
     "date_generated" = as.character(Sys.time()),
-    "crs" = as.character(crs(elev_masked)),
+    "crs" = as.character(st_crs(elev_masked)),
     "Conventions" = "CF-1.8"
   )
 
-  # Write NetCDF with compression and CF metadata
-  dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
-  out_file <- file.path(out_dir, "elevation_nasadem.nc")
+ # Write NetCDF with compression and CF metadata
+  dir.create(dirname(out_file), recursive = TRUE, showWarnings = FALSE)
   unlink(out_file)
 
   ext_vals <- ext(elev_masked)
