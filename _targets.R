@@ -37,32 +37,42 @@ library(filelock)#,lib.loc=Sys.getenv("R_LIBS_USER"))
 
 
 # source all files in R folder
-  lapply(list.files("R",pattern="[.]R",full.names = T), source)
+  lapply(list.files("R",pattern="[.]R",full.names = T), function(x) {print(x); source(x)})
   message(paste("Objects:",ls(),collapse = "\n")) # To make sure all packages are loaded
 
 
   options(tidyverse.quiet = TRUE)
 
- tar_option_set(
-  packages = c("tidyverse", "stringr","knitr","sf","stars","units","geotargets",
-               "appeears", "terra", "smoothr", "janitor", "sfarrow", "jsonlite"))
+  # Ensure output directories exist early (before terra options)
+  dir.create("data/raw", recursive = TRUE, showWarnings = FALSE)
+  dir.create("data/temp", recursive = TRUE, showWarnings = FALSE)
+  dir.create("data/temp/terra", recursive = TRUE, showWarnings = FALSE)
+  dir.create("data/releases", recursive = TRUE, showWarnings = FALSE)
+  dir.create("data/target_outputs", recursive = TRUE, showWarnings = FALSE)
 
-# Ensure output directories exist early (before terra options)
-dir.create("data/raw", recursive = TRUE, showWarnings = FALSE)
-dir.create("data/temp", recursive = TRUE, showWarnings = FALSE)
-dir.create("data/temp/terra", recursive = TRUE, showWarnings = FALSE)
-dir.create("data/releases", recursive = TRUE, showWarnings = FALSE)
+  # Set up GitHub release repository for storing targets
+  gh_repo <- tar_github_release_repo(
+    repo = "AdamWilsonLab/emma_envdata",
+    tag = "objects_current",
+    format = "qs", # targets with format='file' will be uploaded in their native format
+    cache_dir = "data/target_outputs/.tar_cache" 
+  )
 
-terraOptions(tempdir = "data/temp/terra", memfrac = 0.6)
-geotargets_option_set(
-  gdal_raster_driver = "netCDF",  
-  gdal_raster_creation_options = c("FORMAT=NC4", "COMPRESS=DEFLATE", "ZLEVEL=9"),
-  gdal_vector_driver = "GPKG"
-) 
+  tar_option_set(
+    packages = c("tidyverse", "stringr","knitr","sf","stars","units","geotargets",
+                 "appeears", "terra", "smoothr", "janitor", "sfarrow", "jsonlite",
+                 "piggyback", "qs", "arrow")
+  )
 
-## Authenticate with AppEEARS
-source("R/appeears_auth.R")
+  terraOptions(tempdir = "data/temp/terra", memfrac = 0.6)
+  # geotargets_option_set(
+  #   gdal_raster_driver = "netCDF",  
+  #   gdal_raster_creation_options = c("FORMAT=NC4", "COMPRESS=DEFLATE", "ZLEVEL=9"),
+  #   gdal_vector_driver = "GPKG"
+  # ) 
 
+  ## Authenticate with AppEEARS
+  # source("R/appeears_auth.R")
 
 # Ensure things are clean
 #  unlink(file.path("data/temp/"), recursive = TRUE, force = TRUE)
@@ -121,6 +131,7 @@ list(
     domain_bbox.parquet,
     make_domain_bbox(domain.parquet, buffer_m = 50000),
     format = "file",
+    repository = gh_repo,
     cue = tar_cue(mode = "never")  # Never re-download RS data unless manually invalidated - changes in domain.parquet won't affect this. 
   ),
 
@@ -145,7 +156,7 @@ list(
                 vegmap_shp = vegmap_shp,
                 out_file = "data/raw/vegmap.nc"),
     format = "file",
-    cue = tar_cue(mode = if (run_mode == "prime") "thorough" else "never")),
+    cue = tar_cue(mode = if (run_mode == "prime") "thorough" else "never"))
 # # # # Infrequent updates via releases
 
 
@@ -181,18 +192,18 @@ list(
   #                             sleep_time = 180)
   #   ),
 
-  tar_target(
-    elevation,
-    get_elevation(
-      domain_vector = sfarrow::st_read_parquet(domain.parquet),
-      domain_raster = domain_nc,
-      temp_directory = "data/temp/raw_data/elevation_nasadem/",
-      out_file = "data/raw/elevation_nasadem.nc"
-    ),
-    format="file",
-    cue = tar_cue(mode = if (run_mode == "prime") "thorough" else "never"),
-    )
-#,
+#   tar_target(
+#     elevation,
+#     get_elevation(
+#       domain_vector = sfarrow::st_read_parquet(domain.parquet),
+#       domain_raster = domain_nc,
+#       temp_directory = "data/temp/raw_data/elevation_nasadem/",
+#       out_file = "data/raw/elevation_nasadem.nc"
+#     ),
+#     format="file",
+#     cue = tar_cue(mode = if (run_mode == "prime") "thorough" else "never"),
+#     )
+# #,
 
   #Temporarily commented out, seems to be an issue with URL for landcover data at present
   # tar_target(
