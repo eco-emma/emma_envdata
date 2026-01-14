@@ -47,7 +47,12 @@ library(filelock)#,lib.loc=Sys.getenv("R_LIBS_USER"))
   packages = c("tidyverse", "stringr","knitr","sf","stars","units","geotargets",
                "appeears", "terra", "smoothr", "janitor", "sfarrow", "jsonlite"))
 
-               
+# Ensure output directories exist early (before terra options)
+dir.create("data/raw", recursive = TRUE, showWarnings = FALSE)
+dir.create("data/temp", recursive = TRUE, showWarnings = FALSE)
+dir.create("data/temp/terra", recursive = TRUE, showWarnings = FALSE)
+dir.create("data/releases", recursive = TRUE, showWarnings = FALSE)
+
 terraOptions(tempdir = "data/temp/terra", memfrac = 0.6)
 geotargets_option_set(
   gdal_raster_driver = "netCDF",  
@@ -56,12 +61,7 @@ geotargets_option_set(
 ) 
 
 ## Authenticate with AppEEARS
-source("R/appeears_auth.R") 
-
-# Ensure output directories exist
-dir.create("data/raw", recursive = TRUE, showWarnings = FALSE)
-dir.create("data/temp", recursive = TRUE, showWarnings = FALSE)
-dir.create("data/releases", recursive = TRUE, showWarnings = FALSE)
+source("R/appeears_auth.R")
 
 
 # Ensure things are clean
@@ -83,7 +83,7 @@ list(
       shapefile_name = "NVM2024Final_IEM5_12_07012025.shp"
     ),
     format = "file",
-    cue = tar_cue(mode = "never")
+    cue = tar_cue(mode = if (run_mode == "prime") "thorough" else "never")
   ),
 
   tar_target(
@@ -141,10 +141,11 @@ list(
   # Vegetation map raster with metadata
   tar_target(
     vegmap_nc,
-    data_vegmap(domain_raster = terra::rast(domain_nc), vegmap_shp),
+    data_vegmap(domain_raster = domain_nc,
+                vegmap_shp = vegmap_shp,
+                out_file = "data/raw/vegmap.nc"),
     format = "file",
-    cue = tar_cue(mode = if (run_mode == "prime") "thorough" else "never")
-  )#,
+    cue = tar_cue(mode = if (run_mode == "prime") "thorough" else "never")),
 # # # # Infrequent updates via releases
 
 
@@ -180,12 +181,17 @@ list(
   #                             sleep_time = 180)
   #   ),
 
- # tar_target(
- #   elevation_nasadem_release,
- #   get_release_elevation_nasadem(temp_directory = "data/temp/raw_data/elevation_nasadem/",
- #                                 tag = "raw_static",
- #                                 domain)
- #   )
+  tar_target(
+    elevation,
+    get_elevation(
+      domain_vector = sfarrow::st_read_parquet(domain.parquet),
+      domain_raster = domain_nc,
+      temp_directory = "data/temp/raw_data/elevation_nasadem/",
+      out_file = "data/raw/elevation_nasadem.nc"
+    ),
+    format="file",
+    cue = tar_cue(mode = if (run_mode == "prime") "thorough" else "never"),
+    )
 #,
 
   #Temporarily commented out, seems to be an issue with URL for landcover data at present
@@ -227,7 +233,8 @@ list(
 #                                verbose = TRUE),
 #         age = as.difftime(7, units = "days")
 #         #age = as.difftime(1, units = "days")
-#         #age = as.difftime(0, units = "hours")
+#         #age = as.difftime(0, units = "hours"),
+#  cue = tar_cue(mode = if (run_mode == "update") "always" else "thorough")
 #       ),
 
 #     tar_age(
@@ -507,8 +514,3 @@ list(
 
 )
 
-
-
-
-
-################################################################################

@@ -13,15 +13,19 @@
 
 domain_rasterize <- function(domain, remnants_shp, dx = 250, dy = 250, out_file = "data/raw/domain.nc") {
 
-  # Generate raster version of domain
-  domain_template <- st_as_stars(st_bbox(domain), dx = dx, dy = dy)
+  # Generate raster template and rasterize domain with terra (touches = TRUE)
+  domain_template <- rast(st_as_stars(st_bbox(domain), dx = dx, dy = dy))
 
-# rasterize domain
   domain_raster <- domain %>%
     st_as_sf() %>%
     mutate(domain = 1) %>%
-    st_rasterize(template = domain_template) %>%
-    rast()
+    vect() %>%
+    terra::rasterize(
+      x = .,
+      y = domain_template,
+      field = "domain",
+      touches = TRUE
+    )
   
   # Ensure pixels outside domain are NA (not 0)
   domain_raster[domain_raster == 0] <- NA
@@ -134,16 +138,17 @@ unlink(out_file)
   )
   
   # Convert rasters to matrices and replace NAs with fill values
-  domain_matrix <- as.matrix(layers$domain, wide = TRUE)
+  # Note: as.matrix() from terra returns (nrow, ncol), but ncdf4 expects (ncol, nrow) for (x, y) dims
+  domain_matrix <- t(as.matrix(layers$domain, wide = TRUE))
   domain_matrix[is.na(domain_matrix)] <- -128
   
-  pid_matrix <- as.matrix(layers$pid, wide = TRUE)
+  pid_matrix <- t(as.matrix(layers$pid, wide = TRUE))
   pid_matrix[is.na(pid_matrix)] <- -2147483648
   
-  remnants_matrix <- as.matrix(layers$remnants, wide = TRUE)
+  remnants_matrix <- t(as.matrix(layers$remnants, wide = TRUE))
   remnants_matrix[is.na(remnants_matrix)] <- -128
   
-  dist_matrix <- as.matrix(layers$remnants_distance, wide = TRUE)
+  dist_matrix <- t(as.matrix(layers$remnants_distance, wide = TRUE))
   dist_matrix[is.na(dist_matrix)] <- -2147483648
   
   # Write data to variables
@@ -155,27 +160,24 @@ unlink(out_file)
   # Add global attributes
   ncdf4::ncatt_put(nc, 0, "title", "Rasterized domain with remnants and distance")
   ncdf4::ncatt_put(nc, 0, "history", paste0("created: ", Sys.time()))
-  ncdf4::ncatt_put(nc, 0, "crs", as.character(crs(domain_raster)))
   ncdf4::ncatt_put(nc, 0, "Conventions", "CF-1.8")
   
-  # Add complete CRS variable for CF compliance and GIS compatibility
+  # Add CRS variable with comprehensive attributes for GIS compatibility
   crs_var <- ncdf4::ncvar_def("crs", "", list(), prec = "integer")
   nc <- ncdf4::ncvar_add(nc, crs_var)
   
-  # Get CRS details from terra
-  crs_wkt <- as.character(crs(domain_raster, proj = TRUE))
-  crs_proj4 <- as.character(crs(domain_raster, proj = TRUE, describe = TRUE)$proj4)
+  # Get CRS as WKT string (most reliable for terra)
+  crs_wkt <- as.character(crs(domain_raster))
   
-  # Add comprehensive CRS attributes
+  # Add CRS attributes
   ncdf4::ncatt_put(nc, "crs", "grid_mapping_name", "albers_conical_equal_area")
   ncdf4::ncatt_put(nc, "crs", "crs_wkt", crs_wkt)
   ncdf4::ncatt_put(nc, "crs", "spatial_ref", crs_wkt)
-  ncdf4::ncatt_put(nc, "crs", "proj4", crs_proj4)
   
   # Add geotransform for GDAL compatibility
   ext_vals <- ext(domain_raster)
   geotransform <- paste(ext_vals$xmin, dx, 0, ext_vals$ymax, 0, -dy)
-  ncdf4::ncatt_put(nc, "crs", "geotransform", geotransform)
+  ncdf4::ncatt_put(nc, "crs", "GeoTransform", geotransform)
   
   # Add grid_mapping attribute to all data variables
   ncdf4::ncatt_put(nc, "domain", "grid_mapping", "crs")
@@ -187,4 +189,10 @@ unlink(out_file)
   ncdf4::nc_close(nc)
 
   out_file
+}
+
+
+if(F){
+test=rast(out_file)
+plot(test$domain)
 }

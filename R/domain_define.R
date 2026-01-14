@@ -29,9 +29,8 @@ vegmap_buffer = vegmap_union %>%
   smooth(method="ksmooth",smoothness=120) #%>%
 
 country= st_as_sf(country) %>%
-  st_transform(crs=st_crs(vegmap_buffer)) %>%
-  st_buffer(500) # small buffer to fix potential topology issues
-
+  st_transform(crs=st_crs(vegmap_buffer)) 
+  
   domain <-
     vegmap_buffer %>%
     st_intersection(st_transform(country,crs=st_crs(vegmap_union))) %>%  #only keep land areas of buffer - no ocean
