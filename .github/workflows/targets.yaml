@@ -90,9 +90,8 @@ jobs:
           restore-keys: targets-
       - name: Run targets pipeline
         run: |
-          Rscript -e "targets::tar_make()" 2>&1 | tee targets-output.log || echo "tar_make failed, see log above"
-        shell: bash
-        continue-on-error: true        
+          Rscript -e "targets::tar_make()" 2>&1 | tee targets-output.log
+        shell: bash        
       - name: Export final data products to releases
         if: github.ref == 'refs/heads/main'
         run: |

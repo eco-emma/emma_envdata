@@ -2,6 +2,7 @@ message("Starting tar_make()")
 print("Starting tar_make() - print")
 
 library(targets)
+library(qs)
 library(tarchetypes)
 library(geotargets)
 library(visNetwork)
@@ -50,18 +51,34 @@ library(filelock)#,lib.loc=Sys.getenv("R_LIBS_USER"))
   dir.create("data/releases", recursive = TRUE, showWarnings = FALSE)
   dir.create("data/target_outputs", recursive = TRUE, showWarnings = FALSE)
 
-  # Set up GitHub release repository for storing targets
-  gh_repo <- tar_github_release_repo(
+  # GitHub release repository configuration
+  gh_repo_config <- list(
     repo = "AdamWilsonLab/emma_envdata",
     tag = "objects_current",
-    format = "qs", # targets with format='file' will be uploaded in their native format
-    cache_dir = "data/target_outputs/.tar_cache" 
+    format = "qs",
+    cache_dir = "data/target_outputs/.tar_cache"
+  )
+
+  # Set up GitHub release repository for storing targets
+  gh_repo <- tar_github_release_repo(
+    repo = gh_repo_config$repo,
+    tag = gh_repo_config$tag,
+    format = gh_repo_config$format,
+    cache_dir = gh_repo_config$cache_dir
   )
 
   tar_option_set(
     packages = c("tidyverse", "stringr","knitr","sf","stars","units","geotargets",
                  "appeears", "terra", "smoothr", "janitor", "sfarrow", "jsonlite",
-                 "piggyback", "qs", "arrow")
+                 "piggyback", "qs", "arrow"),
+    resources = tar_resources(
+      repository_cas = tar_github_release_resources(
+        repo = gh_repo_config$repo,
+        tag = gh_repo_config$tag,
+        format = gh_repo_config$format,
+        cache_dir = gh_repo_config$cache_dir
+      )
+    )
   )
 
   terraOptions(tempdir = "data/temp/terra", memfrac = 0.6)
@@ -129,7 +146,7 @@ list(
   # Never re-downloads unless manually invalidated, even if analysis domain changes
   tar_target(
     domain_bbox.parquet,
-    make_domain_bbox(domain.parquet, buffer_m = 50000),
+    make_domain_bbox(domain.parquet, buffer_m = 50000, out_file = "data/target_outputs/domain_bbox.parquet"),
     format = "file",
     repository = gh_repo,
     cue = tar_cue(mode = "never")  # Never re-download RS data unless manually invalidated - changes in domain.parquet won't affect this. 
