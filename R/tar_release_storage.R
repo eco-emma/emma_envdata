@@ -75,19 +75,44 @@ tar_github_release_repo <- function(
       
       if (file.exists(path) && !dir.exists(path)) {
         message("[tar_github_release] Uploading file: ", key)
-        tryCatch({
-          piggyback::pb_upload(
-            file = path,
-            repo = repo,
-            tag = tag,
-            name = key,
-            overwrite = TRUE,
-            .token = NULL
-          )
-          message("[tar_github_release] File uploaded: ", key)
+        
+        # Get credentials
+        creds <- tryCatch({
+          gitcreds::gitcreds_get()
         }, error = function(e) {
-          stop("[tar_github_release] Failed to upload file: ", conditionMessage(e))
+          message("[tar_github_release] No git credentials found, trying without token")
+          NULL
         })
+        
+        token <- if (!is.null(creds)) creds$password else NULL
+        
+        max_attempts <- 3
+        uploaded <- FALSE
+        
+        for (attempt in 1:max_attempts) {
+          tryCatch({
+            piggyback::pb_upload(
+              file = path,
+              repo = repo,
+              tag = tag,
+              name = key,
+              overwrite = TRUE,
+              .token = token
+            )
+            message("[tar_github_release] File uploaded successfully: ", key)
+            # Give GitHub time to process the file
+            Sys.sleep(1)
+            uploaded <- TRUE
+            return(invisible())
+          }, error = function(e) {
+            message("[tar_github_release] Upload attempt ", attempt, " failed: ", conditionMessage(e))
+            if (attempt < max_attempts) {
+              Sys.sleep(2)
+            } else {
+              stop("[tar_github_release] Failed to upload file after ", max_attempts, " attempts: ", conditionMessage(e))
+            }
+          })
+        }
       } else {
         obj <- readRDS(path)
         temp_file <- tempfile(fileext = paste0(".", format))
@@ -206,12 +231,18 @@ tar_github_release_repo <- function(
       repo <- Sys.getenv("TAR_GH_RELEASE_REPO")
       tag <- Sys.getenv("TAR_GH_RELEASE_TAG")
       
-      tryCatch({
-        assets <- piggyback::pb_list(repo = repo, tag = tag)
-        any(assets$file_name == key)
-      }, error = function(e) {
-        FALSE
-      })
+      # Retry a few times in case file was just uploaded
+      for (attempt in 1:3) {
+        tryCatch({
+          assets <- piggyback::pb_list(repo = repo, tag = tag)
+          found <- any(assets$file_name == key)
+          if (found) return(TRUE)
+          if (attempt < 3) Sys.sleep(1)
+        }, error = function(e) {
+          if (attempt < 3) Sys.sleep(1)
+        })
+      }
+      FALSE
     }
   )
 }
