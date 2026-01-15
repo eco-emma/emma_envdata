@@ -10,6 +10,8 @@ library(rdryad)
 library(appeears)#,lib.loc=Sys.getenv("R_LIBS_USER"))
 library(keyring)#,lib.loc=Sys.getenv("R_LIBS_USER"))
 library(filelock)#,lib.loc=Sys.getenv("R_LIBS_USER"))
+library(arrow)
+library(sfarrow)
 
 #if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes") 
 #remotes::install_deps(dependencies = TRUE)
@@ -149,7 +151,7 @@ list(
     make_domain_bbox(domain.parquet, buffer_m = 50000, out_file = "data/target_outputs/domain_bbox.parquet"),
     format = "file",
     repository = gh_repo,
-    cue = tar_cue(mode = "never")  # Never re-download RS data unless manually invalidated - changes in domain.parquet won't affect this. 
+    cue = tar_cue(mode = if (run_mode == "prime") "thorough" else "never")
   ),
 
   # Domain raster with pixel IDs, remnants, and distance to remnants (NetCDF with CF-1.8 metadata)
