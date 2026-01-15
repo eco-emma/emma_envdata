@@ -181,7 +181,7 @@ jobs:
           3. Close this PR once resolved" \
             --base main \
             --head "$BRANCH" \
-            --label "bug,auto-generated"
+            --label "bug"
       
       - name: Post failure artifact
         if: failure()
