@@ -129,17 +129,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
-      - name: Prepare failure artifact
-        if: failure()
-        run: rm -rf .git .github
-      
-      - name: Post failure artifact
-        if: failure()
-        uses: actions/upload-artifact@main
-        with:
-          name: ${{ runner.os }}-results
-          path: .
-
       - name: Create review PR on failure
         if: failure() && github.event_name == 'push'
         env:
@@ -187,6 +176,17 @@ jobs:
             --base main \
             --head "$BRANCH" \
             --label "bug,auto-generated"
+      
+      - name: Post failure artifact
+        if: failure()
+        uses: actions/upload-artifact@main
+        with:
+          name: ${{ runner.os }}-results
+          path: .
+      
+      - name: Prepare failure artifact
+        if: failure()
+        run: rm -rf .git .github
       
       - name: Comment on existing PR with status
         if: always() && github.event_name == 'pull_request'

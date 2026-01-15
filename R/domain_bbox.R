@@ -11,6 +11,24 @@ make_domain_bbox <- function(domain_parquet, buffer_m = 50000, out_file = "data/
   domain_sf <- sfarrow::st_read_parquet(domain_parquet)
   bbox_geom <- domain_sf |> sf::st_bbox() |> sf::st_as_sfc() |> sf::st_buffer(buffer_m)
   bbox_sf <- sf::st_as_sf(bbox_geom)
-  sfarrow::st_write_parquet(bbox_sf, out_file)
+  
+  # Ensure directory exists
+  dir.create(dirname(out_file), recursive = TRUE, showWarnings = FALSE)
+  
+  # Try writing with sfarrow, fall back to sf::st_write if needed
+  tryCatch({
+    sfarrow::st_write_parquet(bbox_sf, out_file)
+    message("[domain_bbox] Wrote with sfarrow: ", out_file)
+  }, error = function(e) {
+    message("[domain_bbox] sfarrow failed, trying sf::st_write: ", conditionMessage(e))
+    sf::st_write(bbox_sf, out_file, quiet = TRUE, delete_dsn = TRUE)
+  })
+  
+  # Verify file exists
+  if (!file.exists(out_file)) {
+    stop("[domain_bbox] Failed to create output file: ", out_file)
+  }
+  
+  message("[domain_bbox] File created: ", out_file, " (", file.size(out_file), " bytes)")
   out_file
 }

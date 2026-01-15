@@ -101,7 +101,7 @@ tar_github_release_repo <- function(
             )
             message("[tar_github_release] File uploaded successfully: ", key)
             # Give GitHub time to process the file
-            Sys.sleep(1)
+            Sys.sleep(3)
             uploaded <- TRUE
             return(invisible())
           }, error = function(e) {
@@ -231,15 +231,22 @@ tar_github_release_repo <- function(
       repo <- Sys.getenv("TAR_GH_RELEASE_REPO")
       tag <- Sys.getenv("TAR_GH_RELEASE_TAG")
       
-      # Retry a few times in case file was just uploaded
-      for (attempt in 1:3) {
+      # Retry up to 10 times in case file was just uploaded
+      for (attempt in 1:10) {
         tryCatch({
           assets <- piggyback::pb_list(repo = repo, tag = tag)
           found <- any(assets$file_name == key)
-          if (found) return(TRUE)
-          if (attempt < 3) Sys.sleep(1)
+          if (found) {
+            message("[tar_github_release] Confirmed exists: ", key, " (attempt ", attempt, ")")
+            return(TRUE)
+          }
+          if (attempt < 10) {
+            Sys.sleep(2)
+          }
         }, error = function(e) {
-          if (attempt < 3) Sys.sleep(1)
+          if (attempt < 10) {
+            Sys.sleep(2)
+          }
         })
       }
       FALSE

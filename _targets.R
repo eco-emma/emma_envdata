@@ -178,7 +178,7 @@ list(
                 vegmap_shp = vegmap_shp,
                 out_file = "data/raw/vegmap.nc"),
     format = "file",
-    cue = tar_cue(mode = if (run_mode == "prime") "thorough" else "never"))
+    cue = tar_cue(mode = if (run_mode == "prime") "thorough" else "never")),
 # # # # Infrequent updates via releases
 
 
@@ -214,18 +214,18 @@ list(
   #                             sleep_time = 180)
   #   ),
 
-#   tar_target(
-#     elevation,
-#     get_elevation(
-#       domain_vector = sfarrow::st_read_parquet(domain.parquet),
-#       domain_raster = domain_nc,
-#       temp_directory = "data/temp/raw_data/elevation_nasadem/",
-#       out_file = "data/raw/elevation_nasadem.nc"
-#     ),
-#     format="file",
-#     cue = tar_cue(mode = if (run_mode == "prime") "thorough" else "never"),
-#     )
-# #,
+  tar_target(
+    elevation,
+    get_elevation(
+      domain_vector = sfarrow::st_read_parquet(domain.parquet),
+      domain_raster = domain_nc,
+      temp_directory = "data/temp/raw_data/elevation_nasadem/",
+      out_file = "data/raw/elevation_nasadem.nc"
+    ),
+    format="file",
+    cue = tar_cue(mode = if (run_mode == "prime") "thorough" else "never"),
+    )
+#,
 
   #Temporarily commented out, seems to be an issue with URL for landcover data at present
   # tar_target(
