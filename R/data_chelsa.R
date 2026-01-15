@@ -9,7 +9,7 @@ library(ncdf4)
 #' @param domain domain (sf polygon) used for masking
 #' @param tag Tag for the release
 #' @import terra
-get_release_climate_chelsa <- function(temp_directory = "data/temp/raw_data/climate_chelsa/",
+get_chelsa <- function(temp_directory = "data/temp/raw_data/climate_chelsa/",
                                        tag = "raw_static",
                                        domain){
 
