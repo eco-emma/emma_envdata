@@ -1,0 +1,171 @@
+Starting tar_make()
+[1] "Starting tar_make() - print"
+qs 0.27.3. Announcement: https://github.com/qsbase/qs/issues/103
+Registered S3 method overwritten by 'httr':
+  method           from  
+  print.cache_info hoardr
+
+Attaching package: ‘arrow’
+
+The following object is masked from ‘package:utils’:
+
+    timestamp
+
+System info: sysname=Linux; release=6.11.0-1018-azure; version=#18~24.04.1-Ubuntu SMP Sat Jun 28 04:46:03 UTC 2025; nodename=82d8709b10f5; machine=x86_64; login=unknown; user=root; effective_user=root
+Run mode: update
+[1] "R/appeears_auth.R"
+Setting up NASA EarthData authentication (keyring file backend)
+AppEEARS authentication configured
+[1] "R/data_chelsa.R"
+terra 1.8.86
+
+Attaching package: ‘terra’
+
+The following object is masked from ‘package:arrow’:
+
+    buffer
+
+[1] "R/data_vegmap.R"
+[1] "R/domain_bbox.R"
+[1] "R/domain_define_bioscape.R"
+[1] "R/domain_define.R"
+[1] "R/domain_figures.R"
+[1] "R/domain_rasterize.R"
+[1] "R/download_vegmap_release.R"
+[1] "R/functions.R"
+[1] "R/get_country.R"
+[1] "R/get_elevation.R"
+[1] "R/get_release_alos.R"
+[1] "R/get_release_climate_chelsa.R"
+[1] "R/get_release_clouds_wilson.R"
+[1] "R/get_release_fire_modis_appeears.R"
+[1] "R/get_release_landcover_za.R"
+[1] "R/get_release_ndvi_evi_modis_appeears.R"
+[1] "R/get_release_ndvi_viirs_appeears.R"
+[1] "R/get_release_precipitation_chelsa.R"
+[1] "R/get_release_soil_gcfr.R"
+[1] "R/get_release_template_raster.R"
+── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+✔ dplyr     1.1.4     ✔ readr     2.1.5
+✔ forcats   1.0.1     ✔ stringr   1.6.0
+✔ ggplot2   4.0.0     ✔ tibble    3.3.0
+✔ lubridate 1.9.4     ✔ tidyr     1.3.1
+✔ purrr     1.2.0     
+── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+✖ lubridate::duration()   masks arrow::duration()
+✖ tidyr::extract()        masks terra::extract()
+✖ dplyr::filter()         masks stats::filter()
+✖ readr::guess_encoding() masks rvest::guess_encoding()
+✖ dplyr::lag()            masks stats::lag()
+ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
+[1] "R/git_functions.R"
+[1] "R/model_data.R"
+[1] "R/process_dynamic_data.R"
+[1] "R/process_fix_modis_NDVI_release_extent.R"
+[1] "R/process_fix_modis_projection.R"
+[1] "R/process_fix_modis_release_extent.R"
+[1] "R/process_fix_modis_release_projection_and_extent.R"
+[1] "R/process_fix_modis_release_projection.R"
+[1] "R/process_release_alos.R"
+[1] "R/process_release_burn_date_to_last_burned_date.R"
+Linking to GEOS 3.12.1, GDAL 3.8.4, PROJ 9.4.0; sf_use_s2() is TRUE
+[1] "R/process_release_climate_chelsa.R"
+[1] "R/process_release_clouds_wilson.R"
+[1] "R/process_release_dynamic_data_to_parquet.R"
+[1] "R/process_release_elevation_nasadem.R"
+[1] "R/process_release_fire_doy_to_unix_date.R"
+[1] "R/process_release_landcover_za.R"
+[1] "R/process_release_ndvi_relative_days_since_fire.R"
+[1] "R/process_release_precipitation_chelsa.R"
+[1] "R/process_release_protected_area_distance.R"
+udunits database from /usr/share/xml/udunits/udunits2.xml
+[1] "R/process_release_soil_gcfr.R"
+[1] "R/process_release_stable_data.R"
+[1] "R/process_stable_data.R"
+[1] "R/release_data.R"
+[1] "R/robust_download_file.R"
+[1] "R/robust_pb_download.R"
+[1] "R/robust_pb_upload.R"
+[1] "R/tar_release_storage.R"
+[1] "R/vegetation_map.R"
+Objects: clean_data
+Objects: data_vegmap
+Objects: domain_define
+Objects: domain_map
+Objects: domain_rasterize
+Objects: download_vegmap_release
+Objects: earthdata_pass
+Objects: earthdata_user
+Objects: existing_kr
+Objects: fit_model
+Objects: get_alos_data
+Objects: get_chelsa
+Objects: get_country
+Objects: get_elevation
+Objects: get_model_data
+Objects: get_release_alos
+Objects: get_release_climate_chelsa
+Objects: get_release_clouds_wilson
+Objects: get_release_fire_modis_appeears
+Objects: get_release_landcover_za
+Objects: get_release_ndvi_evi_modis_appeears
+Objects: get_release_ndvi_viirs_appeears
+Objects: get_release_precipitation_chelsa
+Objects: get_release_soil_gcfr
+Objects: get_release_template_raster
+Objects: get_vegmap
+Objects: group_data_function
+Objects: kr_name
+Objects: kr_pwd
+Objects: make_domain_bbox
+Objects: max_layers
+Objects: process_dynamic_data_to_parquet
+Objects: process_fix_modis_NDVI_release_extent
+Objects: process_fix_modis_projection
+Objects: process_fix_modis_release_extent
+Objects: process_fix_modis_release_projection
+Objects: process_fix_modis_release_projection_and_extent
+Objects: process_release_alos
+Objects: process_release_burn_date_to_last_burned_date
+Objects: process_release_climate_chelsa
+Objects: process_release_clouds_wilson
+Objects: process_release_dynamic_data_to_parquet
+Objects: process_release_elevation_nasadem
+Objects: process_release_fire_doy_to_unix_date
+Objects: process_release_landcover_za
+Objects: process_release_ndvi_relative_days_since_fire
+Objects: process_release_precipitation_chelsa
+Objects: process_release_protected_area_distance
+Objects: process_release_soil_gcfr
+Objects: process_release_stable_data
+Objects: process_stable_data
+Objects: release_data
+Objects: robust_download_file
+Objects: robust_max
+Objects: robust_min
+Objects: robust_pb_download
+Objects: robust_pb_download_solo
+Objects: robust_pb_upload
+Objects: rstoken
+Objects: run_mode
+Objects: sleep_time
+Objects: spatial_outputs
+Objects: stan_data_function
+Objects: summarize_posteriors
+Objects: sys_info
+Objects: tag
+Objects: tar_github_release_repo
+Objects: tar_github_release_resources
+Objects: temp_directory
+Objects: update_git
+Objects: verbose
++ vegmap_shp dispatched
+Downloading vegmap from GitHub release using piggyback...
+Unzipping vegmap...
+✖ vegmap_shp errored
+✖ errored pipeline [20.4s, 0 completed, 1 skipped]
+Error:
+! Error in tar_make():
+  Error resolving output location: missing files: data/manual_download/NVM2024/shapefile/NVM2024Final_IEM5_12_07012025.shp
+  See https://books.ropensci.org/targets/debugging.html
+Execution halted
