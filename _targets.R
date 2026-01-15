@@ -29,7 +29,10 @@ library(sfarrow)
   }
 
 # Determine run mode: "prime" (full processing on server) or "update" (incremental on GitHub Actions)
-  run_mode <- if (Sys.getenv("GITHUB_ACTIONS") == "true") {
+  github_actions_env <- Sys.getenv("GITHUB_ACTIONS")
+  message(paste("GITHUB_ACTIONS env var:", github_actions_env, "| length:", nchar(github_actions_env)))
+  
+  run_mode <- if (tolower(github_actions_env) == "true") {
     "update" # Run incremental updates on GitHub Actions
   } else {
     "prime"  # Default to prime meaning all targets are run
