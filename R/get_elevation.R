@@ -1,43 +1,24 @@
-#' @title Download NASADEM elevation via AppEEARS and resample to domain
+#' @title Submit NASADEM elevation request via AppEEARS
 #' @description Submits an AppEEARS area request for NASADEM elevation data
-#' over the provided domain polygon, downloads, and resamples to domain grid.
+#' over the provided domain polygon. Returns task ID for polling.
 #' @author EMMA Team
 #' @param domain_vector A SpatVector or sf polygon defining the domain boundary
-#' @param domain_raster A SpatRaster (domain.tif) defining the output grid and mask
-#' @param temp_directory Temporary working directory for downloads
 #' @param verbose Logical for progress messages
-#' @return SpatRaster with elevation resampled to domain, with metadata
+#' @return Character string with AppEEARS task ID
 
-get_elevation <- function(
+submit_elevation_task <- function(
   domain_vector,
-  domain_raster,
-  temp_directory = "data/temp/raw_data/elevation_nasadem/",
-  out_file = "data/raw/elevation_nasadem.nc",
   verbose = TRUE
 ) {
-
-
-  # Ensure clean temp directory
-  unlink(temp_directory, recursive = TRUE, force = TRUE)
-  dir.create(temp_directory, recursive = TRUE, showWarnings = FALSE)
-
-  # Clean terra temp
-  terra_tmp <- file.path(getwd(), "data/temp/terra")
-  unlink(terra_tmp, recursive = TRUE, force = TRUE)
-  dir.create(terra_tmp, recursive = TRUE, showWarnings = FALSE)
-  terraOptions(tempdir = terra_tmp, memfrac = 0.8)
-
+  
   # Convert domain vector to sf, fix geometry, simplify, merge, and reproject to WGS84 (required by AppEEARS)
   domain_sf <- st_as_sf(domain_vector) %>%
     st_simplify(dTolerance = 100, preserveTopology = TRUE) %>%
     st_buffer(0) %>%
     st_make_valid() %>%
-    st_transform(crs = 4326)%>%
-    geojsonsf::sf_geojson(simplify = FALSE)%>%
+    st_transform(crs = 4326) %>%
+    geojsonsf::sf_geojson(simplify = FALSE) %>%
     jsonlite::fromJSON()
-
-#  if (!all(st_is_valid(st_as_sf(domain_sf)))) stop("Domain polygon still invalid after repair; inspect input geometry.")
-
 
   # Build AppEEARS request with proper structure
   req <- list(
@@ -60,46 +41,96 @@ get_elevation <- function(
     )
   )
 
-  # Submit and poll for completion
-  if (verbose) message("Submitting AppEEARS task...")
+  # Submit task
+  if (verbose) message("Submitting AppEEARS elevation task...")
   task <- appeears::rs_request(
-    request = req, 
+    request = req,
     user = Sys.getenv("EARTHDATA_USER"),
-    path = temp_directory,
     transfer = FALSE,
     verbose = verbose
   )
   
-  if (verbose) message("Task submitted: ", task$get_task_id())
+  task_id <- task$get_task_id()
+  if (verbose) message("Task submitted with ID: ", task_id)
+  
+  task_id
+}
 
-  # Poll for completion using task object methods
-  max_retries <- 60
+
+#' @title Download and process NASADEM elevation from AppEEARS
+#' @description Polls for completion of AppEEARS task and downloads results,
+#' then resamples elevation to domain grid and writes to NetCDF.
+#' @author EMMA Team
+#' @param task_id Character string with AppEEARS task ID (from submit_elevation_task)
+#' @param domain_vector A SpatVector or sf polygon defining the domain boundary
+#' @param domain_raster A SpatRaster (domain.tif) defining the output grid and mask
+#' @param out_file Output NetCDF file path
+#' @param temp_directory Temporary working directory for downloads
+#' @param verbose Logical for progress messages
+#' @return Character path to output NetCDF file
+
+download_elevation_results <- function(
+  task_id,
+  domain_vector,
+  domain_raster,
+  out_file = "data/target_outputs/elevation_nasadem.nc",
+  temp_directory = "data/temp/raw_data/elevation_nasadem/",
+  verbose = TRUE
+) {
+  
+  # Ensure clean temp directory
+  unlink(temp_directory, recursive = TRUE, force = TRUE)
+  dir.create(temp_directory, recursive = TRUE, showWarnings = FALSE)
+
+  # Clean terra temp
+  terra_tmp <- file.path(getwd(), "data/temp/terra")
+  unlink(terra_tmp, recursive = TRUE, force = TRUE)
+  dir.create(terra_tmp, recursive = TRUE, showWarnings = FALSE)
+  terraOptions(tempdir = terra_tmp, memfrac = 0.8)
+
+  # Reconnect to task and poll for completion
+  if (verbose) message("Polling task ", task_id, " for completion...")
+  
+  # Poll for task completion using rs_list_task
+  max_retries <- 120  # 2 hours at 60s intervals
   retry_count <- 0
+  task_status <- "pending"
   
   repeat {
     retry_count <- retry_count + 1
-    task$update_status(verbose = FALSE)
     
-    if (task$is_success()) {
+    # Check task status
+    task_info <- appeears::rs_list_task(task_id = task_id, user = Sys.getenv("EARTHDATA_USER"))
+    task_status <- task_info$status
+    
+    if (task_status == "done") {
       if (verbose) message("Task completed successfully")
       break
     }
     
-    if (task$is_failed()) {
-      stop("AppEEARS task failed")
+    if (task_status %in% c("failed", "error")) {
+      stop("AppEEARS task ", task_id, " failed with status: ", task_status)
     }
     
     if (retry_count >= max_retries) {
-      stop("Task polling timed out after ", max_retries * 10, " seconds")
+      stop("Task ", task_id, " polling timed out after ", max_retries, " minutes")
     }
     
-    if (verbose) message("Task status: ", task$get_status(), " (", retry_count, "/", max_retries, ")")
+    if (verbose && retry_count %% 10 == 0) {
+      message("Task status: ", task_status, " (", retry_count, "/", max_retries, ")")
+    }
+    
     Sys.sleep(60)
   }
 
-  # Download results
-  if (verbose) message("Downloading files for task: ", task$get_task_id())
-  task$download(verbose = verbose)
+  # Download results using rs_transfer
+  if (verbose) message("Downloading files for task: ", task_id)
+  appeears::rs_transfer(
+    task_id = task_id,
+    user = Sys.getenv("EARTHDATA_USER"),
+    path = temp_directory,
+    verbose = verbose
+  )
   
   # Load the NetCDF file
   nc_paths <- list.files(temp_directory, pattern = "\\.nc$", full.names = TRUE, recursive = TRUE)
@@ -113,7 +144,7 @@ get_elevation <- function(
   # Ensure we have a SpatRaster template (accept path or raster)
   domain_template <- if (is.character(domain_raster)) terra::rast(domain_raster) else domain_raster
 
-  # Project to domain CRS/grid (bilinear) and mask to domain
+  # Project to domain CRS/grid and mask to domain
   if (verbose) message("Projecting elevation to domain CRS/grid")
   elev_on_grid <- terra::project(elev_raster, domain_template, method = "average")
 
@@ -124,16 +155,7 @@ get_elevation <- function(
   # Set metadata
   names(elev_masked) <- "elevation"
 
-  metags(elev_masked) <- c(
-    "elevation_long_name" = "NASADEM elevation above mean sea level",
-    "elevation_source" = "NASADEM_HGT.001 via AppEEARS",
-    "units" = "meters",
-    "date_generated" = as.character(Sys.time()),
-    "crs" = as.character(st_crs(elev_masked)),
-    "Conventions" = "CF-1.8"
-  )
-
- # Write NetCDF with compression and CF metadata
+  # Write NetCDF with compression and CF metadata
   dir.create(dirname(out_file), recursive = TRUE, showWarnings = FALSE)
   unlink(out_file)
 
@@ -182,6 +204,7 @@ get_elevation <- function(
   gc()
   unlink(terra_tmp, recursive = TRUE, force = TRUE)
 
+  if (verbose) message("Elevation data saved to: ", out_file)
   out_file
 }
 

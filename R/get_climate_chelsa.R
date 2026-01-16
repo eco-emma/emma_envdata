@@ -117,9 +117,9 @@ get_climate_chelsa <- function(
                            "and clipped to domain. Processed using terra and ncdf4 R packages."))
     
     # Add variable attributes
-    ncdf4::ncatt_put(nc_file, var_name, "long_name", long_name)
-    ncdf4::ncatt_put(nc_file, var_name, "units", units)
-    ncdf4::ncatt_put(nc_file, var_name, "standard_name", paste("bioclimatic_variable_", i, sep = ""))
+    ncdf4::ncatt_put(nc_file, 1, "long_name", long_name)
+    ncdf4::ncatt_put(nc_file, 1, "units", units)
+    ncdf4::ncatt_put(nc_file, 1, "standard_name", paste("bioclimatic_variable_", i, sep = ""))
     
     ncdf4::nc_close(nc_file)
     output_files <- c(output_files, nc_filename)

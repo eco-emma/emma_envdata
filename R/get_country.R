@@ -24,7 +24,7 @@ get_country <- function(){
 
   # Write to GeoParquet
   out_file <- "data/target_outputs/country.parquet"
-  sfarrow::st_write_parquet(country, out_file)
+  suppressWarnings(sfarrow::st_write_parquet(country, out_file))
   
   return(out_file)
 }
