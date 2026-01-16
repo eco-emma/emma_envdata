@@ -2,7 +2,7 @@ message("Starting tar_make()")
 print("Starting tar_make() - print")
 
 library(targets)
-library(qs)
+suppressMessages(library(qs))
 library(tarchetypes)
 library(geotargets)
 library(visNetwork)
@@ -40,8 +40,8 @@ library(sfarrow)
 
 
 # source all files in R folder
-  lapply(list.files("R",pattern="[.]R",full.names = T), function(x) {print(x); source(x)})
-  message(paste("Objects:",ls(),collapse = "\n")) # To make sure all packages are loaded
+  lapply(list.files("R",pattern="[.]R",full.names = T), function(x) {source(x)})
+  # message(paste("Objects:",ls(),collapse = "\n")) # To make sure all packages are loaded
 
 
   options(tidyverse.quiet = TRUE)
@@ -53,45 +53,44 @@ library(sfarrow)
   dir.create("data/releases", recursive = TRUE, showWarnings = FALSE)
   dir.create("data/target_outputs", recursive = TRUE, showWarnings = FALSE)
 
-  # GitHub release repository configuration
+  # GitHub release repository configuration - releases are used to store target objects and publish final data
   gh_repo_config <- list(
     repo = "AdamWilsonLab/emma_envdata",
     tag = "objects_current",
     format = "qs",
-    cache_dir = "data/target_outputs/.tar_cache"
+    cache_dir = "data/target_outputs/.tar_cache" #this is local cache for speed
   )
 
-  # Set up GitHub release repository for storing targets
-  gh_repo <- tar_github_release_repo(
-    repo = gh_repo_config$repo,
-    tag = gh_repo_config$tag,
-    format = gh_repo_config$format,
-    cache_dir = gh_repo_config$cache_dir
+  # Store config as environment variables for upload function to use
+  Sys.setenv(
+    TAR_GH_RELEASE_REPO = gh_repo_config$repo,
+    TAR_GH_RELEASE_TAG = gh_repo_config$tag,
+    TAR_GH_RELEASE_FORMAT = gh_repo_config$format,
+    TAR_GH_RELEASE_CACHE_DIR = gh_repo_config$cache_dir
   )
+
+  # In "update" mode (GitHub Actions), pre-download targets from GitHub releases
+  if (run_mode == "update") {
+    message("[targets] Update mode: pre-downloading targets from GitHub releases")
+    tryCatch({
+      tar_download_github_release(which_targets = NULL, verbose = TRUE)
+    }, error = function(e) {
+      message("[targets] Warning: Could not pre-download targets: ", conditionMessage(e))
+    })
+  }
 
   tar_option_set(
     packages = c("tidyverse", "stringr","knitr","sf","stars","units","geotargets",
                  "appeears", "terra", "smoothr", "janitor", "sfarrow", "jsonlite",
                  "piggyback", "qs", "arrow"),
-    resources = tar_resources(
-      repository_cas = tar_github_release_resources(
-        repo = gh_repo_config$repo,
-        tag = gh_repo_config$tag,
-        format = gh_repo_config$format,
-        cache_dir = gh_repo_config$cache_dir
-      )
-    )
+    repository = "local",  # Store locally; manual upload after tar_make() completes
+    cue = tar_cue(mode = if (run_mode == "prime") "thorough" else "never") # Prime: recompute if needed; Update: never recompute unless manually invalidated
   )
 
   terraOptions(tempdir = "data/temp/terra", memfrac = 0.6)
-  # geotargets_option_set(
-  #   gdal_raster_driver = "netCDF",  
-  #   gdal_raster_creation_options = c("FORMAT=NC4", "COMPRESS=DEFLATE", "ZLEVEL=9"),
-  #   gdal_vector_driver = "GPKG"
-  # ) 
 
-  ## Authenticate with AppEEARS
-  # source("R/appeears_auth.R")
+## Authenticate with AppEEARS
+# source("R/appeears_auth.R")
 
 # Ensure things are clean
 #  unlink(file.path("data/temp/"), recursive = TRUE, force = TRUE)
@@ -100,8 +99,6 @@ library(sfarrow)
 
 
 list(
-
-#   #Prep needed files # start
   tar_target(
     vegmap_shp,
     download_vegmap_release(
@@ -112,36 +109,34 @@ list(
       shapefile_name = "NVM2024Final_IEM5_12_07012025.shp"
     ),
     format = "file",
-    cue = tar_cue(mode = if (run_mode == "prime") "thorough" else "never")
+    repository = "local" #because it's just downloaded from release - don't need to upload again.
   ),
 
   tar_target(
     remnants_shp,
     "data/manual_download/RLE_2021_Remnants/RLE_Terr_2021_June2021_Remnants_ddw.shp",
     format="file",
-    cue = tar_cue(mode = if (run_mode == "prime") "thorough" else "never")
+    repository = "local"
   ),
 
   tar_target(
     capenature_fires_shp,
     "data/manual_download/All_fires_23_24_gw/All_fires_23_24_gw.shp",
     format="file",
-    cue = tar_cue(mode = if (run_mode == "prime") "thorough" else "never")
+    repository = "local"
   ),
 
 
   tar_target(
     country.parquet,
     get_country(),
-    format = "file",
-    cue = tar_cue(mode = if (run_mode == "prime") "thorough" else "never")
+    format = "file"
   ),
 
   tar_target(
     domain.parquet,
     domain_define(vegmap = vegmap_shp, country = country.parquet),
-    format = "file",
-    cue = tar_cue(mode = if (run_mode == "prime") "thorough" else "never")
+    format = "file"
   ),
 
   # Stable bounding box for downloads (50km buffer around domain)
@@ -150,32 +145,29 @@ list(
     domain_bbox.parquet,
     make_domain_bbox(domain.parquet, buffer_m = 50000, out_file = "data/target_outputs/domain_bbox.parquet"),
     format = "file",
-    repository = gh_repo,
-    cue = tar_cue(mode = if (run_mode == "prime") "thorough" else "never")
+    cue = tar_cue(mode = "never")
   ),
 
-  # Domain raster with pixel IDs, remnants, and distance to remnants (NetCDF with CF-1.8 metadata)
+  # Domain raster with pixel IDs, remnants, and distance to remnants
   tar_target(
     domain_nc,
     domain_rasterize(
       domain = sfarrow::st_read_parquet(domain.parquet), 
       remnants_shp = remnants_shp,
-      out_file = "data/raw/domain.nc"
+      out_file = "data/target_outputs/domain.nc"
     ),
-    format = "file",
-    cue = tar_cue(mode = if (run_mode == "prime") "thorough" else "never")
-     # tar_invalidate(domain_nc) # run this to force recompute
+    format = "file"
+     # tar_invalidate(domain_nc) # run this to force recompute, which will trigger redownloading all RS data from appeears
 
   ),
 
-  # Vegetation map raster with metadata
+  # Vegetation map raster
   tar_target(
     vegmap_nc,
     data_vegmap(domain_raster = domain_nc,
                 vegmap_shp = vegmap_shp,
-                out_file = "data/raw/vegmap.nc"),
-    format = "file",
-    cue = tar_cue(mode = if (run_mode == "prime") "thorough" else "never")),
+                out_file = "data/target_outputs/vegmap.nc"),
+    format = "file"),
 # # # # Infrequent updates via releases
 
 
@@ -196,12 +188,13 @@ list(
 #      )
 #,
 
-    # tar_target(
-    #   climate_chelsa_release,
-    #   get_chelsa(temp_directory = "data/temp/raw_data/climate_chelsa/",
-    #                              tag = "raw_static",
-    #                              domain = domain)
-    #   )#,
+    tar_target(
+      climate_chelsa,
+      get_climate_chelsa(
+        domain = sfarrow::st_read_parquet(domain.parquet),
+        verbose = TRUE),
+      format = "file"
+    ),
 
   # tar_terra_rast(
   #   clouds_wilson_release,
@@ -211,18 +204,36 @@ list(
   #                             sleep_time = 180)
   #   ),
 
+  # Sequential targets for AppEEARS elevation: submit task, then poll for results
+  # Allows independent timeouts and retries for long-running API calls
+  tar_target(
+    elevation_task_id,
+    submit_elevation_task(
+      domain_vector = sfarrow::st_read_parquet(domain.parquet),
+      verbose = TRUE
+    )
+  ),
+
   tar_target(
     elevation,
-    get_elevation(
+    download_elevation_results(
+      task_id = elevation_task_id,
       domain_vector = sfarrow::st_read_parquet(domain.parquet),
       domain_raster = domain_nc,
+      out_file = "data/target_outputs/elevation_nasadem.nc",
       temp_directory = "data/temp/raw_data/elevation_nasadem/",
-      out_file = "data/raw/elevation_nasadem.nc"
+      verbose = TRUE
     ),
-    format="file",
-    cue = tar_cue(mode = if (run_mode == "prime") "thorough" else "never"),
-    )
-#,
+    format = "file"
+  ),
+
+  # Generate human-readable manifest of all targets for release documentation
+#   tar_target(
+#     release_manifest,
+#     generate_release_manifest(),
+#     format = "file"
+#   )
+# #,
 
   #Temporarily commented out, seems to be an issue with URL for landcover data at present
   # tar_target(
@@ -267,15 +278,26 @@ list(
 #  cue = tar_cue(mode = if (run_mode == "update") "always" else "thorough")
 #       ),
 
-#     tar_age(
-#       ndvi_modis_release,
-#       get_release_ndvi_modis_appeears(temp_directory = "data/temp/raw_data/ndvi_modis/",
-#                               tag = "raw_ndvi_modis_nc",
-#                               domain = domain,
-#                               sleep_time = 5,
-#                               verbose = TRUE),
-#       age = as.difftime(7, units = "days")
-#     ),
+  # Sequential targets for AppEEARS MODIS NDVI/EVI: submit task, then poll for results
+  # Allows independent timeouts and retries for long-running API calls
+  tar_target(
+    modis_vi_task_id,
+    submit_modis_vi_task(
+      domain_vector = sfarrow::st_read_parquet(domain.parquet),
+      mode = run_mode
+    )
+  ),
+
+  tar_target(
+    modis_vi,
+    download_modis_vi_results(
+      task_id = modis_vi_task_id,
+      domain_vector = sfarrow::st_read_parquet(domain.parquet),
+      domain_raster = domain_nc,
+      mode = run_mode
+    ),
+    format = "file"
+  )
 
 #     tar_age(
 #       ndvi_viirs_release,

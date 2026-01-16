@@ -182,6 +182,12 @@ jobs:
             --base main \
             --head "$BRANCH" \
             --label "bug"
+          
+          # Request Copilot review
+          gh pr comment $BRANCH --body "@github-copilot review"
+          
+          # Request Copilot coding agent to fix the issue
+          gh pr comment $BRANCH --body "@github-copilot-agent Please analyze the error log and create fixes for this targets pipeline failure"
       
       - name: Post failure artifact
         if: failure()

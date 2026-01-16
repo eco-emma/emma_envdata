@@ -1,34 +1,385 @@
+#' Download targets from GitHub Release
+#' @description Download locally stored targets from GitHub releases (useful for GitHub Actions)
+#' @param repo Repository in "owner/repo" format (default from environment or "AdamWilsonLab/emma_envdata")
+#' @param tag Release tag to store objects (default from environment or "objects_current")
+#' @param cache_dir Cache directory (default: "data/target_outputs/.tar_cache")
+#' @param which_targets Optional vector of specific target names to download
+#' @param verbose Logical for progress messages
+#' @details Call this at the start of tar_make() in update mode to download targets
+#' @export
+tar_download_github_release <- function(
+  repo = NULL,
+  tag = NULL,
+  cache_dir = "data/target_outputs/.tar_cache",
+  which_targets = NULL,
+  verbose = TRUE
+) {
+  # Use environment variables as fallback, but allow explicit parameters
+  repo <- repo %||% Sys.getenv("TAR_GH_RELEASE_REPO") %||% "AdamWilsonLab/emma_envdata"
+  tag <- tag %||% Sys.getenv("TAR_GH_RELEASE_TAG") %||% "objects_current"
+  cache_dir <- cache_dir %||% Sys.getenv("TAR_GH_RELEASE_CACHE_DIR") %||% "data/target_outputs/.tar_cache"
+  objects_dir <- "_targets/objects"
+  
+  if (!nzchar(repo) || !nzchar(tag)) {
+    stop("GitHub release configuration not set. Provide repo and tag parameters or set environment variables.")
+  }
+  
+  dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
+  dir.create(objects_dir, recursive = TRUE, showWarnings = FALSE)
+  
+  # Get list of assets on GitHub release
+  tryCatch({
+    assets <- piggyback::pb_list(repo = repo, tag = tag)
+    if (verbose) message("[tar_github_release] Found ", nrow(assets), " assets on GitHub release")
+  }, error = function(e) {
+    stop("[tar_github_release] Could not access GitHub release: ", conditionMessage(e))
+  })
+  
+  # Filter assets if specific targets requested
+  if (!is.null(which_targets)) {
+    assets <- assets[assets$file_name %in% which_targets | startsWith(assets$file_name, which_targets), ]
+  }
+  
+  if (nrow(assets) == 0) {
+    if (verbose) message("[tar_github_release] No assets to download")
+    return(invisible(NULL))
+  }
+  
+  # Download each asset
+  for (i in seq_len(nrow(assets))) {
+    asset_name <- assets$file_name[i]
+    
+    # Check if this is a file-format target (has extension)
+    # File-format targets are stored as "target_name.extension" (e.g., "country.parquet")
+    # Regular objects are stored as "target_name" (e.g., "elevation_task_id")
+    is_file_format <- grepl("\\.[^.]+$", asset_name)
+    
+    if (is_file_format) {
+      # Extract target name by removing extension
+      target_name <- sub("\\.[^.]+$", "", asset_name)
+      file_ext <- sub(".*\\.", "", asset_name)
+    } else {
+      target_name <- asset_name
+      file_ext <- NULL
+    }
+    
+    local_path <- file.path(objects_dir, target_name)
+    cached_path <- file.path(cache_dir, asset_name)
+    
+    # Download to cache if not already there
+    if (!file.exists(cached_path)) {
+      if (verbose) message("[tar_github_release] Downloading: ", asset_name)
+      max_attempts <- 3
+      for (attempt in 1:max_attempts) {
+        tryCatch({
+          piggyback::pb_download(
+            file = asset_name,
+            repo = repo,
+            tag = tag,
+            dest = cache_dir,
+            overwrite = TRUE
+          )
+          if (verbose) message("[tar_github_release] Downloaded: ", asset_name)
+          break
+        }, error = function(e) {
+          if (attempt < max_attempts) {
+            if (verbose) message("[tar_github_release] Download attempt ", attempt, " failed: ", conditionMessage(e))
+            Sys.sleep(2)
+          } else {
+            warning("[tar_github_release] Failed to download after ", max_attempts, " attempts: ", conditionMessage(e))
+          }
+        })
+      }
+    } else {
+      if (verbose) message("[tar_github_release] Already cached: ", asset_name)
+    }
+    
+    # Copy from cache to appropriate target location
+    if (file.exists(cached_path)) {
+      if (is_file_format) {
+        # For file-format targets: 
+        # 1. Copy actual file to _targets/workspaces/ (where targets expects it)
+        # 2. Copy to data/target_outputs/ (for user access)
+        # 3. Create RDS wrapper in _targets/objects/ pointing to workspaces location
+        
+        ws_dir <- "_targets/workspaces"
+        dir.create(ws_dir, recursive = TRUE, showWarnings = FALSE)
+        ws_path <- file.path(ws_dir, asset_name)
+        file.copy(cached_path, ws_path, overwrite = TRUE)
+        
+        # Also copy to data/target_outputs/ for user access
+        out_dir <- "data/target_outputs"
+        dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+        out_path <- file.path(out_dir, asset_name)
+        file.copy(cached_path, out_path, overwrite = TRUE)
+        
+        # Create RDS wrapper in _targets/objects/ that points to the workspaces file path
+        obj_dir <- "_targets/objects"
+        dir.create(obj_dir, recursive = TRUE, showWarnings = FALSE)
+        obj_path <- file.path(obj_dir, target_name)
+        saveRDS(ws_path, obj_path)
+        if (verbose) message("[tar_github_release] Restored file-format target: ", target_name)
+      } else {
+        # Regular object file: copy to _targets/objects/
+        obj_dir <- "_targets/objects"
+        dir.create(obj_dir, recursive = TRUE, showWarnings = FALSE)
+        obj_path <- file.path(obj_dir, target_name)
+        file.copy(cached_path, obj_path, overwrite = TRUE)
+        if (verbose) message("[tar_github_release] Restored: ", target_name)
+      }
+    }
+  }
+  
+  if (verbose) message("[tar_github_release] Download complete")
+  invisible(NULL)
+}
+
+#' Upload targets to GitHub Release after tar_make() completes
+#' @description Upload locally stored targets to GitHub releases
+#' @param repo Repository in "owner/repo" format (default from environment or "AdamWilsonLab/emma_envdata")
+#' @param tag Release tag to store objects (default from environment or "objects_current")
+#' @param format Serialization format: "qs", "rds", or "parquet" (default: "qs")
+#' @param cache_dir Cache directory (default: "data/target_outputs/.tar_cache")
+#' @param which_targets Optional vector of specific target names to upload
+#' @param verbose Logical for progress messages
+#' @details Call this after tar_make() to upload all targets
+#' @export
+tar_upload_github_release <- function(
+  repo = NULL,
+  tag = NULL,
+  format = "qs",
+  cache_dir = "data/target_outputs/.tar_cache",
+  which_targets = NULL,
+  verbose = TRUE
+) {
+  # Use environment variables as fallback, but allow explicit parameters
+  repo <- repo %||% Sys.getenv("TAR_GH_RELEASE_REPO") %||% "AdamWilsonLab/emma_envdata"
+  tag <- tag %||% Sys.getenv("TAR_GH_RELEASE_TAG") %||% "objects_current"
+  cache_dir <- cache_dir %||% Sys.getenv("TAR_GH_RELEASE_CACHE_DIR") %||% "data/target_outputs/.tar_cache"
+  
+  if (!nzchar(repo) || !nzchar(tag)) {
+    stop("GitHub release configuration not set. Provide repo and tag parameters or set environment variables.")
+  }
+  
+  # Ensure release exists
+  tryCatch({
+    piggyback::pb_list(repo = repo, tag = tag)
+  }, error = function(e) {
+    if (verbose) message("[tar_github_release] Creating release: ", tag)
+    piggyback::pb_new_release(repo = repo, tag = tag)
+  })
+  
+  # Get metadata to find file-format target paths
+  meta_df <- tryCatch({
+    tar_meta()
+  }, error = function(e) {
+    if (verbose) message("[tar_github_release] Could not read targets metadata")
+    data.frame(name = character(0), format = character(0), path = list())
+  })
+  
+  # Get current assets on GitHub to check what exists
+  remote_assets <- tryCatch({
+    piggyback::pb_list(repo = repo, tag = tag)
+  }, error = function(e) {
+    data.frame(file_name = character(0))
+  })
+  
+  # Get list of local target files
+  if (is.null(which_targets)) {
+    # Get all targets from _targets/objects/ (regular objects)
+    regular_files <- list.files("_targets/objects", full.names = TRUE, recursive = FALSE)
+    
+    # Also get file-format targets from _targets/workspaces/
+    file_format_targets <- character(0)
+    if (dir.exists("_targets/workspaces")) {
+      ws_files <- list.files("_targets/workspaces", full.names = FALSE, recursive = FALSE)
+      # Filter to only include those that are file-format targets (have metadata)
+      for (ws_file in ws_files) {
+        target_meta <- meta_df[meta_df$name == ws_file, ]
+        if (nrow(target_meta) > 0 && target_meta$format[1] == "file") {
+          file_format_targets <- c(file_format_targets, file.path("_targets/workspaces", ws_file))
+        }
+      }
+    }
+    
+    # Also get actual data files from data/target_outputs/
+    data_output_files <- character(0)
+    if (dir.exists("data/target_outputs")) {
+      all_output_files <- list.files("data/target_outputs", full.names = TRUE, recursive = FALSE)
+      # Exclude cache directory
+      data_output_files <- all_output_files[!grepl("\\.tar_cache", all_output_files)]
+    }
+    
+    local_files <- c(regular_files, file_format_targets, data_output_files)
+    if (verbose) message("[tar_github_release] Found ", length(local_files), " local target files to upload")
+  } else {
+    # Find specific targets - check all locations
+    regular_files <- character(0)
+    file_format_targets <- character(0)
+    data_output_files <- character(0)
+    
+    for (target in which_targets) {
+      obj_file <- file.path("_targets/objects", target)
+      ws_file <- file.path("_targets/workspaces", target)
+      data_file <- file.path("data/target_outputs", target)
+      
+      if (file.exists(obj_file)) {
+        regular_files <- c(regular_files, obj_file)
+      } else if (file.exists(ws_file)) {
+        target_meta <- meta_df[meta_df$name == target, ]
+        if (nrow(target_meta) > 0 && target_meta$format[1] == "file") {
+          file_format_targets <- c(file_format_targets, ws_file)
+        }
+      } else if (file.exists(data_file)) {
+        data_output_files <- c(data_output_files, data_file)
+      }
+    }
+    local_files <- c(regular_files, file_format_targets, data_output_files)
+  }
+  
+  if (length(local_files) == 0) {
+    message("[tar_github_release] No targets to upload")
+    return(invisible(NULL))
+  }
+  
+  # Upload each file
+  for (local_file in local_files) {
+    target_name <- basename(local_file)
+    
+    # Determine if this is a file-format target based on location
+    # Files in _targets/workspaces/ are file-format targets
+    is_file_target <- grepl("_targets/workspaces", local_file)
+    
+    if (is_file_target) {
+      # This is a file-format target in _targets/workspaces/
+      # Use the file from workspaces as the source to upload
+      # Get extension from metadata or from actual file
+      target_meta <- meta_df[meta_df$name == target_name, ]
+      
+      # Try to get extension from metadata path
+      ext <- ""
+      if (nrow(target_meta) > 0) {
+        metadata_path <- target_meta$path[[1]]
+        # Handle case where path is a vector with multiple values
+        if (is.character(metadata_path) && length(metadata_path) > 0) {
+          # Take the first one and get the extension from it
+          ext <- tools::file_ext(metadata_path[1])
+        }
+      }
+      
+      # If we couldn't get extension from metadata, skip this file
+      if (nchar(ext) == 0) {
+        if (verbose) message("[tar_github_release] Skipping file-format target (no extension found): ", target_name)
+        next
+      }
+      
+      # Create upload name - avoid double extensions
+      # If target name already ends with this extension, don't add it again
+      if (grepl(paste0("\\.", ext, "$"), target_name)) {
+        upload_name <- target_name
+      } else {
+        upload_name <- paste0(target_name, ".", ext)
+      }
+      
+      if (verbose) message("[tar_github_release] Uploading file-format target: ", upload_name, " from ", local_file)
+      
+      # Check if already exists on GitHub
+      exists_on_github <- any(remote_assets$file_name == upload_name)
+      if (exists_on_github) {
+        if (verbose) message("[tar_github_release] File already on GitHub, deleting old version: ", upload_name)
+        tryCatch({
+          # Delete old version
+          old_asset <- remote_assets[remote_assets$file_name == upload_name, ]
+          if (nrow(old_asset) > 0) {
+            piggyback::pb_delete(repo = repo, tag = tag, file = upload_name)
+            Sys.sleep(1)
+          }
+        }, error = function(e) {
+          if (verbose) message("[tar_github_release] Could not delete old asset: ", conditionMessage(e))
+        })
+      }
+      
+      max_attempts <- 3
+      for (attempt in 1:max_attempts) {
+        tryCatch({
+          piggyback::pb_upload(
+            file = local_file,
+            repo = repo,
+            tag = tag,
+            name = upload_name,
+            overwrite = FALSE
+          )
+          if (verbose) message("[tar_github_release] Uploaded: ", upload_name)
+          Sys.sleep(1)
+          break
+        }, error = function(e) {
+          if (attempt < max_attempts) {
+            if (verbose) message("[tar_github_release] Upload attempt ", attempt, " failed: ", conditionMessage(e))
+            Sys.sleep(2)
+          } else {
+            warning("[tar_github_release] Failed to upload after ", max_attempts, " attempts: ", conditionMessage(e))
+          }
+        })
+      }
+    } else {
+      # Regular objects or data output files
+      # Determine if it's from data/target_outputs or _targets/objects
+      is_data_output <- grepl("data/target_outputs", local_file)
+      
+      if (is_data_output) {
+        # Data output file - upload with its original name
+        upload_name <- basename(local_file)
+        if (verbose) message("[tar_github_release] Uploading data file: ", upload_name)
+      } else {
+        # Serialized object from _targets/objects
+        upload_name <- target_name
+        if (verbose) message("[tar_github_release] Uploading object: ", target_name)
+      }
+      
+      # Check if already exists on GitHub
+      exists_on_github <- any(remote_assets$file_name == upload_name)
+      if (exists_on_github) {
+        if (verbose) message("[tar_github_release] File already on GitHub, deleting old version: ", upload_name)
+        tryCatch({
+          # Delete old version
+          piggyback::pb_delete(repo = repo, tag = tag, file = upload_name)
+          Sys.sleep(1)
+        }, error = function(e) {
+          if (verbose) message("[tar_github_release] Could not delete old asset: ", conditionMessage(e))
+        })
+      }
+      
+      max_attempts <- 3
+      for (attempt in 1:max_attempts) {
+        tryCatch({
+          piggyback::pb_upload(
+            file = local_file,
+            repo = repo,
+            tag = tag,
+            name = upload_name,
+            overwrite = FALSE
+          )
+          if (verbose) message("[tar_github_release] Uploaded: ", upload_name)
+          Sys.sleep(1)
+          break
+        }, error = function(e) {
+          if (attempt < max_attempts) {
+            if (verbose) message("[tar_github_release] Upload attempt ", attempt, " failed: ", conditionMessage(e))
+            Sys.sleep(2)
+          } else {
+            warning("[tar_github_release] Failed to upload: ", conditionMessage(e))
+          }
+        })
+      }
+    }
+  }
+  
+  if (verbose) message("[tar_github_release] Upload complete")
+  invisible(NULL)
+}
+
 #' Create GitHub Releases repository for targets
-#' @description Create a tar_repository_cas() object that stores targets 
-#'   using GitHub releases as the backend, with local persistent caching.
-#' @param repo Repository in "owner/repo" format
-#' @param tag Release tag to store objects (e.g., "objects_v2024" or "objects_current")
-#' @param format Serialization format: "qs" (fast, recommended), "rds", or "parquet"
-#' @param cache_dir Persistent cache directory for downloaded files (default: "data/.tar_cache")
-#' @return tar_repository_cas() object for use with tar_target(repository = ...)
-#' @details
-#'   Use with tar_target(..., repository = tar_github_release_repo(...))
-#'   
-#'   This implements the Content Addressable Storage (CAS) pattern where targets
-#'   are stored with serialized R objects, with GitHub releases as the backend
-#'   and local persistent caching for speed.
-#'   
-#'   Example:
-#'   ```
-#'   gh_repo <- tar_github_release_repo(
-#'     repo = "AdamWilsonLab/emma_envdata",
-#'     tag = "objects_current",
-#'     format = "qs",
-#'     cache_dir = "data/.tar_cache"
-#'   )
-#'   
-#'   tar_target(
-#'     my_object,
-#'     some_computation(),
-#'     repository = gh_repo,
-#'     cue = tar_cue(mode = "never")
-#'   )
-#'   ```
+#' @description DEPRECATED - Use tar_upload_github_release() instead
 #' @export
 tar_github_release_repo <- function(
   repo,
@@ -36,237 +387,6 @@ tar_github_release_repo <- function(
   format = "qs",
   cache_dir = "data/.tar_cache"
 ) {
-  
-  stopifnot(
-    is.character(repo) && nchar(repo) > 0,
-    is.character(tag) && nchar(tag) > 0,
-    format %in% c("qs", "rds", "parquet")
-  )
-  
-  # Create a tar_repository_cas() object with self-contained functions
-  # that read config from environment variables
-  tar_repository_cas(
-    upload = function(key, path) {
-      repo <- Sys.getenv("TAR_GH_RELEASE_REPO")
-      tag <- Sys.getenv("TAR_GH_RELEASE_TAG")
-      format <- Sys.getenv("TAR_GH_RELEASE_FORMAT")
-      
-      # Ensure release exists before uploading
-      release_exists <- FALSE
-      tryCatch({
-        assets <- piggyback::pb_list(repo = repo, tag = tag)
-        release_exists <- TRUE
-      }, error = function(e) {
-        # pb_list throws error if release doesn't exist
-        release_exists <<- FALSE
-      })
-      
-      if (!release_exists) {
-        message("[tar_github_release] Creating release: ", tag)
-        tryCatch({
-          piggyback::pb_new_release(repo = repo, tag = tag)
-          message("[tar_github_release] Release created: ", tag)
-        }, error = function(e) {
-          if (!grepl("already exists", tolower(conditionMessage(e)))) {
-            stop("[tar_github_release] Failed to create release: ", conditionMessage(e))
-          }
-        })
-      }
-      
-      if (file.exists(path) && !dir.exists(path)) {
-        message("[tar_github_release] Uploading file: ", key)
-        
-        # Get credentials
-        creds <- tryCatch({
-          gitcreds::gitcreds_get()
-        }, error = function(e) {
-          message("[tar_github_release] No git credentials found, trying without token")
-          NULL
-        })
-        
-        token <- if (!is.null(creds)) creds$password else NULL
-        
-        max_attempts <- 3
-        uploaded <- FALSE
-        
-        for (attempt in 1:max_attempts) {
-          tryCatch({
-            piggyback::pb_upload(
-              file = path,
-              repo = repo,
-              tag = tag,
-              name = key,
-              overwrite = TRUE,
-              .token = token
-            )
-            message("[tar_github_release] File uploaded successfully: ", key)
-            # Give GitHub time to process the file
-            Sys.sleep(3)
-            uploaded <- TRUE
-            return(invisible())
-          }, error = function(e) {
-            message("[tar_github_release] Upload attempt ", attempt, " failed: ", conditionMessage(e))
-            if (attempt < max_attempts) {
-              Sys.sleep(2)
-            } else {
-              stop("[tar_github_release] Failed to upload file after ", max_attempts, " attempts: ", conditionMessage(e))
-            }
-          })
-        }
-      } else {
-        obj <- readRDS(path)
-        temp_file <- tempfile(fileext = paste0(".", format))
-        on.exit(unlink(temp_file), add = TRUE)
-        
-        if (format == "qs") {
-          qs::qsave(obj, temp_file)
-        } else if (format == "rds") {
-          saveRDS(obj, temp_file)
-        } else if (format == "parquet") {
-          arrow::write_parquet(obj, temp_file)
-        }
-        
-        max_attempts <- 5
-        for (attempt in 1:max_attempts) {
-          tryCatch({
-            piggyback::pb_upload(
-              file = temp_file,
-              repo = repo,
-              tag = tag,
-              name = key,
-              overwrite = TRUE,
-              .token = NULL
-            )
-            message("[tar_github_release] Object uploaded: ", key)
-            return(invisible())
-          }, error = function(e) {
-            if (attempt < max_attempts) {
-              message("[tar_github_release] Upload attempt ", attempt, " failed: ", conditionMessage(e))
-              Sys.sleep(2)
-            } else {
-              stop("[tar_github_release] Failed to upload after ", max_attempts, " attempts: ", conditionMessage(e))
-            }
-          })
-        }
-      }
-    },
-    download = function(key, path) {
-      repo <- Sys.getenv("TAR_GH_RELEASE_REPO")
-      tag <- Sys.getenv("TAR_GH_RELEASE_TAG")
-      format <- Sys.getenv("TAR_GH_RELEASE_FORMAT")
-      cache_dir <- Sys.getenv("TAR_GH_RELEASE_CACHE_DIR")
-      
-      dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
-      cached_file <- file.path(cache_dir, key)
-      
-      need_download <- TRUE
-      if (file.exists(cached_file)) {
-        tryCatch({
-          remote_assets <- piggyback::pb_list(repo = repo, tag = tag)
-          remote_asset <- remote_assets[remote_assets$file_name == key, ]
-          
-          if (nrow(remote_asset) > 0) {
-            local_size <- file.size(cached_file)
-            remote_size <- remote_asset$size[1]
-            
-            if (local_size == remote_size) {
-              message("[tar_github_release] Cache valid (size match: ", local_size, " bytes)")
-              need_download <- FALSE
-            }
-          }
-        }, error = function(e) {
-          message("[tar_github_release] Could not verify cache: ", conditionMessage(e))
-        })
-      }
-      
-      if (need_download) {
-        max_attempts <- 5
-        for (attempt in 1:max_attempts) {
-          tryCatch({
-            piggyback::pb_download(
-              file = key,
-              repo = repo,
-              tag = tag,
-              dest = cache_dir,
-              overwrite = TRUE
-            )
-            message("[tar_github_release] Downloaded: ", key)
-            break
-          }, error = function(e) {
-            if (attempt < max_attempts) {
-              message("[tar_github_release] Download attempt ", attempt, " failed: ", conditionMessage(e))
-              Sys.sleep(2)
-            } else {
-              stop("[tar_github_release] Failed to download after ", max_attempts, " attempts: ", conditionMessage(e))
-            }
-          })
-        }
-      }
-      
-      if (!file.exists(cached_file)) {
-        stop("[tar_github_release] Failed to retrieve: ", key)
-      }
-      
-      file_exts <- c("parquet", "nc", "tif", "gpkg", "shp", "dbf", "prj", "shx")
-      is_spatial_file <- any(endsWith(tolower(key), paste0(".", file_exts)))
-      
-      if (is_spatial_file) {
-        file.copy(cached_file, path, overwrite = TRUE)
-        message("[tar_github_release] Retrieved file: ", key)
-      } else {
-        if (format == "qs") {
-          obj <- qs::qread(cached_file)
-        } else if (format == "rds") {
-          obj <- readRDS(cached_file)
-        } else if (format == "parquet") {
-          obj <- arrow::read_parquet(cached_file)
-        }
-        
-        saveRDS(obj, path)
-        message("[tar_github_release] Retrieved and deserialized: ", key)
-      }
-      invisible()
-    },
-    exists = function(key) {
-      repo <- Sys.getenv("TAR_GH_RELEASE_REPO")
-      tag <- Sys.getenv("TAR_GH_RELEASE_TAG")
-      
-      # Retry up to 10 times in case file was just uploaded
-      for (attempt in 1:10) {
-        tryCatch({
-          assets <- piggyback::pb_list(repo = repo, tag = tag)
-          found <- any(assets$file_name == key)
-          if (found) {
-            message("[tar_github_release] Confirmed exists: ", key, " (attempt ", attempt, ")")
-            return(TRUE)
-          }
-          if (attempt < 10) {
-            Sys.sleep(2)
-          }
-        }, error = function(e) {
-          if (attempt < 10) {
-            Sys.sleep(2)
-          }
-        })
-      }
-      FALSE
-    }
-  )
+  stop("tar_github_release_repo() is deprecated. Use tar_upload_github_release() after tar_make() instead.")
 }
 
-# Helper to set up tar_resources_repository_cas with environment variables
-tar_github_release_resources <- function(
-  repo,
-  tag,
-  format = "qs",
-  cache_dir = "data/.tar_cache"
-) {
-  tar_resources_repository_cas(
-    envvars = c(
-      TAR_GH_RELEASE_REPO = repo,
-      TAR_GH_RELEASE_TAG = tag,
-      TAR_GH_RELEASE_FORMAT = format,
-      TAR_GH_RELEASE_CACHE_DIR = cache_dir
-    )
-  )
-}
