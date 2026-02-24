@@ -11,8 +11,6 @@
 _targets/objects/
 _targets/user/
 _targets/workspaces/
-_targets/meta/process
-_targets/meta/progress
 
 # Data directories
 data/temp/

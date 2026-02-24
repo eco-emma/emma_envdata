@@ -1,6 +1,25 @@
 message("Starting tar_make()")
 print("Starting tar_make() - print")
 
+# ============================================================================
+# EMMA Environmental Data Pipeline
+# ============================================================================
+# This pipeline assembles environmental datasets for the EMMA project using
+# targets for workflow orchestration. Key features:
+# 
+# - MODIS VI data: Downloaded 16-day-window-by-window with dynamic branching (Feb 2026)
+#   * Replaces monthly grouping with ~610 independent 16-day window tasks
+#   * Aligns with native MODIS VI composite granularity (16-day reflectance products)
+#   * Enables parallelization, resilience to individual window failures, and
+#     incremental updates (only re-download missing windows)
+#   * Stored as separate 16-day NetCDF files in data/target_outputs/modis_vi_windows/
+#   * Published to GitHub release "modis_vi_archive" (~5 GB total)
+#   * Can be aggregated into single file if needed (see commented aggregation target)
+#
+# - Elevation: Sequential task submission and download via AppEEARS
+# - Climate, domain, and ancillary data: Downloaded and processed independently
+# ============================================================================
+
 library(targets)
 suppressMessages(library(qs))
 library(tarchetypes)
@@ -27,14 +46,6 @@ library(sfarrow)
     setwd("~/project/projects/emma/emma_envdata")
     message(paste("Set working directory to:", getwd()))  
   }
-
-# Determine run mode: "prime" (full processing on server) or "update" (incremental on GitHub Actions)
-  run_mode <- if (tolower(Sys.getenv("GITHUB_ACTIONS")) == "true") {
-    "update" # Run incremental updates on GitHub Actions
-  } else {
-    "prime"  # Default to prime meaning all targets are run
-  }
-  message(paste("Run mode:", run_mode))
 
 #If running this locally, make sure to set up github credentials using gitcreds::gitcreds_set()
 
@@ -69,23 +80,30 @@ library(sfarrow)
     TAR_GH_RELEASE_CACHE_DIR = gh_repo_config$cache_dir
   )
 
-  # In "update" mode (GitHub Actions), pre-download targets from GitHub releases
-  if (run_mode == "update") {
-    message("[targets] Update mode: pre-downloading targets from GitHub releases")
-    tryCatch({
-      tar_download_github_release(which_targets = NULL, verbose = TRUE)
-    }, error = function(e) {
-      message("[targets] Warning: Could not pre-download targets: ", conditionMessage(e))
-    })
-  }
+  # # In "update" mode (GitHub Actions), pre-download targets from GitHub releases
+  # if (run_mode == "update") {
+  #   message("[targets] Update mode: pre-downloading targets from GitHub releases")
+  #   tryCatch({
+  #     tar_download_github_release(which_targets = NULL, verbose = TRUE)
+  #   }, error = function(e) {
+  #     message("[targets] Warning: Could not pre-download targets: ", conditionMessage(e))
+  #   })
+  # }
 
   tar_option_set(
+    memory="transient", 
+    garbage_collection = TRUE, #run gc() after each target to free memory
     packages = c("tidyverse", "stringr","knitr","sf","stars","units","geotargets",
                  "appeears", "terra", "smoothr", "janitor", "sfarrow", "jsonlite",
                  "piggyback", "qs", "arrow"),
     repository = "local",  # Store locally; manual upload after tar_make() completes
-    cue = tar_cue(mode = if (run_mode == "prime") "thorough" else "never") # Prime: recompute if needed; Update: never recompute unless manually invalidated
+    cue = tar_cue(mode = "thorough")  # Recompute if any inputs change
   )
+
+
+# Then in Actions:
+#tar_make_future(workers = 4)
+
 
   terraOptions(tempdir = "data/temp/terra", memfrac = 0.6)
 
@@ -96,6 +114,12 @@ library(sfarrow)
 #  unlink(file.path("data/temp/"), recursive = TRUE, force = TRUE)
 #  unlink(file.path("data/raw_data/", recursive = TRUE, force = TRUE))
 #  message(paste("Objects:",ls(),collapse = "\n"))
+
+  # Set MODIS date range as variables or targets (customize as needed)
+  modis_start_date <- "2000-02-18"  # or tar_target(...)
+  modis_start_date <- "2026-01-01"  # or tar_target(...)
+  modis_end_date <- as.character(Sys.Date())
+
 
 
 list(
@@ -108,22 +132,19 @@ list(
       local_dir = "data/manual_download/NVM2024",
       shapefile_name = "NVM2024Final_IEM5_12_07012025.shp"
     ),
-    format = "file",
-    repository = "local" #because it's just downloaded from release - don't need to upload again.
+    format = "file"
   ),
 
   tar_target(
     remnants_shp,
     "data/manual_download/RLE_2021_Remnants/RLE_Terr_2021_June2021_Remnants_ddw.shp",
-    format="file",
-    repository = "local"
+    format="file"
   ),
 
   tar_target(
     capenature_fires_shp,
     "data/manual_download/All_fires_23_24_gw/All_fires_23_24_gw.shp",
-    format="file",
-    repository = "local"
+    format="file"
   ),
 
 
@@ -278,38 +299,88 @@ list(
 #  cue = tar_cue(mode = if (run_mode == "update") "always" else "thorough")
 #       ),
 
-  # Sequential targets for AppEEARS MODIS NDVI/EVI: submit task, then poll for results
-  # Allows independent timeouts and retries for long-running API calls
+  # ============================================================================
+  # MODIS VI 16-day Window Download Pipeline (Dynamically Branched)
+  # ============================================================================
+
+  # Step 1: Identify which 16-day windows need to be downloaded
   tar_target(
-    modis_vi_task_id,
-    submit_modis_vi_task(
-      domain_vector = sfarrow::st_read_parquet(domain.parquet),
-      mode = run_mode
-    )
+    modis_vi_windows_to_download,
+    {
+      output_dir <- "data/target_outputs/modis_vi_windows"
+      
+      # Always download all missing windows from start_date to present
+      # identify_missing_windows() will return only those not yet downloaded
+      missing <- identify_missing_windows(
+        output_dir = output_dir,
+        start_date = modis_start_date,
+        end_date = modis_end_date
+      )
+      
+      if (nrow(missing) == 0) {
+        message("All 16-day windows from ", modis_start_date, " to ", modis_end_date, " already downloaded")
+        # Return empty data frame with correct structure
+        data.frame(
+          window_start = as.Date(character(0)),
+          window_end = as.Date(character(0)),
+          date_str = character(0)
+        )
+      } else {
+        message("Found ", nrow(missing), " missing 16-day windows to download")
+        missing
+      }
+    }
   ),
 
+  # Step 2: Dynamically submit 16-day window AppEEARS tasks
   tar_target(
-    modis_vi,
-    download_modis_vi_results(
-      task_id = modis_vi_task_id,
-      domain_vector = sfarrow::st_read_parquet(domain.parquet),
-      domain_raster = domain_nc,
-      mode = run_mode
-    ),
+    modis_vi_window_task_ids,
+    {
+      # Within this branch, modis_vi_windows_to_download is auto-sliced to one row
+      submit_modis_vi_window(
+        domain_vector = sfarrow::st_read_parquet(domain.parquet),
+        window_start = modis_vi_windows_to_download$window_start,
+        window_end = modis_vi_windows_to_download$window_end
+      )
+    },
+    pattern = map(modis_vi_windows_to_download)
+  ),
+
+  # Step 3: Dynamically download and process 16-day window results
+  tar_target(
+    modis_vi_window_files,
+    {
+      # Both upstream targets are auto-sliced in parallel by the pattern
+      download_modis_vi_window(
+        task_id = modis_vi_window_task_ids,
+        domain_vector = sfarrow::st_read_parquet(domain.parquet),
+        domain_raster = domain_nc,
+        window_start = modis_vi_windows_to_download$window_start,
+        out_dir = "data/target_outputs/modis_vi_windows",
+        cleanup=F,
+        verbose = TRUE
+      )
+    },
+    pattern = map(modis_vi_window_task_ids, modis_vi_windows_to_download),
+    format = "file"
+  ),
+
+  # Step 4: Create index of 16-day windows
+  tar_target(
+    modis_vi_window_index,
+    {
+      # Create index of all 16-day window files
+      create_modis_vi_window_index(
+        output_dir = "data/target_outputs/modis_vi_windows",
+        summary_file = "data/target_outputs/modis_vi_window_index.parquet",
+        verbose = TRUE
+      )
+    },
     format = "file"
   )
 
-#     tar_age(
-#       ndvi_viirs_release,
-#       get_release_ndvi_viirs_appeears(temp_directory = "data/temp/raw_data/ndvi_viirs/",
-#                                        tag = "raw_ndvi_viirs_nc",
-#                                        domain,
-#                                        max_layers = 3,
-#                                        sleep_time = 1),
-#       age = as.difftime(7, units = "days")
-#       #age = as.difftime(1, units = "days")
-#       #age = as.difftime(0, units = "hours")
-#     ),
+ # revise modis for viirs
+
 
 # # # # # # # Fixing projection via releases
 
