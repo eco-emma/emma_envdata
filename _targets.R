@@ -1,46 +1,16 @@
-message("Starting tar_make()")
-print("Starting tar_make() - print")
-
 # ============================================================================
 # EMMA Environmental Data Pipeline
 # ============================================================================
 # This pipeline assembles environmental datasets for the EMMA project using
-# targets for workflow orchestration. Key features:
-# 
-# - MODIS VI data: Downloaded 16-day-window-by-window with dynamic branching (Feb 2026)
-#   * Replaces monthly grouping with ~610 independent 16-day window tasks
-#   * Aligns with native MODIS VI composite granularity (16-day reflectance products)
-#   * Enables parallelization, resilience to individual window failures, and
-#     incremental updates (only re-download missing windows)
-#   * Stored as separate 16-day NetCDF files in data/target_outputs/modis_vi_windows/
-#   * Published to GitHub release "modis_vi_archive" (~5 GB total)
-#   * Can be aggregated into single file if needed (see commented aggregation target)
-#
-# - Elevation: Sequential task submission and download via AppEEARS
-# - Climate, domain, and ancillary data: Downloaded and processed independently
-# ============================================================================
+# targets for workflow orchestration. 
 
-library(targets)
-suppressMessages(library(qs))
-library(tarchetypes)
-library(geotargets)
-library(visNetwork)
-library(rdryad)
-library(appeears)#,lib.loc=Sys.getenv("R_LIBS_USER"))
-library(keyring)#,lib.loc=Sys.getenv("R_LIBS_USER"))
-library(filelock)#,lib.loc=Sys.getenv("R_LIBS_USER"))
-library(arrow)
-library(sfarrow)
+message("Starting tar_make()")
 
-#if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes") 
-#remotes::install_deps(dependencies = TRUE)
-
-#library(future) #not sure why this is needed, but we get an error in some of the files without it
-
+devtools::load_all() # load all functions in R
+description_packages <- load_description_packages(verbose=TRUE)  # Load all packages from DESCRIPTION and get list
 
 # check what system we are on
-  sys_info <- Sys.info()
-  message(paste("System info:",paste(names(sys_info), sys_info, sep="=", collapse = "; ")))
+  sys_info <- Sys.info(); message(paste("System info:",paste(names(sys_info), sys_info, sep="=", collapse = "; ")))
   # if nodename includes "ccr.buffalo.edu", set working directory to /gscratch/scrubbed/...
   if (grepl("ccr.buffalo.edu", sys_info[["nodename"]])) {
     setwd("~/project/projects/emma/emma_envdata")
@@ -48,12 +18,6 @@ library(sfarrow)
   }
 
 #If running this locally, make sure to set up github credentials using gitcreds::gitcreds_set()
-
-
-# source all files in R folder
-  lapply(list.files("R",pattern="[.]R",full.names = T), function(x) {source(x)})
-  # message(paste("Objects:",ls(),collapse = "\n")) # To make sure all packages are loaded
-
 
   options(tidyverse.quiet = TRUE)
 
@@ -80,35 +44,22 @@ library(sfarrow)
     TAR_GH_RELEASE_CACHE_DIR = gh_repo_config$cache_dir
   )
 
-  # # In "update" mode (GitHub Actions), pre-download targets from GitHub releases
-  # if (run_mode == "update") {
-  #   message("[targets] Update mode: pre-downloading targets from GitHub releases")
-  #   tryCatch({
-  #     tar_download_github_release(which_targets = NULL, verbose = TRUE)
-  #   }, error = function(e) {
-  #     message("[targets] Warning: Could not pre-download targets: ", conditionMessage(e))
-  #   })
-  # }
-
   tar_option_set(
     memory="transient", 
     garbage_collection = TRUE, #run gc() after each target to free memory
-    packages = c("tidyverse", "stringr","knitr","sf","stars","units","geotargets",
-                 "appeears", "terra", "smoothr", "janitor", "sfarrow", "jsonlite",
-                 "piggyback", "qs", "arrow"),
+    packages = description_packages,  # Use all packages from DESCRIPTION file
     repository = "local",  # Store locally; manual upload after tar_make() completes
     cue = tar_cue(mode = "thorough")  # Recompute if any inputs change
   )
 
-
-# Then in Actions:
-#tar_make_future(workers = 4)
-
-
   terraOptions(tempdir = "data/temp/terra", memfrac = 0.6)
 
-## Authenticate with AppEEARS
-# source("R/appeears_auth.R")
+  # Set cleanup behavior based on execution environment
+  # In GitHub Actions, we want to clean up temp files to avoid filling up disk space.  Locally, we may want to keep them for debugging or inspection.
+  cleanup_mode <- Sys.getenv("GITHUB_ACTIONS") == "true"
+  if (interactive()) {
+    message("Cleanup mode: ", if (cleanup_mode) "ENABLED (GitHub Actions)" else "DISABLED (Local server)")
+  }
 
 # Ensure things are clean
 #  unlink(file.path("data/temp/"), recursive = TRUE, force = TRUE)
@@ -147,49 +98,60 @@ list(
     format="file"
   ),
 
-
-  tar_target(
+# Get country boundary
+  tar_target( 
     country.parquet,
     get_country(),
     format = "file"
   ),
 
-  tar_target(
-    domain.parquet,
-    domain_define(vegmap = vegmap_shp, country = country.parquet),
+# Create domain file based on country boundary and vegmap
+  tar_target( 
+    domain_boundary.parquet,
+    domain_define(vegmap_shp = vegmap_shp, country = country.parquet),
     format = "file"
   ),
 
-  # Stable bounding box for downloads (50km buffer around domain)
-  # Never re-downloads unless manually invalidated, even if analysis domain changes
-  tar_target(
+# Stable bounding box for downloads (50km buffer around domain)
+  tar_target(   
     domain_bbox.parquet,
-    make_domain_bbox(domain.parquet, buffer_m = 50000, out_file = "data/target_outputs/domain_bbox.parquet"),
+    make_domain_bbox(domain_boundary.parquet, buffer_m = 50000, out_file = "data/target_outputs/domain_bbox.parquet"),
     format = "file",
-    cue = tar_cue(mode = "never")
+    cue = tar_cue(mode = "never")   # Never re-downloads unless manually invalidated, even if analysis domain changes
   ),
 
-  # Domain raster with pixel IDs, remnants, and distance to remnants
-  tar_target(
+# Domain raster with pixel IDs, remnants, and distance to remnants. This defines the model grid that is used for everything!
+  tar_target(   
     domain_nc,
     domain_rasterize(
-      domain = sfarrow::st_read_parquet(domain.parquet), 
+      domain = sfarrow::st_read_parquet(domain_boundary.parquet), 
       remnants_shp = remnants_shp,
       out_file = "data/target_outputs/domain.nc"
     ),
-    format = "file"
+    format = "file",
+     cue = tar_cue(mode = "never") # Never rerun unless manually invalidated because this will trigger complete reprocessing of rs data
      # tar_invalidate(domain_nc) # run this to force recompute, which will trigger redownloading all RS data from appeears
 
   ),
 
-  # Vegetation map raster
+  # Convert domain raster to geoparquet for spatial reference with coordinates and pid
   tar_target(
+    domain_geoparquet,
+    domain_to_geoparquet(
+      domain_raster_file = domain_nc,
+      out_file = "data/target_outputs/domain.parquet",
+      verbose = TRUE
+    ),
+    format = "file"
+  ),
+
+# Rasterize the vegetation map
+   tar_target( 
     vegmap_nc,
     data_vegmap(domain_raster = domain_nc,
                 vegmap_shp = vegmap_shp,
                 out_file = "data/target_outputs/vegmap.nc"),
     format = "file"),
-# # # # Infrequent updates via releases
 
 
       # tar_target(
@@ -209,10 +171,12 @@ list(
 #      )
 #,
 
-    tar_target(
+# Climate CHELSA bioclimatic variables (BIO1-BIO19)
+    tar_target( 
       climate_chelsa,
       get_climate_chelsa(
-        domain = sfarrow::st_read_parquet(domain.parquet),
+        domain = sfarrow::st_read_parquet(domain_boundary.parquet),
+        cleanup = cleanup_mode,
         verbose = TRUE),
       format = "file"
     ),
@@ -225,12 +189,13 @@ list(
   #                             sleep_time = 180)
   #   ),
 
+  ##################### AppEEARS Static Data Processing #########################
   # Sequential targets for AppEEARS elevation: submit task, then poll for results
   # Allows independent timeouts and retries for long-running API calls
   tar_target(
     elevation_task_id,
     submit_elevation_task(
-      domain_vector = sfarrow::st_read_parquet(domain.parquet),
+      domain_vector = sfarrow::st_read_parquet(domain_boundary.parquet),
       verbose = TRUE
     )
   ),
@@ -239,7 +204,7 @@ list(
     elevation,
     download_elevation_results(
       task_id = elevation_task_id,
-      domain_vector = sfarrow::st_read_parquet(domain.parquet),
+      domain_vector = sfarrow::st_read_parquet(domain_boundary.parquet),
       domain_raster = domain_nc,
       out_file = "data/target_outputs/elevation_nasadem.nc",
       temp_directory = "data/temp/raw_data/elevation_nasadem/",
@@ -283,7 +248,8 @@ list(
 #   #                         domain)
 #   # ),
 #
-# # # # # Frequent updates via releases
+
+##################### AppEEARS Dynamic Data Processing #########################
 
 #       tar_age(
 #         fire_modis_release,
@@ -300,158 +266,144 @@ list(
 #       ),
 
   # ============================================================================
-  # MODIS VI 16-day Window Download Pipeline (Dynamically Branched)
+  # MODIS VI Download Pipeline (Dynamically Branched)
   # ============================================================================
 
-  # Step 1: Identify which 16-day windows need to be downloaded
+  # Identify which monthly periods need to be downloaded
   tar_target(
-    modis_vi_windows_to_download,
+    modis_vi_to_download,
     {
-      output_dir <- "data/target_outputs/modis_vi_windows"
+      output_dir <- "data/target_outputs/modis_vi"
       
-      # Always download all missing windows from start_date to present
-      # identify_missing_windows() will return only those not yet downloaded
-      missing <- identify_missing_windows(
+      # Check which monthly periods have already been downloaded
+      # identify_missing_vi() checks for existing NetCDF files
+      missing <- identify_missing_vi(
         output_dir = output_dir,
+        dataset = "modis_vi",
         start_date = modis_start_date,
         end_date = modis_end_date
       )
       
+      # Always include the current month to ensure up-to-date data
+      today <- Sys.Date()
+      current_month_start <- as.Date(paste0(format(today, "%Y-%m"), "-01"))
+      current_month_end <- as.Date(paste0(format(today + 31, "%Y-%m"), "-01")) - 1
+      current_month_str <- format(current_month_start, "%Y-%m")
+      
+      # Check if current month is already in missing
+      current_in_missing <- any(missing$date_str == current_month_str)
+      
+      if (!current_in_missing) {
+        current_row <- data.frame(
+          month_start = current_month_start,
+          month_end = current_month_end,
+          date_str = current_month_str
+        )
+        missing <- rbind(missing, current_row)
+      }
+      
       if (nrow(missing) == 0) {
-        message("All 16-day windows from ", modis_start_date, " to ", modis_end_date, " already downloaded")
+        message("All monthly periods from ", modis_start_date, " to ", modis_end_date, " already downloaded")
         # Return empty data frame with correct structure
         data.frame(
-          window_start = as.Date(character(0)),
-          window_end = as.Date(character(0)),
+          month_start = as.Date(character(0)),
+          month_end = as.Date(character(0)),
           date_str = character(0)
         )
       } else {
-        message("Found ", nrow(missing), " missing 16-day windows to download")
+        message("Found ", nrow(missing), " missing monthly periods to download (current month always included)")
         missing
       }
     }
   ),
 
-  # Step 2: Dynamically submit 16-day window AppEEARS tasks
+  # Dynamically submit monthly AppEEARS tasks
   tar_target(
-    modis_vi_window_task_ids,
+    modis_vi_task_ids,
     {
-      # Within this branch, modis_vi_windows_to_download is auto-sliced to one row
-      submit_modis_vi_window(
-        domain_vector = sfarrow::st_read_parquet(domain.parquet),
-        window_start = modis_vi_windows_to_download$window_start,
-        window_end = modis_vi_windows_to_download$window_end
+      # Within this branch, modis_vi_to_download is auto-sliced to one row
+      submit_modis_vi(
+        domain_vector = sfarrow::st_read_parquet(domain_boundary.parquet),
+        month_start = modis_vi_to_download$month_start,
+        month_end = modis_vi_to_download$month_end
       )
     },
-    pattern = map(modis_vi_windows_to_download)
+    pattern = map(modis_vi_to_download),
   ),
 
-  # Step 3: Dynamically download and process 16-day window results
+  # Download NetCDF files from AppEEARS (I/O only)
   tar_target(
-    modis_vi_window_files,
+    modis_vi_netcdf,
     {
-      # Both upstream targets are auto-sliced in parallel by the pattern
-      download_modis_vi_window(
-        task_id = modis_vi_window_task_ids,
-        domain_vector = sfarrow::st_read_parquet(domain.parquet),
+      download_modis_vi_netcdf(
+        task_id = modis_vi_task_ids,
+        month_start = modis_vi_to_download$month_start,
+        temp_directory = "data/temp/raw_data/modis_vi_netcdf/",
+        cleanup = cleanup_mode,
+        verbose = TRUE
+      )
+    },
+    pattern = map(modis_vi_task_ids, modis_vi_to_download),
+    format = "file",
+  ),
+
+  # Process NetCDF to parquet format
+  tar_target(
+    modis_vi_parquet,
+    {
+      netcdf_to_parquet(
+        netcdf_directory = modis_vi_netcdf,
         domain_raster = domain_nc,
-        window_start = modis_vi_windows_to_download$window_start,
-        out_dir = "data/target_outputs/modis_vi_windows",
-        cleanup=F,
+        month_start = modis_vi_to_download$month_start,
+        out_dir = "data/target_outputs/modis_vi/",
+        cleanup = cleanup_mode,
         verbose = TRUE
       )
     },
-    pattern = map(modis_vi_window_task_ids, modis_vi_windows_to_download),
+    pattern = map(modis_vi_netcdf, modis_vi_to_download),
     format = "file"
   ),
 
-  # Step 4: Create index of 16-day windows
+  # Generate STAC Collection for MODIS VI dataset
   tar_target(
-    modis_vi_window_index,
+    modis_vi_stac,
+    generate_modis_vi_stac(
+      parquet_files = modis_vi_parquet,  # Automatically aggregated from branched target
+      parquet_dir = "data/target_outputs/modis_vi",
+      stac_dir = "data/stac/modis_vi",
+      parent_catalog_path = "data/stac",
+      gh_repo = "AdamWilsonLab/emma_envdata",
+      gh_release_tag = "data_modis_vi_current",
+      verbose = TRUE
+    ),
+    format = "file"
+  ),
+
+  # Generate parent STAC Catalog linking all datasets (MODIS VI, VIIRS VI, burned area, age, etc.)
+  tar_target(
+    emma_stac_catalog,
     {
-      # Create index of all 16-day window files
-      create_modis_vi_window_index(
-        output_dir = "data/target_outputs/modis_vi_windows",
-        summary_file = "data/target_outputs/modis_vi_window_index.parquet",
+      generate_emma_stac_catalog(
+        stac_base_dir = "data/stac",
+        dataset_collections = list(
+          modis_vi = "data/stac/modis_vi"
+          # Additional datasets will be added here as they become available:
+          # viirs_vi = "data/stac/viirs_vi",
+          # burned_area = "data/stac/burned_area",
+          # age = "data/stac/age"
+        ),
+        gh_repo = "AdamWilsonLab/emma_envdata",
         verbose = TRUE
       )
     },
-    format = "file"
-  )
+    format = "file",
+    deployment = "main"
+  ),
+
 
  # revise modis for viirs
 
 
-# # # # # # # Fixing projection via releases
-
-
-#     tar_target(
-#         correct_fire_release_proj_and_extent,
-#         process_fix_modis_release_projection_and_extent(temp_directory = "data/temp/raw_data/fire_modis/",
-#                                                         input_tag = "raw_fire_modis",
-#                                                         output_tag = "clean_fire_modis",
-#                                                         max_layers = NULL,
-#                                                         sleep_time = 30,
-#                                                         verbose = TRUE,
-#                                                         ... = fire_modis_release)
-#         ),
-
-#     tar_target(
-#       correct_ndvi_release_proj_and_extent,
-#       process_fix_modis_release_projection_and_extent(temp_directory = "data/temp/raw_data/ndvi_modis/",
-#                                                       input_tag = "raw_ndvi_modis",
-#                                                       output_tag = "clean_ndvi_modis",
-#                                                       max_layers = NULL,
-#                                                       sleep_time = 30,
-#                                                       verbose = TRUE,
-#                                                       ... = ndvi_modis_release)
-#       ),
-
-#   tar_target(
-#     correct_ndvi_dates_release_proj_and_extent,
-#     process_fix_modis_release_projection_and_extent(temp_directory = "data/temp/raw_data/ndvi_dates_modis/",
-#                                                     input_tag = "raw_ndvi_dates_modis",
-#                                                     output_tag = "clean_ndvi_dates_modis",
-#                                                     max_layers = NULL,
-#                                                     sleep_time = 30,
-#                                                     verbose = TRUE,
-#                                                     ... = ndvi_dates_modis_release)
-#   ),
-
-
-#   tar_target(
-#     correct_ndvi_viirs_release_proj_and_extent,
-#     process_fix_modis_release_projection_and_extent(temp_directory = "data/temp/raw_data/ndvi_viirs/",
-#                                                     input_tag = "raw_ndvi_viirs",
-#                                                     output_tag = "clean_ndvi_viirs",
-#                                                     max_layers = 30,
-#                                                     sleep_time = 30,
-#                                                     verbose = TRUE,
-#                                                     ... = ndvi_viirs_release)
-#   ),
-
-
-#     tar_target(
-#       correct_ndvi_dates_viirs_release_proj_and_extent,
-#       process_fix_modis_release_projection_and_extent(temp_directory = "data/temp/raw_data/ndvi_dates_viirs/",
-#                                                       input_tag = "raw_ndvi_dates_viirs",
-#                                                       output_tag = "clean_ndvi_dates_viirs",
-#                                                       max_layers = 30,
-#                                                       sleep_time = 30,
-#                                                       verbose = TRUE,
-#                                                       ... = ndvi_dates_viirs_release)
-#     ),
-
-#     tar_target(
-#       correct_kndvi_release_proj_and_extent,
-#       process_fix_modis_release_projection_and_extent(temp_directory = "data/temp/raw_data/kndvi_modis/",
-#                                                       input_tag = "raw_kndvi_modis",
-#                                                       output_tag = "clean_kndvi_modis",
-#                                                       max_layers = 30,
-#                                                       sleep_time = 45,
-#                                                       verbose = TRUE,
-#                                                       ... = kndvi_modis_release)
-#     ), # second chunk
 
 # # # # Processing via release
 
@@ -590,30 +542,6 @@ list(
 
 #     tar_target(
 #       stable_data_release,
-#       process_release_stable_data(temp_directory = "data/temp/processed_data/static/",
-#                                   input_tag = "processed_static",
-#                                   output_tag = "current",
-#                                   sleep_time = 120,
-#                                   ... = projected_precipitation_chelsa_release,
-#                                   ... = projected_landcover_za_release,
-#                                   ... = projected_elevation_nasadem_release,
-#                                   ... = projected_clouds_wilson_release,
-#                                   ... = projected_climate_chelsa_release,
-#                                   ... = projected_alos_release,
-#                                   ... = remnant_distance_release,
-#                                   ... = protected_area_distance_release,
-#                                   ... = projected_soil_gcfr_release)
-#       ),
-
-#     tar_target(
-#       ndvi_to_parquet_release,
-#       process_release_dynamic_data_to_parquet(temp_directory = "data/temp/raw_data/ndvi_modis/",
-#                                       input_tag = "clean_ndvi_modis",
-#                                       output_tag = "current",
-#                                       variable_name = "ndvi",
-#                                       sleep_time = 30,
-#                                       ... = correct_ndvi_release_proj_and_extent)
-#       ),
 
 #     tar_target(
 #       fire_dates_to_parquet_release,
@@ -634,6 +562,76 @@ list(
 #                                       sleep_time = 30,
 #                                       ... = burn_date_to_last_burned_date_release)
 #     )
+
+  ##################### GitHub Release Uploads #########################
+  
+  # Upload static data files (domain, elevation, climate, etc.)
+  # tar_target(
+  #   upload_static_data,
+  #   {
+  #     upload_to_github_release(
+  #       files = c(
+  #         domain_boundary.parquet,
+  #         elevation,
+  #         climate_chelsa,
+  #         vegmap_nc
+  #       ),
+  #       repo = "AdamWilsonLab/emma_envdata",
+  #       release_tag = "static_current",
+  #       release_name = "Static Data - Current",
+  #       verbose = TRUE
+  #     )
+  #   },
+  #   deployment = "main"
+  # ),
+
+  # Upload dynamic MODIS VI data files
+  tar_target(
+    upload_modis_vi_data,
+    {
+     
+      # Get all parquet files from disk
+      parquet_files <- list.files(
+        "data/target_outputs/modis_vi",
+        pattern = "\\.parquet$",
+        full.names = TRUE
+      )
+      
+      upload_to_github_release(
+        files = parquet_files,
+        repo = gh_repo_config$repo,
+        release_tag = "dynamic_modis_vi",
+        release_name = "Dynamic MODIS Vegetation Index",
+        verbose = TRUE,
+        modis_vi_parquet #include to force dependency on the parquet files being created before upload     
+      )
+    },
+    deployment = "main"
+  ),
+
+  # Upload STAC metadata catalog
+  tar_target(
+    upload_stac_catalog,
+    {
+      # Ensure STAC targets are complete before proceeding
+      stac_parent <- emma_stac_catalog
+      stac_modis_items <- modis_vi_stac
+      
+      stac_files <- c(
+        file.path("data/stac", "catalog.json"),
+        list.files("data/stac/modis_vi", pattern = "\\.json$", full.names = TRUE)
+      )
+      
+      upload_to_github_release(
+        files = stac_files,
+        repo = gh_repo_config$repo,
+        release_tag = "stac",
+        release_name = "STAC Catalog - Current",
+        verbose = TRUE
+        )
+    },
+    deployment = "main"
+  )
 
 )
 

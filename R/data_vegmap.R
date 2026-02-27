@@ -7,7 +7,8 @@ data_vegmap <- function(domain_raster,
 
   # Load domain raster (may be passed as file path or raster object)
   domain <- if (is.character(domain_raster)) {
-    rast(domain_raster, "domain")
+    # If it's a file path, load the 'domain' variable from NetCDF
+    rast(domain_raster, subds = "domain")
   } else {
     domain_raster
   }
@@ -46,9 +47,6 @@ data_vegmap <- function(domain_raster,
   # Mask to domain (set to NA where domain is NA)
   domain_mask <- !is.na(domain)
   multiband <- terra::mask(multiband, domain_mask, maskvalues = 0)
-
-  # Set units (preserved through cache with terra_preserve_metadata = "zip")
-  units(multiband) <- c("dimensionless", "dimensionless", "dimensionless")
 
   # Lookup table for IDs -> names 
   lookup_tbl <- vegmap_sf %>%

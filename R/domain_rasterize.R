@@ -5,13 +5,13 @@
 #' @description Creates a multivariate NetCDF file with four variables: domain mask, pixel IDs, remnant indicators, and distance to nearest remnant. Each variable is written separately with maximum compression and CF-1.8 compliant metadata.
 #' @param domain sf or SpatVector object defining the study area (typically from domain_define).
 #' @param remnants_shp Path to remnant vegetation shapefile.
-#' @param dx Numeric x-resolution in CRS units (default 250 m).
-#' @param dy Numeric y-resolution in CRS units (default 250 m).
+#' @param dx Numeric x-resolution in CRS units (default 500 m).
+#' @param dy Numeric y-resolution in CRS units (default 500 m).
 #' @param out_file Character path for output NetCDF file (default "data/raw/domain.nc").
 #' @return Character path to the written NetCDF file.
 #' @details Generates a raster template from domain bounding box, rasterizes domain and remnants, computes pixel IDs (sequential within domain) and Euclidean distance to nearest remnant (in km). Writes four variables (domain, pid, remnants, remnants_distance) to NetCDF with FORMAT=NC4, COMPRESS=DEFLATE, ZLEVEL=9, SHUFFLE=YES. Adds CF-compliant metadata via ncdf4 including long_name, units, CRS, history, and Conventions attributes.
 
-domain_rasterize <- function(domain, remnants_shp, dx = 250, dy = 250, out_file = "data/raw/domain.nc") {
+domain_rasterize <- function(domain, remnants_shp, dx = 500, dy = 500, out_file = "data/raw/domain.nc") {
 
   # Generate raster template and rasterize domain with terra (touches = TRUE)
   domain_template <- rast(st_as_stars(st_bbox(domain), dx = dx, dy = dy))
@@ -66,17 +66,13 @@ domain_rasterize <- function(domain, remnants_shp, dx = 250, dy = 250, out_file 
   pid_values[domain_cells] <- seq_along(domain_cells)
   values(pid_raster) <- pid_values
 
-  # Prepare layers and units for per-variable write
+  # Prepare layers for per-variable write
   layers <- list(
     domain = domain_raster,
     pid = pid_raster,
     remnants = remnants_raster,
     remnants_distance = remnants_distance
   )
-  units(layers$domain) <- "dimensionless"
-  units(layers$pid) <- "dimensionless"
-  units(layers$remnants) <- "dimensionless"
-  units(layers$remnants_distance) <- "meters"
 
   # Get spatial extent and create dimensions for NetCDF
   ext <- ext(domain_raster)

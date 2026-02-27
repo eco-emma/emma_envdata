@@ -15,7 +15,7 @@ generate_release_manifest <- function() {
     remnants_shp = "Vegetation remnants shapefile (manual download)",
     capenature_fires_shp = "Fire extent shapefile (manual download)",
     country.parquet = "Country boundary geometry (derived from geodata)",
-    domain.parquet = "Study domain boundary (intersection of vegetation map and country)",
+    domain_boundary.parquet = "Study domain boundary (intersection of vegetation map and country)",
     domain_bbox.parquet = "50km-buffered download boundary (locked to prevent re-downloads)",
     domain_nc = "Domain raster grid with pixel IDs, remnants, and distance-to-remnants",
     vegmap_nc = "Vegetation map rasterized to analysis grid",

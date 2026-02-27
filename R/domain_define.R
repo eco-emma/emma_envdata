@@ -4,7 +4,7 @@
 #' @description Build a smoothed, buffered domain polygon from the 2018 vegetation map and country boundary, then write it to GeoParquet.
 #' @param vegmap_shp Path to the vegetation map shapefile (e.g., VEGMAP2018).
 #' @param country Path to the country boundary GeoParquet file.
-#' @return Character path to the written GeoParquet file (`data/raw/domain.parquet`).
+#' @return Character path to the written GeoParquet file (`data/raw/domain_boundary.parquet`).
 #' @details Filters to target biomes, unions polygons, simplifies (500 m), buffers (50 km), smooths (ksmooth, smoothness=120), intersects with country, and writes to GeoParquet.
 
 domain_define <- function(vegmap_shp, country){
@@ -26,7 +26,7 @@ domain_define <- function(vegmap_shp, country){
 vegmap_buffer = vegmap_union %>%
   st_simplify(dTolerance=500) %>%
   st_buffer(50000) %>%
-  smooth(method="ksmooth",smoothness=120) #%>%
+  smoothr::smooth(method="ksmooth",smoothness=120) #%>%
 
 country= st_as_sf(country) %>%
   st_transform(crs=st_crs(vegmap_buffer)) 
@@ -38,7 +38,7 @@ country= st_as_sf(country) %>%
     mutate(domain=1)
 
   # Write to GeoParquet
-  out_file <- "data/raw/domain.parquet"
+  out_file <- "data/raw/domain_boundary.parquet"
   sfarrow::st_write_parquet(domain, out_file)
   
   return(out_file)

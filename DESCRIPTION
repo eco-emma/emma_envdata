@@ -15,6 +15,7 @@ Imports:
   colourvalues,
   sf,
   terra,
+  stars,
   testthat,
   kableExtra,
   knitr,
@@ -25,9 +26,19 @@ Imports:
   dplyr,
   arrow,
   targets,
+  tarchetypes,
+  visNetwork,
+  rdryad,
+  keyring,
+  filelock,
+  sfarrow,
   geotargets,
   janitor,
-  ncdf4
+  ncdf4,
+  qs,
+  devtools,
+  smoothr,
+  piggyback
 Suggests:
   rgee,
   reticulate,

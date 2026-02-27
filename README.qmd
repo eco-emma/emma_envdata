@@ -10,6 +10,7 @@ knitr::opts_chunk$set(
   comment = "#>"
 )
 library(tidyverse)
+library(rstac)
 ```
 
 ![EMMA](img/EMMA Logo_RE_3.jpg)
@@ -42,6 +43,109 @@ targets::tar_glimpse() %>%
   htmlwidgets::saveWidget(file = "img/network.html")
 #webshot::install_phantomjs()
 webshot::webshot("img/network.html", "img/network.png")
+```
+
+# Data Archive Summary
+
+```{r stac-summary, message=FALSE, warning=FALSE}
+
+# Connect to STAC catalog
+stac_base_url <- "https://github.com/AdamWilsonLab/emma_envdata/releases/download/stac"
+cat_url <- paste0(stac_base_url, "/catalog.json")
+
+tryCatch({
+  # Load root catalog
+  cat <- stac(cat_url)
+  
+  # Get MODIS VI collection
+  modis_link <- cat$doc$links %>%
+    Filter(function(x) x$rel == "child" && grepl("MODIS.*VI|modis.*vi", x$title, ignore.case = TRUE), .)
+  
+  if (length(modis_link) > 0) {
+    collection_url <- paste0(stac_base_url, "/modis_vi/collection.json")
+    collection <- stac(collection_url)
+    
+    # Get all items
+    items <- stac_search(collection) %>% get_request()
+    
+    if (!is.null(items$features) && length(items$features) > 0) {
+      # Extract item metadata
+      items_table <- data.frame(
+        Month = sapply(items$features, function(x) x$id),
+        Start = sapply(items$features, function(x) x$properties$start_datetime),
+        End = sapply(items$features, function(x) x$properties$end_datetime),
+        stringsAsFactors = FALSE
+      ) %>%
+        mutate(
+          Start = as.Date(substr(Start, 1, 10)),
+          End = as.Date(substr(End, 1, 10))
+        ) %>%
+        arrange(Start)
+      
+      # Display summary statistics
+      cat("## MODIS Enhanced Vegetation Index (EVI)\n\n")
+      
+      if (!is.null(collection$doc$description)) {
+        cat("**Collection Description:** ", collection$doc$description, "\n\n")
+      }
+      
+      cat("**Temporal Coverage:** ", min(items_table$Start), " to ", max(items_table$End), "\n\n")
+      cat("**Total Months Available:** ", nrow(items_table), "\n\n")
+      cat("**Last Updated:** ", max(items_table$End), "\n\n")
+    } else {
+      cat("No items found in MODIS VI collection\n")
+    }
+  } else {
+    cat("MODIS VI collection not found in STAC catalog\n")
+  }
+}, error = function(e) {
+  cat("Could not access STAC catalog: ", e$message, "\n")
+})
+```
+
+### Available Data Files
+
+```{r stac-table, echo=FALSE}
+if (exists("items_table")) {
+  knitr::kable(
+    items_table,
+    format = "markdown",
+    caption = "MODIS VI monthly data files in archive"
+  )
+}
+```
+
+### Accessing Data with rstac
+
+Users can programmatically access this data using the `rstac` R package:
+
+```{r, eval=FALSE}
+library(rstac)
+library(arrow)
+
+# Connect to STAC collection
+stac_base_url <- "https://github.com/AdamWilsonLab/emma_envdata/releases/download/stac"
+cat_url <- paste0(stac_base_url, "/catalog.json")
+cat <- stac(cat_url)
+
+collection_url <- paste0(stac_base_url, "/modis_vi/collection.json")
+collection <- stac(collection_url)
+
+# Search for items in a date range
+results <- stac_search(
+  q = collection,
+  datetime = "2026-01-01/2026-12-31"
+) %>%
+  get_request()
+
+# Download and read parquet files
+if (!is.null(results$features)) {
+  for (item in results$features) {
+    url <- item$assets$data$href
+    df <- arrow::read_parquet(url)
+    # Process data...
+  }
+}
 ```
 
 # Workflow Notes

@@ -8,14 +8,16 @@ library(ncdf4)
 #' @param temp_directory Where to save the files, defaults to "data/raw_data/climate_chelsa/"
 #' @param domain domain (sf polygon) used for masking
 #' @param tag Tag for the release
+#' @param cleanup Logical. If TRUE (default, for GitHub Actions), clean temp directory before/after. If FALSE (local development), preserve cached files.
 #' @import terra
 get_chelsa <- function(temp_directory = "data/temp/raw_data/climate_chelsa/",
                                        tag = "raw_static",
-                                       domain){
+                                       domain,
+                                       cleanup = TRUE){
 
-  #ensure temp directory is empty
+  #ensure temp directory is empty only if cleanup mode is enabled
 
-    if(dir.exists(temp_directory)){
+    if(cleanup && dir.exists(temp_directory)){
       unlink(x = file.path(temp_directory), recursive = TRUE, force = TRUE)
     }
 
@@ -85,15 +87,24 @@ get_chelsa <- function(temp_directory = "data/temp/raw_data/climate_chelsa/",
   for(idx in 1:nrow(bio_metadata)){
     i <- bio_metadata$bio_name[idx]
 
-# Download the file
-            robust_download_file(url = paste("https://os.unil.cloud.switch.ch/chelsa02/chelsa/global/bioclim/",i,"/1981-2010/CHELSA_bio",sprintf("%02d", idx),"_1981-2010_V.2.1.tif",sep = ""),
-                           destfile = file.path(temp_directory,paste("CHELSA_bio",sprintf("%02d", idx),"_1981-2010_V.2.1.tif",sep = "")),
-                           max_attempts = 10,
-                           sleep_time = 10
-                           )
+    # Construct filename
+    tif_filename <- file.path(temp_directory, paste("CHELSA_bio", sprintf("%02d", idx), "_1981-2010_V.2.1.tif", sep = ""))
+    
+    # Skip download if file already exists (when cleanup = FALSE, running locally)
+    if (!cleanup && file.exists(tif_filename)) {
+      message("File already exists, skipping download: ", basename(tif_filename))
+    } else {
+      # Download the file
+      robust_download_file(
+        url = paste("https://os.unil.cloud.switch.ch/chelsa02/chelsa/global/bioclim/", i, "/1981-2010/CHELSA_bio", sprintf("%02d", idx), "_1981-2010_V.2.1.tif", sep = ""),
+        destfile = tif_filename,
+        max_attempts = 10,
+        sleep_time = 10
+      )
+    }
 
     # load
-      rast_i <- terra::rast(file.path(temp_directory,paste("CHELSA_bio",sprintf("%02d", idx),"_1981-2010_V.2.1.tif",sep = "")))
+      rast_i <- terra::rast(tif_filename)
 
     # crop
 
