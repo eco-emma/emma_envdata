@@ -9,7 +9,7 @@
 #' @param vegmap_shp is the path to the 2018 national vegetation map - used to get national boundary
 #' @param buffer size of domain buffer (in m)
 
-domain_define <- function(vegmap, country){
+domain_define_bioscape <- function(vegmap, country){
 
   require(smoothr)
 

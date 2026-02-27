@@ -97,7 +97,7 @@ tar_manifest() %>%
 ```
 
 This shows:
-- **name**: Target name (e.g., `domain.parquet`, `elevation`)
+- **name**: Target name (e.g., `domain_boundary.parquet`, `elevation`)
 - **type**: Object type (e.g., "file", "qs")
 - **path**: Output file path (for file targets like NetCDF)
 - **repository**: Storage location (gh_repo for GitHub release objects)
