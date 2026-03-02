@@ -35,7 +35,6 @@ Imports:
   geotargets,
   janitor,
   ncdf4,
-  qs,
   devtools,
   smoothr,
   piggyback

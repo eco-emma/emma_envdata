@@ -32,7 +32,6 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
   gh_repo_config <- list(
     repo = "AdamWilsonLab/emma_envdata",
     tag = "objects_current",
-    format = "qs",
     cache_dir = "data/target_outputs/.tar_cache" #this is local cache for speed
   )
 
