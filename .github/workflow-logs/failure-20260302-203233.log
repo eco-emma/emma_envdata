@@ -1,0 +1,8 @@
+Starting tar_make()
+ℹ Loading EMMAv1
+Error:
+! Error in tar_make():
+  The packages "viridis", "colourvalues", "kableExtra", and "qs" are
+required.
+  See https://books.ropensci.org/targets/debugging.html
+Execution halted
