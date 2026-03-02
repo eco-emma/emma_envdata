@@ -37,7 +37,8 @@ Imports:
   ncdf4,
   devtools,
   smoothr,
-  piggyback
+  piggyback,
+  questionr
 Suggests:
   rgee,
   reticulate,
