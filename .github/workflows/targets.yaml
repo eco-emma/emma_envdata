@@ -30,289 +30,194 @@ on:
     branches:
       - main
       - master
+      - dev-adam-appeears
       - dev-jiyeon
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
   schedule:
-  #  - cron:  '1 0 * * 0' # runs every Sunday at 00:01
-      - cron: '0 0 * * *' # runs every day at midnight
+    - cron: '0 0 * * 0' # runs every Sunday at midnight UTC
+  #  - cron: '0 0 * * *' # runs every day at midnight
   #  - cron:  '0 */6 * * *' # run every 6th hour
 
 name: targets
 
 jobs:
   targets:
-    runs-on: ubuntu-24.04 #ubuntu-22.04
+    runs-on: ubuntu-latest
     container: adamwilsonlab/emma:latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
-      RENV_PATHS_ROOT: ~/.local/share/renv
+      R_KEEP_PKG_SOURCE: yes
+      EARTHDATA_PASSWORD: ${{ secrets.EARTHDATA_PASSWORD }}
+      EARTHDATA_USER: ${{ secrets.EARTHDATA_USER }}
       ACTIONS_RUNNER_DEBUG: true
-      PYTHONPATH: /opt/conda/envs/r-reticulate/bin/python
-      RETICULATE_PYTHON: /opt/conda/envs/r-reticulate/bin/python
-      # GARGLE_AUTH_FILE: secrets/ee-wilsonlab-emma-ef416058504a.json
-      GOOGLE_APPLICATION_CREDENTIALS: secrets/ee-wilsonlab-emma-ef416058504a.json
     steps:
       - uses: actions/checkout@v2
         with: 
-          ref: main
+          ref: dev-adam-appeears
           lfs: true
       - name: Whitelist directory
         run: git config --global --add safe.directory /__w/emma_envdata/emma_envdata
-      - name: Checkout LFS objects
-        run: git lfs checkout
-        continue-on-error: true
-      # - name: List files in scratch_code
-      #   run: ls -lh scratch_code/
-#      - name: Setup Python
-#        uses: actions/setup-python@v2
-#        with:
-#          python-version: '3.x'
-#      - name: Install Python Dependencies
-#        run: |
-#          pip install earthengine-api
-#          pip install -r requirements.txt  # If you have other dependencies listed in a requirements file
-#      - name: Verify Python Installation
-#        run: |
-#          python -m pip show earthengine-api
-#          python -c "import ee; print(ee.__version__)"
-#      # - name: Install Linux system dependencies
-#      #   if: runner.os == 'Linux'
-#      #   run: |
-#      #     sudo apt-get update
-      - name: Install Google Cloud SDK in container
+      - name: Install system deps for keyring
         run: |
           apt-get update
-          apt-get install -y curl apt-transport-https ca-certificates gnupg
-          echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" \
-            | tee /etc/apt/sources.list.d/google-cloud-sdk.list
-          curl https://packages.cloud.google.com/apt/doc/apt-key.gpg \
-            | apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
-          apt-get update
-          apt-get install -y google-cloud-cli=492.0.0-0
-      - name: DECRYPT rgee SECRETS
-        run: ./.github/decrypt_secret.sh
-        env:
-          RGEE_SECRET: ${{ secrets.RGEE_SECRET }}
-        continue-on-error: true
-      # - name: List files in secrets
-      #   run: ls -lh secrets/
-#      - name: Check git settings
-#        run:
-#          git config --get http.postBuffer
-#        continue-on-error: true
-
-      # - name: Display Service Account JSON
-      #   run: |
-      #     echo "=== Service Account JSON ==="
-      #     cat secrets/ee-wilsonlab-emma-ef416058504a.json
-      #     echo "============================"
-          
-      - name: Install Earth Engine API 1.5.4 in r-reticulate env
-        run: |
-          /opt/conda/envs/r-reticulate/bin/pip install --upgrade earthengine-api==0.1.370 #0.1.381
-          # conda install -n r-reticulate -y -c conda-forge earthengine-api=1.5.4
-
-      - name: Verify EE API version
-        run: |
-          /opt/conda/envs/r-reticulate/bin/pip show earthengine-api
-        
+          apt-get install -y libsecret-1-0 libsecret-1-dev
       - name: Install R Package Dependencies
         run: |-
           Rscript -e "questionr::qscan(list.files(pattern='*.R',recursive=T), load = TRUE, detail = TRUE)" # this scans all scripts and installs any needed packages
-      # - name: Upgrade rgee to latest from GitHub
-      #   run: |
-      #     Rscript -e "if (!requireNamespace('devtools', quietly = TRUE)) install.packages('devtools')"
-      #     Rscript -e 'devtools::install_github("r-spatial/rgee", ref="v.1.1.5")'
-      
-      # - name: Install rgee v1.1.5 from CRAN Archive
-      #   run: |
-      #     Rscript -e 'if (!requireNamespace("remotes", quietly=TRUE)) install.packages("remotes", repos="https://cloud.r-project.org")'
-      #     Rscript -e 'remotes::install_version("rgee", version="1.1.5", repos="https://cloud.r-project.org")'
-
-      - name: Install rgee from bmaitner/rgee
-        run: Rscript -e 'devtools::install_github(repo = "bmaitner/rgee", ref = "noninteractive_auth")'
           
       - name: Parse _targets.R
         run: Rscript -e "parse('_targets.R')"
         
-      - name: Cache packages
+      - name: Cache targets store
         uses: actions/cache@v3
         with:
-          path: ${{ env.RENV_PATHS_ROOT }}
-          key: ${{ runner.os }}-renv-${{ hashFiles('**/renv.lock') }}
-          restore-keys: ${{ runner.os }}-renv-
-          
-      - name: Authenticate to GCP
+          path: _targets/
+          key: targets-${{ hashFiles('_targets.R', 'R/**') }}
+          restore-keys: targets-
+      - name: Run targets pipeline
         run: |
-          # write the JSON secret to disk
-          # activate the service account (no --scopes flag)
-          gcloud auth activate-service-account \
-            --key-file="secrets/ee-wilsonlab-emma-ef416058504a.json" \
-            --project=ee-wilsonlab-emma \
-            --quiet
-
-      - name: Add r-reticulate env to PATH
-        run: echo "/opt/conda/envs/r-reticulate/bin" >> $GITHUB_PATH
-      
-      # - name: Authenticate Earth Engine
-      #   run: earthengine authenticate \
-      #          --service_account \
-      #          --quiet \
-      #          #--key_file=${{ runner.temp }}/gee-key.json
-
-      # - name: Authenticate to GCP (ADC with scopes)
-      #   run: |
-      #      gcloud auth application-default login \
-      #       --project=ee-wilsonlab-emma \
-      #       --scopes=https://www.googleapis.com/auth/cloud-platform \
-      #       --quiet
-             
-      # - name: Restore packages
-      #   shell: Rscript {0}
-      #   run: |
-      #     if (!requireNamespace("renv", quietly = TRUE)) install.packages("renv")
-      #     renv::restore()
-      
-      - name: Check if previous runs exists
-        id: runs-exist
-        run: git ls-remote --exit-code --heads origin targets-runs
+          Rscript -e "options(error = function() { traceback(2) ; quit(status = 1)}); targets::tar_make()" 2>&1 | tee targets-output.log
+          # Rscript -e "targets::tar_make()" 2>&1 | tee targets-output.log
+        shell: bash        
+      - name: Export final data products to releases
+        if: github.ref == 'refs/heads/main'
+        run: |
+          # Load final targets and export to data/releases/
+          targets::tar_load_everything()
+          
+          # Create releases directory
+          dir.create("data/releases", recursive = TRUE, showWarnings = FALSE)
+          
+          # Export domain as gpkg (example - adjust to your actual target names)
+          if (exists("domain")) {
+            sf::st_write(
+              sf::st_as_sf(domain), 
+              "data/releases/domain.gpkg", 
+              delete_dsn = TRUE
+            )
+          }
+          
+          # Add other final outputs here as needed
+          # Example: write.csv(final_data, "data/releases/final_data.csv")
+          
+        shell: Rscript {0}
         continue-on-error: true
         
-      - name: Checkout previous run
-        if: steps.runs-exist.outcome == 'success'
-        uses: actions/checkout@v2
+      - name: Upload to GitHub Releases
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v1
         with:
-          ref: targets-runs
-          fetch-depth: 1
-          path: .targets-runs
-          lfs: 'true' #attempting to fix issue with target-committed lfs files not being treated as lfs
-          
-      - name: Restore output files from the previous run
-        if: steps.runs-exist.outcome == 'success'
-        run: |
-          for (dest in scan(".targets-runs/.targets-files", what = character())) {
-            source <- file.path(".targets-runs", dest)
-            if (!file.exists(dirname(dest))) dir.create(dirname(dest), recursive = TRUE)
-            if (file.exists(source)) file.rename(source, dest)
-          }
-        shell: Rscript {0}
-      # - name: Find credential JSON
-      #   run: |
-      #     echo "Searching for ee-wilsonlab-emma-ef416058504a.json ..."
-      #     find / -name 'ee-wilsonlab-emma-ef416058504a.json' 2>/dev/null || true
-#      - name: Run targets pipeline
-#        run: |
-#          Sys.setenv(HOME="/home/rstudio")
-#          cmdstanr::set_cmdstan_path("/home/rstudio/.cmdstanr/cmdstan-2.28.1")
-#          cmdstanr::check_cmdstan_toolchain()
-#          #cmdstanr::install_cmdstan()
-#          targets::tar_make()
-#        shell: Rscript {0}
-#      - name: Run targets pt 1
-#        run: |
-#          Sys.setenv(HOME="/home/rstudio")
-#          cmdstanr::set_cmdstan_path("/home/rstudio/.cmdstanr/cmdstan-2.28.1")
-#          cmdstanr::check_cmdstan_toolchain()
-#          #cmdstanr::install_cmdstan()
-#        shell: Rscript {0}
-      - name: Verify credentials
-        run: |
-          ./.github/decrypt_secret.sh
-#          ls ~/.config/earthengine
-#          /usr/bin/earthengine -h
-#          echo " main dir"
-#          ls
-#          echo "scratch dir"
-#          ls scratch_code
-#          echo "secrets dir"
-#          ls secrets
+          tag_name: latest
+          files: |
+            data/releases/*
+          body: |
+            Latest data products from targets pipeline
+            Updated: ${{ github.event.head_commit.timestamp }}
         env:
-          RGEE_SECRET: ${{ secrets.RGEE_SECRET }}
-          GD_SECRET: ${{ secrets.GD_SECRET }}
-        continue-on-error: true
-      # - name: Install custom rgee
-      #   run: |
-      #      # added below on april 9 from https://github.com/r-spatial/rgee/issues/353#issuecomment-1983765552
-      #      library(reticulate)
-      #      py_config() # see the name of your conda (python) environment, in my case "r-reticulate" 
-      #      reticulate::py_install('earthengine-api==0.1.370', envname='r-reticulate') 
-      #      # Check the installation of "earthengine-api" with 
-      #      py_list_packages() 
-      #      pyl <- py_list_packages()
-      #      pyl[pyl$package == "earthengine-api", ]
-      #      # check python version with
-      #      py_run_string("import sys; print(sys.version)")
-      #      devtools::install_github(repo = "bmaitner/rgee", ref = "noninteractive_auth")
-      # - name: Install custom rgee
-      #   run: |
-      #     Rscript -e "library(reticulate)"
-      #     Rscript -e "reticulate::py_install('earthengine-api==0.1.370', envname='r-reticulate')"
-      #     Rscript -e "pyl <- py_list_packages(); print(pyl[pyl$package == 'earthengine-api', ])"
-      #     Rscript -e "reticulate::py_run_string('import sys; print(sys.version)')"
-      #     Rscript -e "devtools::install_github(repo = 'bmaitner/rgee', ref = 'noninteractive_auth')"
-#        shell: Rscript {0}
-      # - name: Print environment
-      #   run: env
-      # - name: Print R session info
-      #   run: Rscript -e 'sessionInfo()'
-      # - name: “Set up gcloud CLI”
-      #   uses: google-github-actions/setup-gcloud@v1
-      #   with:
-      #     project_id: ${{ secrets.GCP_PROJECT }}
-      #     service_account_key: ${{ secrets.GCP_SA_KEY }}
-      - name: Run targets pt 2
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Install GitHub CLI
+        if: failure() && github.event_name == 'push'
         run: |
-          #reticulate::use_python('/usr/bin/python3')
-          #rgee::ee_set_pyenv('/usr/bin/python3','r-reticulate', confirm = F)
-          #targets::tar_destroy(destroy = "all",ask = FALSE) #uncomment to reset
-          targets::tar_make()
-        shell: Rscript {0}
-      - name: Identify files that the targets pipeline produced
-        run: git ls-files -mo --exclude=renv > .targets-files
-      - name: Create the runs branch if it does not already exist
-        if: steps.runs-exist.outcome != 'success'
-        run: git checkout --orphan targets-runs
-      - name: Put the worktree in the runs branch if the latter already exists
-        if: steps.runs-exist.outcome == 'success'
+          apt-get update
+          apt-get install -y gh
+          
+      - name: Create review PR on failure
+        if: failure() && github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          rm -r .git
-          mv .targets-runs/.git .
-          rm -r .targets-runs
+          # Create error log if it doesn't exist
+          if [ ! -f targets-output.log ]; then
+            echo "No targets-output.log file found. Pipeline may have failed during execution." > targets-output.log
+          fi
+          # Get last 100 lines of error
+          tail -100 targets-output.log > error-summary.txt
+          
+          # Create branch
+          BRANCH="auto-fix-$(date +%s)"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          
+          # Add error log
+          mkdir -p .github/workflow-logs
+          cp targets-output.log .github/workflow-logs/failure-$(date +%Y%m%d-%H%M%S).log
+          git add .github/workflow-logs/
+          git commit -m "Add workflow failure log for review" || true
+          git push origin "$BRANCH"
+          
+          # Create PR (Copilot will auto-review it)
+          gh pr create \
+            --title "🚨 Targets workflow failed - Review needed" \
+            --body "## Workflow Failure
 
-      - name: update md
-        run: |
-          webshot::install_phantomjs()
-          knitr::knit("README.Rmd")
-        shell: Rscript {0}
-      - name: Upload latest run
-        run: |
-          git config --local user.name "GitHub Actions"
-          git config --local user.email "actions@github.com"
-          rm -r .gitignore .github/workflows
-          git lfs track _targets/objects/* #use git LFS to track the targets output (larger files)
-          git lfs track data/raw_data/*
-          git lfs track data/* #use git LFS to track the data output (larger files)
-          git lfs track "raw_data/**" #use git LFS to track raw_data output (larger files)
-          git lfs track "data/**"
-          git lfs track _targets/metadata/* #track metadata
-          git lfs track *.tif
-          git add .gitattributes
-          git add --all -- ':!renv' ':!*json'
-          for file in $(git ls-files ':!*.json' -mo --exclude=renv)
-          do
-            git add -f $file
-          done
-          git commit -am "Run pipeline"
-          git push origin targets-runs
-# Move the loop below up two lines (after git add) to commit large files.
-      - name: Prepare failure artifact
-        if: failure()
-        run: rm -rf .git .github .targets-files .targets-runs
+          The targets pipeline failed. GitHub Copilot will review this PR.
+
+          ### Error Summary
+          \`\`\`
+          $(cat error-summary.txt)
+          \`\`\`
+
+          ### Full Log
+          See \`.github/workflow-logs/\` for complete output.
+          
+          **Next steps:**
+          1. Review Copilot's suggestions in the PR
+          2. Apply fixes
+          3. Close this PR once resolved" \
+            --base main \
+            --head "$BRANCH" \
+            --label "bug"
+          
+          # Request Copilot review
+          gh pr comment $BRANCH --body "@github-copilot review"
+          
+          # Request Copilot coding agent to fix the issue
+          gh pr comment $BRANCH --body "@github-copilot-agent Please analyze the error log and create fixes for this targets pipeline failure"
+      
       - name: Post failure artifact
         if: failure()
         uses: actions/upload-artifact@main
         with:
-          name: ${{ runner.os }}-r${{ matrix.config.r }}-results
+          name: ${{ runner.os }}-results
           path: .
+      
+      - name: Prepare failure artifact
+        if: failure()
+        run: rm -rf .git .github
+      
+      - name: Comment on existing PR with status
+        if: always() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          STATUS="${{ steps.targets.outcome }}"
+          if [ "$STATUS" = "success" ]; then
+            EMOJI="✅"
+            MESSAGE="Targets workflow completed successfully!"
+          else
+            EMOJI="❌"
+            MESSAGE="Targets workflow failed. See logs below."
+          fi
+          
+          if [ ! -f targets-output.log ]; then
+            echo "No targets-output.log file found. Pipeline completed without explicit log output." > targets-output.log
+          fi
+          gh pr comment ${{ github.event.pull_request.number }} --body "## $EMOJI Targets Workflow Result
+
+          $MESSAGE
+
+          <details>
+          <summary>Show last 50 lines of output</summary>
+
+          \`\`\`
+          $(tail -50 targets-output.log)
+          \`\`\`
+          </details>"
