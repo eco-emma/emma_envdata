@@ -96,15 +96,15 @@ get_release_clouds_wilson <- function(temp_directory = "data/temp/raw_data/cloud
 
     # Push release
 
-      pb_upload(file = file.path(temp_directory, filename),
-                repo = "AdamWilsonLab/emma_envdata",
-                tag = tag,
-                name = filename,
-                overwrite = TRUE)
+      # pb_upload(file = file.path(temp_directory, filename),
+      #           repo = "AdamWilsonLab/emma_envdata",
+      #           tag = tag,
+      #           name = filename,
+      #           overwrite = TRUE)
 
     # Delete file
 
-      file.remove(file.path(temp_directory, filename))
+      # file.remove(file.path(temp_directory, filename))
 
     # pause to keep github happy
       Sys.sleep(sleep_time)
