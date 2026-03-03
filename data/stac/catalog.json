@@ -1,0 +1,32 @@
+{
+  "stac_version": "1.0.0",
+  "type": "Catalog",
+  "id": "emma",
+  "description": "EMMA Environmental Data Catalog - A curated collection of environmental datasets for the Eastern Mediterranean and Maghreb region.",
+  "links": [
+    {
+      "rel": "root",
+      "href": "catalog.json",
+      "type": "application/json",
+      "title": "EMMA Catalog"
+    },
+    {
+      "rel": "license",
+      "href": "https://creativecommons.org/licenses/by/4.0/",
+      "type": "text/html",
+      "title": "Creative Commons Attribution 4.0"
+    },
+    {
+      "rel": "about",
+      "href": "https://github.com/AdamWilsonLab/emma_envdata",
+      "type": "text/html",
+      "title": "EMMA Project Repository"
+    },
+    {
+      "rel": "child",
+      "href": "modis_vi/collection.json",
+      "type": "application/json",
+      "title": "modis_vi - Dynamic VI observations"
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+Starting tar_make()
+ℹ Loading EMMAv1
+Registered S3 method overwritten by 'httr':
+  method           from  
+  print.cache_info hoardr
+Setting up NASA EarthData authentication (keyring file backend)
+AppEEARS authentication configured
+terra 1.8.93
+── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+✔ dplyr     1.2.0     ✔ readr     2.1.6
+✔ forcats   1.0.1     ✔ stringr   1.6.0
+✔ ggplot2   4.0.1     ✔ tibble    3.3.1
+✔ lubridate 1.9.5     ✔ tidyr     1.3.2
+✔ purrr     1.2.1     
+── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+✖ tidyr::extract()        masks terra::extract()
+✖ dplyr::filter()         masks stats::filter()
+✖ readr::guess_encoding() masks rvest::guess_encoding()
+✖ dplyr::lag()            masks stats::lag()
+ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
+
+Attaching package: ‘arrow’
+
+The following object is masked from ‘package:lubridate’:
+
+    duration
+
+The following object is masked from ‘package:terra’:
+
+    buffer
+
+The following object is masked from ‘package:utils’:
+
+    timestamp
+
+Linking to GEOS 3.12.1, GDAL 3.8.4, PROJ 9.4.0; sf_use_s2() is TRUE
+udunits database from /usr/share/xml/udunits/udunits2.xml
+Loaded 30 packages from DESCRIPTION
+System info: sysname=Linux; release=6.14.0-1017-azure; version=#17~24.04.1-Ubuntu SMP Mon Dec  1 20:10:50 UTC 2025; nodename=f0f9bd60e9ca; machine=x86_64; login=unknown; user=root; effective_user=root
+Error:
+! Error in tar_make():
+  'names' and 'val' are of different lengths
+  See https://books.ropensci.org/targets/debugging.html
+10: (function () 
+    {
+        traceback(2)
+        quit(status = 1)
+    })()
+9: stop(fallback)
+8: signal_abort(cnd, .file)
+7: rlang::abort(message = message, class = class, call = tar_envir_base)
+6: tar_error(message = paste0(...), class = base::union(custom_error_classes(class), 
+       c("tar_condition_run", "tar_condition_targets")))
+5: tar_throw_run(message, class = class(traced_condition$condition))
+4: callr_error(traced_condition = out, fun = fun)
+3: if_any(inherits(out, "tar_condition_traced"), callr_error(traced_condition = out, 
+       fun = fun), out)
+2: callr_outer(targets_function = tar_make_inner, targets_arguments = targets_arguments, 
+       callr_function = callr_function, callr_arguments = callr_arguments, 
+       envir = envir, script = script, store = store, fun = "tar_make")
+1: targets::tar_make()
