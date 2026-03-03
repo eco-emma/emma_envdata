@@ -39,7 +39,7 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
   Sys.setenv(
     TAR_GH_RELEASE_REPO = gh_repo_config$repo,
     TAR_GH_RELEASE_TAG = gh_repo_config$tag,
-    TAR_GH_RELEASE_FORMAT = gh_repo_config$format,
+#    TAR_GH_RELEASE_FORMAT = gh_repo_config$format,
     TAR_GH_RELEASE_CACHE_DIR = gh_repo_config$cache_dir
   )
 

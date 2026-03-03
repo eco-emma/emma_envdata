@@ -82,7 +82,7 @@ jobs:
           restore-keys: targets-
       - name: Run targets pipeline
         run: |
-               Rscript -e "options(error = function() { traceback(2) ; quit(status = 1)}); targets::tar_make()" 2>&1 | tee targets-output.log
+          Rscript -e "options(error = function() { traceback(2) ; quit(status = 1)}); targets::tar_make()" 2>&1 | tee targets-output.log
           # Rscript -e "targets::tar_make()" 2>&1 | tee targets-output.log
         shell: bash        
       - name: Export final data products to releases
