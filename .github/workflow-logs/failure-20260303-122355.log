@@ -1,0 +1,2 @@
+Error: unexpected symbol in "options(error = function() { traceback(2) quit"
+Execution halted
