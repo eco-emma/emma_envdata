@@ -43,10 +43,15 @@ identify_missing_vi <- function(output_dir, dataset = "modis_vi", start_date = "
   # Create full monthly sequence
   all_months <- generate_monthly_sequence(start_date, end_date)
   
-  # Check which ones already exist as downloaded NetCDF files
+  # Check which ones already exist as downloaded NetCDF files OR skip markers.
+  # A .skip file means AppEEARS returned no data for that month (e.g. pre-launch,
+  # complete cloud cover) — it is not a failure, so do not retry it.
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
-  pattern <- paste0("^", dataset, "_\\d{6}_monthly\\.nc$")
-  existing_files <- list.files(output_dir, pattern = pattern)
+  pattern_nc   <- paste0("^", dataset, "_\\d{6}_monthly\\.nc$")
+  pattern_skip <- paste0("^", dataset, "_\\d{6}_monthly\\.skip$")
+  existing_nc   <- list.files(output_dir, pattern = pattern_nc)
+  existing_skip <- list.files(output_dir, pattern = pattern_skip)
+  existing_files <- c(existing_nc, existing_skip)
   
   if (length(existing_files) == 0) {
     return(all_months)
@@ -205,8 +210,9 @@ download_modis_vi_netcdf <- function(
     return(temp_directory)
   }
   
-  # Clean and create temp directory
-  if (!cleanup_mode) unlink(temp_directory, recursive = TRUE, force = TRUE)
+  # Each branch gets its own subdirectory to avoid race conditions when
+  # parallel tar_make_future() workers run multiple months simultaneously.
+  temp_directory <- file.path(temp_directory, yyyymm)
   dir.create(temp_directory, recursive = TRUE, showWarnings = FALSE)
 
   # Poll for task completion
@@ -256,10 +262,16 @@ download_modis_vi_netcdf <- function(
   nc_paths <- list.files(temp_directory, pattern = "\\.nc$", full.names = TRUE, recursive = TRUE)
   if (length(nc_paths) == 0) {
     if (verbose) message("No NetCDF files returned from AppEEARS for month ", yyyymm)
-    if (cleanup) {
-      unlink(temp_directory, recursive = TRUE, force = TRUE)
-    }
-    return(NA_character_)
+    # Write a skip marker so identify_missing_vi() won't retry this month.
+    # The marker name matches the pattern recognised by identify_missing_vi().
+    skip_file <- file.path(cache_dir, paste0("modis_vi_", yyyymm, "_monthly.skip"))
+    writeLines(
+      c(paste("Month:", yyyymm), "Reason: AppEEARS returned no NetCDF files", paste("Timestamp:", Sys.time())),
+      con = skip_file
+    )
+    if (verbose) message("Created skip marker: ", skip_file)
+    if (cleanup) unlink(temp_directory, recursive = TRUE, force = TRUE)
+    return(skip_file)
   }
   
   if (verbose) message("Downloaded ", length(nc_paths), " NetCDF files to ", temp_directory)
@@ -465,7 +477,7 @@ extract_vi_observations <- function(
 #' @param out_dir Output directory for parquet files
 #' @param cleanup Logical to delete temporary files after processing. Defaults to TRUE on GitHub Actions (GITHUB_ACTIONS env var), FALSE on local execution.
 #' @param verbose Logical for progress messages
-#' @return Character path to output parquet file (format: modis_vi_YYYYMM.gz.parquet)
+#' @return Character path to output parquet file (format: modis_vi_YYYYMM.parquet)
 #' @details
 #' Parquet schema:
 #' - pid (int32): Pixel ID from domain grid
@@ -486,13 +498,12 @@ netcdf_to_parquet <- function(
   
   month_start <- as.Date(month_start)
   yyyymm <- format(month_start, "%Y%m")
-  
-  terra_tmp <- file.path(getwd(), "data/temp/terra")
-  
-  # Clean terra temp
-  unlink(terra_tmp, recursive = TRUE, force = TRUE)
+
+  # Use a per-branch terra tempdir to prevent race conditions when multiple
+  # months are processed in parallel by tar_make_future().
+  terra_tmp <- file.path(getwd(), "data/temp/terra", yyyymm)
   dir.create(terra_tmp, recursive = TRUE, showWarnings = FALSE)
-  terraOptions(tempdir = terra_tmp, memfrac = 0.8)
+  terra::terraOptions(tempdir = terra_tmp, memfrac = 0.8)
   
   # Validate and load NetCDF files
   nc_paths <- list.files(netcdf_directory, pattern = "\\.nc$", full.names = TRUE, recursive = TRUE)
@@ -602,7 +613,7 @@ netcdf_to_parquet <- function(
   
   # Write to parquet
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
-  parquet_file <- file.path(out_dir, sprintf("dynamic_modis_vi_%s.gz.parquet", yyyymm))
+  parquet_file <- file.path(out_dir, sprintf("dynamic_modis_vi_%s.parquet", yyyymm))
   
   unlink(parquet_file)
   if (verbose) message("Writing ", nrow(df), " observations to parquet")
@@ -623,135 +634,3 @@ netcdf_to_parquet <- function(
   
   parquet_file
 }
-
-
-#' @title Convert parquet observations back to GeoTIFF
-#' @description Reads MODIS VI parquet file, maps observations back to spatial grid using domain_nc,
-#' and writes a GeoTIFF. Supports filtering by date/sensor and optional aggregation.
-#' @author EMMA Team
-#' @param parquet_file Path to parquet file (e.g., modis_vi_202401.gz.parquet)
-#' @param domain_nc Path to domain.nc or domain raster (SpatRaster)
-#' @param out_file Output GeoTIFF path
-#' @param date Optional integer (days since epoch) or Date object to filter specific date.
-#'   If NULL, uses most recent observation per pixel. If length 2, treated as date range.
-#' @param sensor Optional integer: 1=Terra, 2=Aqua, 3=VIIRS. If NULL, uses all available.
-#' @param aggregate_fun Optional function to aggregate multiple observations per pixel
-#'   (e.g., mean, median, max). If NULL, uses most recent observation.
-#' @param verbose Logical for progress messages
-#' @return Path to written GeoTIFF file
-#' @export
-parquet_to_geotif <- function(
-  parquet_file,
-  domain_nc,
-  out_file,
-  date = NULL,
-  sensor = NULL,
-  aggregate_fun = NULL,
-  verbose = TRUE
-) {
-  
-  # Load parquet
-  if (!file.exists(parquet_file)) {
-    stop("Parquet file not found: ", parquet_file)
-  }
-  
-  if (verbose) message("Reading parquet: ", parquet_file)
-  df <- arrow::read_parquet(parquet_file)
-  
-  # Filter by sensor if specified
-  if (!is.null(sensor)) {
-    if (!sensor %in% c(1L, 2L, 3L)) stop("sensor must be 1 (Terra), 2 (Aqua), or 3 (VIIRS)")
-    df <- dplyr::filter(df, .data$variable == sensor)
-    if (verbose) message("Filtered to sensor: ", c("Terra", "Aqua", "VIIRS")[sensor])
-  }
-  
-  # Filter by date if specified
-  if (!is.null(date)) {
-    # Convert Date to days since epoch if needed
-    if (inherits(date, "Date")) {
-      date <- as.integer(date - as.Date("1970-01-01"))
-    }
-    
-    if (length(date) == 1) {
-      # Single date: filter to exact date
-      df <- dplyr::filter(df, .data$date == date)
-      if (verbose) message("Filtered to date: ", as.Date(date, origin = "1970-01-01"))
-    } else if (length(date) == 2) {
-      # Date range: filter to range
-      df <- dplyr::filter(df, .data$date >= min(date) & .data$date <= max(date))
-      if (verbose) message("Filtered to date range: ", 
-                          as.Date(min(date), origin = "1970-01-01"), " to ",
-                          as.Date(max(date), origin = "1970-01-01"))
-    }
-  }
-  
-  if (nrow(df) == 0) {
-    stop("No observations match filter criteria")
-  }
-  
-  # Load domain raster to get pid→spatial mapping
-  if (verbose) message("Loading domain raster...")
-  if (is.character(domain_nc)) {
-    if (!file.exists(domain_nc)) {
-      stop("domain_nc file not found: ", domain_nc)
-    }
-    domain <- terra::rast(domain_nc)
-  } else {
-    domain <- domain_nc  # Assume it's a SpatRaster
-  }
-  
-  # Extract pid layer
-  if (!"pid" %in% names(domain)) {
-    stop("domain raster must include a 'pid' layer")
-  }
-  pid_raster <- domain[["pid"]]
-  
-  # Aggregate if multiple observations per pixel and aggregate_fun provided
-  if (!is.null(aggregate_fun)) {
-    if (verbose) message("Aggregating multiple observations per pixel...")
-    df <- df %>%
-      dplyr::group_by(.data$pid) %>%
-      dplyr::summarise(value = aggregate_fun(.data$value), .groups = "drop")
-  } else {
-    # Use most recent observation per pixel (if multiple)
-    if (verbose && nrow(df) > nrow(dplyr::distinct(df, .data$pid))) {
-      message("Multiple observations per pixel - using most recent")
-    }
-    df <- df %>%
-      dplyr::arrange(dplyr::desc(.data$date), dplyr::desc(.data$variable)) %>%
-      dplyr::distinct(.data$pid, .keep_all = TRUE)
-  }
-  
-  # Create output raster
-  if (verbose) message("Creating raster from ", nrow(df), " observations...")
-  output_raster <- pid_raster * NA  # Start with same structure but all NA
-  
-  # Vectorized mapping: create lookup vector indexed by pid
-  pid_vals <- terra::values(pid_raster)[, 1]  # Get all pid values
-  max_pid <- max(c(df$pid, pid_vals), na.rm = TRUE)
-  
-  # Create lookup vector with NA for missing pids, then use vectorized indexing
-  lookup <- rep(NA_integer_, max_pid)
-  lookup[df$pid] <- df$value
-  
-  # Map all pid values to evi values in one vectorized operation
-  output_values <- lookup[pid_vals]
-  terra::values(output_raster) <- output_values
-  
-  # Write GeoTIFF
-  if (verbose) message("Writing GeoTIFF: ", out_file)
-  dir.create(dirname(out_file), recursive = TRUE, showWarnings = FALSE)
-  terra::writeRaster(
-    output_raster,
-    filename = out_file,
-    filetype = "GTiff",
-    datatype = "INT2U",
-    overwrite = TRUE,
-    names = "EVI"
-  )
-  
-  if (verbose) message("GeoTIFF saved: ", out_file)
-  return(out_file)
-}
-
-# parquet_to_geotif("data/target_outputs/modis_vi/modis_vi_202601.gz.parquet", "data/raw/domain.nc", "output.tif")

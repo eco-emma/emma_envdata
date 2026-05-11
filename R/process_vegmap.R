@@ -1,6 +1,6 @@
 ## Process Vegmap to add field related to biome type
 
-data_vegmap <- function(domain_raster,
+process_vegmap <- function(domain_raster,
                         vegmap_shp,
                         disagg_factor = 10,
                         out_file = "data/raw/vegmap.nc") {
@@ -13,8 +13,13 @@ data_vegmap <- function(domain_raster,
     domain_raster
   }
 
-  # Load and prep vegmap
-  vegmap_sf <- st_read(vegmap_shp, quiet = TRUE) %>%
+  # Load and prep vegmap (accepts sf object or file path)
+  vegmap_sf <- if (inherits(vegmap_shp, "sf") || inherits(vegmap_shp, "sfc")) {
+    vegmap_shp
+  } else {
+    st_read(vegmap_shp, quiet = TRUE)
+  }
+  vegmap_sf <- vegmap_sf %>%
     janitor::clean_names() %>%
     st_make_valid() %>%
     st_transform(st_crs(domain, proj = TRUE)) %>%

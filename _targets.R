@@ -52,27 +52,27 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
     format = "qs"  # Default: fast serialization for R objects (rasters, dataframes, task IDs, etc.)
   )
 
-  # # Hook: Download cached targets from GitHub release before running pipeline
-  # source('R/tar_release_storage.R')
-  # tar_hook_before(
-  #   code = tar_download_github_release(
-  #     repo = gh_repo_config$repo,
-  #     tag = gh_repo_config$tag,
-  #     cache_dir = gh_repo_config$cache_dir,
-  #     verbose = TRUE
-  #   )
-  # )
+  # Hook: Download cached targets from GitHub release before running pipeline
+  source('R/tar_release_storage.R')
+  tar_hook_before(
+    code = tar_download_github_release(
+      repo = gh_repo_config$repo,
+      tag = gh_repo_config$tag,
+      cache_dir = gh_repo_config$cache_dir,
+      verbose = TRUE
+    )
+  )
 
-  # # Hook: Upload updated targets to GitHub release after successful tar_make()
-  # tar_hook_after(
-  #   code = tar_upload_github_release(
-  #     repo = gh_repo_config$repo,
-  #     tag = gh_repo_config$tag,
-  #     cache_dir = gh_repo_config$cache_dir,
-  #     verbose = TRUE
-  #   ),
-  #   condition = "success"
-  # )
+  # Hook: Upload updated targets to GitHub release after successful tar_make()
+  tar_hook_after(
+    code = tar_upload_github_release(
+      repo = gh_repo_config$repo,
+      tag = gh_repo_config$tag,
+      cache_dir = gh_repo_config$cache_dir,
+      verbose = TRUE
+    ),
+    condition = "success"
+  )
 
   terraOptions(tempdir = "data/temp/terra", memfrac = 0.6)
 
@@ -88,10 +88,11 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
 #  unlink(file.path("data/raw_data/", recursive = TRUE, force = TRUE))
 #  message(paste("Objects:",ls(),collapse = "\n"))
 
-  # Set MODIS date range as variables or targets (customize as needed)
-  modis_start_date <- "2000-02-18"  # or tar_target(...)
-  modis_start_date <- "2026-01-01"  # or tar_target(...)
-  modis_end_date <- as.character(Sys.Date())
+  # Set MODIS/VIIRS date range as variables
+  modis_start_date <- "2000-02-18"  # MODIS Terra first available data
+  viirs_start_date <- "2012-01-01"  # VIIRS first available data
+  burn_start_date  <- "2000-11-01"  # MCD64A1 first available data
+  modis_end_date   <- as.character(Sys.Date())
 
 
 
@@ -100,7 +101,7 @@ list(
   
   tar_target(
     vegmap,
-    download_vegmap_release(
+    get_vegmap(
       repo = "AdamWilsonLab/emma_envdata",
       tag = "vegmap2024",
       file = "NVM2024final_Shapefile.zip",
@@ -146,12 +147,13 @@ list(
       domain_boundary = domain_boundary, 
       remnants = remnants,
       out_file = "data/target_outputs/domain.nc"
-    ),
-    cue = tar_cue(mode = "never")  # Never rerun unless manually invalidated (triggers full reprocessing of all downstream rs data)
-    # tar_invalidate(domain_nc) # run this to force recompute and redownload all RS data from AppEEARS
+    )
+    # cue = tar_cue(mode = "never") was removed: the tar_hook cache handles stability.
+    # To force full re-grid (triggers redownload of all AppEEARS data), run:
+    #   targets::tar_invalidate(domain_nc)
   ),
 
-  # Convert domain raster to geoparquet for spatial reference with coordinates and pid
+  # Export domain raster to GeoParquet format for easy distribution
   tar_target(
     domain_geoparquet,
     domain_to_geoparquet(
@@ -166,8 +168,8 @@ list(
   # Stores as terra rast object in qs format; also writes vegmap.nc file for reference
   tar_target( 
     vegmap_nc,
-    data_vegmap(domain_raster = domain_nc,
-                vegmap_shp = vegmap_shp,
+    process_vegmap(domain_raster = domain_nc,
+                vegmap_shp = vegmap,
                 out_file = "data/target_outputs/vegmap.nc")
   ),
 
@@ -200,12 +202,23 @@ list(
     ),
 
   # tar_terra_rast(
-  #   clouds_wilson_release,
-  #   get_release_clouds_wilson(temp_directory = "data/temp/raw_data/clouds_wilson/",
-  #                             tag = "raw_static",
-  #                             domain,
-  #                             sleep_time = 180)
-  #   ),
+  #   clouds_wilson_release,  # old GEE version — replaced by get_clouds_wilson()
+  #   ...
+  # ),
+
+  # Cloud cover: Wilson MODCF mean annual and seasonality (EarthEnv, ~1km → 500m domain grid)
+  tar_target(
+    clouds_wilson,
+    get_clouds_wilson(
+      domain        = domain_boundary,
+      domain_raster = domain_nc,
+      temp_directory = "data/temp/raw_data/clouds_wilson/",
+      out_file      = "data/target_outputs/clouds_wilson.nc",
+      cleanup       = cleanup_mode,
+      verbose       = TRUE
+    ),
+    format = "file"
+  ),
 
   ##################### AppEEARS Static Data Processing #########################
   # Sequential targets for AppEEARS elevation: submit task, then poll for results
@@ -241,31 +254,36 @@ list(
 
   #Temporarily commented out, seems to be an issue with URL for landcover data at present
   # tar_target(
-  #   landcover_za_release,
-  #   get_release_landcover_za(temp_directory = "data/temp/raw_data/landcover_za/",
-  #                            tag = "raw_static",
-  #                            domain = domain)
-  #   ),
-  #
-  # tar_target(
-  #   precipitation_chelsa_release,
-  #   get_release_precipitation_chelsa(temp_directory = "data/temp/raw_data/precipitation_chelsa/",
-  #                                    tag = "raw_static",
-  #                                    domain = domain)
-  #   )#,
+  #   landcover_za_release,   # old version — needs rewrite using current AppEEARS product
+  # ),
 
-#   ## commented out soil_gcfr_release at present due to API/rdryad issues.
-#   ## Emailed dryad folks on 2024/01/04, it seems the API update broke RDryad
-#   ## and RDryad updates are waiting for funding and transition from RDryad to
-#   ## the "deposits" R package
-#
-#   # tar_target(
-#   #   soil_gcfr_release,
-#   #   get_release_soil_gcfr(temp_directory = "data/temp/raw_data/soil_gcfr/",
-#   #                         tag = "raw_static",
-#   #                         domain)
-#   # ),
-#
+  # Soil properties: SoilGrids v2 (ISRIC REST API) — replaces broken RDryad/GCFR source
+  # Properties: SOC, clay, sand, pH, bulk density averaged over 0-30cm depth
+  tar_target(
+    soil_soilgrids,
+    get_soil_soilgrids(
+      domain_raster  = domain_nc,
+      temp_directory = "data/temp/raw_data/soil_soilgrids/",
+      out_file       = "data/target_outputs/soil_soilgrids.nc",
+      cleanup        = cleanup_mode,
+      verbose        = TRUE
+    ),
+    format = "file"
+  ),
+
+  # Topographic diversity metrics derived from the NASADEM elevation (no new download needed)
+  # Metrics: slope, aspect, TRI, TPI, topographic diversity index
+  tar_target(
+    topographic_diversity,
+    process_topographic_diversity(
+      elevation_file = elevation,     # dependency on AppEEARS elevation target
+      domain_raster  = domain_nc,
+      out_file       = "data/target_outputs/topographic_diversity.nc",
+      focal_radius   = 1L,
+      verbose        = TRUE
+    ),
+    format = "file"
+  ),
 
 ##################### AppEEARS Dynamic Data Processing #########################
 
@@ -386,86 +404,157 @@ list(
   tar_target(
     modis_vi_stac,
     generate_modis_vi_stac(
-      parquet_files = modis_vi_parquet,  # Automatically aggregated from branched target
-      parquet_dir = "data/target_outputs/modis_vi",
-      stac_dir = "data/stac/modis_vi",
+      parquet_files    = modis_vi_parquet,  # branched target; aggregated automatically
+      parquet_dir      = "data/target_outputs/modis_vi",
+      stac_dir         = "data/stac/modis_vi",
       parent_catalog_path = "data/stac",
-      gh_repo = "AdamWilsonLab/emma_envdata",
-      gh_release_tag = "data_modis_vi_current",
-      verbose = TRUE
+      gh_repo          = "AdamWilsonLab/emma_envdata",
+      gh_release_tag   = "dynamic_modis_vi",
+      verbose          = TRUE
     ),
     format = "file"
   ),
 
-  # Generate parent STAC Catalog linking all datasets (MODIS VI, VIIRS VI, burned area, age, etc.)
+  # ============================================================================
+  # MODIS Burned Area Pipeline (MCD64A1, dynamically branched by month)
+  # ============================================================================
+
+  # Identify which months of MODIS burned area are missing
   tar_target(
-    emma_stac_catalog,
+    burn_modis_to_download,
+    identify_missing_burn_dates_modis(
+      output_dir = "data/target_outputs/burn_dates_modis",
+      start_date = burn_start_date,
+      end_date   = modis_end_date
+    )
+  ),
+
+  # Submit one AppEEARS task per missing month (branched)
+  tar_target(
+    burn_modis_task_ids,
+    submit_burn_date_modis_task(
+      domain_vector = domain_boundary,
+      month_start   = burn_modis_to_download$month_start,
+      month_end     = burn_modis_to_download$month_end,
+      verbose       = TRUE
+    ),
+    pattern = map(burn_modis_to_download)
+  ),
+
+  # Download NetCDF results from AppEEARS (I/O only)
+  tar_target(
+    burn_modis_netcdf,
+    download_burn_date_modis_netcdf(
+      task_id        = burn_modis_task_ids,
+      month_start    = burn_modis_to_download$month_start,
+      temp_directory = "data/temp/raw_data/burn_dates_modis/",
+      cleanup        = cleanup_mode,
+      verbose        = TRUE
+    ),
+    pattern = map(burn_modis_task_ids, burn_modis_to_download)
+  ),
+
+  # Convert NetCDF to parquet (QA masking + domain clipping)
+  tar_target(
+    burn_modis_parquet,
+    burn_date_modis_netcdf_to_parquet(
+      netcdf_directory = burn_modis_netcdf,
+      domain_raster    = domain_nc,
+      month_start      = burn_modis_to_download$month_start,
+      out_dir          = "data/target_outputs/burn_dates_modis",
+      cleanup          = cleanup_mode,
+      verbose          = TRUE
+    ),
+    pattern = map(burn_modis_netcdf, burn_modis_to_download),
+    format  = "file"
+  ),
+
+  # ============================================================================
+  # VIIRS Burned Area Pipeline (VNP64A1, dynamically branched by month)
+  # Coverage: 2012-01-01 to present
+  # ============================================================================
+
+  tar_target(
+    burn_viirs_to_download,
+    identify_missing_burn_dates_viirs(
+      output_dir = "data/target_outputs/burn_dates_viirs",
+      start_date = viirs_start_date,
+      end_date   = modis_end_date
+    )
+  ),
+
+  tar_target(
+    burn_viirs_task_ids,
+    submit_burn_date_viirs_task(
+      domain_vector = domain_boundary,
+      month_start   = burn_viirs_to_download$month_start,
+      month_end     = burn_viirs_to_download$month_end,
+      verbose       = TRUE
+    ),
+    pattern = map(burn_viirs_to_download)
+  ),
+
+  tar_target(
+    burn_viirs_netcdf,
+    download_burn_date_viirs_netcdf(
+      task_id        = burn_viirs_task_ids,
+      month_start    = burn_viirs_to_download$month_start,
+      temp_directory = "data/temp/raw_data/burn_dates_viirs/",
+      cleanup        = cleanup_mode,
+      verbose        = TRUE
+    ),
+    pattern = map(burn_viirs_task_ids, burn_viirs_to_download)
+  ),
+
+  tar_target(
+    burn_viirs_parquet,
+    burn_date_viirs_netcdf_to_parquet(
+      netcdf_directory = burn_viirs_netcdf,
+      domain_raster    = domain_nc,
+      month_start      = burn_viirs_to_download$month_start,
+      out_dir          = "data/target_outputs/burn_dates_viirs",
+      cleanup          = cleanup_mode,
+      verbose          = TRUE
+    ),
+    pattern = map(burn_viirs_netcdf, burn_viirs_to_download),
+    format  = "file"
+  ),
+
+  # ============================================================================
+  # Derived fire covariates (aggregated; depend on all monthly parquets above)
+  # ============================================================================
+
+  # Merge MODIS + VIIRS burn records into a single deduplicated fire event table
+  tar_target(
+    burn_events_merged,
+    merge_burn_dates(
+      modis_dir = "data/target_outputs/burn_dates_modis",
+      viirs_dir = "data/target_outputs/burn_dates_viirs",
+      verbose   = TRUE
+    )
+    # Depends implicitly on all monthly parquets being complete; declared explicitly:
+  ),
+
+  # Compute most-recent-burn and fire age at every MODIS VI observation date
+  tar_target(
+    most_recent_burn,
     {
-      generate_emma_stac_catalog(
-        stac_base_dir = "data/stac",
-        dataset_collections = list(
-          modis_vi = "data/stac/modis_vi"
-          # Additional datasets will be added here as they become available:
-          # viirs_vi = "data/stac/viirs_vi",
-          # burned_area = "data/stac/burned_area",
-          # age = "data/stac/age"
-        ),
-        gh_repo = "AdamWilsonLab/emma_envdata",
-        verbose = TRUE
+      # Query at the same dates as MODIS VI observations so fire age aligns exactly
+      vi_dates <- get_vi_observation_dates(
+        modis_vi_dir = "data/target_outputs/modis_vi",
+        verbose      = TRUE
+      )
+      compute_most_recent_burn(
+        burn_events = burn_events_merged,
+        query_dates = vi_dates,
+        out_file    = "data/target_outputs/most_recent_burn.parquet",
+        verbose     = TRUE
       )
     },
-    format = "file",
-    deployment = "main"
+    format = "file"
   ),
 
 
- # revise modis for viirs
-
-
-
-# # # # Processing via release
-
-#     tar_target(
-#       fire_doy_to_unix_date_release,
-#       process_release_fire_doy_to_unix_date(input_tag = "clean_fire_modis",
-#                                             output_tag = "processed_fire_dates",
-#                                             temp_directory = "data/temp/processed_data/fire_dates/",
-#                                             sleep_time = 20,
-#                                             template_release = template_release,
-#                                             ... = correct_fire_release_proj_and_extent)
-#       ),
-
-#     tar_target(
-#       burn_date_to_last_burned_date_release,
-#       process_release_burn_date_to_last_burned_date(input_tag = "processed_fire_dates",
-#                                                     output_tag = "processed_most_recent_burn_dates",
-#                                                     temp_directory_input = "data/temp/processed_data/fire_dates/",
-#                                                     temp_directory_output = "data/temp/processed_data/most_recent_burn_dates/",
-#                                                     sleep_time = 180,
-#                                                     sanbi_sf = sanbi_fires_shp,
-#                                                     expiration_date = NULL,
-#                                                     ... = fire_doy_to_unix_date_release)
-#     ),
-
-
-#     tar_target(
-#       ndvi_relative_days_since_fire_release,
-#       process_release_ndvi_relative_days_since_fire(temp_input_ndvi_date_folder = "data/temp/raw_data/ndvi_dates_modis/",
-#                                                     temp_input_fire_date_folder = "data/temp/processed_data/most_recent_burn_dates/",
-#                                                     temp_fire_output_folder = "data/temp/processed_data/ndvi_relative_time_since_fire/",
-#                                                     input_fire_dates_tag = "processed_most_recent_burn_dates",
-#                                                     input_modis_dates_tag = "clean_ndvi_dates_modis",
-#                                                     output_tag = "processed_ndvi_relative_days_since_fire",
-#                                                     sleep_time = 60,
-#                                                     ... = burn_date_to_last_burned_date_release,
-#                                                     ... = correct_ndvi_dates_release_proj_and_extent)
-#       ),
-
-#       tar_target(
-#         template_release,
-#         get_release_template_raster(input_tag = "clean_ndvi_modis",
-#                             output_tag = "raw_static",
-#                             temp_directory = "data/temp/template",
 #                             ... = correct_ndvi_release_proj_and_extent)
 #       ),
 
@@ -548,108 +637,183 @@ list(
 #         process_release_biome_raster(template_release = template_release,
 #                                      vegmap_shp = vegmap_shp,
 #                                      domain = domain,
-#                                      temp_directory = "data/temp/raw_data/vegmap_raster/",
-#                                      sleep_time = 10)
 
-#       ),
+  # STAC Collection for MODIS burned area
+  tar_target(
+    burn_modis_stac,
+    generate_burn_dates_stac(
+      parquet_files   = burn_modis_parquet,
+      parquet_dir     = "data/target_outputs/burn_dates_modis",
+      stac_dir        = "data/stac/burn_dates_modis",
+      parent_catalog_path = "data/stac",
+      gh_repo         = "AdamWilsonLab/emma_envdata",
+      gh_release_tag  = "dynamic_burn_dates_modis",
+      source          = "modis",
+      verbose         = TRUE
+    ),
+    format = "file"
+  ),
 
-
-
-
-# # # # # # Prep model data
-
-#     tar_target(
-#       stable_data_release,
-
-#     tar_target(
-#       fire_dates_to_parquet_release,
-#       process_release_dynamic_data_to_parquet(temp_directory = "data/temp/processed_data/ndvi_relative_time_since_fire/",
-#                                       input_tag = "processed_ndvi_relative_days_since_fire",
-#                                       output_tag = "current",
-#                                       variable_name = "time_since_fire",
-#                                       sleep_time = 30,
-#                                       ... = ndvi_relative_days_since_fire_release)
-#     ),
-
-#     tar_target(
-#       most_recent_fire_dates_to_parquet_release,
-#       process_release_dynamic_data_to_parquet(temp_directory = "data/temp/processed_data/most_recent_burn_dates/",
-#                                       input_tag = "processed_most_recent_burn_dates",
-#                                       output_tag = "current",
-#                                       variable_name = "most_recent_burn_dates",
-#                                       sleep_time = 30,
-#                                       ... = burn_date_to_last_burned_date_release)
-#     )
+  # STAC Collection for VIIRS burned area
+  tar_target(
+    burn_viirs_stac,
+    generate_burn_dates_stac(
+      parquet_files   = burn_viirs_parquet,
+      parquet_dir     = "data/target_outputs/burn_dates_viirs",
+      stac_dir        = "data/stac/burn_dates_viirs",
+      parent_catalog_path = "data/stac",
+      gh_repo         = "AdamWilsonLab/emma_envdata",
+      gh_release_tag  = "dynamic_burn_dates_viirs",
+      source          = "viirs",
+      verbose         = TRUE
+    ),
+    format = "file"
+  ),
 
   ##################### GitHub Release Uploads #########################
-  
-  # Upload static data files (domain, elevation, climate, etc.)
-  # tar_target(
-  #   upload_static_data,
-  #   {
-  #     upload_to_github_release(
-  #       files = c(
-  #         domain_boundary.parquet,
-  #         elevation,
-  #         climate_chelsa,
-  #         vegmap_nc
-  #       ),
-  #       repo = "AdamWilsonLab/emma_envdata",
-  #       release_tag = "static_current",
-  #       release_name = "Static Data - Current",
-  #       verbose = TRUE
-  #     )
-  #   },
-  #   deployment = "main"
-  # ),
+  # All upload targets use deployment = "main" so they only run on the main branch,
+  # not on every feature-branch push.
 
-  # Upload dynamic MODIS VI data files
+  # Upload all static NetCDF files (domain, elevation, climate, clouds, soil, topography)
   tar_target(
-    upload_modis_vi_data,
-    {
-     
-      # Get all parquet files from disk
-      parquet_files <- list.files(
-        "data/target_outputs/modis_vi",
-        pattern = "\\.parquet$",
-        full.names = TRUE
-      )
-      
-      upload_to_github_release(
-        files = parquet_files,
-        repo = gh_repo_config$repo,
-        release_tag = "dynamic_modis_vi",
-        release_name = "Dynamic MODIS Vegetation Index",
-        verbose = TRUE,
-        modis_vi_parquet #include to force dependency on the parquet files being created before upload     
-      )
-    },
+    upload_static_data,
+    upload_to_github_release(
+      files = c(
+        "data/target_outputs/domain.nc",
+        "data/target_outputs/domain.parquet",
+        "data/target_outputs/vegmap.nc",
+        elevation,               # file path returned by elevation target
+        climate_chelsa,          # file path returned by climate target
+        clouds_wilson,           # file path returned by clouds target
+        soil_soilgrids,          # file path returned by soil target
+        topographic_diversity    # file path returned by topo target
+      ),
+      repo         = gh_repo_config$repo,
+      release_tag  = "static_data",
+      release_name = "Static Environmental Data",
+      verbose      = TRUE
+    ),
     deployment = "main"
   ),
 
-  # Upload STAC metadata catalog
+  # Upload dynamic MODIS VI parquet files
+  # Pass modis_vi_parquet directly — targets aggregates the branched vector automatically,
+  # so this target re-runs whenever a new month is added.
+  tar_target(
+    upload_modis_vi_data,
+    upload_to_github_release(
+      files        = modis_vi_parquet[!grepl("\\.skip$", modis_vi_parquet)],
+      repo         = gh_repo_config$repo,
+      release_tag  = "dynamic_modis_vi",
+      release_name = "Dynamic MODIS Vegetation Index",
+      verbose      = TRUE
+    ),
+    deployment = "main"
+  ),
+
+  # Upload MODIS burned area parquets
+  tar_target(
+    upload_burn_modis_data,
+    upload_to_github_release(
+      files        = burn_modis_parquet[!grepl("\\.skip$", burn_modis_parquet)],
+      repo         = gh_repo_config$repo,
+      release_tag  = "dynamic_burn_dates_modis",
+      release_name = "Dynamic MODIS Burned Area (MCD64A1)",
+      verbose      = TRUE
+    ),
+    deployment = "main"
+  ),
+
+  # Upload VIIRS burned area parquets
+  tar_target(
+    upload_burn_viirs_data,
+    upload_to_github_release(
+      files        = burn_viirs_parquet[!grepl("\\.skip$", burn_viirs_parquet)],
+      repo         = gh_repo_config$repo,
+      release_tag  = "dynamic_burn_dates_viirs",
+      release_name = "Dynamic VIIRS Burned Area (VNP64A1)",
+      verbose      = TRUE
+    ),
+    deployment = "main"
+  ),
+
+  # Upload derived fire covariates (most recent burn + fire age)
+  tar_target(
+    upload_fire_covariates,
+    upload_to_github_release(
+      files        = most_recent_burn,   # file path returned by that target
+      repo         = gh_repo_config$repo,
+      release_tag  = "fire_covariates",
+      release_name = "Derived Fire Covariates (most recent burn, fire age)",
+      verbose      = TRUE
+    ),
+    deployment = "main"
+  ),
+
+  # Generate parent STAC Catalog linking all datasets
+  tar_target(
+    emma_stac_catalog,
+    generate_emma_stac_catalog(
+      stac_base_dir       = "data/stac",
+      dataset_collections = list(
+        modis_vi          = "data/stac/modis_vi",
+        burn_dates_modis  = "data/stac/burn_dates_modis",
+        burn_dates_viirs  = "data/stac/burn_dates_viirs"
+      ),
+      gh_repo = "AdamWilsonLab/emma_envdata",
+      verbose = TRUE
+    ),
+    format     = "file",
+    deployment = "main"
+  ),
+
+  # Upload STAC catalog + all collection JSON files
   tar_target(
     upload_stac_catalog,
     {
-      # Ensure STAC targets are complete before proceeding
-      stac_parent <- emma_stac_catalog
-      stac_modis_items <- modis_vi_stac
-      
       stac_files <- c(
         file.path("data/stac", "catalog.json"),
-        list.files("data/stac/modis_vi", pattern = "\\.json$", full.names = TRUE)
-      )
-      
+        list.files("data/stac", pattern = "\\.json$", full.names = TRUE, recursive = TRUE)
+      ) |> unique()
+
       upload_to_github_release(
-        files = stac_files,
-        repo = gh_repo_config$repo,
-        release_tag = "stac",
-        release_name = "STAC Catalog - Current",
-        verbose = TRUE
-        )
+        files        = stac_files,
+        repo         = gh_repo_config$repo,
+        release_tag  = "stac",
+        release_name = "STAC Catalog — Current",
+        verbose      = TRUE,
+        emma_stac_catalog,  # explicit dependency — catalog must be written first
+        modis_vi_stac,
+        burn_modis_stac,
+        burn_viirs_stac
+      )
     },
     deployment = "main"
   )
 
 )
 
+# ============================================================================
+# POST-PRIME: Upload completed targets cache to GitHub release
+# ============================================================================
+# Run this block manually after completing a full `tar_make()` on a local server
+# to push the cache to the `objects_current` GitHub release. Subsequent GitHub
+# Actions runs will then restore from this release instead of recomputing from scratch.
+#
+# When to run:
+#   1. After first-time setup (full historical download)
+#   2. After changing the domain grid (tar_invalidate(domain_nc) was called)
+#   3. After adding a new multi-year dataset
+#
+# Usage: select this block and run it, or source() with chdir = TRUE.
+# Do NOT include this in a tar_make() call — it lives outside the list(...) above.
+
+if (FALSE) {
+  source("R/tar_release_storage.R")
+  tar_upload_github_release(
+    repo      = "AdamWilsonLab/emma_envdata",
+    tag       = "objects_current",
+    cache_dir = "data/target_outputs/.tar_cache",
+    verbose   = TRUE
+  )
+}

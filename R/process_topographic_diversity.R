@@ -41,7 +41,7 @@
 #'
 #' @return Character path to the output NetCDF file.
 #' @export
-get_topographic_diversity <- function(
+process_topographic_diversity <- function(
     elevation_file,
     domain_raster,
     out_file     = "data/target_outputs/topographic_diversity.nc",

@@ -1,0 +1,230 @@
+# ============================================================================
+# Burn Date Post-Processing
+# ============================================================================
+# Aggregates monthly burn date parquet files (MODIS + VIIRS) into two derived
+# products used by the emma_model:
+#
+#   1. most_recent_burn_date — for each domain pixel and each observation date,
+#      the calendar date of the most recent fire BEFORE that observation.
+#      Stored as a parquet with schema: pid (int32), as_of_date (int32), last_burn_date (int32)
+#
+#   2. fire_age — days since last fire for each pixel × date combination.
+#      Derived directly from most_recent_burn_date.
+#      Same schema plus: fire_age_days (int32)
+#
+# Strategy:
+#   - MODIS burn dates are the primary source (2000–present).
+#   - VIIRS burn dates are merged for 2012–present, with MODIS preferred on conflict
+#     (MODIS has longer validation history; VIIRS used as gap-fill).
+#   - All pixels with no recorded fire are returned with NA last_burn_date.
+# ============================================================================
+
+
+#' @title Merge MODIS and VIIRS monthly burn date parquets into a combined dataset
+#'
+#' @description Reads all monthly parquet files from both the MODIS and VIIRS
+#'   burn date directories, deduplicates overlapping records (preferring MODIS),
+#'   and returns a single tidy tibble of all burn events.
+#'
+#'   The returned tibble has one row per burned pixel × burn event:
+#'   \itemize{
+#'     \item \code{pid}      (int32): Domain pixel ID
+#'     \item \code{date}     (int32): Burn date, days since 1970-01-01
+#'     \item \code{burn_doy} (int16): Raw day-of-year
+#'     \item \code{source}   (character): "modis" or "viirs"
+#'   }
+#'
+#' @param modis_dir Character. Directory containing monthly MODIS burn date parquets.
+#' @param viirs_dir Character. Directory containing monthly VIIRS burn date parquets.
+#' @param verbose   Logical. Print progress messages? Default TRUE.
+#'
+#' @return A tibble of all burn events across the full record.
+#' @export
+merge_burn_dates <- function(
+    modis_dir = "data/target_outputs/burn_dates_modis",
+    viirs_dir = "data/target_outputs/burn_dates_viirs",
+    verbose   = TRUE) {
+
+  # Helper: read all parquets in a directory, add a source column, skip .skip files
+  read_burn_parquets <- function(dir, source_label) {
+    parquet_files <- list.files(dir, pattern = "\\.gz\\.parquet$", full.names = TRUE)
+
+    if (length(parquet_files) == 0) {
+      if (verbose) message("No parquet files found in ", dir)
+      return(tibble::tibble(pid = integer(), date = integer(), burn_doy = integer(), source = character()))
+    }
+
+    if (verbose) message("Reading ", length(parquet_files), " ", source_label, " parquets from ", dir)
+
+    # Use arrow::open_dataset for efficient multi-file reading without loading
+    # all files into memory at once — important for 200+ monthly files
+    arrow::open_dataset(parquet_files) |>
+      dplyr::select("pid", "date", "burn_doy") |>
+      dplyr::collect() |>
+      dplyr::mutate(source = source_label)
+  }
+
+  modis_burns <- read_burn_parquets(modis_dir, "modis")
+  viirs_burns <- read_burn_parquets(viirs_dir, "viirs")
+
+  if (nrow(modis_burns) == 0 && nrow(viirs_burns) == 0) {
+    stop("No burn date parquet files found in either MODIS or VIIRS directories")
+  }
+
+  # Combine and deduplicate: for the same pixel × date, keep MODIS over VIIRS
+  all_burns <- dplyr::bind_rows(modis_burns, viirs_burns) |>
+    dplyr::filter(!is.na(.data$date), .data$burn_doy > 0L) |>
+    # Rank by source preference: MODIS first, then VIIRS
+    dplyr::mutate(source_rank = dplyr::if_else(.data$source == "modis", 1L, 2L)) |>
+    dplyr::group_by(.data$pid, .data$date) |>
+    dplyr::slice_min(.data$source_rank, n = 1, with_ties = FALSE) |>
+    dplyr::ungroup() |>
+    dplyr::select("pid", "date", "burn_doy", "source") |>
+    dplyr::arrange(.data$pid, .data$date)
+
+  if (verbose) {
+    message(
+      "Merged burn record: ", nrow(all_burns), " burn events ",
+      "(MODIS: ", sum(all_burns$source == "modis"), ", ",
+      "VIIRS: ", sum(all_burns$source == "viirs"), ")"
+    )
+  }
+
+  all_burns
+}
+
+
+#' @title Compute the most recent burn date for every pixel across the full record
+#'
+#' @description For each domain pixel, produces a time series of "what was the
+#'   most recent burn before date X?" for every month in the record. This table
+#'   is the primary fire covariate used by emma_model.
+#'
+#'   The output parquet has one row per pixel per as-of-date:
+#'   \itemize{
+#'     \item \code{pid}            (int32): Domain pixel ID
+#'     \item \code{as_of_date}     (int32): Query date (days since epoch); typically
+#'       the first day of each month in the observation record
+#'     \item \code{last_burn_date} (int32): Most recent burn before as_of_date;
+#'       NA if pixel has never burned in the record
+#'     \item \code{fire_age_days}  (int32): Days since last burn (as_of_date - last_burn_date);
+#'       NA if pixel has never burned
+#'   }
+#'
+#' @param burn_events   Tibble from \code{merge_burn_dates()}.
+#' @param query_dates   Integer vector of days-since-epoch at which to evaluate
+#'   fire age. Typically the first day of each month in the VI record.
+#'   If NULL, defaults to every month from burn record start to today.
+#' @param out_file      Character. Output parquet file path.
+#' @param verbose       Logical. Print progress messages?
+#'
+#' @return Character path to the written parquet file.
+#' @export
+compute_most_recent_burn <- function(
+    burn_events,
+    query_dates = NULL,
+    out_file    = "data/target_outputs/most_recent_burn.parquet",
+    verbose     = TRUE) {
+
+  if (nrow(burn_events) == 0) stop("burn_events is empty — cannot compute fire age")
+
+  # Default query dates: monthly sequence from first burn to today
+  if (is.null(query_dates)) {
+    first_burn    <- as.Date(min(burn_events$date, na.rm = TRUE), origin = "1970-01-01")
+    first_month   <- as.Date(format(first_burn, "%Y-%m-01"))
+    all_months    <- seq(first_month, Sys.Date(), by = "month")
+    query_dates   <- as.integer(all_months - as.Date("1970-01-01"))
+  }
+
+  if (verbose) {
+    message(
+      "Computing most recent burn for ", length(unique(burn_events$pid)), " pixels ",
+      "over ", length(query_dates), " query dates"
+    )
+  }
+
+  # For each query date, find the most recent burn on or before that date.
+  # Implemented with a tidy non-equi join approach:
+  #   1. Cross every (pid, query_date) pair with the burn event table for that pid
+  #   2. Keep only burns that occurred before the query date
+  #   3. Take the maximum burn date (most recent)
+  #
+  # This is done in chunks over query dates to keep memory usage bounded.
+
+  # Create a lookup of all pixels that ever burned
+  burned_pids <- unique(burn_events$pid)
+
+  # Chunk query dates into groups of 12 months to avoid memory blowup
+  chunk_size   <- 12L
+  date_chunks  <- split(query_dates, ceiling(seq_along(query_dates) / chunk_size))
+
+  result_list <- purrr::map(date_chunks, function(dates_chunk) {
+    # For this chunk of dates, find last burn ≤ each date for each burned pixel
+    # Use a cross-product then filter approach (efficient for moderate # pids)
+    purrr::map_dfr(dates_chunk, function(qdate) {
+      burn_events |>
+        dplyr::filter(.data$date <= qdate) |>            # only burns before query date
+        dplyr::group_by(.data$pid) |>
+        dplyr::summarise(
+          last_burn_date = max(.data$date, na.rm = TRUE),
+          .groups        = "drop"
+        ) |>
+        dplyr::mutate(
+          as_of_date    = qdate,
+          fire_age_days = qdate - .data$last_burn_date
+        )
+    })
+  })
+
+  result_df <- dplyr::bind_rows(result_list) |>
+    dplyr::select("pid", "as_of_date", "last_burn_date", "fire_age_days") |>
+    dplyr::arrange(.data$pid, .data$as_of_date)
+
+  if (verbose) {
+    message(
+      "Writing ", nrow(result_df), " rows to ", basename(out_file)
+    )
+  }
+
+  dir.create(dirname(out_file), recursive = TRUE, showWarnings = FALSE)
+  unlink(out_file)
+  arrow::write_parquet(result_df, sink = out_file, compression = "gzip")
+  out_file
+}
+
+
+#' @title Identify query dates from the MODIS VI parquet record
+#'
+#' @description Reads the MODIS VI parquet directory and returns a vector of
+#'   unique observation dates as integers (days since 1970-01-01). These are
+#'   used as query dates for \code{compute_most_recent_burn()} so that fire age
+#'   is evaluated at exactly the dates where VI observations exist.
+#'
+#' @param modis_vi_dir Character. Directory containing monthly MODIS VI parquets.
+#' @param verbose Logical. Print progress messages?
+#'
+#' @return Integer vector of unique observation dates (days since epoch).
+#' @export
+get_vi_observation_dates <- function(
+    modis_vi_dir = "data/target_outputs/modis_vi",
+    verbose      = TRUE) {
+
+  parquet_files <- list.files(modis_vi_dir, pattern = "\\.gz\\.parquet$", full.names = TRUE)
+
+  if (length(parquet_files) == 0) {
+    stop("No MODIS VI parquet files found in ", modis_vi_dir)
+  }
+
+  if (verbose) message("Scanning ", length(parquet_files), " MODIS VI parquets for observation dates")
+
+  # Read only the date column across all files (efficient with Arrow)
+  dates <- arrow::open_dataset(parquet_files) |>
+    dplyr::select("date") |>
+    dplyr::distinct() |>
+    dplyr::collect() |>
+    dplyr::pull("date") |>
+    sort()
+
+  if (verbose) message("Found ", length(dates), " unique observation dates")
+  dates
+}

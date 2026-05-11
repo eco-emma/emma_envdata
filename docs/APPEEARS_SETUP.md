@@ -51,36 +51,38 @@ rs_products()
 ### Changes from rgee to AppEEARS
 
 - **Authentication**: Simple username/password instead of service account JSON
-- **Output format**: Monthly NetCDF files instead of individual GeoTIFFs
+- **Output format**: Gzip-compressed Parquet files (`.parquet`) instead of GeoTIFFs; NetCDF is intermediate only
 - **Storage efficiency**: ~20% reduction in file sizes
 - **Simpler CI/CD**: No Python/conda dependencies required
 
 ### Product Mapping
 
-| Current (rgee) | AppEEARS Product | Status |
-|----------------|------------------|--------|
-| MODIS Fire (MCD64A1) | MCD64A1.061 | ✅ Migrated |
-| MODIS NDVI (MOD13A1) | MOD13A1.061 | ✅ Migrated |
-| VIIRS NDVI | VNP13A1.001 | 🔄 Pending |
-| KNDVI | Calculate from reflectances | 🔄 Pending |
-| CHELSA Climate | Direct download (unchanged) | ✅ No change |
-| NASADEM | NASADEM.001 | 🔄 Pending |
+| Dataset | AppEEARS Product | Status |
+|---------|-----------------|--------|
+| MODIS Burned Area | MCD64A1.061 | ✅ Active |
+| MODIS VI — Terra | MOD13A1.061 | ✅ Active |
+| MODIS VI — Aqua | MYD13A1.061 | ✅ Active |
+| VIIRS Burned Area | VNP64A1.001 | ✅ Active |
+| Elevation (SRTM) | SRTMGL3_NC.003 | ✅ Active |
+| CHELSA Climate | Direct download (unchanged) | ✅ Active |
+| SoilGrids | ISRIC WCS (direct download) | ✅ Active |
+| Cloud frequency | EarthEnv MODCF (direct download) | ✅ Active |
+
+### Output Format
+
+AppEEARS NetCDF downloads are intermediate files only. Each monthly NetCDF is converted to a
+gzip-compressed Parquet file (`.parquet`) and the NetCDF is deleted on GitHub Actions to save
+disk space. Final outputs are Parquet files stored in GitHub Releases.
 
 ### Release Tags
 
-NetCDF outputs use new tag names to distinguish from GeoTIFF:
-
-- `raw_fire_modis_nc` - Raw fire monthly NetCDF
-- `raw_ndvi_modis_nc` - Raw NDVI monthly NetCDF
-- etc.
-
-### File Naming Convention
-
-Monthly NetCDF files follow the pattern: `{product}_{collection}_{YYYY-MM}.nc`
-
-Examples:
-- `fire_MCD64A1_2025-12.nc`
-- `ndvi_MOD13A1_2025-12.nc`
+- `data_modis_vi_current` — MODIS EVI time series (monthly parquets)
+- `data_burn_dates_modis_current` — MODIS burned area (monthly parquets)
+- `data_burn_dates_viirs_current` — VIIRS burned area (monthly parquets)
+- `data_fire_covariates_current` — Derived fire metrics (most recent burn, fire age)
+- `data_static_current` — Static environmental layers (elevation, climate, clouds, soil, topography)
+- `data_stac_current` — STAC catalog JSON for dataset discovery
+- `objects_current` — Internal targets cache (workflow artifacts)
 
 ## Troubleshooting
 
