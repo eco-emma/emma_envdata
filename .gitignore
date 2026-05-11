@@ -19,7 +19,7 @@ data/raw_data/
 data/manual_download/*.gpkg
 data/manual_download/NVM*
 data/raw*
-data/.tar_cache/
+_targets/cache/
 data/target_outputs/
 
 # Terra auxiliary files (from terra_preserve_metadata)

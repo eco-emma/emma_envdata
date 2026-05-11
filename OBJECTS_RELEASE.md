@@ -18,7 +18,7 @@ Stored with hash-based filenames (content-addressable storage) for efficient ded
 ### Prime Mode (Full Processing)
 When running on the analysis server (`run_mode = "prime"`), the workflow:
 1. **Retrieves** objects from this release using the `tar_github_release_repo()` backend
-2. **Caches locally** in `data/target_outputs/.tar_cache/` for speed
+2. **Caches locally** in `_targets/cache/` for speed
 3. **Recomputes** targets only if:
    - Source code has changed
    - Input data has changed
@@ -79,9 +79,9 @@ gh release download objects_current --dir data/target_outputs
 
 ## Cache Management
 
-The local cache in `data/target_outputs/.tar_cache/` can be cleared to force re-downloads:
+The local cache in `_targets/cache/` can be cleared to force re-downloads:
 ```r
-unlink("data/target_outputs/.tar_cache", recursive = TRUE)
+unlink("_targets/cache", recursive = TRUE)
 tar_make()  # Will re-download from release
 ```
 
@@ -109,7 +109,7 @@ For serialized R objects without human-readable filenames, the mapping is stored
 **Objects not loading?**
 - Check GitHub credentials: `gitcreds::gitcreds_set()`
 - Verify network connectivity
-- Clear cache and retry: `unlink("data/target_outputs/.tar_cache", recursive = TRUE)`
+- Clear cache and retry: `unlink("_targets/cache", recursive = TRUE)`
 
 **Out-of-sync objects?**
 - Invalidate and recompute: `tar_invalidate(target_name)`
@@ -118,7 +118,7 @@ For serialized R objects without human-readable filenames, the mapping is stored
 **Need to recompute everything?**
 ```r
 unlink("_targets", recursive = TRUE)  # Clear all metadata
-unlink("data/target_outputs/.tar_cache", recursive = TRUE)  # Clear cache
+unlink("_targets/cache", recursive = TRUE)  # Clear cache
 tar_make()  # Recompute all targets
 ```
 

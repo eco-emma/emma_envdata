@@ -23,7 +23,7 @@
 #' @description Download locally stored targets from GitHub releases (useful for GitHub Actions)
 #' @param repo Repository in "owner/repo" format (default from environment or "AdamWilsonLab/emma_envdata")
 #' @param tag Release tag to store objects (default from environment or "objects_current")
-#' @param cache_dir Cache directory (default: "data/target_outputs/.tar_cache")
+#' @param cache_dir Cache directory (default: "_targets/cache")
 #' @param which_targets Optional vector of specific target names to download
 #' @param verbose Logical for progress messages
 #' @details Call this at the start of tar_make() in update mode to download targets
@@ -31,14 +31,14 @@
 tar_download_github_release <- function(
   repo = NULL,
   tag = NULL,
-  cache_dir = "data/target_outputs/.tar_cache",
+  cache_dir = "_targets/cache",
   which_targets = NULL,
   verbose = TRUE
 ) {
   # Use environment variables as fallback, but allow explicit parameters
   repo <- repo %||% Sys.getenv("TAR_GH_RELEASE_REPO") %||% "AdamWilsonLab/emma_envdata"
   tag <- tag %||% Sys.getenv("TAR_GH_RELEASE_TAG") %||% "objects_current"
-  cache_dir <- cache_dir %||% Sys.getenv("TAR_GH_RELEASE_CACHE_DIR") %||% "data/target_outputs/.tar_cache"
+  cache_dir <- cache_dir %||% Sys.getenv("TAR_GH_RELEASE_CACHE_DIR") %||% "_targets/cache"
   objects_dir <- "_targets/objects"
   
   if (!nzchar(repo) || !nzchar(tag)) {
@@ -171,7 +171,7 @@ tar_download_github_release <- function(
 #' @param repo Repository in "owner/repo" format (default from environment or "AdamWilsonLab/emma_envdata")
 #' @param tag Release tag to store objects (default from environment or "objects_current")
 #' @param format Serialization format: "qs", "rds", or "parquet" (default: "qs")
-#' @param cache_dir Cache directory (default: "data/target_outputs/.tar_cache")
+#' @param cache_dir Cache directory (default: "_targets/cache")
 #' @param which_targets Optional vector of specific target names to upload
 #' @param verbose Logical for progress messages
 #' @details Call this after tar_make() to upload all targets
@@ -180,14 +180,14 @@ tar_upload_github_release <- function(
   repo = NULL,
   tag = NULL,
   format = "qs",
-  cache_dir = "data/target_outputs/.tar_cache",
+  cache_dir = "_targets/cache",
   which_targets = NULL,
   verbose = TRUE
 ) {
   # Use environment variables as fallback, but allow explicit parameters
   repo <- repo %||% Sys.getenv("TAR_GH_RELEASE_REPO") %||% "AdamWilsonLab/emma_envdata"
   tag <- tag %||% Sys.getenv("TAR_GH_RELEASE_TAG") %||% "objects_current"
-  cache_dir <- cache_dir %||% Sys.getenv("TAR_GH_RELEASE_CACHE_DIR") %||% "data/target_outputs/.tar_cache"
+  cache_dir <- cache_dir %||% Sys.getenv("TAR_GH_RELEASE_CACHE_DIR") %||% "_targets/cache"
   
   if (!nzchar(repo) || !nzchar(tag)) {
     stop("GitHub release configuration not set. Provide repo and tag parameters or set environment variables.")
@@ -238,8 +238,8 @@ tar_upload_github_release <- function(
     data_output_files <- character(0)
     if (dir.exists("data/target_outputs")) {
       all_output_files <- list.files("data/target_outputs", full.names = TRUE, recursive = FALSE)
-      # Exclude cache directory
-      data_output_files <- all_output_files[!grepl("\\.tar_cache", all_output_files)]
+      # Exclude hidden/system directories (e.g. .DS_Store)
+      data_output_files <- all_output_files[!grepl("^\\.", basename(all_output_files))]
     }
     
     local_files <- c(regular_files, file_format_targets, data_output_files)
