@@ -14,7 +14,7 @@
 #' @keywords internal
 generate_modis_vi_stac <- function(
   parquet_files = NULL,  # Dependency on branched target, may be unused
-  parquet_dir = "data/processed_data/dynamic_parquet/modis_vi",
+  parquet_dir = "data/target_outputs/modis_vi",
   stac_dir = "data/stac/modis_vi",
   parent_catalog_path = "data/stac",
   gh_repo = "AdamWilsonLab/emma_envdata",

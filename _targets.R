@@ -32,7 +32,7 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
   gh_repo_config <- list(
     repo = "AdamWilsonLab/emma_envdata",
     tag = "objects_current",
-    cache_dir = "data/target_outputs/.tar_cache" #this is local cache for speed
+    cache_dir = "_targets/cache" #this is local cache for speed
   )
 
   # Store config as environment variables for upload function to use
@@ -212,7 +212,7 @@ list(
     get_clouds_wilson(
       domain        = domain_boundary,
       domain_raster = domain_nc,
-      temp_directory = "data/temp/raw_data/clouds_wilson/",
+      temp_directory = "data/temp/appeears/clouds_wilson/",
       out_file      = "data/target_outputs/clouds_wilson.nc",
       cleanup       = cleanup_mode,
       verbose       = TRUE
@@ -238,7 +238,7 @@ list(
       domain_vector = domain_boundary,
       domain_raster = domain_nc,
       out_file = "data/target_outputs/elevation_nasadem.nc",
-      temp_directory = "data/temp/raw_data/elevation_nasadem/",
+      temp_directory = "data/temp/appeears/elevation_nasadem/",
       verbose = TRUE
     )
     # Stores as terra rast object in qs format; also writes elevation_nasadem.nc file
@@ -263,7 +263,7 @@ list(
     soil_soilgrids,
     get_soil_soilgrids(
       domain_raster  = domain_nc,
-      temp_directory = "data/temp/raw_data/soil_soilgrids/",
+      temp_directory = "data/temp/appeears/soil_soilgrids/",
       out_file       = "data/target_outputs/soil_soilgrids.nc",
       cleanup        = cleanup_mode,
       verbose        = TRUE
@@ -375,7 +375,7 @@ list(
       download_modis_vi_netcdf(
         task_id = modis_vi_task_ids,
         month_start = modis_vi_to_download$month_start,
-        temp_directory = "data/temp/raw_data/modis_vi_netcdf/",
+        temp_directory = "data/temp/appeears/modis_vi/",
         cleanup = cleanup_mode,
         verbose = TRUE
       )
@@ -447,7 +447,7 @@ list(
     download_burn_date_modis_netcdf(
       task_id        = burn_modis_task_ids,
       month_start    = burn_modis_to_download$month_start,
-      temp_directory = "data/temp/raw_data/burn_dates_modis/",
+      temp_directory = "data/temp/appeears/burn_dates_modis/",
       cleanup        = cleanup_mode,
       verbose        = TRUE
     ),
@@ -499,7 +499,7 @@ list(
     download_burn_date_viirs_netcdf(
       task_id        = burn_viirs_task_ids,
       month_start    = burn_viirs_to_download$month_start,
-      temp_directory = "data/temp/raw_data/burn_dates_viirs/",
+      temp_directory = "data/temp/appeears/burn_dates_viirs/",
       cleanup        = cleanup_mode,
       verbose        = TRUE
     ),
@@ -813,7 +813,7 @@ if (FALSE) {
   tar_upload_github_release(
     repo      = "AdamWilsonLab/emma_envdata",
     tag       = "objects_current",
-    cache_dir = "data/target_outputs/.tar_cache",
+    cache_dir = "_targets/cache",
     verbose   = TRUE
   )
 }
