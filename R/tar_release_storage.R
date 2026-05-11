@@ -1,3 +1,24 @@
+# ---------------------------------------------------------------------------
+# Internal helper: verify a downloaded file can actually be opened.
+# Returns TRUE if the file passes its format-specific integrity check,
+# FALSE on any read error. Used by tar_download_github_release() to avoid
+# silently accepting truncated or corrupted downloads.
+# ---------------------------------------------------------------------------
+.check_file_integrity <- function(path) {
+  ext <- tolower(tools::file_ext(path))
+  tryCatch({
+    switch(ext,
+      parquet = { arrow::open_dataset(path); TRUE },
+      tif     = ,
+      tiff    = ,
+      nc      = { terra::rast(path);          TRUE },
+      gpkg    = { sf::st_read(path, quiet = TRUE); TRUE },
+      # For binary objects (.qs, .rds, unknown) just verify the file is non-empty
+      { file.exists(path) && file.size(path) > 0 }
+    )
+  }, error = function(e) FALSE)
+}
+
 #' Download targets from GitHub Release
 #' @description Download locally stored targets from GitHub releases (useful for GitHub Actions)
 #' @param repo Repository in "owner/repo" format (default from environment or "AdamWilsonLab/emma_envdata")
@@ -66,10 +87,15 @@ tar_download_github_release <- function(
     local_path <- file.path(objects_dir, target_name)
     cached_path <- file.path(cache_dir, asset_name)
     
-    # Download to cache if not already there
-    if (!file.exists(cached_path)) {
-      if (verbose) message("[tar_github_release] Downloading: ", asset_name)
-      max_attempts <- 3
+    # Download to cache if not already there, with retry + integrity check
+    if (!file.exists(cached_path) || !.check_file_integrity(cached_path)) {
+      if (file.exists(cached_path)) {
+        if (verbose) message("[tar_github_release] Cached file failed integrity check, re-downloading: ", asset_name)
+        file.remove(cached_path)
+      } else {
+        if (verbose) message("[tar_github_release] Downloading: ", asset_name)
+      }
+      max_attempts <- 5
       for (attempt in 1:max_attempts) {
         tryCatch({
           piggyback::pb_download(
@@ -79,16 +105,22 @@ tar_download_github_release <- function(
             dest = cache_dir,
             overwrite = TRUE
           )
-          if (verbose) message("[tar_github_release] Downloaded: ", asset_name)
-          break
         }, error = function(e) {
+          if (verbose) message("[tar_github_release] Download attempt ", attempt, " error: ", conditionMessage(e))
+        })
+        # Validate the file — retry if corrupt or missing
+        if (.check_file_integrity(cached_path)) {
+          if (verbose) message("[tar_github_release] Downloaded and verified: ", asset_name)
+          break
+        } else {
           if (attempt < max_attempts) {
-            if (verbose) message("[tar_github_release] Download attempt ", attempt, " failed: ", conditionMessage(e))
+            if (verbose) message("[tar_github_release] Integrity check failed (attempt ", attempt, "), retrying...")
+            if (file.exists(cached_path)) file.remove(cached_path)
             Sys.sleep(2)
           } else {
-            warning("[tar_github_release] Failed to download after ", max_attempts, " attempts: ", conditionMessage(e))
+            warning("[tar_github_release] Failed to download valid file after ", max_attempts, " attempts: ", asset_name)
           }
-        })
+        }
       }
     } else {
       if (verbose) message("[tar_github_release] Already cached: ", asset_name)

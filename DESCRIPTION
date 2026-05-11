@@ -24,11 +24,12 @@ Imports:
   lubridate,
   jsonlite,
   dplyr,
+  purrr,
+  tidyr,
   arrow,
   targets,
   tarchetypes,
   visNetwork,
-  rdryad,
   keyring,
   filelock,
   sfarrow,
@@ -37,11 +38,14 @@ Imports:
   ncdf4,
   devtools,
   smoothr,
-  piggyback,
   questionr,
-  qs2
+  qs2,
+  httr2,
+  geojsonsf,
+  glue,
+  stringr
 Suggests:
   rgee,
   reticulate,
-  raster,
-  RoxygenNote: 7.1.1
+  raster
+RoxygenNote: 7.1.1

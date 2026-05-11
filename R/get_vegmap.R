@@ -19,7 +19,7 @@
 #' @importFrom piggyback pb_download
 #' @importFrom utils unzip
 #' @export
-download_vegmap_release <- function(repo, tag, file, local_dir, shapefile_name) {
+get_vegmap <- function(repo, tag, file, local_dir, shapefile_name) {
   dir.create(local_dir, recursive = TRUE, showWarnings = FALSE)
   
   # Check if shapefile already exists in the expected location (with shapefile subdirectory)
