@@ -22,10 +22,8 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
   options(tidyverse.quiet = TRUE)
 
   # Ensure output directories exist early (before terra options)
-  dir.create("data/raw", recursive = TRUE, showWarnings = FALSE)
   dir.create("data/temp", recursive = TRUE, showWarnings = FALSE)
   dir.create("data/temp/terra", recursive = TRUE, showWarnings = FALSE)
-  dir.create("data/releases", recursive = TRUE, showWarnings = FALSE)
   dir.create("data/target_outputs", recursive = TRUE, showWarnings = FALSE)
 
   # GitHub release repository configuration - releases are used to store target objects and publish final data

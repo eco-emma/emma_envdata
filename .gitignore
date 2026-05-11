@@ -17,6 +17,7 @@ data/temp/
 data/other_data/
 data/raw_data/
 data/manual_download/*.gpkg
+data/manual_download/*
 data/manual_download/NVM*
 data/raw*
 _targets/cache/
