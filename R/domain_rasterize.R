@@ -3,21 +3,22 @@
 #' @title Rasterize domain with pixel IDs, remnants, and distance to remnants
 #' @author Adam M. Wilson
 #' @description Creates a multivariate NetCDF file with four variables: domain mask, pixel IDs, remnant indicators, and distance to nearest remnant. Each variable is written separately with maximum compression and CF-1.8 compliant metadata.
-#' @param domain sf or SpatVector object defining the study area (typically from domain_define).
-#' @param remnants_shp Path to remnant vegetation shapefile.
+#' @param domain_boundary sf or SpatVector object defining the study area (typically from domain_define).
+#' @param remnants Path to remnant vegetation shapefile.
 #' @param dx Numeric x-resolution in CRS units (default 500 m).
 #' @param dy Numeric y-resolution in CRS units (default 500 m).
 #' @param out_file Character path for output NetCDF file (default "data/raw/domain.nc").
 #' @return Character path to the written NetCDF file.
 #' @details Generates a raster template from domain bounding box, rasterizes domain and remnants, computes pixel IDs (sequential within domain) and Euclidean distance to nearest remnant (in km). Writes four variables (domain, pid, remnants, remnants_distance) to NetCDF with FORMAT=NC4, COMPRESS=DEFLATE, ZLEVEL=9, SHUFFLE=YES. Adds CF-compliant metadata via ncdf4 including long_name, units, CRS, history, and Conventions attributes.
 
-domain_rasterize <- function(domain, remnants_shp, dx = 500, dy = 500, out_file = "data/raw/domain.nc") {
+domain_rasterize <- function(domain_boundary, remnants, dx = 500, dy = 500, out_file = "data/raw/domain.nc") {
 
   # Generate raster template and rasterize domain with terra (touches = TRUE)
-  domain_template <- rast(st_as_stars(st_bbox(domain), dx = dx, dy = dy))
+  domain_template <- rast(domain_boundary, dx = dx, dy = dy)
 
-  domain_raster <- domain %>%
-    st_as_sf() %>%
+ # domain_raster <- domain_boundary %>%
+
+  domain_raster <- domain_boundary %>%
     mutate(domain = 1) %>%
     vect() %>%
     terra::rasterize(
@@ -34,7 +35,7 @@ domain_rasterize <- function(domain, remnants_shp, dx = 500, dy = 500, out_file 
 ## Process remnants to add fields related to whether the cell is in a remnant and distance to remnant
 
 # Load remnants file
-  remnants <- st_read(remnants_shp) %>%
+  remnants <- remnants %>%
     janitor::clean_names() %>%
     st_transform(crs = crs(domain)) %>%
     st_crop(st_as_sfc(st_bbox(domain)))  #crop to domain box

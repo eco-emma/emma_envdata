@@ -378,15 +378,3 @@ tar_upload_github_release <- function(
   invisible(NULL)
 }
 
-#' Create GitHub Releases repository for targets
-#' @description DEPRECATED - Use tar_upload_github_release() instead
-#' @export
-tar_github_release_repo <- function(
-  repo,
-  tag,
-  format = "qs",
-  cache_dir = "data/.tar_cache"
-) {
-  stop("tar_github_release_repo() is deprecated. Use tar_upload_github_release() after tar_make() instead.")
-}
-

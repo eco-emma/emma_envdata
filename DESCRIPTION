@@ -38,7 +38,8 @@ Imports:
   devtools,
   smoothr,
   piggyback,
-  questionr
+  questionr,
+  qs2
 Suggests:
   rgee,
   reticulate,
