@@ -41,6 +41,6 @@ download_vegmap_release <- function(repo, tag, file, local_dir, shapefile_name) 
     unlink(zip_file)
   }
   
-  # Return the correct path (shapefile is in a subdirectory after extraction)
-  shp_file_correct
+  # Return the sf object 
+  st_read(shp_file_correct)
 }

@@ -44,12 +44,35 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
   )
 
   tar_option_set(
-    memory="transient", 
-    garbage_collection = TRUE, #run gc() after each target to free memory
+    memory = "transient", 
+    garbage_collection = TRUE,  # run gc() after each target to free memory
     packages = description_packages,  # Use all packages from DESCRIPTION file
-    repository = "local",  # Store locally; manual upload after tar_make() completes
-    cue = tar_cue(mode = "thorough")  # Recompute if any inputs change
+    repository = "local",  # Store targets locally; upload to release after tar_make() completes
+    cue = tar_cue(mode = "thorough"),  # Recompute if any inputs change
+    format = "qs"  # Default: fast serialization for R objects (rasters, dataframes, task IDs, etc.)
   )
+
+  # # Hook: Download cached targets from GitHub release before running pipeline
+  # source('R/tar_release_storage.R')
+  # tar_hook_before(
+  #   code = tar_download_github_release(
+  #     repo = gh_repo_config$repo,
+  #     tag = gh_repo_config$tag,
+  #     cache_dir = gh_repo_config$cache_dir,
+  #     verbose = TRUE
+  #   )
+  # )
+
+  # # Hook: Upload updated targets to GitHub release after successful tar_make()
+  # tar_hook_after(
+  #   code = tar_upload_github_release(
+  #     repo = gh_repo_config$repo,
+  #     tag = gh_repo_config$tag,
+  #     cache_dir = gh_repo_config$cache_dir,
+  #     verbose = TRUE
+  #   ),
+  #   condition = "success"
+  # )
 
   terraOptions(tempdir = "data/temp/terra", memfrac = 0.6)
 
@@ -73,8 +96,10 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
 
 
 list(
+  ##################### Input Shapefiles/Vectors (sf objects stored in qs) #########################
+  
   tar_target(
-    vegmap_shp,
+    vegmap,
     download_vegmap_release(
       repo = "AdamWilsonLab/emma_envdata",
       tag = "vegmap2024",
@@ -82,55 +107,48 @@ list(
       local_dir = "data/manual_download/NVM2024",
       shapefile_name = "NVM2024Final_IEM5_12_07012025.shp"
     ),
-    format = "file"
+    cue = tar_cue(mode = "never")  # Manual download: only run locally, never on CI
   ),
 
   tar_target(
-    remnants_shp,
-    "data/manual_download/RLE_2021_Remnants/RLE_Terr_2021_June2021_Remnants_ddw.shp",
-    format="file"
+    remnants,
+    sf::st_read("data/manual_download/RLE_2021_Remnants/RLE_Terr_2021_June2021_Remnants_ddw.shp")
   ),
 
   tar_target(
-    capenature_fires_shp,
-    "data/manual_download/All_fires_23_24_gw/All_fires_23_24_gw.shp",
-    format="file"
+    capenature_fires,
+    sf::st_read("data/manual_download/All_fires_23_24_gw/All_fires_23_24_gw.shp")
   ),
 
 # Get country boundary
   tar_target( 
-    country.parquet,
-    get_country(),
-    format = "file"
+    country,
+    get_country()
   ),
 
-# Create domain file based on country boundary and vegmap
+  # Create domain file based on country boundary and vegmap
   tar_target( 
-    domain_boundary.parquet,
-    domain_define(vegmap_shp = vegmap_shp, country = country.parquet),
-    format = "file"
+    domain_boundary,
+    domain_define(vegmap = vegmap, country = country),
   ),
 
-# Stable bounding box for downloads (50km buffer around domain)
+  # Stable bounding box for downloads (50km buffer around domain)
   tar_target(   
-    domain_bbox.parquet,
-    make_domain_bbox(domain_boundary.parquet, buffer_m = 50000, out_file = "data/target_outputs/domain_bbox.parquet"),
-    format = "file",
-    cue = tar_cue(mode = "never")   # Never re-downloads unless manually invalidated, even if analysis domain changes
+    domain_bbox,
+    make_domain_bbox(domain_boundary, buffer_m = 50000),
   ),
 
 # Domain raster with pixel IDs, remnants, and distance to remnants. This defines the model grid that is used for everything!
+  # Stores as terra rast object in qs format; also writes domain.nc file for reference
   tar_target(   
     domain_nc,
     domain_rasterize(
-      domain = sfarrow::st_read_parquet(domain_boundary.parquet), 
-      remnants_shp = remnants_shp,
+      domain_boundary = domain_boundary, 
+      remnants = remnants,
       out_file = "data/target_outputs/domain.nc"
     ),
-    format = "file",
-     cue = tar_cue(mode = "never") # Never rerun unless manually invalidated because this will trigger complete reprocessing of rs data
-     # tar_invalidate(domain_nc) # run this to force recompute, which will trigger redownloading all RS data from appeears
-
+    cue = tar_cue(mode = "never")  # Never rerun unless manually invalidated (triggers full reprocessing of all downstream rs data)
+    # tar_invalidate(domain_nc) # run this to force recompute and redownload all RS data from AppEEARS
   ),
 
   # Convert domain raster to geoparquet for spatial reference with coordinates and pid
@@ -145,12 +163,13 @@ list(
   ),
 
 # Rasterize the vegetation map
-   tar_target( 
+  # Stores as terra rast object in qs format; also writes vegmap.nc file for reference
+  tar_target( 
     vegmap_nc,
     data_vegmap(domain_raster = domain_nc,
                 vegmap_shp = vegmap_shp,
-                out_file = "data/target_outputs/vegmap.nc"),
-    format = "file"),
+                out_file = "data/target_outputs/vegmap.nc")
+  ),
 
 
       # tar_target(
@@ -174,7 +193,7 @@ list(
     tar_target( 
       climate_chelsa,
       get_climate_chelsa(
-        domain = sfarrow::st_read_parquet(domain_boundary.parquet),
+        domain = domain_boundary,
         cleanup = cleanup_mode,
         verbose = TRUE),
       format = "file"
@@ -194,7 +213,7 @@ list(
   tar_target(
     elevation_task_id,
     submit_elevation_task(
-      domain_vector = sfarrow::st_read_parquet(domain_boundary.parquet),
+      domain_vector = domain_boundary,
       verbose = TRUE
     )
   ),
@@ -203,13 +222,13 @@ list(
     elevation,
     download_elevation_results(
       task_id = elevation_task_id,
-      domain_vector = sfarrow::st_read_parquet(domain_boundary.parquet),
+      domain_vector = domain_boundary,
       domain_raster = domain_nc,
       out_file = "data/target_outputs/elevation_nasadem.nc",
       temp_directory = "data/temp/raw_data/elevation_nasadem/",
       verbose = TRUE
-    ),
-    format = "file"
+    )
+    # Stores as terra rast object in qs format; also writes elevation_nasadem.nc file
   ),
 
   # Generate human-readable manifest of all targets for release documentation
@@ -322,15 +341,16 @@ list(
     {
       # Within this branch, modis_vi_to_download is auto-sliced to one row
       submit_modis_vi(
-        domain_vector = sfarrow::st_read_parquet(domain_boundary.parquet),
+        domain_vector = domain_boundary,
         month_start = modis_vi_to_download$month_start,
         month_end = modis_vi_to_download$month_end
       )
     },
-    pattern = map(modis_vi_to_download),
+    pattern = map(modis_vi_to_download)
   ),
 
   # Download NetCDF files from AppEEARS (I/O only)
+  # Stores as terra rast object in qs format; temp netcdf files cleaned up based on cleanup_mode
   tar_target(
     modis_vi_netcdf,
     {
@@ -342,8 +362,7 @@ list(
         verbose = TRUE
       )
     },
-    pattern = map(modis_vi_task_ids, modis_vi_to_download),
-    format = "file",
+    pattern = map(modis_vi_task_ids, modis_vi_to_download)
   ),
 
   # Process NetCDF to parquet format
