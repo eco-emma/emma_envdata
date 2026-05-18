@@ -6,9 +6,6 @@
 
 message("Starting tar_make()")
 
-devtools::load_all() # load all functions in R
-description_packages <- load_description_packages(verbose=TRUE)  # Load all packages from DESCRIPTION and get list
-
 # check what system we are on
   sys_info <- Sys.info(); message(paste("System info:",paste(names(sys_info), sys_info, sep="=", collapse = "; ")))
   # if nodename includes "ccr.buffalo.edu", set working directory to /gscratch/scrubbed/...
@@ -16,6 +13,12 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
     setwd("~/project/projects/emma/emma_envdata")
     message(paste("Set working directory to:", getwd()))  
   }
+
+
+
+devtools::load_all() # load all functions in R
+description_packages <- load_description_packages(verbose=TRUE)  # Load all packages from DESCRIPTION and get list
+
 
 #If running this locally, make sure to set up github credentials using gitcreds::gitcreds_set()
 
@@ -31,7 +34,7 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
   # GitHub release repository configuration - releases are used to store target objects and publish final data
   gh_repo_config <- list(
     repo = "AdamWilsonLab/emma_envdata",
-    tag = "objects_current",
+    tag = "targets-cache",
     cache_dir = "_targets/cache" #this is local cache for speed
   )
 
@@ -52,29 +55,16 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
     format = "qs"  # Default: fast serialization for R objects (rasters, dataframes, task IDs, etc.)
   )
 
-  # Hook: Download cached targets from GitHub release before running pipeline
+  # Download cached targets from GitHub release before running pipeline
   source('R/tar_release_storage.R')
-  tar_hook_before(
-    code = tar_download_github_release(
-      repo = gh_repo_config$repo,
-      tag = gh_repo_config$tag,
-      cache_dir = gh_repo_config$cache_dir,
-      verbose = TRUE
-    )
+  tar_download_github_release(
+    repo = gh_repo_config$repo,
+    tag = gh_repo_config$tag,
+    cache_dir = gh_repo_config$cache_dir,
+    verbose = TRUE
   )
 
-  # Hook: Upload updated targets to GitHub release after successful tar_make()
-  tar_hook_after(
-    code = tar_upload_github_release(
-      repo = gh_repo_config$repo,
-      tag = gh_repo_config$tag,
-      cache_dir = gh_repo_config$cache_dir,
-      verbose = TRUE
-    ),
-    condition = "success"
-  )
-
-  terraOptions(tempdir = "data/temp/terra", memfrac = 0.6)
+  terraOptions(tempdir = "data/temp/terra", memfrac = 0.8)
 
   # Set cleanup behavior based on execution environment
   # In GitHub Actions, we want to clean up temp files to avoid filling up disk space.  Locally, we may want to keep them for debugging or inspection.
@@ -89,9 +79,14 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
 #  message(paste("Objects:",ls(),collapse = "\n"))
 
   # Set MODIS/VIIRS date range as variables
-  modis_start_date <- "2000-02-18"  # MODIS Terra first available data
-  viirs_start_date <- "2012-01-01"  # VIIRS first available data
-  burn_start_date  <- "2000-11-01"  # MCD64A1 first available data
+#  modis_start_date <- "2000-02-18"  # MODIS Terra first available data
+#  viirs_start_date <- "2012-01-01"  # VIIRS first available data
+#  burn_start_date  <- "2000-11-01"  # MCD64A1 first available data
+#  modis_end_date   <- as.character(Sys.Date())
+
+  modis_start_date <- "2026-01-01"  # MODIS Terra first available data
+  viirs_start_date <- "2026-01-01"  # VIIRS first available data
+  burn_start_date  <- "2026-01-01"  # MCD64A1 first available data
   modis_end_date   <- as.character(Sys.Date())
 
 
@@ -527,12 +522,16 @@ list(
   # Merge MODIS + VIIRS burn records into a single deduplicated fire event table
   tar_target(
     burn_events_merged,
-    merge_burn_dates(
-      modis_dir = "data/target_outputs/burn_dates_modis",
-      viirs_dir = "data/target_outputs/burn_dates_viirs",
-      verbose   = TRUE
-    )
-    # Depends implicitly on all monthly parquets being complete; declared explicitly:
+    {
+      # Explicit dependencies ensure all monthly parquets are complete before merging
+      force(burn_modis_parquet)
+      force(burn_viirs_parquet)
+      merge_burn_dates(
+        modis_dir = "data/target_outputs/burn_dates_modis",
+        viirs_dir = "data/target_outputs/burn_dates_viirs",
+        verbose   = TRUE
+      )
+    }
   ),
 
   # Compute most-recent-burn and fire age at every MODIS VI observation date
@@ -789,15 +788,13 @@ list(
       )
     },
     deployment = "main"
-  )
-
-)
+  ),
 
 # ============================================================================
 # POST-PRIME: Upload completed targets cache to GitHub release
 # ============================================================================
 # Run this block manually after completing a full `tar_make()` on a local server
-# to push the cache to the `objects_current` GitHub release. Subsequent GitHub
+# to push the cache to the `targets-cache` GitHub release. Subsequent GitHub
 # Actions runs will then restore from this release instead of recomputing from scratch.
 #
 # When to run:
@@ -812,8 +809,12 @@ if (FALSE) {
   source("R/tar_release_storage.R")
   tar_upload_github_release(
     repo      = "AdamWilsonLab/emma_envdata",
-    tag       = "objects_current",
+    tag       = "targets-cache",
     cache_dir = "_targets/cache",
     verbose   = TRUE
   )
 }
+
+# NOTE: _targets.R must return the pipeline list as its final expression.
+# The if(FALSE) block above must stay BEFORE this closing ).
+)

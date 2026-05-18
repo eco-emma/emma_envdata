@@ -1,11 +1,11 @@
 # ============================================================================
 # VIIRS Burned Area (VNP64A1) Download via AppEEARS
 # ============================================================================
-# Downloads monthly VIIRS VNP64A1.001 burned area data from NASA AppEEARS.
+# Downloads monthly VIIRS VNP64A1.002 burned area data from NASA AppEEARS.
 # Structurally identical to get_burn_dates_modis.R — read that file first
 # for design rationale and the shared output schema.
 #
-# VNP64A1.001 product details:
+# VNP64A1.002 product details:
 #   - Sensor:     Suomi NPP VIIRS
 #   - Resolution: 500m (same grid as MODIS, compatible with domain)
 #   - Coverage:   January 2012 – present
@@ -20,7 +20,7 @@
 
 #' @title Submit monthly VIIRS burned area request via AppEEARS
 #'
-#' @description Submits a VNP64A1.001 area request for a single calendar month.
+#' @description Submits a VNP64A1.002 area request for a single calendar month.
 #'   Identical request structure to MODIS version; only product code differs.
 #'
 #' @param domain_vector An sf or SpatVector polygon defining the study domain.
@@ -66,8 +66,8 @@ submit_burn_date_viirs_task <- function(
         endDate   = format(month_end,   "%m-%d-%Y")
       )),
       layers = list(
-        list(product = "VNP64A1.001", layer = "Burn_Date"),
-        list(product = "VNP64A1.001", layer = "QA")
+        list(product = "VNP64A1.002", layer = "Burn_Date"),
+        list(product = "VNP64A1.002", layer = "QA")
       ),
       output = list(
         format     = list(type = "netcdf4"),

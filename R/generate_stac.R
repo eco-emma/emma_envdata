@@ -307,7 +307,7 @@ generate_emma_stac_catalog <- function(
 #'
 #' @description Creates a STAC Collection and individual Item JSON files for
 #'   monthly burned area parquets produced by the MODIS (MCD64A1.061) or VIIRS
-#'   (VNP64A1.001) fire pipelines.
+#'   (VNP64A1.002) fire pipelines.
 #'
 #'   The function is shared between both sensors; pass \code{source = "modis"} or
 #'   \code{source = "viirs"} to select the correct metadata.
@@ -359,18 +359,18 @@ generate_burn_dates_stac <- function(
       )
     ),
     viirs = list(
-      title       = "VIIRS Burned Area Monthly (VNP64A1 v001)",
+      title       = "VIIRS Burned Area Monthly (VNP64A1 v002)",
       description = paste(
-        "Monthly burned area detections derived from NASA VIIRS VNP64A1.001 (375m, resampled to 500m).",
+        "Monthly burned area detections derived from NASA VIIRS VNP64A1.002 (375m, resampled to 500m).",
         "Available from January 2012 onward.",
         "Only confirmed burned pixels (QA flag 0) are retained.",
         "Pixel IDs (pid) align with the EMMA domain grid."
       ),
-      sci_doi     = "10.5067/VIIRS/VNP64A1.001",
+      sci_doi     = "10.5067/VIIRS/VNP64A1.002",
       platforms   = c("Suomi NPP"),
       instruments = c("VIIRS"),
       gsd         = 375,
-      about_url   = "https://lpdaac.usgs.gov/products/vnp64a1v001/",
+      about_url   = "https://lpdaac.usgs.gov/products/vnp64a1v002/",
       start_date  = "2012-01-01",
       id_prefix   = "burn_dates_viirs",
       bands       = list(

@@ -14,7 +14,14 @@
 domain_rasterize <- function(domain_boundary, remnants, dx = 500, dy = 500, out_file = "data/raw/domain.nc") {
 
   # Generate raster template and rasterize domain with terra (touches = TRUE)
-  domain_template <- rast(domain_boundary, dx = dx, dy = dy)
+  # Use ext()+res= form for compatibility with older terra versions (<1.7-39)
+  bb <- sf::st_bbox(sf::st_transform(domain_boundary, crs = terra::crs(terra::vect(domain_boundary))))
+  domain_template <- terra::rast(
+    xmin = bb["xmin"], xmax = bb["xmax"],
+    ymin = bb["ymin"], ymax = bb["ymax"],
+    resolution = c(dx, dy),
+    crs = terra::crs(terra::vect(domain_boundary))
+  )
 
  # domain_raster <- domain_boundary %>%
 
@@ -37,8 +44,8 @@ domain_rasterize <- function(domain_boundary, remnants, dx = 500, dy = 500, out_
 # Load remnants file
   remnants <- remnants %>%
     janitor::clean_names() %>%
-    st_transform(crs = crs(domain)) %>%
-    st_crop(st_as_sfc(st_bbox(domain)))  #crop to domain box
+    st_transform(crs = crs(domain_raster)) %>%
+    st_crop(st_as_sfc(st_bbox(domain_raster)))  #crop to domain box
 #    st_union() %>%
 #    st_make_valid()
 
@@ -54,9 +61,11 @@ domain_rasterize <- function(domain_boundary, remnants, dx = 500, dy = 500, out_
               cover = T)|>
     terra::mask(mask=domain_raster)*100  #set to NA outside domain and convert to integer
 
-  remnants_distance <- remnants_raster |>
-    terra::app(fun=function(x) ifelse(is.na(x),0,1)) |>
-    terra::distance(target=1)|>
+  # distance() computes distance from each NA cell to nearest non-NA cell.
+  # Set remnant cells to 1 and non-remnant (but in-domain) cells to NA so
+  # distance() returns distance-to-nearest-remnant for every domain pixel.
+  remnants_distance <- terra::ifel(!is.na(remnants_raster), 1, NA) |>
+    terra::distance() |>
     terra::mask(mask=domain_raster) #set to NA outside domain
 
 

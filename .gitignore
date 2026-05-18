@@ -1,3 +1,10 @@
+# macOS resource fork / AppleDouble files (created by Mountain Duck / SFTP mounts)
+._*
+.DS_Store
+
+# R temporary target objects
+tmp_obj_*
+
 # R session files
 .Rhistory
 .Rapp.history

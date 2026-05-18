@@ -23,7 +23,7 @@ get_vegmap <- function(repo, tag, file, local_dir, shapefile_name) {
   dir.create(local_dir, recursive = TRUE, showWarnings = FALSE)
   
   # Check if shapefile already exists in the expected location (with shapefile subdirectory)
-  shp_file_correct <- file.path(local_dir, "shapefile", shapefile_name)
+  shp_file_correct <- file.path(local_dir, "Shapefile", shapefile_name)
   
   if (!file.exists(shp_file_correct)) {
     message("Downloading vegmap from GitHub release using piggyback...")

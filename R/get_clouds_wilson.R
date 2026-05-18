@@ -7,7 +7,7 @@
 #
 # Dataset: EarthEnv MODIS Cloud Frequency (Wilson et al. 2016, Global Ecology and
 #   Biogeography, doi:10.1111/geb.12523)
-# Source:  http://www.earthenv.org/cloud
+# Source:  https://data.earthenv.org/cloud
 # Layers:
 #   - MODCF_meanannual           : Mean annual cloud frequency (0–100%)
 #   - MODCF_seasonality_concentration : Concentration of seasonality (0–1)
@@ -60,15 +60,15 @@ get_clouds_wilson <- function(
     "MODCF_meanannual",
       "Mean Annual Cloud Frequency",
       "percent",
-      "http://www.earthenv.org/cloud/MODCF_meanannual.tif",
+      "https://data.earthenv.org/cloud/MODCF_meanannual.tif",
     "MODCF_seasonality_concentration",
       "Cloud Seasonality Concentration",
       "unitless",
-      "http://www.earthenv.org/cloud/MODCF_seasonality_concentration.tif",
+      "https://data.earthenv.org/cloud/MODCF_seasonality_concentration.tif",
     "MODCF_seasonality_rgb_cloudmonth",
       "Month of Peak Cloud Frequency",
       "month (1-12)",
-      "http://www.earthenv.org/cloud/MODCF_seasonality_rgb_cloudmonth.tif"
+      "https://data.earthenv.org/cloud/MODCF_seasonality_rgb_cloudmonth.tif"
   )
 
   # Load domain template for reprojection

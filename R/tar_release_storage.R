@@ -22,7 +22,7 @@
 #' Download targets from GitHub Release
 #' @description Download locally stored targets from GitHub releases (useful for GitHub Actions)
 #' @param repo Repository in "owner/repo" format (default from environment or "AdamWilsonLab/emma_envdata")
-#' @param tag Release tag to store objects (default from environment or "objects_current")
+#' @param tag Release tag to store objects (default from environment or "targets-cache")
 #' @param cache_dir Cache directory (default: "_targets/cache")
 #' @param which_targets Optional vector of specific target names to download
 #' @param verbose Logical for progress messages
@@ -37,7 +37,7 @@ tar_download_github_release <- function(
 ) {
   # Use environment variables as fallback, but allow explicit parameters
   repo <- repo %||% Sys.getenv("TAR_GH_RELEASE_REPO") %||% "AdamWilsonLab/emma_envdata"
-  tag <- tag %||% Sys.getenv("TAR_GH_RELEASE_TAG") %||% "objects_current"
+  tag <- tag %||% Sys.getenv("TAR_GH_RELEASE_TAG") %||% "targets-cache"
   cache_dir <- cache_dir %||% Sys.getenv("TAR_GH_RELEASE_CACHE_DIR") %||% "_targets/cache"
   objects_dir <- "_targets/objects"
   
@@ -49,11 +49,18 @@ tar_download_github_release <- function(
   dir.create(objects_dir, recursive = TRUE, showWarnings = FALSE)
   
   # Get list of assets on GitHub release
-  tryCatch({
-    assets <- piggyback::pb_list(repo = repo, tag = tag)
-    if (verbose) message("[tar_github_release] Found ", nrow(assets), " assets on GitHub release")
+  # pb_list() throws "undefined columns selected" on empty releases (piggyback bug) — treat as 0 assets
+  assets <- tryCatch({
+    result <- piggyback::pb_list(repo = repo, tag = tag)
+    if (verbose) message("[tar_github_release] Found ", nrow(result), " assets on GitHub release")
+    result
   }, error = function(e) {
-    stop("[tar_github_release] Could not access GitHub release: ", conditionMessage(e))
+    msg <- conditionMessage(e)
+    if (grepl("undefined columns selected|subscript out of bounds|no releases found", msg, ignore.case = TRUE)) {
+      if (verbose) message("[tar_github_release] Release has no assets or does not exist yet, skipping download")
+      return(data.frame(file_name = character(0), stringsAsFactors = FALSE))
+    }
+    stop("[tar_github_release] Could not access GitHub release: ", msg)
   })
   
   # Filter assets if specific targets requested
@@ -169,7 +176,7 @@ tar_download_github_release <- function(
 #' Upload targets to GitHub Release after tar_make() completes
 #' @description Upload locally stored targets to GitHub releases
 #' @param repo Repository in "owner/repo" format (default from environment or "AdamWilsonLab/emma_envdata")
-#' @param tag Release tag to store objects (default from environment or "objects_current")
+#' @param tag Release tag to store objects (default from environment or "targets-cache")
 #' @param format Serialization format: "qs", "rds", or "parquet" (default: "qs")
 #' @param cache_dir Cache directory (default: "_targets/cache")
 #' @param which_targets Optional vector of specific target names to upload
@@ -186,7 +193,7 @@ tar_upload_github_release <- function(
 ) {
   # Use environment variables as fallback, but allow explicit parameters
   repo <- repo %||% Sys.getenv("TAR_GH_RELEASE_REPO") %||% "AdamWilsonLab/emma_envdata"
-  tag <- tag %||% Sys.getenv("TAR_GH_RELEASE_TAG") %||% "objects_current"
+  tag <- tag %||% Sys.getenv("TAR_GH_RELEASE_TAG") %||% "targets-cache"
   cache_dir <- cache_dir %||% Sys.getenv("TAR_GH_RELEASE_CACHE_DIR") %||% "_targets/cache"
   
   if (!nzchar(repo) || !nzchar(tag)) {
