@@ -47,7 +47,7 @@ merge_burn_dates <- function(
 
   # Helper: read all parquets in a directory, add a source column, skip .skip files
   read_burn_parquets <- function(dir, source_label) {
-    parquet_files <- list.files(dir, pattern = "\\.gz\\.parquet$", full.names = TRUE)
+    parquet_files <- list.files(dir, pattern = "\\.parquet$", full.names = TRUE)
 
     if (length(parquet_files) == 0) {
       if (verbose) message("No parquet files found in ", dir)
@@ -68,7 +68,8 @@ merge_burn_dates <- function(
   viirs_burns <- read_burn_parquets(viirs_dir, "viirs")
 
   if (nrow(modis_burns) == 0 && nrow(viirs_burns) == 0) {
-    stop("No burn date parquet files found in either MODIS or VIIRS directories")
+    if (verbose) message("No burn date parquet files found in either directory — returning empty burn record")
+    return(tibble::tibble(pid = integer(), date = integer(), burn_doy = integer(), source = character()))
   }
 
   # Combine and deduplicate: for the same pixel × date, keep MODIS over VIIRS
@@ -126,7 +127,18 @@ compute_most_recent_burn <- function(
     out_file    = "data/target_outputs/most_recent_burn.parquet",
     verbose     = TRUE) {
 
-  if (nrow(burn_events) == 0) stop("burn_events is empty — cannot compute fire age")
+  if (nrow(burn_events) == 0) {
+    if (verbose) message("burn_events is empty — writing empty most_recent_burn parquet")
+    dir.create(dirname(out_file), recursive = TRUE, showWarnings = FALSE)
+    empty <- tibble::tibble(
+      pid            = integer(),
+      as_of_date     = integer(),
+      last_burn_date = integer(),
+      fire_age_days  = integer()
+    )
+    arrow::write_parquet(empty, out_file)
+    return(out_file)
+  }
 
   # Default query dates: monthly sequence from first burn to today
   if (is.null(query_dates)) {
@@ -209,7 +221,7 @@ get_vi_observation_dates <- function(
     modis_vi_dir = "data/target_outputs/modis_vi",
     verbose      = TRUE) {
 
-  parquet_files <- list.files(modis_vi_dir, pattern = "\\.gz\\.parquet$", full.names = TRUE)
+  parquet_files <- list.files(modis_vi_dir, pattern = "\\.parquet$", full.names = TRUE)
 
   if (length(parquet_files) == 0) {
     stop("No MODIS VI parquet files found in ", modis_vi_dir)

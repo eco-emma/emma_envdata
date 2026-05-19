@@ -113,18 +113,15 @@ process_topographic_diversity <- function(
     )
   )
 
-  # Build focal window kernel
-  focal_w <- terra::focalMat(elev, focal_radius, type = "circle")
-  focal_w[focal_w > 0] <- 1L  # binary mask (not weighted)
+  # Build focal window: integer size in cells (focal_radius=1 → 3×3 window)
+  w_size <- 2L * focal_radius + 1L
 
   # Topographic diversity = focal variance of the landform classification
   # Higher variance → more landform types present in the neighbourhood
   topodiv <- terra::focal(
     landform,
-    w   = focal_w,
-    fun = "var",
-    na.policy = "omit",
-    na.rm = TRUE
+    w   = w_size,
+    fun = function(x) var(x, na.rm = TRUE)
   )
   names(topodiv) <- "topographic_div"
 

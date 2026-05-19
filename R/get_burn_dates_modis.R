@@ -402,10 +402,26 @@ identify_missing_burn_dates_modis <- function(
     end_date    = NULL) {
 
   # Reuse the generic VI helper; just change the pattern prefix
-  identify_missing_vi(
+  missing <- identify_missing_vi(
     output_dir = output_dir,
     dataset    = "burn_date_modis",
     start_date = start_date,
     end_date   = end_date
   )
+
+  # Always include the current month — MCD64A1 has ~2-month lag so the most
+  # recent parquet may be stale even if the file exists.
+  today               <- Sys.Date()
+  current_month_start <- as.Date(paste0(format(today, "%Y-%m"), "-01"))
+  current_month_end   <- as.Date(paste0(format(today + 31, "%Y-%m"), "-01")) - 1
+  current_month_str   <- format(current_month_start, "%Y-%m")
+  if (!any(missing$date_str == current_month_str)) {
+    missing <- rbind(missing, data.frame(
+      month_start = current_month_start,
+      month_end   = current_month_end,
+      date_str    = current_month_str
+    ))
+  }
+
+  missing
 }

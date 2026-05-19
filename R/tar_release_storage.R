@@ -52,11 +52,12 @@ tar_download_github_release <- function(
   # pb_list() throws "undefined columns selected" on empty releases (piggyback bug) — treat as 0 assets
   assets <- tryCatch({
     result <- piggyback::pb_list(repo = repo, tag = tag)
+    if (is.null(result)) result <- data.frame(file_name = character(0), stringsAsFactors = FALSE)
     if (verbose) message("[tar_github_release] Found ", nrow(result), " assets on GitHub release")
     result
   }, error = function(e) {
     msg <- conditionMessage(e)
-    if (grepl("undefined columns selected|subscript out of bounds|no releases found", msg, ignore.case = TRUE)) {
+    if (grepl("undefined columns selected|subscript out of bounds|no releases found|values must be length|Cannot find release|HTTP error 404|release not found", msg, ignore.case = TRUE)) {
       if (verbose) message("[tar_github_release] Release has no assets or does not exist yet, skipping download")
       return(data.frame(file_name = character(0), stringsAsFactors = FALSE))
     }
@@ -68,7 +69,7 @@ tar_download_github_release <- function(
     assets <- assets[assets$file_name %in% which_targets | startsWith(assets$file_name, which_targets), ]
   }
   
-  if (nrow(assets) == 0) {
+  if (is.null(assets) || nrow(assets) == 0) {
     if (verbose) message("[tar_github_release] No assets to download")
     return(invisible(NULL))
   }
@@ -93,7 +94,28 @@ tar_download_github_release <- function(
     
     local_path <- file.path(objects_dir, target_name)
     cached_path <- file.path(cache_dir, asset_name)
-    
+
+    # ── Skip if already valid in _targets/objects/ ──────────────────────────
+    # Handles the case where _targets/cache/ was cleared but objects were
+    # already restored from a previous run — avoids redundant downloads.
+    already_valid <- tryCatch({
+      obj_path_check <- file.path(objects_dir, target_name)
+      if (is_file_format) {
+        if (!file.exists(obj_path_check)) FALSE
+        else {
+          data_file <- readRDS(obj_path_check)
+          is.character(data_file) && file.exists(data_file) && .check_file_integrity(data_file)
+        }
+      } else {
+        file.exists(obj_path_check) && file.size(obj_path_check) > 0
+      }
+    }, error = function(e) FALSE)
+
+    if (already_valid) {
+      if (verbose) message("[tar_github_release] Already restored locally, skipping: ", target_name)
+      next
+    }
+
     # Download to cache if not already there, with retry + integrity check
     if (!file.exists(cached_path) || !.check_file_integrity(cached_path)) {
       if (file.exists(cached_path)) {
@@ -152,12 +174,19 @@ tar_download_github_release <- function(
         out_path <- file.path(out_dir, asset_name)
         file.copy(cached_path, out_path, overwrite = TRUE)
         
-        # Create RDS wrapper in _targets/objects/ that points to the workspaces file path
+        # Create RDS wrapper in _targets/objects/ ONLY if the qs object is not already there.
+        # The bare-name asset (e.g. "elevation") is the authoritative qs object.
+        # The .ext asset (e.g. "elevation.nc") is just the data file — overwriting the already-
+        # restored qs object with an RDS path causes a hash mismatch and forces re-runs.
         obj_dir <- "_targets/objects"
         dir.create(obj_dir, recursive = TRUE, showWarnings = FALSE)
         obj_path <- file.path(obj_dir, target_name)
-        saveRDS(ws_path, obj_path)
-        if (verbose) message("[tar_github_release] Restored file-format target: ", target_name)
+        if (!file.exists(obj_path)) {
+          saveRDS(ws_path, obj_path)
+          if (verbose) message("[tar_github_release] Restored file-format target: ", target_name)
+        } else {
+          if (verbose) message("[tar_github_release] Skipped RDS write (qs object already present): ", target_name)
+        }
       } else {
         # Regular object file: copy to _targets/objects/
         obj_dir <- "_targets/objects"

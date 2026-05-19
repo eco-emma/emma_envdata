@@ -9,6 +9,9 @@
 # R temporary target objects
 tmp_obj_*
 
+# SLURM log files
+logs/*
+
 # R session files
 .Rhistory
 .Rapp.history
@@ -22,16 +25,17 @@ tmp_obj_*
 _targets/objects/
 _targets/user/
 _targets/workspaces/
+_targets/meta/p*
 
 # Data directories
 data/temp/
 data/other_data/
 data/raw_data/
-data/manual_download/*.gpkg
-data/manual_download/NVM*
+data/manual_download/*
 data/raw*
 _targets/cache/
 data/target_outputs/
+data/stac/*
 
 # Terra auxiliary files (from terra_preserve_metadata)
 *.tif.aux.xml
@@ -85,3 +89,4 @@ img/network*
 
 # OS files
 .DS_Store
+

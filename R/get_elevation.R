@@ -155,8 +155,6 @@ download_elevation_results <- function(
   # Set metadata
   names(elev_masked) <- "elevation"
 
-return(elev_masked)
-
 
 
   # Write NetCDF with compression and CF metadata

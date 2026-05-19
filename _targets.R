@@ -48,6 +48,7 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
   )
 
   tar_option_set(
+#    controller = crew::crew_controller_local(workers = 16),
     memory = "transient", 
     garbage_collection = TRUE,  # run gc() after each target to free memory
     packages = description_packages,  # Use all packages from DESCRIPTION file
@@ -109,7 +110,11 @@ list(
 
   tar_target(
     remnants,
-    sf::st_read("data/manual_download/RLE_2021_Remnants/RLE_Terr_2021_June2021_Remnants_ddw.shp")
+    get_remnants(
+      repo      = "AdamWilsonLab/emma_envdata",
+      tag       = "manual-data",
+      local_dir = "data/manual_download/RLE_2021_Remnants"
+    )
   ),
 
   tar_target(
@@ -144,8 +149,6 @@ list(
       remnants = remnants,
       out_file = "data/target_outputs/domain.nc"
     )
-    # cue = tar_cue(mode = "never") was removed: the tar_hook cache handles stability.
-    # To force full re-grid (triggers redownload of all AppEEARS data), run:
     #   targets::tar_invalidate(domain_nc)
   ),
 
@@ -169,24 +172,6 @@ list(
                 out_file = "data/target_outputs/vegmap.nc")
   ),
 
-
-      # tar_target(
-      #   protected_area_distance_release,
-      #   process_release_protected_area_distance(template_release,
-      #                                           out_file = "protected_area_distance.tif",
-      #                                           temp_directory = "data/temp/protected_area",
-      #                                           out_tag = "processed_static")
-      # ),
-
-#  tar_target(
-#      alos_release,
-#      get_release_alos(temp_directory = "data/temp/raw_data/alos/",
-#                       tag = "raw_static",
-#                       domain = domain,
-#                       json_token)
-#      )
-#,
-
 # Climate CHELSA bioclimatic variables (BIO1-BIO19)
     tar_target( 
       climate_chelsa,
@@ -196,11 +181,6 @@ list(
         verbose = TRUE),
       format = "file"
     ),
-
-  # tar_terra_rast(
-  #   clouds_wilson_release,  # old GEE version — replaced by get_clouds_wilson()
-  #   ...
-  # ),
 
   # Cloud cover: Wilson MODCF mean annual and seasonality (EarthEnv, ~1km → 500m domain grid)
   tar_target(
@@ -236,8 +216,8 @@ list(
       out_file = "data/target_outputs/elevation_nasadem.nc",
       temp_directory = "data/temp/appeears/elevation_nasadem/",
       verbose = TRUE
-    )
-    # Stores as terra rast object in qs format; also writes elevation_nasadem.nc file
+    ),
+    format = "file"
   ),
 
   # Generate human-readable manifest of all targets for release documentation
@@ -248,10 +228,6 @@ list(
 #   )
 # #,
 
-  #Temporarily commented out, seems to be an issue with URL for landcover data at present
-  # tar_target(
-  #   landcover_za_release,   # old version — needs rewrite using current AppEEARS product
-  # ),
 
   # Soil properties: SoilGrids v2 (ISRIC REST API) — replaces broken RDryad/GCFR source
   # Properties: SOC, clay, sand, pH, bulk density averaged over 0-30cm depth
@@ -272,30 +248,14 @@ list(
   tar_target(
     topographic_diversity,
     process_topographic_diversity(
-      elevation_file = elevation,     # dependency on AppEEARS elevation target
-      domain_raster  = domain_nc,
+      elevation_file = elevation,     # file path (format="file" on elevation target)
+      domain_raster  = "data/target_outputs/domain.nc",  # literal path avoids terra pointer issues
       out_file       = "data/target_outputs/topographic_diversity.nc",
       focal_radius   = 1L,
       verbose        = TRUE
     ),
     format = "file"
   ),
-
-##################### AppEEARS Dynamic Data Processing #########################
-
-#       tar_age(
-#         fire_modis_release,
-#         get_release_fire_modis_appeears(temp_directory = "data/temp/raw_data/fire_modis/",
-#                                tag = "raw_fire_modis_nc",
-#                                domain = domain,
-#                                max_layers = 5,
-#                                sleep_time = 5,
-#                                verbose = TRUE),
-#         age = as.difftime(7, units = "days")
-#         #age = as.difftime(1, units = "days")
-#         #age = as.difftime(0, units = "hours"),
-#  cue = tar_cue(mode = if (run_mode == "update") "always" else "thorough")
-#       ),
 
   # ============================================================================
   # MODIS VI Download Pipeline (Dynamically Branched)
@@ -385,7 +345,7 @@ list(
     {
       netcdf_to_parquet(
         netcdf_directory = modis_vi_netcdf,
-        domain_raster = domain_nc,
+        domain_raster = "data/target_outputs/domain.nc",
         month_start = modis_vi_to_download$month_start,
         out_dir = "data/target_outputs/modis_vi/",
         cleanup = cleanup_mode,
@@ -415,7 +375,8 @@ list(
   # MODIS Burned Area Pipeline (MCD64A1, dynamically branched by month)
   # ============================================================================
 
-  # Identify which months of MODIS burned area are missing
+  # Identify which months of MODIS burned area are missing.
+  # Always includes the current month (logic lives in identify_missing_burn_dates_modis).
   tar_target(
     burn_modis_to_download,
     identify_missing_burn_dates_modis(
@@ -470,6 +431,7 @@ list(
   # Coverage: 2012-01-01 to present
   # ============================================================================
 
+  # Always includes the current month (logic lives in identify_missing_burn_dates_viirs).
   tar_target(
     burn_viirs_to_download,
     identify_missing_burn_dates_viirs(
@@ -554,120 +516,25 @@ list(
     format = "file"
   ),
 
-
-#                             ... = correct_ndvi_release_proj_and_extent)
-#       ),
-
-
-
-#       tar_target(
-#         projected_alos_release,
-#         process_release_alos(input_tag = "raw_static",
-#                              output_tag = "processed_static",
-#                              temp_directory = "data/temp/raw_data/alos/",
-#                              template_release = template_release,
-#                              sleep_time = 60,
-#                              ... = alos_release)
-#       ),
-
-#       tar_target(
-#         projected_climate_chelsa_release,
-#         process_release_climate_chelsa(input_tag = "raw_static",
-#                                        output_tag = "processed_static",
-#                                        temp_directory = "data/temp/raw_data/climate_chelsa/",
-#                                        template_release = template_release,
-#                                        ... = climate_chelsa_release)
-#         ),
-
-#       tar_target(
-#         projected_clouds_wilson_release,
-#         process_release_clouds_wilson(input_tag = "raw_static",
-#                                       output_tag = "processed_static",
-#                                       temp_directory = "data/temp/raw_data/clouds_wilson/",
-#                                       template_release = template_release,
-#                                       sleep_time = 180,
-#                                       ... = clouds_wilson_release)
-#       ), # 3-2
-
-#       tar_target(
-#         projected_elevation_nasadem_release,
-#         process_release_elevation_nasadem(input_tag = "raw_static",
-#                                           output_tag = "processed_static",
-#                                           temp_directory = "data/temp/raw_data/elevation_nasadem/",
-#                                           template_release = template_release,
-#                                           sleep_time = 0,
-#                                           ... = elevation_nasadem_release)
-#       ),
-
-#       tar_target(
-#         projected_landcover_za_release,
-#         process_release_landcover_za(input_tag = "raw_static",
-#                                      output_tag = "processed_static",
-#                                      temp_directory = "data/temp/raw_data/landcover_za/",
-#                                      template_release,
-#                                      sleep_time = 60,
-#                                      ... = landcover_za_release)
-#       )
-#       ,
-
-#       tar_target(
-#         projected_precipitation_chelsa_release,
-#         process_release_precipitation_chelsa(input_tag = "raw_static",
-#                                              output_tag = "processed_static",
-#                                              temp_directory = "data/temp/raw_data/precipitation_chelsa/",
-#                                              template_release,
-#                                              sleep_time = 60,
-#                                              ... = precipitation_chelsa_release)
-
-#       ),
-
-#       tar_target(
-#         projected_soil_gcfr_release,
-#         process_release_soil_gcfr(input_tag = "raw_static",
-#                                   output_tag = "processed_static",
-#                                   temp_directory = "data/temp/raw_data/soil_gcfr/",
-#                                   template_release,
-#                                   sleep_time = 60,
-#                                   ... = soil_gcfr_release)
-
-#       ),
-
-#       tar_target(
-#         vegmap_modis_proj,
-#         process_release_biome_raster(template_release = template_release,
-#                                      vegmap_shp = vegmap_shp,
-#                                      domain = domain,
-
-  # STAC Collection for MODIS burned area
+  # Unified STAC Collection for fire history (MODIS + VIIRS burn dates + derived postfire age).
+  # Re-runs whenever any monthly parquet or the most_recent_burn postfire-age file changes.
   tar_target(
-    burn_modis_stac,
-    generate_burn_dates_stac(
-      parquet_files   = burn_modis_parquet,
-      parquet_dir     = "data/target_outputs/burn_dates_modis",
-      stac_dir        = "data/stac/burn_dates_modis",
-      parent_catalog_path = "data/stac",
-      gh_repo         = "AdamWilsonLab/emma_envdata",
-      gh_release_tag  = "dynamic_burn_dates_modis",
-      source          = "modis",
-      verbose         = TRUE
+    fire_history_stac,
+    generate_fire_history_stac(
+      modis_parquet_files    = burn_modis_parquet,
+      viirs_parquet_files    = burn_viirs_parquet,
+      most_recent_burn_file  = most_recent_burn,
+      modis_parquet_dir      = "data/target_outputs/burn_dates_modis",
+      viirs_parquet_dir      = "data/target_outputs/burn_dates_viirs",
+      stac_dir               = "data/stac/fire_history",
+      gh_repo                = "AdamWilsonLab/emma_envdata",
+      gh_release_tag_modis   = "dynamic_burn_dates_modis",
+      gh_release_tag_viirs   = "dynamic_burn_dates_viirs",
+      gh_release_tag_derived = "fire_history",
+      verbose                = TRUE
     ),
-    format = "file"
-  ),
-
-  # STAC Collection for VIIRS burned area
-  tar_target(
-    burn_viirs_stac,
-    generate_burn_dates_stac(
-      parquet_files   = burn_viirs_parquet,
-      parquet_dir     = "data/target_outputs/burn_dates_viirs",
-      stac_dir        = "data/stac/burn_dates_viirs",
-      parent_catalog_path = "data/stac",
-      gh_repo         = "AdamWilsonLab/emma_envdata",
-      gh_release_tag  = "dynamic_burn_dates_viirs",
-      source          = "viirs",
-      verbose         = TRUE
-    ),
-    format = "file"
+    format = "file",
+    deployment = "main"
   ),
 
   ##################### GitHub Release Uploads #########################
@@ -702,7 +569,7 @@ list(
   tar_target(
     upload_modis_vi_data,
     upload_to_github_release(
-      files        = modis_vi_parquet[!grepl("\\.skip$", modis_vi_parquet)],
+      files        = modis_vi_parquet[!is.na(modis_vi_parquet) & !grepl("\\.skip$", modis_vi_parquet)],
       repo         = gh_repo_config$repo,
       release_tag  = "dynamic_modis_vi",
       release_name = "Dynamic MODIS Vegetation Index",
@@ -737,14 +604,14 @@ list(
     deployment = "main"
   ),
 
-  # Upload derived fire covariates (most recent burn + fire age)
+  # Upload derived fire history (most recent burn + postfire age)
   tar_target(
-    upload_fire_covariates,
+    upload_fire_history,
     upload_to_github_release(
       files        = most_recent_burn,   # file path returned by that target
       repo         = gh_repo_config$repo,
-      release_tag  = "fire_covariates",
-      release_name = "Derived Fire Covariates (most recent burn, fire age)",
+      release_tag  = "fire_history",
+      release_name = "Fire History (most recent burn, postfire age)",
       verbose      = TRUE
     ),
     deployment = "main"
@@ -756,9 +623,8 @@ list(
     generate_emma_stac_catalog(
       stac_base_dir       = "data/stac",
       dataset_collections = list(
-        modis_vi          = "data/stac/modis_vi",
-        burn_dates_modis  = "data/stac/burn_dates_modis",
-        burn_dates_viirs  = "data/stac/burn_dates_viirs"
+        modis_vi     = "data/stac/modis_vi",
+        fire_history = "data/stac/fire_history"
       ),
       gh_repo = "AdamWilsonLab/emma_envdata",
       verbose = TRUE
@@ -782,10 +648,10 @@ list(
         release_tag  = "stac",
         release_name = "STAC Catalog — Current",
         verbose      = TRUE,
+        overwrite    = TRUE,  # always re-upload STAC JSONs — content changes with every new month
         emma_stac_catalog,  # explicit dependency — catalog must be written first
         modis_vi_stac,
-        burn_modis_stac,
-        burn_viirs_stac
+        fire_history_stac
       )
     },
     deployment = "main"

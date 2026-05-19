@@ -597,13 +597,26 @@ netcdf_to_parquet <- function(
   }
   
   if (length(all_obs) == 0) {
-    if (verbose) message("No valid observations found after QA masking and domain filtering")
+    if (verbose) message("No valid observations found after QA masking and domain filtering - writing skip marker")
+
+    dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+    skip_file <- file.path(out_dir, paste0("modis_vi_", yyyymm, "_monthly.skip"))
+    writeLines(
+      c(
+        paste("Month:", yyyymm),
+        paste("Reason: No valid observations after QA masking and domain filtering"),
+        paste("Timestamp:", Sys.time())
+      ),
+      skip_file
+    )
+    if (verbose) message("Created skip marker: ", skip_file)
+
     if (cleanup) {
       unlink(netcdf_directory, recursive = TRUE, force = TRUE)
       gc()
       unlink(terra_tmp, recursive = TRUE, force = TRUE)
     }
-    return(NA_character_)
+    return(skip_file)
   }
   
   # Bind all observations into single dataframe and drop any NAs (should be none after filtering, but just in case)
@@ -614,7 +627,14 @@ netcdf_to_parquet <- function(
   # Write to parquet
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
   parquet_file <- file.path(out_dir, sprintf("dynamic_modis_vi_%s.parquet", yyyymm))
-  
+
+  # At most once per day: return immediately if the parquet was written < 24 h ago
+  if (file.exists(parquet_file) &&
+      difftime(Sys.time(), file.mtime(parquet_file), units = "days") < 1) {
+    if (verbose) message("Parquet already current (< 1 day old), skipping: ", parquet_file)
+    return(parquet_file)
+  }
+
   unlink(parquet_file)
   if (verbose) message("Writing ", nrow(df), " observations to parquet")
   arrow::write_parquet(

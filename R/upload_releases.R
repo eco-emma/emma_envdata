@@ -17,6 +17,7 @@ upload_to_github_release <- function(
   release_tag,
   release_name = release_tag,
   verbose = TRUE,
+  overwrite = FALSE,
   ...  #include to allow for targets dependencies without affecting function behavior
 ) {
   
@@ -36,10 +37,20 @@ upload_to_github_release <- function(
     return(invisible(character(0)))
   }
   
-  # Check for GITHUB_TOKEN
-  token <- Sys.getenv("GITHUB_TOKEN")
+  # Check for GitHub token (GITHUB_PAT preferred, GITHUB_TOKEN as fallback, then gh CLI)
+  token <- Sys.getenv("GITHUB_PAT")
+  if (token == "") token <- Sys.getenv("GITHUB_TOKEN")
   if (token == "") {
-    message("GITHUB_TOKEN environment variable not set. Upload may fail.")
+    token <- tryCatch(
+      trimws(system("gh auth token", intern = TRUE, ignore.stderr = TRUE)[[1]]),
+      error = function(e) ""
+    )
+    if (!is.na(token) && nchar(token) > 0) {
+      if (verbose) message("Using GitHub token from 'gh auth token'")
+    } else {
+      token <- ""
+      warning("No GitHub token found (GITHUB_PAT, GITHUB_TOKEN, or gh CLI). Upload will likely fail.")
+    }
   }
 
 
@@ -58,9 +69,11 @@ upload_to_github_release <- function(
       tag = release_tag,
       .token = token
     )
-    if (verbose) message("✓ Created release '", release_tag, "'")
+    if (verbose) message("\u2713 Created release '", release_tag, "'")
+  }, warning = function(w) {
+    # "already exists" warning from piggyback — release is present, which is fine
+    if (verbose) message("Using existing release '", release_tag, "'")
   }, error = function(e) {
-    # Release likely already exists, which is fine
     if (verbose) message("Using existing release '", release_tag, "'")
   })
   
@@ -79,11 +92,18 @@ upload_to_github_release <- function(
     if (verbose) warning("Unable to list files in release: ", e$message)
     data.frame()
   })
-  existing_names <- ifelse(nrow(existing) > 0, existing$file_name, character(0))
+  existing_names <- if (!is.null(existing) && nrow(existing) > 0) existing$file_name else character(0)
 
-  # Filter to files that don't already exist
-  files_to_upload <- files[basename(files) %not_in% existing_names]
-  
+  # Deduplicate files (branched targets may return same path from multiple branches)
+  files <- files[!duplicated(basename(files))]
+
+  # Filter to files that don't already exist (unless overwrite = TRUE)
+  if (overwrite) {
+    files_to_upload <- files
+  } else {
+    files_to_upload <- files[basename(files) %not_in% existing_names]
+  }
+
   if (length(files_to_upload) == 0) {
     if (verbose) message("All files already in release '", release_tag, "'")
     return(invisible(character(0)))
@@ -109,6 +129,7 @@ upload_to_github_release <- function(
         repo = repo,
         tag = release_tag,
         .token = token,
+        overwrite = overwrite,
         show_progress = verbose
       )
       
@@ -120,36 +141,37 @@ upload_to_github_release <- function(
   }
   
  
-  # Verify uploaded files are now in the release
+  # Verify uploaded files are now in the release (retry up to 5x to allow GitHub API indexing)
   if (length(uploaded) > 0) {
     if (verbose) message("Verifying uploaded files in release...")
-    
-    Sys.sleep(1)  # Brief pause to ensure files are indexed
-    
-    tryCatch({
-      release_files <- piggyback::pb_list(
-        repo = repo,
-        tag = release_tag,
-        .token = token
+
+    uploaded_names <- basename(uploaded)
+    verified <- FALSE
+    release_files <- NULL
+    for (attempt in seq_len(10)) {
+      Sys.sleep(attempt * 5)  # 5s, 10s, 15s, ... 50s  (total ≤ 275s)
+      release_files <- tryCatch(
+        piggyback::pb_list(repo = repo, tag = release_tag, .token = token),
+        error = function(e) NULL
       )
-      
-      uploaded_names <- basename(uploaded)
-      if (!is.null(release_files) && nrow(release_files) > 0) {
-        verified <- uploaded_names %in% release_files$file_name
-        
-        if (all(verified)) {
-          if (verbose) message("✓ Verified: All ", length(uploaded), " files confirmed in release")
-        } else {
-          not_found <- uploaded_names[!verified]
-          stop("Verification failed: ", length(not_found), " file(s) not found in release: ",
-               paste(not_found, collapse = ", "))
-        }
-      } else {
-        stop("Verification failed: Could not list files in release after upload")
+      if (!is.null(release_files) && nrow(release_files) > 0 &&
+          all(uploaded_names %in% release_files$file_name)) {
+        verified <- TRUE
+        break
       }
-    }, error = function(e) {
-      stop("Could not verify uploads: ", e$message)
-    })
+      if (verbose) message("  Attempt ", attempt, "/10: not all files visible yet, retrying...")
+    }
+
+    if (verified) {
+      if (verbose) message("\u2713 Verified: All ", length(uploaded), " files confirmed in release")
+    } else {
+      existing_in_release <- if (!is.null(release_files) && nrow(release_files) > 0)
+        release_files$file_name else character(0)
+      not_found <- uploaded_names[!uploaded_names %in% existing_in_release]
+      warning("Verification incomplete after 5 attempts: ", length(not_found),
+              " file(s) not confirmed in release: ", paste(not_found, collapse = ", "),
+              "\nFiles may still be available after GitHub finishes indexing.")
+    }
   }
   
   invisible(uploaded)

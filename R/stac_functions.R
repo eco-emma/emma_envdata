@@ -28,13 +28,13 @@ generate_modis_vi_stac <- function(
   # Find all monthly parquet files
   parquet_files <- list.files(
     parquet_dir,
-    pattern = "^dynamic_modis_vi_\\d{6}\\.gz\\.parquet$",
+    pattern = "^dynamic_modis_vi_\\d{6}\\.parquet$",
     full.names = FALSE
   )
   
   if (length(parquet_files) == 0) {
-    if (verbose) warning("No MODIS VI parquet files found in ", parquet_dir)
-    return(NA_character_)
+    stop("No MODIS VI parquet files found in ", parquet_dir,
+         ". Check that modis_vi_parquet targets completed successfully.")
   }
   
   # Extract year-month from filenames
@@ -45,7 +45,7 @@ generate_modis_vi_stac <- function(
   # Create STAC Collection (part of parent catalog)
   collection <- list(
     stac_version = "1.0.0",
-    stac_extensions = c(
+    stac_extensions = list(
       "https://stac-extensions.github.io/scientific/v1.0.0/schema.json"
     ),
     type = "Collection",
@@ -67,12 +67,12 @@ generate_modis_vi_stac <- function(
     links = list(
       list(
         rel = "root",
-        href = "../catalog.json",
+        href = "catalog.json",
         type = "application/json"
       ),
       list(
         rel = "parent",
-        href = "../catalog.json",
+        href = "catalog.json",
         type = "application/json"
       ),
       list(
@@ -97,20 +97,20 @@ generate_modis_vi_stac <- function(
       list(
         name = "NASA AppEEARS",
         description = "Data access and subsetting service",
-        roles = c("processor"),
+        roles = list("processor"),
         url = "https://appeears.org/"
       ),
       list(
         name = "EMMA Lab",
         description = "Data processing and aggregation",
-        roles = c("processor"),
+        roles = list("processor"),
         url = "https://adamwilsonlab.github.io/"
       )
     ),
     summaries = list(
       sci_doi = "10.5067/MODIS/MOD13A1.061|10.5067/MODIS/MYD13A1.061",
       platforms = c("Terra", "Aqua"),
-      instruments = c("MODIS"),
+      instruments = list("MODIS"),
       gsd = list(500),
       bands = list(
         list(
@@ -125,8 +125,8 @@ generate_modis_vi_stac <- function(
     )
   )
   
-  # Write collection.json
-  collection_file <- file.path(stac_dir, "collection.json")
+  # Write collection JSON with collection_id prefix to avoid filename collision on flat releases
+  collection_file <- file.path(stac_dir, "modis_vi_collection.json")
   jsonlite::write_json(collection, collection_file, pretty = TRUE, auto_unbox = TRUE)
   
   if (verbose) message("Created STAC Collection: ", collection_file)
@@ -146,7 +146,7 @@ generate_modis_vi_stac <- function(
     
     item <- list(
       stac_version = "1.0.0",
-      stac_extensions = c(
+      stac_extensions = list(
         "https://stac-extensions.github.io/scientific/v1.0.0/schema.json"
       ),
       type = "Feature",
@@ -158,29 +158,30 @@ generate_modis_vi_stac <- function(
           c(-180, -90), c(180, -90), c(180, 90), c(-180, 90), c(-180, -90)
         ))
       ),
+      bbox = c(-180, -90, 180, 90),
       properties = list(
         `datetime` = paste0(format(pq_date, "%Y-%m-%d"), "T00:00:00Z"),
         start_datetime = paste0(format(pq_date, "%Y-%m-01"), "T00:00:00Z"),
         end_datetime = paste0(format(as.Date(paste0(format(pq_date + 31, "%Y-%m"), "-01")) - 1, "%Y-%m-%d"), "T23:59:59Z"),
         platforms = c("Terra", "Aqua"),
-        instruments = c("MODIS"),
+        instruments = list("MODIS"),
         gsd = 500,
         dataset = "modis_vi"
       ),
       links = list(
         list(
           rel = "collection",
-          href = "collection.json",
+          href = "modis_vi_collection.json",
           type = "application/json"
         ),
         list(
           rel = "root",
-          href = "../catalog.json",
+          href = "catalog.json",
           type = "application/json"
         ),
         list(
           rel = "parent",
-          href = "collection.json",
+          href = "modis_vi_collection.json",
           type = "application/json"
         )
       ),
@@ -190,7 +191,7 @@ generate_modis_vi_stac <- function(
           title = paste0("MODIS VI Parquet - ", year_month),
           description = "Enhanced Vegetation Index observations in parquet format",
           type = "application/octet-stream",
-          roles = c("data")
+          roles = list("data")
         )
       )
     )
@@ -270,11 +271,11 @@ generate_emma_stac_catalog <- function(
   # Add links to each dataset collection
   for (dataset_name in names(dataset_collections)) {
     collection_path <- dataset_collections[[dataset_name]]
-    collection_file <- file.path(collection_path, "collection.json")
+    collection_file <- file.path(collection_path, paste0(dataset_name, "_collection.json"))
     
     if (file.exists(collection_file)) {
-      # Relative path from catalog to collection
-      rel_path <- paste0(dataset_name, "/collection.json")
+      # Flat href — GitHub releases store all JSON files without subdirectories
+      rel_path <- paste0(dataset_name, "_collection.json")
       
       catalog$links[[length(catalog$links) + 1]] <- list(
         rel = "child",
@@ -347,8 +348,8 @@ generate_burn_dates_stac <- function(
         "Pixel IDs (pid) align with the EMMA domain grid."
       ),
       sci_doi     = "10.5067/MODIS/MCD64A1.061",
-      platforms   = c("Terra"),
-      instruments = c("MODIS"),
+      platforms   = list("Terra"),
+      instruments = list("MODIS"),
       gsd         = 500,
       about_url   = "https://lpdaac.usgs.gov/products/mcd64a1v061/",
       start_date  = "2000-11-01",
@@ -367,8 +368,8 @@ generate_burn_dates_stac <- function(
         "Pixel IDs (pid) align with the EMMA domain grid."
       ),
       sci_doi     = "10.5067/VIIRS/VNP64A1.002",
-      platforms   = c("Suomi NPP"),
-      instruments = c("VIIRS"),
+      platforms   = list("Suomi NPP"),
+      instruments = list("VIIRS"),
       gsd         = 375,
       about_url   = "https://lpdaac.usgs.gov/products/vnp64a1v002/",
       start_date  = "2012-01-01",
@@ -387,7 +388,7 @@ generate_burn_dates_stac <- function(
   if (is.null(parquet_files) || length(parquet_files) == 0) {
     parquet_files <- list.files(
       parquet_dir %||% stac_dir,
-      pattern    = "\\.gz\\.parquet$",
+      pattern    = "\\.parquet$",
       full.names = TRUE
     )
   }
@@ -411,7 +412,7 @@ generate_burn_dates_stac <- function(
   # ── Build STAC Collection ────────────────────────────────────────────────
   collection <- list(
     stac_version = "1.0.0",
-    stac_extensions = c("https://stac-extensions.github.io/scientific/v1.0.0/schema.json"),
+    stac_extensions = list("https://stac-extensions.github.io/scientific/v1.0.0/schema.json"),
     type        = "Collection",
     id          = meta$id_prefix,
     title       = meta$title,
@@ -425,15 +426,15 @@ generate_burn_dates_stac <- function(
       )))
     ),
     links = list(
-      list(rel = "root",    href = "../catalog.json", type = "application/json"),
-      list(rel = "self",    href = "collection.json", type = "application/json"),
+      list(rel = "root",    href = "catalog.json", type = "application/json"),
+      list(rel = "self",    href = paste0(meta$id_prefix, "_collection.json"), type = "application/json"),
       list(rel = "license", href = "https://creativecommons.org/licenses/by/4.0/", type = "text/html"),
       list(rel = "about",   href = meta$about_url, title = meta$title, type = "text/html")
     ),
     providers = list(
       list(name = "NASA LP DAAC", roles = c("producer", "licensor"), url = "https://lpdaac.usgs.gov/"),
-      list(name = "NASA AppEEARS", roles = c("processor"),           url = "https://appeears.org/"),
-      list(name = "EMMA Lab",      roles = c("processor"),           url = "https://adamwilsonlab.github.io/")
+      list(name = "NASA AppEEARS", roles = list("processor"),           url = "https://appeears.org/"),
+      list(name = "EMMA Lab",      roles = list("processor"),           url = "https://adamwilsonlab.github.io/")
     ),
     summaries = list(
       sci_doi     = meta$sci_doi,
@@ -444,7 +445,7 @@ generate_burn_dates_stac <- function(
     )
   )
 
-  collection_file <- file.path(stac_dir, "collection.json")
+  collection_file <- file.path(stac_dir, paste0(meta$id_prefix, "_collection.json"))
   jsonlite::write_json(collection, collection_file, pretty = TRUE, auto_unbox = TRUE)
 
   # ── Build STAC Items (one per parquet file) ───────────────────────────────
@@ -464,7 +465,7 @@ generate_burn_dates_stac <- function(
 
       item <- list(
         stac_version = "1.0.0",
-        stac_extensions = c("https://stac-extensions.github.io/scientific/v1.0.0/schema.json"),
+        stac_extensions = list("https://stac-extensions.github.io/scientific/v1.0.0/schema.json"),
         type        = "Feature",
         id          = paste0(meta$id_prefix, "_", year_month),
         description = paste(source, "burned area detections for", format(pq_date, "%B %Y")),
@@ -484,9 +485,9 @@ generate_burn_dates_stac <- function(
           dataset         = meta$id_prefix
         ),
         links = list(
-          list(rel = "collection", href = "collection.json",  type = "application/json"),
-          list(rel = "root",       href = "../catalog.json",  type = "application/json"),
-          list(rel = "parent",     href = "collection.json",  type = "application/json")
+          list(rel = "collection", href = paste0(meta$id_prefix, "_collection.json"),  type = "application/json"),
+          list(rel = "root",       href = "catalog.json",                           type = "application/json"),
+          list(rel = "parent",     href = paste0(meta$id_prefix, "_collection.json"),  type = "application/json")
         ),
         assets = list(
           data = list(
@@ -494,7 +495,7 @@ generate_burn_dates_stac <- function(
             title       = paste0(toupper(source), " burned area parquet — ", year_month),
             description = "Burned pixels in this month (pid, date, burn_doy, qa) in gzip-compressed Parquet",
             type        = "application/octet-stream",
-            roles       = c("data")
+            roles       = list("data")
           )
         )
       )
@@ -519,6 +520,289 @@ generate_burn_dates_stac <- function(
   jsonlite::write_json(collection, collection_file, pretty = TRUE, auto_unbox = TRUE)
 
   if (verbose) message("Generated ", length(item_files), " STAC Item files for ", source, " burn dates")
+
+  collection_file
+}
+
+
+#' @title Generate unified fire history STAC Collection
+#' @description Creates a single STAC Collection combining MODIS MCD64A1 and VIIRS VNP64A1
+#'   monthly burned area items plus a derived postfire-age item (most_recent_burn.parquet).
+#'   Items carry a `source` property ("modis", "viirs", or "derived") so consumers can filter
+#'   by sensor. Re-runs whenever any of its three inputs change.
+#' @param modis_parquet_files Character vector of MODIS burn-date parquet paths (branched target)
+#' @param viirs_parquet_files Character vector of VIIRS burn-date parquet paths (branched target)
+#' @param most_recent_burn_file Single file path to most_recent_burn.parquet
+#' @param modis_parquet_dir Fallback directory if modis_parquet_files is NULL
+#' @param viirs_parquet_dir Fallback directory if viirs_parquet_files is NULL
+#' @param stac_dir Output directory for fire_history STAC JSON files
+#' @param gh_repo GitHub repository in format "owner/repo"
+#' @param gh_release_tag_modis GitHub release tag hosting MODIS monthly parquets
+#' @param gh_release_tag_viirs GitHub release tag hosting VIIRS monthly parquets
+#' @param gh_release_tag_derived GitHub release tag hosting derived fire_history products
+#' @param verbose Logical for progress messages
+#' @return Character path to the fire_history collection.json
+#' @keywords internal
+generate_fire_history_stac <- function(
+  modis_parquet_files    = NULL,
+  viirs_parquet_files    = NULL,
+  most_recent_burn_file  = NULL,
+  modis_parquet_dir      = "data/target_outputs/burn_dates_modis",
+  viirs_parquet_dir      = "data/target_outputs/burn_dates_viirs",
+  stac_dir               = "data/stac/fire_history",
+  gh_repo                = "AdamWilsonLab/emma_envdata",
+  gh_release_tag_modis   = "dynamic_burn_dates_modis",
+  gh_release_tag_viirs   = "dynamic_burn_dates_viirs",
+  gh_release_tag_derived = "fire_history",
+  verbose                = TRUE
+) {
+  dir.create(stac_dir, recursive = TRUE, showWarnings = FALSE)
+
+  # Resolve parquet file lists from directories if not supplied directly
+  if (is.null(modis_parquet_files) || length(modis_parquet_files) == 0) {
+    modis_parquet_files <- list.files(modis_parquet_dir, pattern = "\\.parquet$", full.names = TRUE)
+  }
+  if (is.null(viirs_parquet_files) || length(viirs_parquet_files) == 0) {
+    viirs_parquet_files <- list.files(viirs_parquet_dir, pattern = "\\.parquet$", full.names = TRUE)
+  }
+
+  # Extract YYYYMM dates from filenames; drop files that do not match the pattern
+  parse_dates <- function(files) {
+    ym    <- stringr::str_extract(basename(files), "\\d{6}")
+    dates <- as.Date(paste0(ym, "01"), format = "%Y%m%d")
+    list(files = files[!is.na(dates)], dates = dates[!is.na(dates)])
+  }
+  modis <- parse_dates(modis_parquet_files)
+  viirs <- parse_dates(viirs_parquet_files)
+
+  if (verbose) {
+    message(
+      "Generating fire_history STAC collection: ",
+      length(modis$files), " MODIS + ",
+      length(viirs$files), " VIIRS monthly items",
+      if (!is.null(most_recent_burn_file) && nzchar(most_recent_burn_file))
+        " + postfire_age item" else ""
+    )
+  }
+
+  # ── Build STAC Collection ────────────────────────────────────────────────
+  all_dates     <- c(modis$dates, viirs$dates)
+  temporal_start <- if (length(all_dates) > 0) {
+    paste0(format(min(all_dates), "%Y-%m-%d"), "T00:00:00Z")
+  } else {
+    "2000-11-01T00:00:00Z"
+  }
+
+  collection <- list(
+    stac_version = "1.0.0",
+    stac_extensions = list("https://stac-extensions.github.io/scientific/v1.0.0/schema.json"),
+    type        = "Collection",
+    id          = "fire_history",
+    title       = "Fire History — MODIS MCD64A1 + VIIRS VNP64A1 Burned Area",
+    description = paste(
+      "Monthly burned area detections and derived postfire age for ecosystem fire-history analysis.",
+      "Combines MODIS MCD64A1 (Terra, 500 m, 2000-present) and VIIRS VNP64A1 (Suomi NPP, 375 m",
+      "resampled to 500 m, 2012-present). Also includes most_recent_burn.parquet: time-since-fire",
+      "(days) at each MODIS VI observation date per pixel. Only confirmed burned pixels (QA = 0)",
+      "are retained. Pixel IDs (pid) align with the EMMA domain grid."
+    ),
+    license = "proprietary",
+    extent = list(
+      spatial  = list(bbox = list(list(-180, -90, 180, 90))),
+      temporal = list(interval = list(list(temporal_start, NULL)))
+    ),
+    links = list(
+      list(rel = "root",    href = "catalog.json",          type = "application/json"),
+      list(rel = "self",    href = "fire_history_collection.json", type = "application/json"),
+      list(rel = "license", href = "https://creativecommons.org/licenses/by/4.0/",
+           type = "text/html"),
+      list(rel = "about",   href = "https://lpdaac.usgs.gov/products/mcd64a1v061/",
+           title = "MCD64A1 v061 Product Page", type = "text/html"),
+      list(rel = "about",   href = "https://lpdaac.usgs.gov/products/vnp64a1v002/",
+           title = "VNP64A1 v002 Product Page", type = "text/html")
+    ),
+    providers = list(
+      list(name = "NASA LP DAAC",  roles = c("producer", "licensor"),
+           url = "https://lpdaac.usgs.gov/"),
+      list(name = "NASA AppEEARS", roles = list("processor"),
+           url = "https://appeears.org/"),
+      list(name = "EMMA Lab",      roles = list("processor"),
+           url = "https://adamwilsonlab.github.io/")
+    ),
+    summaries = list(
+      platforms   = list("Terra", "Suomi NPP"),
+      instruments = list("MODIS", "VIIRS"),
+      sources     = list("modis", "viirs", "derived"),
+      gsd         = list(500),
+      sci_doi     = list(
+        "10.5067/MODIS/MCD64A1.061",
+        "10.5067/VIIRS/VNP64A1.002"
+      )
+    )
+  )
+
+  collection_file <- file.path(stac_dir, "fire_history_collection.json")
+  jsonlite::write_json(collection, collection_file, pretty = TRUE, auto_unbox = TRUE)
+
+  # ── Helper: build and write one monthly burn-date item ───────────────────
+  # Returns list(file, date, source) for link accumulation below
+  make_monthly_item <- function(pq_file, pq_date, source, gh_release_tag) {
+    sensor_meta <- list(
+      modis = list(platforms = list("Terra"),     instruments = list("MODIS"), gsd = 500),
+      viirs = list(platforms = list("Suomi NPP"), instruments = list("VIIRS"), gsd = 375)
+    )
+    smeta      <- sensor_meta[[source]]
+    year_month <- format(pq_date, "%Y%m")
+    month_end  <- as.Date(paste0(format(pq_date + 31, "%Y-%m"), "-01")) - 1
+    item_id    <- paste0("fire_history_", source, "_", year_month)
+    gh_url     <- paste0(
+      "https://github.com/", gh_repo,
+      "/releases/download/", gh_release_tag, "/",
+      basename(pq_file)
+    )
+
+    item <- list(
+      stac_version = "1.0.0",
+      stac_extensions = list(
+        "https://stac-extensions.github.io/scientific/v1.0.0/schema.json"
+      ),
+      type        = "Feature",
+      id          = item_id,
+      description = paste(toupper(source), "burned area detections for",
+                          format(pq_date, "%B %Y")),
+      geometry = list(
+        type = "Polygon",
+        coordinates = list(list(
+          c(-180, -90), c(180, -90), c(180, 90), c(-180, 90), c(-180, -90)
+        ))
+      ),
+      bbox = c(-180, -90, 180, 90),
+      properties = list(
+        datetime       = paste0(format(pq_date, "%Y-%m-%d"), "T00:00:00Z"),
+        start_datetime = paste0(format(pq_date, "%Y-%m-01"), "T00:00:00Z"),
+        end_datetime   = paste0(format(month_end, "%Y-%m-%d"), "T23:59:59Z"),
+        platforms      = smeta$platforms,
+        instruments    = smeta$instruments,
+        gsd            = smeta$gsd,
+        source         = source,
+        dataset        = "fire_history"
+      ),
+      links = list(
+        list(rel = "collection", href = "fire_history_collection.json", type = "application/json"),
+        list(rel = "root",       href = "catalog.json",              type = "application/json"),
+        list(rel = "parent",     href = "fire_history_collection.json", type = "application/json")
+      ),
+      assets = list(
+        data = list(
+          href        = gh_url,
+          title       = paste0(toupper(source), " burned area parquet — ", year_month),
+          description = "Burned pixels (pid, date, burn_doy, qa) in gzip-compressed Parquet",
+          type        = "application/octet-stream",
+          roles       = list("data")
+        )
+      )
+    )
+
+    item_file <- file.path(stac_dir, paste0(item_id, ".json"))
+    jsonlite::write_json(item, item_file, pretty = TRUE, auto_unbox = TRUE)
+    list(file = item_file, date = pq_date, source = source)
+  }
+
+  # ── Build all monthly items for both sensors ─────────────────────────────
+  modis_items <- purrr::pmap(
+    list(pq_file = modis$files, pq_date = modis$dates),
+    ~ make_monthly_item(..1, ..2, source = "modis",
+                        gh_release_tag = gh_release_tag_modis)
+  )
+  viirs_items <- purrr::pmap(
+    list(pq_file = viirs$files, pq_date = viirs$dates),
+    ~ make_monthly_item(..1, ..2, source = "viirs",
+                        gh_release_tag = gh_release_tag_viirs)
+  )
+  all_items <- c(modis_items, viirs_items)
+
+  # ── Derived postfire-age item (most_recent_burn.parquet) ─────────────────
+  # Included only when the most_recent_burn target has produced its file.
+  # Re-running this function after most_recent_burn updates refreshes this item.
+  if (!is.null(most_recent_burn_file) && nzchar(most_recent_burn_file)) {
+    mrb_url <- paste0(
+      "https://github.com/", gh_repo,
+      "/releases/download/", gh_release_tag_derived, "/",
+      basename(most_recent_burn_file)
+    )
+    mrb_item <- list(
+      stac_version = "1.0.0",
+      type         = "Feature",
+      id           = "fire_history_postfire_age",
+      description  = paste(
+        "Time-since-fire (days) at each MODIS VI observation date per pixel.",
+        "Derived by merging MODIS MCD64A1 + VIIRS VNP64A1 burn records.",
+        "Columns: pid, date, last_burn_date, fire_age_days."
+      ),
+      geometry = list(
+        type = "Polygon",
+        coordinates = list(list(
+          c(-180, -90), c(180, -90), c(180, 90), c(-180, 90), c(-180, -90)
+        ))
+      ),
+      bbox = c(-180, -90, 180, 90),
+      properties = list(
+        datetime       = NULL,
+        start_datetime = "2000-11-01T00:00:00Z",
+        end_datetime   = paste0(format(Sys.Date(), "%Y-%m-%d"), "T23:59:59Z"),
+        source         = "derived",
+        dataset        = "fire_history"
+      ),
+      links = list(
+        list(rel = "collection", href = "fire_history_collection.json", type = "application/json"),
+        list(rel = "root",       href = "catalog.json",              type = "application/json"),
+        list(rel = "parent",     href = "fire_history_collection.json", type = "application/json")
+      ),
+      assets = list(
+        data = list(
+          href        = mrb_url,
+          title       = "Postfire age parquet (most_recent_burn)",
+          description = paste(
+            "Per-pixel, per-VI-date: last_burn_date and fire_age_days.",
+            "Gzip-compressed Parquet."
+          ),
+          type  = "application/octet-stream",
+          roles = list("data")
+        )
+      )
+    )
+    mrb_file <- file.path(stac_dir, "fire_history_postfire_age.json")
+    jsonlite::write_json(mrb_item, mrb_file, pretty = TRUE, auto_unbox = TRUE)
+    all_items <- c(all_items,
+                   list(list(file = mrb_file, date = Sys.Date(), source = "derived")))
+  }
+
+  # ── Append item links to collection and re-write ──────────────────────────
+  item_links <- purrr::map(all_items, function(it) {
+    label <- if (it$source == "derived") {
+      "postfire age (derived)"
+    } else {
+      paste(toupper(it$source), "burned area", format(it$date, "%Y-%m"))
+    }
+    list(
+      rel   = "item",
+      href  = basename(it$file),
+      type  = "application/json",
+      title = label
+    )
+  })
+  collection$links <- c(collection$links, item_links)
+  jsonlite::write_json(collection, collection_file, pretty = TRUE, auto_unbox = TRUE)
+
+  if (verbose) {
+    message(
+      "Generated fire_history STAC: ",
+      length(modis_items), " MODIS + ",
+      length(viirs_items), " VIIRS items",
+      if (!is.null(most_recent_burn_file) && nzchar(most_recent_burn_file))
+        " + postfire_age" else ""
+    )
+  }
 
   collection_file
 }
