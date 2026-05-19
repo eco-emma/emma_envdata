@@ -2,7 +2,7 @@
 #' @description Downloads CHELSA bioclimatic variables, clips to domain, and writes as NetCDF files
 #' @author Brian Maitner & Adam Wilson
 #' @param domain domain (sf polygon) used for masking
-#' @param temp_directory Temporary working directory for downloads (default: "data/temp/raw_data/climate_chelsa/")
+#' @param temp_directory Temporary working directory for downloads (default: "data/temp/appeears/climate_chelsa/")
 #' @param out_dir Output directory for NetCDF files (default: "data/target_outputs/")
 #' @param cleanup Logical. If TRUE (default, for GitHub Actions), clean temp directory. If FALSE (local development), preserve cached files.
 #' @param verbose Logical for progress messages
@@ -13,7 +13,7 @@
 
 get_climate_chelsa <- function(
     domain,
-    temp_directory = "data/temp/raw_data/climate_chelsa/",
+    temp_directory = "data/temp/appeears/climate_chelsa/",
     out_dir = "data/target_outputs/",
     cleanup = TRUE,
     verbose = TRUE

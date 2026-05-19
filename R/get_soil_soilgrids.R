@@ -46,7 +46,7 @@ SOILGRIDS_WCS_BASE <- "https://maps.isric.org/mapserv?map=/map/{property}.map"
 #' @export
 get_soil_soilgrids <- function(
     domain_raster,
-    temp_directory = "data/temp/raw_data/soil_soilgrids/",
+    temp_directory = "data/temp/appeears/soil_soilgrids/",
     out_file       = "data/target_outputs/soil_soilgrids.nc",
     cleanup        = Sys.getenv("GITHUB_ACTIONS") == "true",
     verbose        = TRUE) {

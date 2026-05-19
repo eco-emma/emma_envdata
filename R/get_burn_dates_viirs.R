@@ -107,7 +107,7 @@ submit_burn_date_viirs_task <- function(
 download_burn_date_viirs_netcdf <- function(
     task_id,
     month_start,
-    temp_directory = "data/temp/raw_data/burn_dates_viirs/",
+    temp_directory = "data/temp/appeears/burn_dates_viirs/",
     cleanup        = Sys.getenv("GITHUB_ACTIONS") == "true",
     verbose        = TRUE) {
 

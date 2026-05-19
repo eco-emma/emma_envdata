@@ -190,7 +190,7 @@ submit_modis_vi <- function(
 download_modis_vi_netcdf <- function(
   task_id,
   month_start,
-  temp_directory = "data/temp/raw_data/modis_vi_netcdf/",
+  temp_directory = "data/temp/appeears/modis_vi/",
   cleanup = Sys.getenv("GITHUB_ACTIONS") == "true",
   verbose = TRUE
 ) {

@@ -74,7 +74,7 @@ download_elevation_results <- function(
   domain_vector,
   domain_raster,
   out_file = "data/target_outputs/elevation_nasadem.nc",
-  temp_directory = "data/temp/raw_data/elevation_nasadem/",
+  temp_directory = "data/temp/appeears/elevation_nasadem/",
   verbose = TRUE
 ) {
   

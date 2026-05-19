@@ -33,7 +33,7 @@
 get_clouds_wilson <- function(
     domain,
     domain_raster,
-    temp_directory = "data/temp/raw_data/clouds_wilson/",
+    temp_directory = "data/temp/appeears/clouds_wilson/",
     out_file       = "data/target_outputs/clouds_wilson.nc",
     cleanup        = Sys.getenv("GITHUB_ACTIONS") == "true",
     verbose        = TRUE) {

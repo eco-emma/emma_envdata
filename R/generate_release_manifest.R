@@ -1,47 +1,31 @@
-#' Generate a human-readable manifest of all targets for the GitHub release
+#' Generate a manifest of all targets from the live pipeline store
 #'
-#' Creates a JSON file mapping target names to descriptions and file hashes
-#' from the targets store. Useful for cross-referencing hash-based filenames
-#' in the GitHub release with human-readable target names.
+#' Reads metadata from the targets store via \code{targets::tar_meta()} and
+#' writes a JSON summary of every stem target — name, format, size in bytes,
+#' last-run timestamp, runtime in seconds, and any error/warning strings.
+#' Useful for auditing what is in each GitHub release and when it last ran.
 #'
-#' @return Path to manifest file
+#' @param out_file Character. Output path for the JSON manifest file.
+#' @return Character path to the written JSON file.
 #' @export
 #'
-generate_release_manifest <- function() {
-  
-  # Target descriptions
-  descriptions <- c(
-    vegmap_shp = "Vegetation map shapefile (from GitHub release vegmap2024)",
-    remnants_shp = "Vegetation remnants shapefile (manual download)",
-    capenature_fires_shp = "Fire extent shapefile (manual download)",
-    country.parquet = "Country boundary geometry (derived from geodata)",
-    domain_boundary.parquet = "Study domain boundary (intersection of vegetation map and country)",
-    domain_bbox.parquet = "50km-buffered download boundary (locked to prevent re-downloads)",
-    domain_nc = "Domain raster grid with pixel IDs, remnants, and distance-to-remnants",
-    vegmap_nc = "Vegetation map rasterized to analysis grid",
-    climate_chelsa = "CHELSA bioclimatic variables (19 NetCDF files: bio01-bio19)",
-    elevation_task_id = "AppEEARS task ID for NASADEM elevation download (task submission only)",
-    elevation = "NASADEM elevation data (resampled to analysis grid, masked to domain)"
-  )
-  
-  # Build JSON string directly to avoid complex object serialization
-  json_lines <- c("{", "  \"targets\": [")
-  
-  for (i in seq_along(descriptions)) {
-    target_name <- names(descriptions)[i]
-    description <- descriptions[i]
-    # Escape quotes in description
-    description <- gsub('"', '\\"', description, fixed = TRUE)
-    comma <- if (i < length(descriptions)) "," else ""
-    json_lines <- c(json_lines, sprintf('    {"name": "%s", "description": "%s"}%s', target_name, description, comma))
-  }
-  
-  json_lines <- c(json_lines, "  ]", "}")
-  json_manifest <- paste(json_lines, collapse = "\n")
-  
-  # Write to file
-  out_file <- "data/target_outputs/TARGET_MANIFEST.json"
-  writeLines(json_manifest, con = out_file)
-  
-  out_file  # Return the file path for targets
+generate_release_manifest <- function(
+  out_file = "data/target_outputs/TARGET_MANIFEST.json"
+) {
+
+  meta <- targets::tar_meta(fields = c("name", "type", "format", "bytes", "time", "seconds", "error", "warnings"))
+
+  # Keep only stem targets (exclude branches, patterns, and pipeline internals)
+  stems <- meta[!is.na(meta$type) & meta$type == "stem", ]
+
+  # Convert POSIXct to ISO-8601 string for JSON portability
+  stems$time <- format(stems$time, "%Y-%m-%dT%H:%M:%SZ")
+
+  # Replace NA with NULL-friendly empty string for clean JSON
+  stems[is.na(stems)] <- ""
+
+  dir.create(dirname(out_file), recursive = TRUE, showWarnings = FALSE)
+  jsonlite::write_json(stems, path = out_file, pretty = TRUE, auto_unbox = TRUE)
+
+  out_file
 }

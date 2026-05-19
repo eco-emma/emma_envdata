@@ -220,14 +220,12 @@ list(
     format = "file"
   ),
 
-  # Generate human-readable manifest of all targets for release documentation
-#   tar_target(
-#     release_manifest,
-#     generate_release_manifest(),
-#     format = "file"
-#   )
-# #,
-
+  # Generate manifest of all targets from live pipeline store (via tar_meta)
+  tar_target(
+    release_manifest,
+    generate_release_manifest(),
+    format = "file"
+  ),
 
   # Soil properties: SoilGrids v2 (ISRIC REST API) — replaces broken RDryad/GCFR source
   # Properties: SOC, clay, sand, pH, bulk density averaged over 0-30cm depth

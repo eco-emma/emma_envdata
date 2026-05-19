@@ -111,7 +111,7 @@ submit_burn_date_modis_task <- function(
 download_burn_date_modis_netcdf <- function(
     task_id,
     month_start,
-    temp_directory = "data/temp/raw_data/burn_dates_modis/",
+    temp_directory = "data/temp/appeears/burn_dates_modis/",
     cleanup        = Sys.getenv("GITHUB_ACTIONS") == "true",
     verbose        = TRUE) {
 
