@@ -65,10 +65,10 @@ get_clouds_wilson <- function(
       "Cloud Seasonality Concentration",
       "unitless",
       "https://data.earthenv.org/cloud/MODCF_seasonality_concentration.tif",
-    "MODCF_seasonality_rgb_cloudmonth",
+    "MODCF_seasonality_theta",
       "Month of Peak Cloud Frequency",
       "month (1-12)",
-      "https://data.earthenv.org/cloud/MODCF_seasonality_rgb_cloudmonth.tif"
+      "https://data.earthenv.org/cloud/MODCF_seasonality_theta.tif"
   )
 
   # Load domain template for reprojection

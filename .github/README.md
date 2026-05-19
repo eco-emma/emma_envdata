@@ -48,9 +48,10 @@ Then pick the best solution or synthesise across them.
 | Agent | Invoke when you want to… |
 |---|---|
 | `@stats` | Check statistical assumptions, sample sizes, data leakage, uncertainty |
-| `@geo_accuracy` | Check CRS choices, resampling methods, spatial join correctness |
+| `@geo` | Metadata QA (CRS consistency, resolution mismatches, missing files) and spatial accuracy review (resampling methods, spatial joins, zonal statistics) |
 | `@science` | Get a peer-reviewer-style critique of analytical design and methods |
-| `@geostat` | Quick metadata QA: CRS consistency, resolution mismatches, missing files |
+| `@gh_actions` | Check that changes will run on GitHub Actions (interactive calls, server paths, secrets, cleanup, date ranges) |
+| `@targets` | Check target dependencies, dynamic branching, format=file correctness, tar_release round-trip, deployment guards |
 
 ### Coding agents — produce working R code
 
@@ -70,7 +71,7 @@ Then pick the best solution or synthesise across them.
 
 | Agent | Invoke when you want to… |
 |---|---|
-| `@ci` | Run a full pre-commit sweep: lint + geostat + stats + geo_accuracy |
+| `@ci` | Run a full pre-commit sweep: lint + geo + stats + gh_actions + targets |
 
 ---
 
@@ -84,12 +85,12 @@ Then pick the best solution or synthesise across them.
 **Writing new processing code:**
 1. Draft with `@coder_alpha`, `@coder_beta`, and `@coder_gamma` in parallel.
 2. Pick or synthesise the best solution.
-3. Run `@geo_accuracy` and `@stats` on the result.
+3. Run `@geo` and `@stats` on the result.
 4. Run `@commenter` to fill in documentation.
 
 **Reviewing a script for scientific soundness:**
 ```
 @science review R/process_dynamic_data.R
 @stats review R/process_dynamic_data.R
-@geo_accuracy review R/process_dynamic_data.R
+@geo review R/process_dynamic_data.R
 ```

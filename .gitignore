@@ -1,6 +1,10 @@
 # macOS resource fork / AppleDouble files (created by Mountain Duck / SFTP mounts)
 ._*
 .DS_Store
+# Mountain Duck numeric temporary sync files (created at repo root during SFTP operations)
+# Matches filenames starting with 4+ digits (avoids catching 01_filename style prefixes)
+/[0-9][0-9][0-9][0-9]*
+.nfs*
 
 # R temporary target objects
 tmp_obj_*

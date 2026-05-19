@@ -9,8 +9,11 @@ applyTo: "**/*.R"
 - Use the native pipe `|>` (not `%>%`).
 - Use `|> filter()`, `|> mutate()`, `|> summarise()` rather than base R subsetting
   or `apply` families, unless there is a significant performance reason.
-- Avoid explicit `for` loops unless the loop body is computationally heavy and
-  vectorisation is not feasible; prefer `purrr::map*` variants instead.
+- Avoid explicit `for` loops unless no vectorised or `purrr::map*` equivalent
+  exists (e.g., loops with stateful side-effects or where each iteration depends
+  on the result of the previous one); prefer `purrr::map*` variants otherwise.
+
+### Formatting
 - 2-space indentation. Max line width 80 characters.
 - One expression per line; do not chain unrelated operations onto one line.
 

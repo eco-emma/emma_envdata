@@ -14,7 +14,8 @@ message("Starting tar_make()")
     message(paste("Set working directory to:", getwd()))  
   }
 
-
+library(targets)
+# tar_make()
 
 devtools::load_all() # load all functions in R
 description_packages <- load_description_packages(verbose=TRUE)  # Load all packages from DESCRIPTION and get list
