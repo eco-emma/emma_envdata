@@ -1,48 +1,44 @@
-#' @title Generate STAC Collection for MODIS VI dataset
-#' @description Creates a STAC Collection and individual Item files for monthly MODIS VI parquet data.
-#' Items are configured to point to GitHub release URLs.
-#' This is a dataset-specific collection that will be linked from a parent STAC Catalog.
+#' @title Generate STAC Collection for MODIS VI dataset (NetCDF rasters)
+#' @description Creates a STAC Collection and individual Item files for monthly MODIS VI
+#'   NetCDF rasters (Terra + Aqua).  Each STAC item covers one month and carries two
+#'   assets: terra (MOD13A1) and aqua (MYD13A1), both pointing to GitHub release URLs.
 #' @author EMMA Team
-#' @param parquet_files Character vector of processed parquet file paths (from targets branching; used to establish dependency)
-#' @param parquet_dir Directory containing monthly MODIS VI parquet files
+#' @param nc_files Character vector of NC file paths from the \code{vi_modis_grid} branched target.
+#'   Files should be named \code{vi_modis_YYYYMM_terra.nc} / \code{vi_modis_YYYYMM_aqua.nc}.
+#'   Skip-marker files (\code{.skip}) are filtered automatically.
 #' @param stac_dir Output directory for this collection's STAC JSON files
-#' @param parent_catalog_path Path to parent catalog (for generating relative links)
+#' @param parent_catalog_path Path to parent catalog directory (for link context)
 #' @param gh_repo GitHub repository in format "owner/repo"
-#' @param gh_release_tag GitHub release tag where files will be hosted
+#' @param gh_release_tag GitHub release tag for the NC raster files
 #' @param verbose Logical for progress messages
-#' @return Character path to collection.json for this dataset
+#' @return Character path to the collection JSON file
 #' @keywords internal
 generate_modis_vi_stac <- function(
-  parquet_files = NULL,  # Dependency on branched target, may be unused
-  parquet_dir = "data/processed_data/dynamic_parquet/modis_vi",
-  stac_dir = "data/stac/modis_vi",
+  nc_files,
+  stac_dir            = "data/stac/modis_vi",
   parent_catalog_path = "data/stac",
-  gh_repo = "AdamWilsonLab/emma_envdata",
-  gh_release_tag = "vi_modis_dynamic",
-  verbose = TRUE
+  gh_repo             = "AdamWilsonLab/emma_envdata",
+  gh_release_tag      = "vi_modis_dynamic_raster",
+  verbose             = TRUE
 ) {
-  
-  # Create output directory
+
   dir.create(stac_dir, recursive = TRUE, showWarnings = FALSE)
-  
-  # Find all monthly parquet files
-  parquet_files <- list.files(
-    parquet_dir,
-    pattern = "^dynamic_modis_vi_\\d{6}\\.parquet$",
-    full.names = FALSE
-  )
-  
-  if (length(parquet_files) == 0) {
-    stop("No MODIS VI parquet files found in ", parquet_dir,
-         ". Check that modis_vi_parquet targets completed successfully.")
+
+  # Keep only valid NC files; discard .skip markers
+  nc_files <- nc_files[grepl("\\.nc$", nc_files) & !grepl("\\.skip$", nc_files)]
+
+  if (length(nc_files) == 0) {
+    stop("No MODIS VI NC files found. Check that vi_modis_grid targets completed successfully.")
   }
-  
-  # Extract year-month from filenames
-  dates <- as.Date(paste0(gsub(".*_(\\d{6})\\..*", "\\1", parquet_files), "01"), "%Y%m%d")
-  
-  if (verbose) message("Generating STAC Collection for MODIS VI with ", length(parquet_files), " monthly files")
-  
-  # Create STAC Collection (part of parent catalog)
+
+  bn       <- basename(nc_files)
+  yyyymm   <- regmatches(bn, regexpr("\\d{6}", bn))
+  sensor   <- ifelse(grepl("_terra_", bn), "terra", "aqua")
+  months   <- sort(unique(yyyymm))
+  dates    <- as.Date(paste0(months, "01"), "%Y%m%d")
+
+  if (verbose) message("Generating STAC Collection for MODIS VI with ", length(months), " months (", length(nc_files), " NC files)")
+
   collection <- list(
     stac_version = "1.0.0",
     stac_extensions = list(
@@ -50,9 +46,15 @@ generate_modis_vi_stac <- function(
     ),
     type = "Collection",
     id = "modis_vi",
-    description = "MODIS Enhanced Vegetation Index (EVI) observations from Terra and Aqua satellites. 500m resolution, 16-day composites. Data processed from AppEEARS.",
+    title = "MODIS VI Rasters — Terra + Aqua (16-day composites, 500m)",
+    description = paste(
+      "Domain-aligned 500m NetCDF rasters of MODIS Enhanced Vegetation Index (EVI).",
+      "Terra (MOD13A1) and Aqua (MYD13A1) sensors are provided as separate files per month.",
+      "Each NC contains EVI (x100, QA-masked, integer) and composite day-of-year (doy) variables.",
+      "The time dimension carries the 16-day composite period present in the monthly download."
+    ),
     license = "CC-BY-4.0",
-    keywords = c("MODIS", "EVI", "vegetation", "Terra", "Aqua", "500m", "16-day"),
+    keywords = c("MODIS", "EVI", "vegetation", "Terra", "Aqua", "500m", "16-day", "NetCDF"),
     extent = list(
       spatial = list(
         bbox = list(c(-180, -90, 180, 90))
@@ -65,93 +67,71 @@ generate_modis_vi_stac <- function(
       )
     ),
     links = list(
+      list(rel = "root",    href = "catalog.json",           type = "application/json"),
+      list(rel = "parent",  href = "catalog.json",           type = "application/json"),
+      list(rel = "license", href = "https://creativecommons.org/licenses/by/4.0/", type = "text/html"),
       list(
-        rel = "root",
-        href = "catalog.json",
-        type = "application/json"
-      ),
-      list(
-        rel = "parent",
-        href = "catalog.json",
-        type = "application/json"
-      ),
-      list(
-        rel = "license",
-        href = "https://creativecommons.org/licenses/by/4.0/",
-        type = "text/html"
-      ),
-      list(
-        rel = "about",
-        href = "https://lpdaac.usgs.gov/products/mod13a1v061/",
+        rel   = "about",
+        href  = "https://lpdaac.usgs.gov/products/mod13a1v061/",
         title = "MOD13A1.061 Product Information",
-        type = "text/html"
+        type  = "text/html"
       )
     ),
     providers = list(
-      list(
-        name = "USGS LP DAAC",
-        description = "Data source for MOD13A1 and MYD13A1",
-        roles = c("producer", "licensor"),
-        url = "https://lpdaac.usgs.gov/"
-      ),
-      list(
-        name = "NASA AppEEARS",
-        description = "Data access and subsetting service",
-        roles = list("processor"),
-        url = "https://appeears.org/"
-      ),
-      list(
-        name = "EMMA Lab",
-        description = "Data processing and aggregation",
-        roles = list("processor"),
-        url = "https://adamwilsonlab.github.io/"
-      )
+      list(name = "USGS LP DAAC",   description = "Data source for MOD13A1 and MYD13A1",    roles = c("producer", "licensor"), url = "https://lpdaac.usgs.gov/"),
+      list(name = "NASA AppEEARS",  description = "Data access and subsetting service",       roles = list("processor"),         url = "https://appeears.org/"),
+      list(name = "EMMA Lab",       description = "Data processing and aggregation",          roles = list("processor"),         url = "https://adamwilsonlab.github.io/")
     ),
     summaries = list(
-      sci_doi = "10.5067/MODIS/MOD13A1.061|10.5067/MODIS/MYD13A1.061",
-      platforms = c("Terra", "Aqua"),
+      sci_doi     = "10.5067/MODIS/MOD13A1.061|10.5067/MODIS/MYD13A1.061",
+      platforms   = c("Terra", "Aqua"),
       instruments = list("MODIS"),
-      gsd = list(500),
-      bands = list(
-        list(
-          name = "EVI",
-          description = "Enhanced Vegetation Index",
-          data_type = "int32",
-          scale = 0.01,
-          offset = 0,
-          nodata = -9999
-        )
+      gsd         = list(500),
+      variables   = list(
+        list(name = "EVI",  description = "EVI x100 (QA-masked, integer)", data_type = "int32"),
+        list(name = "doy",  description = "Composite day of year per pixel", data_type = "int16")
       )
     )
   )
-  
-  # Write collection JSON with collection_id prefix to avoid filename collision on flat releases
+
   collection_file <- file.path(stac_dir, "modis_vi_collection.json")
   jsonlite::write_json(collection, collection_file, pretty = TRUE, auto_unbox = TRUE)
-  
+
   if (verbose) message("Created STAC Collection: ", collection_file)
-  
-  # Create individual Item files
-  for (i in seq_along(parquet_files)) {
-    pq_file <- parquet_files[i]
-    pq_date <- dates[i]
-    year_month <- format(pq_date, "%Y%m")
-    
-    # GitHub release URL — GitHub releases store files flat (no subdirs),
-    # so only the basename is needed in the URL.
-    gh_raw_url <- paste0(
-      "https://github.com/", gh_repo, "/releases/download/", gh_release_tag, "/",
-      basename(pq_file)
-    )
-    
+
+  # One STAC item per month; each item has up to two assets (terra + aqua)
+  for (i in seq_along(months)) {
+    ym        <- months[i]
+    pq_date   <- dates[i]
+    month_end <- as.Date(paste0(format(pq_date + 31, "%Y-%m"), "-01")) - 1
+
+    # Collect NC files for this month
+    month_ncs     <- nc_files[yyyymm == ym]
+    month_sensors <- sensor[yyyymm == ym]
+
+    assets <- list()
+    for (j in seq_along(month_ncs)) {
+      s       <- month_sensors[j]
+      tag     <- if (s == "terra") "Terra (MOD13A1)" else "Aqua (MYD13A1)"
+      gh_url  <- paste0("https://github.com/", gh_repo, "/releases/download/",
+                        gh_release_tag, "/", basename(month_ncs[j]))
+      assets[[s]] <- list(
+        href        = gh_url,
+        title       = paste0("MODIS VI — ", tag, " — ", ym),
+        description = paste0(tag, " EVI (x100) + composite DOY, 500m domain-aligned grid"),
+        type        = "application/x-netcdf",
+        roles       = list("data")
+      )
+    }
+
     item <- list(
       stac_version = "1.0.0",
       stac_extensions = list(
         "https://stac-extensions.github.io/scientific/v1.0.0/schema.json"
       ),
-      type = "Feature",
-      id = paste0("modis_vi_", year_month),
-      description = paste("MODIS EVI observations for", format(pq_date, "%B %Y")),
+      type        = "Feature",
+      id          = paste0("modis_vi_", ym),
+      description = paste("MODIS VI rasters (Terra + Aqua) for", format(pq_date, "%B %Y")),
       geometry = list(
         type = "Polygon",
         coordinates = list(list(
@@ -160,59 +140,37 @@ generate_modis_vi_stac <- function(
       ),
       bbox = c(-180, -90, 180, 90),
       properties = list(
-        `datetime` = paste0(format(pq_date, "%Y-%m-%d"), "T00:00:00Z"),
+        `datetime`     = paste0(format(pq_date, "%Y-%m-%d"), "T00:00:00Z"),
         start_datetime = paste0(format(pq_date, "%Y-%m-01"), "T00:00:00Z"),
-        end_datetime = paste0(format(as.Date(paste0(format(pq_date + 31, "%Y-%m"), "-01")) - 1, "%Y-%m-%d"), "T23:59:59Z"),
-        platforms = c("Terra", "Aqua"),
-        instruments = list("MODIS"),
-        gsd = 500,
-        dataset = "modis_vi"
+        end_datetime   = paste0(format(month_end, "%Y-%m-%d"), "T23:59:59Z"),
+        platforms      = c("Terra", "Aqua"),
+        instruments    = list("MODIS"),
+        gsd            = 500,
+        dataset        = "modis_vi"
       ),
       links = list(
-        list(
-          rel = "collection",
-          href = "modis_vi_collection.json",
-          type = "application/json"
-        ),
-        list(
-          rel = "root",
-          href = "catalog.json",
-          type = "application/json"
-        ),
-        list(
-          rel = "parent",
-          href = "modis_vi_collection.json",
-          type = "application/json"
-        )
+        list(rel = "collection", href = "modis_vi_collection.json", type = "application/json"),
+        list(rel = "root",       href = "catalog.json",             type = "application/json"),
+        list(rel = "parent",     href = "modis_vi_collection.json", type = "application/json")
       ),
-      assets = list(
-        data = list(
-          href = gh_raw_url,
-          title = paste0("MODIS VI Parquet - ", year_month),
-          description = "Enhanced Vegetation Index observations in parquet format",
-          type = "application/octet-stream",
-          roles = list("data")
-        )
-      )
+      assets = assets
     )
-    
-    item_file <- file.path(stac_dir, paste0("modis_vi_", year_month, ".json"))
+
+    item_file <- file.path(stac_dir, paste0("modis_vi_", ym, ".json"))
     jsonlite::write_json(item, item_file, pretty = TRUE, auto_unbox = TRUE)
-    
-    # Add item link to collection
+
     collection$links[[length(collection$links) + 1]] <- list(
-      rel = "item",
-      href = paste0("modis_vi_", year_month, ".json"),
-      type = "application/json",
-      title = paste("MODIS VI", year_month)
+      rel   = "item",
+      href  = paste0("modis_vi_", ym, ".json"),
+      type  = "application/json",
+      title = paste("MODIS VI", ym)
     )
   }
-  
-  # Update collection.json with all item links
+
   jsonlite::write_json(collection, collection_file, pretty = TRUE, auto_unbox = TRUE)
-  
-  if (verbose) message("Generated ", length(parquet_files), " STAC Item files")
-  
+
+  if (verbose) message("Generated ", length(months), " STAC items (NC assets: Terra + Aqua per month)")
+
   collection_file
 }
 
@@ -276,12 +234,18 @@ generate_emma_stac_catalog <- function(
     if (file.exists(collection_file)) {
       # Flat href — GitHub releases store all JSON files without subdirectories
       rel_path <- paste0(dataset_name, "_collection.json")
-      
+
+      # Read collection title dynamically from the JSON file when available
+      collection_title <- tryCatch({
+        coll_data <- jsonlite::read_json(collection_file)
+        if (!is.null(coll_data$title)) coll_data$title else dataset_name
+      }, error = function(e) dataset_name)
+
       catalog$links[[length(catalog$links) + 1]] <- list(
-        rel = "child",
-        href = rel_path,
-        type = "application/json",
-        title = paste0(dataset_name, " - Dynamic VI observations")
+        rel   = "child",
+        href  = rel_path,
+        type  = "application/json",
+        title = collection_title
       )
       
       if (verbose) message("  Linked collection: ", dataset_name)
@@ -525,68 +489,69 @@ generate_burn_dates_stac <- function(
 }
 
 
-#' @title Generate unified fire history STAC Collection
+#' @title Generate unified burn STAC Collection (NetCDF rasters)
 #' @description Creates a single STAC Collection combining MODIS MCD64A1 and VIIRS VNP64A1
-#'   monthly burned area items plus a derived postfire-age item (most_recent_burn.parquet).
-#'   Items carry a `source` property ("modis", "viirs", or "derived") so consumers can filter
-#'   by sensor. Re-runs whenever any of its three inputs change.
-#' @param modis_parquet_files Character vector of MODIS burn-date parquet paths (branched target)
-#' @param viirs_parquet_files Character vector of VIIRS burn-date parquet paths (branched target)
-#' @param most_recent_burn_file Single file path to most_recent_burn.parquet
-#' @param modis_parquet_dir Fallback directory if modis_parquet_files is NULL
-#' @param viirs_parquet_dir Fallback directory if viirs_parquet_files is NULL
-#' @param stac_dir Output directory for fire_history STAC JSON files
+#'   monthly burned area NetCDF items plus a derived most-recent-burn NC item.
+#'   Items carry a \code{source} property ("modis", "viirs", or "derived") so consumers can filter
+#'   by sensor.  VIIRS is preferred over MODIS in all downstream deduplication and
+#'   fire-history products (higher spatial resolution: 375m vs 500m).
+#'   Note temporal discontinuity: VIIRS data begin January 2012.
+#' @param modis_nc_files Character vector of MODIS burn NC paths from \code{burn_modis_grid} target.
+#'   Files named \code{burn_modis_YYYYMM.nc}; .skip markers are filtered automatically.
+#' @param viirs_nc_files Character vector of VIIRS burn NC paths from \code{burn_viirs_grid} target.
+#'   Files named \code{burn_viirs_YYYYMM.nc}; .skip markers are filtered automatically.
+#' @param recentburn_file Single file path to \code{most_recent_burn.nc} (from \code{recentburn_grid} target).
+#' @param stac_dir Output directory for burn STAC JSON files
 #' @param gh_repo GitHub repository in format "owner/repo"
-#' @param gh_release_tag_modis GitHub release tag hosting MODIS monthly parquets
-#' @param gh_release_tag_viirs GitHub release tag hosting VIIRS monthly parquets
-#' @param gh_release_tag_derived GitHub release tag hosting derived fire_history products
+#' @param gh_release_tag_modis GitHub release tag hosting MODIS monthly NC rasters
+#' @param gh_release_tag_viirs GitHub release tag hosting VIIRS monthly NC rasters
+#' @param gh_release_tag_derived GitHub release tag hosting derived fire-history products
 #' @param verbose Logical for progress messages
-#' @return Character path to the fire_history collection.json
+#' @return Character path to the burn collection.json
 #' @keywords internal
-generate_fire_history_stac <- function(
-  modis_parquet_files    = NULL,
-  viirs_parquet_files    = NULL,
-  most_recent_burn_file  = NULL,
-  modis_parquet_dir      = "data/target_outputs/burn_dates_modis",
-  viirs_parquet_dir      = "data/target_outputs/burn_dates_viirs",
-  stac_dir               = "data/stac/fire_history",
+generate_burn_stac <- function(
+  modis_nc_files         = NULL,
+  viirs_nc_files         = NULL,
+  recentburn_file        = NULL,
+  stac_dir               = "data/stac/burn",
   gh_repo                = "AdamWilsonLab/emma_envdata",
-  gh_release_tag_modis   = "burndate_modis_dynamic",
-  gh_release_tag_viirs   = "burndate_viirs_dynamic",
+  gh_release_tag_modis   = "burn_dates_modis_raster",
+  gh_release_tag_viirs   = "burn_dates_viirs_raster",
   gh_release_tag_derived = "firehistory_dynamic",
   verbose                = TRUE
 ) {
   dir.create(stac_dir, recursive = TRUE, showWarnings = FALSE)
 
-  # Resolve parquet file lists from directories if not supplied directly
-  if (is.null(modis_parquet_files) || length(modis_parquet_files) == 0) {
-    modis_parquet_files <- list.files(modis_parquet_dir, pattern = "\\.parquet$", full.names = TRUE)
+  # Filter to valid NC files; drop .skip markers
+  filter_nc <- function(files) {
+    if (is.null(files) || length(files) == 0) return(character(0))
+    files[grepl("\\.nc$", files) & !grepl("\\.skip$", files)]
   }
-  if (is.null(viirs_parquet_files) || length(viirs_parquet_files) == 0) {
-    viirs_parquet_files <- list.files(viirs_parquet_dir, pattern = "\\.parquet$", full.names = TRUE)
-  }
+  modis_nc_files <- filter_nc(modis_nc_files)
+  viirs_nc_files <- filter_nc(viirs_nc_files)
 
-  # Extract YYYYMM dates from filenames; drop files that do not match the pattern
-  parse_dates <- function(files) {
-    ym    <- stringr::str_extract(basename(files), "\\d{6}")
+  # Extract YYYYMM dates from NC filenames
+  parse_nc_dates <- function(files) {
+    if (length(files) == 0) return(list(files = character(0), dates = as.Date(character(0))))
+    ym    <- regmatches(basename(files), regexpr("\\d{6}", basename(files)))
     dates <- as.Date(paste0(ym, "01"), format = "%Y%m%d")
     list(files = files[!is.na(dates)], dates = dates[!is.na(dates)])
   }
-  modis <- parse_dates(modis_parquet_files)
-  viirs <- parse_dates(viirs_parquet_files)
+  modis <- parse_nc_dates(modis_nc_files)
+  viirs <- parse_nc_dates(viirs_nc_files)
 
   if (verbose) {
     message(
-      "Generating fire_history STAC collection: ",
+      "Generating burn STAC collection: ",
       length(modis$files), " MODIS + ",
       length(viirs$files), " VIIRS monthly items",
-      if (!is.null(most_recent_burn_file) && nzchar(most_recent_burn_file))
-        " + postfire_age item" else ""
+      if (!is.null(recentburn_file) && nzchar(recentburn_file) && grepl("\\.nc$", recentburn_file))
+        " + recentburn item" else ""
     )
   }
 
   # ── Build STAC Collection ────────────────────────────────────────────────
-  all_dates     <- c(modis$dates, viirs$dates)
+  all_dates      <- c(modis$dates, viirs$dates)
   temporal_start <- if (length(all_dates) > 0) {
     paste0(format(min(all_dates), "%Y-%m-%d"), "T00:00:00Z")
   } else {
@@ -597,14 +562,17 @@ generate_fire_history_stac <- function(
     stac_version = "1.0.0",
     stac_extensions = list("https://stac-extensions.github.io/scientific/v1.0.0/schema.json"),
     type        = "Collection",
-    id          = "fire_history",
-    title       = "Fire History — MODIS MCD64A1 + VIIRS VNP64A1 Burned Area",
+    id          = "burn",
+    title       = "Burned Area — MODIS MCD64A1 + VIIRS VNP64A1 (NetCDF rasters)",
     description = paste(
-      "Monthly burned area detections and derived postfire age for ecosystem fire-history analysis.",
-      "Combines MODIS MCD64A1 (Terra, 500 m, 2000-present) and VIIRS VNP64A1 (Suomi NPP, 375 m",
-      "resampled to 500 m, 2012-present). Also includes most_recent_burn.parquet: time-since-fire",
-      "(days) at each MODIS VI observation date per pixel. Only confirmed burned pixels (QA = 0)",
-      "are retained. Pixel IDs (pid) align with the EMMA domain grid."
+      "Monthly burned area NetCDF rasters for ecosystem fire-history analysis.",
+      "MODIS MCD64A1 (Terra, 500m, 2000-present) and VIIRS VNP64A1 (Suomi NPP, 375m",
+      "resampled to 500m, 2012-present) are provided as separate domain-aligned files.",
+      "Each NC contains a burn_doy variable (day-of-year of burn detection, QA=0 only).",
+      "VIIRS is preferred over MODIS in all downstream deduplication and fire-history",
+      "products because of its higher spatial resolution (375m vs 500m).",
+      "Note temporal discontinuity: VIIRS data begin January 2012.",
+      "Also includes most_recent_burn.nc: fire_age_days and last_burn_date snapshot per pixel."
     ),
     license = "proprietary",
     extent = list(
@@ -612,8 +580,8 @@ generate_fire_history_stac <- function(
       temporal = list(interval = list(list(temporal_start, NULL)))
     ),
     links = list(
-      list(rel = "root",    href = "catalog.json",          type = "application/json"),
-      list(rel = "self",    href = "fire_history_collection.json", type = "application/json"),
+      list(rel = "root",    href = "catalog.json",         type = "application/json"),
+      list(rel = "self",    href = "burn_collection.json", type = "application/json"),
       list(rel = "license", href = "https://creativecommons.org/licenses/by/4.0/",
            type = "text/html"),
       list(rel = "about",   href = "https://lpdaac.usgs.gov/products/mcd64a1v061/",
@@ -641,24 +609,23 @@ generate_fire_history_stac <- function(
     )
   )
 
-  collection_file <- file.path(stac_dir, "fire_history_collection.json")
+  collection_file <- file.path(stac_dir, "burn_collection.json")
   jsonlite::write_json(collection, collection_file, pretty = TRUE, auto_unbox = TRUE)
 
-  # ── Helper: build and write one monthly burn-date item ───────────────────
-  # Returns list(file, date, source) for link accumulation below
-  make_monthly_item <- function(pq_file, pq_date, source, gh_release_tag) {
+  # ── Helper: build and write one monthly burn NC item ─────────────────────
+  make_monthly_item <- function(nc_file, nc_date, source, gh_release_tag) {
     sensor_meta <- list(
       modis = list(platforms = list("Terra"),     instruments = list("MODIS"), gsd = 500),
       viirs = list(platforms = list("Suomi NPP"), instruments = list("VIIRS"), gsd = 375)
     )
     smeta      <- sensor_meta[[source]]
-    year_month <- format(pq_date, "%Y%m")
-    month_end  <- as.Date(paste0(format(pq_date + 31, "%Y-%m"), "-01")) - 1
-    item_id    <- paste0("fire_history_", source, "_", year_month)
+    year_month <- format(nc_date, "%Y%m")
+    month_end  <- as.Date(paste0(format(nc_date + 31, "%Y-%m"), "-01")) - 1
+    item_id    <- paste0("burn_", source, "_", year_month)
     gh_url     <- paste0(
       "https://github.com/", gh_repo,
       "/releases/download/", gh_release_tag, "/",
-      basename(pq_file)
+      basename(nc_file)
     )
 
     item <- list(
@@ -668,8 +635,8 @@ generate_fire_history_stac <- function(
       ),
       type        = "Feature",
       id          = item_id,
-      description = paste(toupper(source), "burned area detections for",
-                          format(pq_date, "%B %Y")),
+      description = paste(toupper(source), "burned area raster for",
+                          format(nc_date, "%B %Y")),
       geometry = list(
         type = "Polygon",
         coordinates = list(list(
@@ -678,26 +645,27 @@ generate_fire_history_stac <- function(
       ),
       bbox = c(-180, -90, 180, 90),
       properties = list(
-        datetime       = paste0(format(pq_date, "%Y-%m-%d"), "T00:00:00Z"),
-        start_datetime = paste0(format(pq_date, "%Y-%m-01"), "T00:00:00Z"),
+        datetime       = paste0(format(nc_date, "%Y-%m-%d"), "T00:00:00Z"),
+        start_datetime = paste0(format(nc_date, "%Y-%m-01"), "T00:00:00Z"),
         end_datetime   = paste0(format(month_end, "%Y-%m-%d"), "T23:59:59Z"),
         platforms      = smeta$platforms,
         instruments    = smeta$instruments,
         gsd            = smeta$gsd,
         source         = source,
-        dataset        = "fire_history"
+        dataset        = "burn"
       ),
       links = list(
-        list(rel = "collection", href = "fire_history_collection.json", type = "application/json"),
-        list(rel = "root",       href = "catalog.json",              type = "application/json"),
-        list(rel = "parent",     href = "fire_history_collection.json", type = "application/json")
+        list(rel = "collection", href = "burn_collection.json", type = "application/json"),
+        list(rel = "root",       href = "catalog.json",         type = "application/json"),
+        list(rel = "parent",     href = "burn_collection.json", type = "application/json")
       ),
       assets = list(
-        data = list(
+        burn_doy = list(
           href        = gh_url,
-          title       = paste0(toupper(source), " burned area parquet — ", year_month),
-          description = "Burned pixels (pid, date, burn_doy, qa) in gzip-compressed Parquet",
-          type        = "application/octet-stream",
+          title       = paste0(toupper(source), " burn day-of-year — ", year_month),
+          description = paste0("burn_doy variable: day of year of burn detection (QA=0), ",
+                               smeta$platforms[[1]], " 500m domain-aligned grid"),
+          type        = "application/x-netcdf",
           roles       = list("data")
         )
       )
@@ -705,39 +673,37 @@ generate_fire_history_stac <- function(
 
     item_file <- file.path(stac_dir, paste0(item_id, ".json"))
     jsonlite::write_json(item, item_file, pretty = TRUE, auto_unbox = TRUE)
-    list(file = item_file, date = pq_date, source = source)
+    list(file = item_file, date = nc_date, source = source)
   }
 
   # ── Build all monthly items for both sensors ─────────────────────────────
   modis_items <- purrr::pmap(
-    list(pq_file = modis$files, pq_date = modis$dates),
+    list(nc_file = modis$files, nc_date = modis$dates),
     ~ make_monthly_item(..1, ..2, source = "modis",
                         gh_release_tag = gh_release_tag_modis)
   )
   viirs_items <- purrr::pmap(
-    list(pq_file = viirs$files, pq_date = viirs$dates),
+    list(nc_file = viirs$files, nc_date = viirs$dates),
     ~ make_monthly_item(..1, ..2, source = "viirs",
                         gh_release_tag = gh_release_tag_viirs)
   )
   all_items <- c(modis_items, viirs_items)
 
-  # ── Derived postfire-age item (most_recent_burn.parquet) ─────────────────
-  # Included only when the most_recent_burn target has produced its file.
-  # Re-running this function after most_recent_burn updates refreshes this item.
-  if (!is.null(most_recent_burn_file) && nzchar(most_recent_burn_file)) {
+  # ── Derived most-recent-burn NC item ──────────────────────────────────────
+  if (!is.null(recentburn_file) && nzchar(recentburn_file) && grepl("\\.nc$", recentburn_file)) {
     mrb_url <- paste0(
       "https://github.com/", gh_repo,
       "/releases/download/", gh_release_tag_derived, "/",
-      basename(most_recent_burn_file)
+      basename(recentburn_file)
     )
     mrb_item <- list(
       stac_version = "1.0.0",
       type         = "Feature",
-      id           = "fire_history_postfire_age",
+      id           = "burn_recentburn",
       description  = paste(
-        "Time-since-fire (days) at each MODIS VI observation date per pixel.",
-        "Derived by merging MODIS MCD64A1 + VIIRS VNP64A1 burn records.",
-        "Columns: pid, date, last_burn_date, fire_age_days."
+        "Fire age and last burn date snapshot (most recent state per pixel).",
+        "Contains fire_age_days (days since last fire) and last_burn_date (days since 1970-01-01)",
+        "as of the latest available observation date."
       ),
       geometry = list(
         type = "Polygon",
@@ -751,27 +717,27 @@ generate_fire_history_stac <- function(
         start_datetime = "2000-11-01T00:00:00Z",
         end_datetime   = paste0(format(Sys.Date(), "%Y-%m-%d"), "T23:59:59Z"),
         source         = "derived",
-        dataset        = "fire_history"
+        dataset        = "burn"
       ),
       links = list(
-        list(rel = "collection", href = "fire_history_collection.json", type = "application/json"),
-        list(rel = "root",       href = "catalog.json",              type = "application/json"),
-        list(rel = "parent",     href = "fire_history_collection.json", type = "application/json")
+        list(rel = "collection", href = "burn_collection.json", type = "application/json"),
+        list(rel = "root",       href = "catalog.json",         type = "application/json"),
+        list(rel = "parent",     href = "burn_collection.json", type = "application/json")
       ),
       assets = list(
-        data = list(
+        recentburn = list(
           href        = mrb_url,
-          title       = "Postfire age parquet (most_recent_burn)",
+          title       = "Most recent burn snapshot (NC)",
           description = paste(
-            "Per-pixel, per-VI-date: last_burn_date and fire_age_days.",
-            "Gzip-compressed Parquet."
+            "fire_age_days and last_burn_date per pixel as of the latest available date.",
+            "Domain-aligned 500m NetCDF."
           ),
-          type  = "application/octet-stream",
+          type  = "application/x-netcdf",
           roles = list("data")
         )
       )
     )
-    mrb_file <- file.path(stac_dir, "fire_history_postfire_age.json")
+    mrb_file <- file.path(stac_dir, "burn_recentburn.json")
     jsonlite::write_json(mrb_item, mrb_file, pretty = TRUE, auto_unbox = TRUE)
     all_items <- c(all_items,
                    list(list(file = mrb_file, date = Sys.Date(), source = "derived")))
@@ -780,7 +746,7 @@ generate_fire_history_stac <- function(
   # ── Append item links to collection and re-write ──────────────────────────
   item_links <- purrr::map(all_items, function(it) {
     label <- if (it$source == "derived") {
-      "postfire age (derived)"
+      "most recent burn snapshot"
     } else {
       paste(toupper(it$source), "burned area", format(it$date, "%Y-%m"))
     }
@@ -796,13 +762,316 @@ generate_fire_history_stac <- function(
 
   if (verbose) {
     message(
-      "Generated fire_history STAC: ",
+      "Generated burn STAC: ",
       length(modis_items), " MODIS + ",
       length(viirs_items), " VIIRS items",
-      if (!is.null(most_recent_burn_file) && nzchar(most_recent_burn_file))
-        " + postfire_age" else ""
+      if (!is.null(recentburn_file) && nzchar(recentburn_file) && grepl("\\.nc$", recentburn_file))
+        " + recentburn" else ""
     )
   }
+
+  collection_file
+}
+
+
+# ============================================================================
+# STAC for static environmental layers
+# ============================================================================
+
+#' @title Generate STAC Collection for static environmental layers
+#'
+#' @description Creates a STAC Collection and individual Item JSON files for the
+#'   static (time-invariant) environmental layers used across the EMMA pipeline:
+#'   domain grid, vegetation map, NASADEM elevation, CHELSA bioclimatic variables
+#'   (BIO1-BIO19), Wilson/EarthEnv cloud frequency, SoilGrids v2 soil properties,
+#'   and topographic diversity metrics.  All assets point to a single GitHub
+#'   release tag (\code{"static_data"}).
+#'
+#' @param domain_nc       Path to \code{domain.nc}.
+#' @param domain_parquet  Path to \code{domain.parquet}.
+#' @param vegmap_nc       Path to \code{vegmap.nc}.
+#' @param elevation_nc    Path returned by the \code{elevation} target (NASADEM NC).
+#' @param climate_nc_files Character vector of paths returned by \code{climate_chelsa}
+#'   (CHELSA BIO variable NCs, typically 19 files).
+#' @param clouds_nc       Path returned by the \code{clouds_wilson} target.
+#' @param soil_nc         Path returned by the \code{soil_soilgrids} target.
+#' @param topo_nc         Path returned by the \code{topographic_diversity} target.
+#' @param stac_dir        Output directory for STAC JSON files.
+#' @param gh_repo         GitHub repo in "owner/repo" format.
+#' @param gh_release_tag  GitHub release tag hosting the static NC files.
+#' @param verbose         Logical. Print progress messages?
+#'
+#' @return Character path to \code{static_collection.json}.
+#' @keywords internal
+generate_static_layers_stac <- function(
+    domain_nc        = "data/target_outputs/domain.nc",
+    domain_parquet   = "data/target_outputs/domain.parquet",
+    vegmap_nc        = "data/target_outputs/vegmap.nc",
+    elevation_nc,
+    climate_nc_files,
+    clouds_nc,
+    soil_nc,
+    topo_nc,
+    stac_dir         = "data/stac/static",
+    gh_repo          = "AdamWilsonLab/emma_envdata",
+    gh_release_tag   = "static_data",
+    verbose          = TRUE) {
+
+  dir.create(stac_dir, recursive = TRUE, showWarnings = FALSE)
+
+  # Build a GitHub release download URL from a local file path
+  gh_url <- function(f) {
+    paste0("https://github.com/", gh_repo, "/releases/download/",
+           gh_release_tag, "/", basename(f))
+  }
+
+  # Timeless datetime convention for static layers
+  static_props <- list(
+    datetime       = NULL,
+    start_datetime = "1900-01-01T00:00:00Z",
+    end_datetime   = paste0(format(Sys.Date(), "%Y-%m-%d"), "T23:59:59Z")
+  )
+  static_geom <- list(
+    type = "Polygon",
+    coordinates = list(list(
+      c(-180, -90), c(180, -90), c(180, 90), c(-180, 90), c(-180, -90)
+    ))
+  )
+  common_links <- function() list(
+    list(rel = "collection", href = "static_collection.json", type = "application/json"),
+    list(rel = "root",       href = "catalog.json",           type = "application/json"),
+    list(rel = "parent",     href = "static_collection.json", type = "application/json")
+  )
+
+  # ── Collection ───────────────────────────────────────────────────────────
+  collection <- list(
+    stac_version = "1.0.0",
+    stac_extensions = list(
+      "https://stac-extensions.github.io/scientific/v1.0.0/schema.json"
+    ),
+    type    = "Collection",
+    id      = "static",
+    title   = "Static Environmental Layers (domain, vegetation, elevation, climate, clouds, soil, topography)",
+    description = paste(
+      "Time-invariant environmental layers for the EMMA study domain (Eastern Mediterranean & Maghreb).",
+      "Includes: domain grid (pixel IDs + biome mask), vegetation map, NASADEM elevation (30m -> 500m),",
+      "CHELSA BIO1-BIO19 bioclimatic variables (1981-2010), MODCF mean-annual cloud frequency",
+      "(Wilson/EarthEnv), SoilGrids v2 soil properties (SOC, clay, sand, pH, BD; 0-30 cm),",
+      "and topographic diversity metrics (slope, aspect, TRI, TPI).",
+      "All layers are domain-aligned to the 500m EMMA grid."
+    ),
+    license  = "CC-BY-4.0",
+    keywords = c("static", "domain", "elevation", "climate", "CHELSA", "soil",
+                 "topography", "vegetation", "cloud", "NASADEM", "SoilGrids"),
+    extent = list(
+      spatial  = list(bbox = list(c(-180, -90, 180, 90))),
+      temporal = list(interval = list(list("1900-01-01T00:00:00Z", NULL)))
+    ),
+    links = list(
+      list(rel = "root",    href = "catalog.json",           type = "application/json"),
+      list(rel = "parent",  href = "catalog.json",           type = "application/json"),
+      list(rel = "license", href = "https://creativecommons.org/licenses/by/4.0/",
+           type = "text/html")
+    ),
+    providers = list(
+      list(name = "NASA LP DAAC", roles = c("producer", "licensor"), url = "https://lpdaac.usgs.gov/"),
+      list(name = "CHELSA",       roles = c("producer", "licensor"), url = "https://chelsa-climate.org/"),
+      list(name = "ISRIC",        roles = c("producer", "licensor"), url = "https://www.isric.org/"),
+      list(name = "EarthEnv",     roles = c("producer", "licensor"), url = "https://www.earthenv.org/"),
+      list(name = "EMMA Lab",     roles = list("processor"),         url = "https://adamwilsonlab.github.io/")
+    )
+  )
+
+  collection_file <- file.path(stac_dir, "static_collection.json")
+  jsonlite::write_json(collection, collection_file, pretty = TRUE, auto_unbox = TRUE)
+
+  items_written <- list()
+
+  # Helper: write one item JSON and register it for the collection item-links
+  write_item <- function(item, item_id) {
+    item_file <- file.path(stac_dir, paste0(item_id, ".json"))
+    jsonlite::write_json(item, item_file, pretty = TRUE, auto_unbox = TRUE)
+    items_written[[length(items_written) + 1]] <<- list(file = item_file, id = item_id)
+  }
+
+  # ── 1. Domain grid ────────────────────────────────────────────────────────
+  write_item(list(
+    stac_version = "1.0.0", type = "Feature",
+    id          = "static_domain",
+    description = "EMMA domain grid: pixel IDs (pid) and biome/boundary mask at 500m resolution.",
+    geometry    = static_geom, bbox = c(-180, -90, 180, 90),
+    properties  = c(static_props, list(dataset = "static", layer = "domain")),
+    links       = common_links(),
+    assets = list(
+      domain_nc = list(
+        href = gh_url(domain_nc), title = "Domain grid (NC)",
+        description = "Domain NetCDF: pid layer (integer pixel IDs) at 500m resolution.",
+        type = "application/x-netcdf", roles = list("data")
+      ),
+      domain_parquet = list(
+        href = gh_url(domain_parquet), title = "Domain grid (Parquet)",
+        description = "Domain pixel table (pid, lon, lat, biome) in gzip-compressed Parquet.",
+        type = "application/x-parquet", roles = list("data")
+      )
+    )
+  ), "static_domain")
+
+  # ── 2. Vegetation map ─────────────────────────────────────────────────────
+  write_item(list(
+    stac_version = "1.0.0", type = "Feature",
+    id          = "static_vegmap",
+    description = "Vegetation map classification rasterized to the 500m EMMA domain grid.",
+    geometry    = static_geom, bbox = c(-180, -90, 180, 90),
+    properties  = c(static_props, list(dataset = "static", layer = "vegmap")),
+    links       = common_links(),
+    assets = list(
+      vegmap_nc = list(
+        href = gh_url(vegmap_nc), title = "Vegetation map (NC)",
+        description = "Vegetation class per pixel (integer codes), 500m domain-aligned grid.",
+        type = "application/x-netcdf", roles = list("data")
+      )
+    )
+  ), "static_vegmap")
+
+  # ── 3. Elevation — NASADEM ────────────────────────────────────────────────
+  write_item(list(
+    stac_version = "1.0.0", type = "Feature",
+    id          = "static_elevation",
+    description = "NASADEM 30m digital elevation model resampled to the 500m EMMA domain grid.",
+    geometry    = static_geom, bbox = c(-180, -90, 180, 90),
+    properties  = c(static_props, list(
+      dataset    = "static", layer = "elevation",
+      platform   = "SRTM", instrument = "radar", gsd = 500,
+      sci_doi    = "10.5067/MEaSUREs/NASADEM/NASADEM_HGT.001"
+    )),
+    links = c(common_links(), list(
+      list(rel = "about", href = "https://lpdaac.usgs.gov/products/nasadem_hgtv001/",
+           type = "text/html", title = "NASADEM_HGT v001 Product Page")
+    )),
+    assets = list(
+      elevation_nc = list(
+        href = gh_url(elevation_nc), title = "Elevation NC (NASADEM)",
+        description = "Elevation in metres, 500m domain-aligned grid.",
+        type = "application/x-netcdf", roles = list("data")
+      )
+    )
+  ), "static_elevation")
+
+  # ── 4. CHELSA bioclimatic variables (BIO1-BIO19) ─────────────────────────
+  # One asset per BIO variable; key extracted from filename (e.g. "bio1")
+  climate_assets <- list()
+  for (nc in climate_nc_files) {
+    m       <- regexpr("bio\\d+", basename(nc), ignore.case = TRUE)
+    bio_key <- if (m > 0L) tolower(regmatches(basename(nc), m)) else tools::file_path_sans_ext(basename(nc))
+    climate_assets[[bio_key]] <- list(
+      href        = gh_url(nc),
+      title       = paste0("CHELSA ", toupper(bio_key), " (1981-2010)"),
+      description = paste0("CHELSA bioclimatic variable ", toupper(bio_key),
+                           " (1981-2010 mean), 500m domain-aligned grid."),
+      type        = "application/x-netcdf",
+      roles       = list("data")
+    )
+  }
+  write_item(list(
+    stac_version = "1.0.0", type = "Feature",
+    id          = "static_climate",
+    description = paste(
+      "CHELSA v2.1 bioclimatic variables BIO1-BIO19 (1981-2010 climatological mean)",
+      "downscaled to the 500m EMMA domain grid."
+    ),
+    geometry   = static_geom, bbox = c(-180, -90, 180, 90),
+    properties = c(static_props, list(
+      dataset           = "static", layer = "climate",
+      temporal_coverage = "1981-2010",
+      sci_doi           = "10.1038/sdata.2017.122"
+    )),
+    links = c(common_links(), list(
+      list(rel = "about", href = "https://chelsa-climate.org/",
+           type = "text/html", title = "CHELSA Climate Website")
+    )),
+    assets = climate_assets
+  ), "static_climate")
+
+  # ── 5. Cloud frequency — Wilson / EarthEnv MODCF ─────────────────────────
+  write_item(list(
+    stac_version = "1.0.0", type = "Feature",
+    id          = "static_clouds",
+    description = paste(
+      "MODCF mean annual cloud frequency and intra-annual seasonality",
+      "(Wilson et al. 2016 / EarthEnv), resampled to the 500m domain grid."
+    ),
+    geometry   = static_geom, bbox = c(-180, -90, 180, 90),
+    properties = c(static_props, list(
+      dataset = "static", layer = "clouds",
+      sci_doi = "10.1371/journal.pone.0172299"
+    )),
+    links = c(common_links(), list(
+      list(rel = "about", href = "https://www.earthenv.org/cloud",
+           type = "text/html", title = "EarthEnv Cloud Data")
+    )),
+    assets = list(
+      clouds_nc = list(
+        href = gh_url(clouds_nc), title = "Cloud frequency NC (MODCF / Wilson)",
+        description = "Mean annual cloud fraction + seasonality index, 500m domain-aligned grid.",
+        type = "application/x-netcdf", roles = list("data")
+      )
+    )
+  ), "static_clouds")
+
+  # ── 6. Soil properties — SoilGrids v2 ────────────────────────────────────
+  write_item(list(
+    stac_version = "1.0.0", type = "Feature",
+    id          = "static_soil",
+    description = paste(
+      "SoilGrids v2 (ISRIC) soil properties averaged over 0-30 cm depth:",
+      "SOC, clay, sand, pH, and bulk density. Resampled to the 500m domain grid."
+    ),
+    geometry   = static_geom, bbox = c(-180, -90, 180, 90),
+    properties = c(static_props, list(
+      dataset = "static", layer = "soil",
+      sci_doi = "10.1371/journal.pone.0169748"
+    )),
+    links = c(common_links(), list(
+      list(rel = "about", href = "https://www.isric.org/explore/soilgrids",
+           type = "text/html", title = "SoilGrids v2 Product Page")
+    )),
+    assets = list(
+      soil_nc = list(
+        href = gh_url(soil_nc), title = "Soil properties NC (SoilGrids v2)",
+        description = "SOC (g/kg), clay (%), sand (%), pH, bulk density (kg/dm3); 0-30 cm mean; 500m grid.",
+        type = "application/x-netcdf", roles = list("data")
+      )
+    )
+  ), "static_soil")
+
+  # ── 7. Topographic diversity ──────────────────────────────────────────────
+  write_item(list(
+    stac_version = "1.0.0", type = "Feature",
+    id          = "static_topography",
+    description = paste(
+      "Topographic diversity metrics derived from NASADEM elevation at 500m:",
+      "slope, aspect, terrain ruggedness index (TRI), topographic position index (TPI)."
+    ),
+    geometry   = static_geom, bbox = c(-180, -90, 180, 90),
+    properties = c(static_props, list(dataset = "static", layer = "topography", gsd = 500)),
+    links      = common_links(),
+    assets = list(
+      topo_nc = list(
+        href = gh_url(topo_nc), title = "Topographic diversity NC",
+        description = "Slope (deg), aspect (deg), TRI, TPI; derived from NASADEM at 500m.",
+        type = "application/x-netcdf", roles = list("data")
+      )
+    )
+  ), "static_topography")
+
+  # ── Append item links to collection and re-write ──────────────────────────
+  item_links <- purrr::map(items_written, function(it) {
+    list(rel = "item", href = basename(it$file), type = "application/json", title = it$id)
+  })
+  collection$links <- c(collection$links, item_links)
+  jsonlite::write_json(collection, collection_file, pretty = TRUE, auto_unbox = TRUE)
+
+  if (verbose) message("Generated static layers STAC: ", length(items_written), " items in ", stac_dir)
 
   collection_file
 }

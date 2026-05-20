@@ -9,7 +9,7 @@ salloc --cluster=faculty --qos=adamw --partition=adamw \
 
 export GROUP="adamw"
 export PROJECT_FOLDER="/projects/academic/"$GROUP
-export APPTAINER_CACHEDIR="/vscratch/grp-adamw/"$USER"/singularity"
+export APPTAINER_CACHEDIR="/vscratch/grp-adamw/"$USER"/apptainer"
 export SIF_PATH=$PROJECT_FOLDER"/users/"$USER"/singularity"
 export SIF_FILE="AdamWilsonLab-emma_docker-latest.sif"
 

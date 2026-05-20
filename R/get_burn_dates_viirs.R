@@ -114,14 +114,15 @@ download_burn_date_viirs_netcdf <- function(
   month_start <- as.Date(month_start)
   yyyymm      <- format(month_start, "%Y%m")
 
-  # Skip if already downloaded (marker file present)
+  # Skip if grid NC for this month already exists.
+  # burn_viirs_netcdf_to_grid() writes burn_viirs_YYYYMM.nc when it completes.
   marker_dir  <- "data/target_outputs/burn_dates_viirs"
-  marker_file <- file.path(marker_dir, paste0("burn_date_viirs_", yyyymm, "_monthly.nc"))
   dir.create(marker_dir,      recursive = TRUE, showWarnings = FALSE)
   dir.create(temp_directory,  recursive = TRUE, showWarnings = FALSE)
+  grid_nc_done <- file.path(marker_dir, paste0("burn_viirs_", yyyymm, ".nc"))
 
-  if (file.exists(marker_file)) {
-    if (verbose) message("VIIRS burn date marker exists for ", yyyymm, " — skipping")
+  if (file.exists(grid_nc_done)) {
+    if (verbose) message("VIIRS grid NC found for ", yyyymm, " — skipping download")
     return(temp_directory)
   }
 
@@ -164,36 +165,152 @@ download_burn_date_viirs_netcdf <- function(
   nc_paths <- list.files(temp_directory, pattern = "\\.nc$", full.names = TRUE, recursive = TRUE)
   if (length(nc_paths) == 0) {
     if (verbose) message("No NetCDF files returned for VIIRS month ", yyyymm)
+    skip_file <- file.path(marker_dir, paste0("burn_viirs_", yyyymm, ".skip"))
     writeLines(
       c(paste("Month:", yyyymm), "Reason: No NetCDF returned from AppEEARS", paste("Timestamp:", Sys.time())),
-      con = marker_file
+      con = skip_file
     )
-    return(temp_directory)
+    return(skip_file)
   }
 
   if (verbose) message("Downloaded ", length(nc_paths), " VIIRS NetCDF files for ", yyyymm)
-  cat("", file = marker_file)
+  # Return temp directory; burn_viirs_netcdf_to_grid() acts as the persistent marker.
   temp_directory
+}
+
+
+#' @title Convert VIIRS burned area NetCDF tiles to a domain-aligned raster grid
+#' @description Identical workflow to \code{burn_modis_netcdf_to_grid()} but for
+#'   VNP64A1 (VIIRS, 375m).  The 375m pixels are resampled to the 500m domain
+#'   grid via nearest-neighbour reprojection.  Writes a single NetCDF containing
+#'   a \code{burn_doy} variable (burn day-of-year, QA = 0 pixels only).
+#'
+#' @param netcdf_directory Character.  Path to AppEEARS temp directory or a
+#'   \code{.skip} path.
+#' @param domain_raster Character path or SpatRaster with a \code{pid} layer.
+#' @param month_start Date or "YYYY-MM-DD".
+#' @param out_dir Character.  Output directory for the grid NC.
+#' @param cleanup Logical.  Delete raw temp files after writing?
+#' @param verbose Logical.
+#'
+#' @return Character path to \code{burn_viirs_YYYYMM.nc}.
+#' @export
+burn_viirs_netcdf_to_grid <- function(
+  netcdf_directory,
+  domain_raster,
+  month_start,
+  out_dir  = "data/target_outputs/burn_dates_viirs/",
+  cleanup  = Sys.getenv("GITHUB_ACTIONS") == "true",
+  verbose  = TRUE
+) {
+  month_start <- as.Date(month_start)
+  yyyymm      <- format(month_start, "%Y%m")
+
+  terra_tmp <- file.path(getwd(), "data/temp/terra", yyyymm)
+  dir.create(terra_tmp, recursive = TRUE, showWarnings = FALSE)
+  terra::terraOptions(tempdir = terra_tmp, memfrac = 0.8)
+
+  dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+  out_nc <- file.path(out_dir, paste0("burn_viirs_", yyyymm, ".nc"))
+
+  domain_template <- if (is.character(domain_raster)) terra::rast(domain_raster) else domain_raster
+  stopifnot("pid" %in% names(domain_template))
+
+  write_empty_nc <- function() {
+    empty_r <- terra::setValues(domain_template[[1]], NA_real_)
+    terra::time(empty_r) <- month_start
+    terra::writeCDF(empty_r, out_nc,
+                    varname  = "burn_doy",
+                    longname = "Burn day of year (VNP64A1, no data)",
+                    overwrite = TRUE, verbose = FALSE)
+  }
+
+  nc_paths <- character(0)
+  if (!grepl("\\.skip$", netcdf_directory) && dir.exists(netcdf_directory)) {
+    nc_paths <- list.files(netcdf_directory, pattern = "\\.nc$",
+                           full.names = TRUE, recursive = TRUE)
+  }
+
+  if (length(nc_paths) == 0L) {
+    if (verbose) message("No VIIRS burn NCs for ", yyyymm, " — writing all-NA grid")
+    write_empty_nc()
+    if (cleanup && !grepl("\\.skip$", netcdf_directory) && dir.exists(netcdf_directory)) {
+      unlink(netcdf_directory, recursive = TRUE, force = TRUE)
+    }
+    return(out_nc)
+  }
+
+  burn_tiles <- list()
+  for (nc_path in nc_paths) {
+    tryCatch({
+      r        <- terra::rast(nc_path)
+      burn_idx <- which(grepl("Burn_Date|BurnDate|burn_date", names(r),
+                              ignore.case = TRUE))[1]
+      qa_idx   <- which(grepl("^QA$|quality", names(r), ignore.case = TRUE))[1]
+      if (is.na(burn_idx) || is.na(qa_idx)) {
+        warning("Missing Burn_Date or QA in ", basename(nc_path), " — skipping tile")
+        return(NULL)
+      }
+      # Nearest-neighbour handles 375m → 500m resampling
+      burn_proj <- terra::project(r[[burn_idx]], domain_template, method = "near")
+      qa_proj   <- terra::project(r[[qa_idx]],   domain_template, method = "near")
+      good_qa   <- terra::app(qa_proj, function(x) x == 0)
+      burn_tiles[[length(burn_tiles) + 1L]] <- terra::mask(burn_proj, good_qa,
+                                                            maskvalue = FALSE)
+    }, error = function(e) {
+      warning("Failed to process ", basename(nc_path), ": ", conditionMessage(e))
+    })
+  }
+
+  burn_tiles <- Filter(Negate(is.null), burn_tiles)
+
+  if (length(burn_tiles) == 0L) {
+    if (verbose) message("All VIIRS tiles empty after QA for ", yyyymm, " — writing all-NA grid")
+    write_empty_nc()
+    if (cleanup) unlink(netcdf_directory, recursive = TRUE, force = TRUE)
+    return(out_nc)
+  }
+
+  burn_mosaic <- if (length(burn_tiles) == 1L) {
+    burn_tiles[[1L]]
+  } else {
+    do.call(terra::mosaic, c(burn_tiles, list(fun = "first")))
+  }
+  domain_mask <- !is.na(domain_template[["pid"]])
+  burn_mosaic <- terra::mask(burn_mosaic, domain_mask, maskvalue = FALSE)
+
+  terra::time(burn_mosaic) <- month_start
+  terra::writeCDF(burn_mosaic, out_nc,
+                  varname  = "burn_doy",
+                  longname = "Burn day of year (VNP64A1, QA=0)",
+                  overwrite = TRUE, verbose = FALSE)
+
+  if (verbose) message("Wrote VIIRS burn grid NC: ", basename(out_nc))
+
+  if (cleanup) {
+    unlink(netcdf_directory, recursive = TRUE, force = TRUE)
+    gc()
+    unlink(terra_tmp, recursive = TRUE, force = TRUE)
+  }
+
+  out_nc
 }
 
 
 #' @title Convert VIIRS burned area NetCDF to parquet
 #'
-#' @description Identical workflow to \code{burn_date_modis_netcdf_to_parquet()}.
-#'   Reads VNP64A1 Burn_Date + QA layers, reprojects to domain, filters to
-#'   burned pixels, and writes a tidy parquet file.
+#' @description Reads \code{burn_doy} from the domain-aligned NC produced by
+#'   \code{burn_viirs_netcdf_to_grid()} and writes a tidy parquet.  QA filtering
+#'   was applied in the grid step, so all rows have qa = 0.
 #'
-#'   VIIRS 375m pixels are resampled to the 500m domain grid using nearest-neighbour
-#'   before extracting values (done inside \code{extract_burn_date_observations()}).
+#' @param nc_file      Character. Path to \code{burn_viirs_YYYYMM.nc}.
+#' @param domain_raster SpatRaster or path.  Must contain a \code{pid} layer.
+#' @param month_start  Date or "YYYY-MM-DD".
+#' @param out_dir      Character. Output directory for parquet files.
+#' @param verbose      Logical.
 #'
-#' @param netcdf_directory Character. Path to downloaded NetCDF files.
-#' @param domain_raster    SpatRaster or file path to domain.nc.
-#' @param month_start      Date. First day of the month.
-#' @param out_dir          Character. Output directory for parquet files.
-#' @param cleanup          Logical. Delete temp files after writing parquet?
-#' @param verbose          Logical. Print progress messages?
-#'
-#' @return Character path to the output parquet file, or a skip marker path.
+#' @return Character path to the parquet file, or a \code{.skip} path if no
+#'   burned pixels are found.
 #' @export
 burn_date_viirs_netcdf_to_parquet <- function(
     netcdf_directory,
@@ -306,7 +423,7 @@ identify_missing_burn_dates_viirs <- function(
 
   missing <- find_missing_months(
     output_dir = output_dir,
-    dataset    = "burn_date_viirs",
+    dataset    = "burn_viirs",
     start_date = start_date,
     end_date   = end_date
   )

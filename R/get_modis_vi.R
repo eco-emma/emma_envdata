@@ -43,12 +43,14 @@ find_missing_months <- function(output_dir, dataset = "modis_vi", start_date = "
   # Create full monthly sequence
   all_months <- generate_monthly_sequence(start_date, end_date)
   
-  # Check which ones already exist as downloaded NetCDF files OR skip markers.
+  # Check which ones already exist as processed NetCDF files OR skip markers.
   # A .skip file means AppEEARS returned no data for that month (e.g. pre-launch,
   # complete cloud cover) — it is not a failure, so do not retry it.
+  # NC pattern matches both single-file outputs (dataset_YYYYMM.nc) and
+  # sensor-split outputs (dataset_YYYYMM_terra.nc, dataset_YYYYMM_aqua.nc).
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
-  pattern_nc   <- paste0("^", dataset, "_\\d{6}_monthly\\.nc$")
-  pattern_skip <- paste0("^", dataset, "_\\d{6}_monthly\\.skip$")
+  pattern_nc   <- paste0("^", dataset, "_\\d{6}.*\\.nc$")
+  pattern_skip <- paste0("^", dataset, "_\\d{6}\\.skip$")
   existing_nc   <- list.files(output_dir, pattern = pattern_nc)
   existing_skip <- list.files(output_dir, pattern = pattern_skip)
   existing_files <- c(existing_nc, existing_skip)
@@ -57,12 +59,9 @@ find_missing_months <- function(output_dir, dataset = "modis_vi", start_date = "
     return(all_months)
   }
   
-  # Extract YYYYMM from existing files and convert to match date_str
-  # Format: <dataset>_<YYYYMM>_monthly.nc
-  pattern_prefix <- paste0("^", dataset, "_")
-  existing_dates <- existing_files %>%
-    gsub(pattern_prefix, "", .) %>%
-    gsub("_monthly\\.nc$", "", .)
+  # Extract YYYYMM as the first 6-digit sequence in each filename.
+  # Works for: dataset_YYYYMM.nc, dataset_YYYYMM_terra.nc, dataset_YYYYMM.skip, etc.
+  existing_dates <- regmatches(existing_files, regexpr("\\d{6}", existing_files))
   
   # Return only missing months
   missing <- all_months[!all_months$date_str %in% existing_dates, ]
@@ -198,14 +197,14 @@ download_modis_vi_netcdf <- function(
   month_start <- as.Date(month_start)
   yyyymm <- format(month_start, "%Y%m")
   
-  # Check if this month was already downloaded (marker file exists)
+  # Check if this month was already processed into a grid NC; if so, skip re-downloading.
+  # vi_modis_netcdf_to_grid() writes vi_modis_YYYYMM_terra.nc when it completes.
   cache_dir <- "data/target_outputs/modis_vi"
   dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
-  cache_file <- file.path(cache_dir, paste0("modis_vi_", yyyymm, "_monthly.nc"))
-  
-  if (file.exists(cache_file)) {
-    if (verbose) message("Marker file found for ", yyyymm, " - skipping AppEEARS download")
-    # Create minimal temp directory so netcdf_to_parquet gets valid path
+  terra_nc_done <- file.path(cache_dir, paste0("vi_modis_", yyyymm, "_terra.nc"))
+
+  if (file.exists(terra_nc_done)) {
+    if (verbose) message("Grid NC found for ", yyyymm, " — skipping AppEEARS download")
     dir.create(temp_directory, recursive = TRUE, showWarnings = FALSE)
     return(temp_directory)
   }
@@ -264,7 +263,7 @@ download_modis_vi_netcdf <- function(
     if (verbose) message("No NetCDF files returned from AppEEARS for month ", yyyymm)
     # Write a skip marker so identify_missing_vi() won't retry this month.
     # The marker name matches the pattern recognised by identify_missing_vi().
-    skip_file <- file.path(cache_dir, paste0("modis_vi_", yyyymm, "_monthly.skip"))
+    skip_file <- file.path(cache_dir, paste0("vi_modis_", yyyymm, ".skip"))
     writeLines(
       c(paste("Month:", yyyymm), "Reason: AppEEARS returned no NetCDF files", paste("Timestamp:", Sys.time())),
       con = skip_file
@@ -276,19 +275,262 @@ download_modis_vi_netcdf <- function(
   
   if (verbose) message("Downloaded ", length(nc_paths), " NetCDF files to ", temp_directory)
   
-  # Create persistent marker file to avoid re-downloading this month
-  # Check which months have already been downloaded by looking for marker files
-  cache_dir <- "data/target_outputs/modis_vi"
-  dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
-  cache_file <- file.path(cache_dir, paste0("modis_vi_", yyyymm, "_monthly.nc"))
-  
-  # Write a simple marker file (just needs to exist to be detected by identify_missing_vi)
-  cat("", file = cache_file)
-  
-  if (verbose) message("Created download marker: ", cache_file)
-  
-  # Return temp directory so netcdf_to_parquet() can access the actual files
+  # Return temp directory so vi_modis_netcdf_to_grid() can access the actual files.
+  # No sentinel NC is written here; the grid NC written by vi_modis_netcdf_to_grid()
+  # acts as the persistent marker that prevents re-downloading.
   return(temp_directory)
+}
+
+
+#' @title Convert MODIS VI AppEEARS NetCDF files to domain-aligned raster grids
+#' @description Processes raw AppEEARS NetCDF downloads for one month:
+#'   applies QA masking, handles multiple spatial tiles via mosaicing, and
+#'   reprojects to the domain grid.  Outputs two NetCDF files — one for
+#'   Terra (MOD13A1) and one for Aqua (MYD13A1) — each containing two
+#'   variables: \code{EVI} (EVI×100, QA-masked) and \code{doy}
+#'   (composite day-of-year, per pixel).  Both variables share a time
+#'   dimension whose steps are the nominal start dates of each 16-day
+#'   composite period present in the download.
+#'
+#'   If AppEEARS returned no files (skip path received or empty directory),
+#'   all-NA grids are still written so that \code{find_missing_months()}
+#'   treats the month as complete and does not retry it.
+#'
+#' @param netcdf_directory Character.  Path to directory containing raw
+#'   AppEEARS NC files, or path to a \code{.skip} marker returned by
+#'   \code{download_modis_vi_netcdf()} when no data were available.
+#' @param domain_raster Character path or SpatRaster.  Must contain a
+#'   \code{pid} layer defining the model grid.
+#' @param month_start Date or "YYYY-MM-DD".  First day of the month —
+#'   used for naming output files and as the time stamp for all-NA grids.
+#' @param out_dir Character.  Output directory for the two sensor NCs.
+#' @param cleanup Logical.  Delete the raw AppEEARS temp files after
+#'   writing the grid NCs?  Defaults to TRUE on GitHub Actions.
+#' @param verbose Logical.  Print progress messages?
+#'
+#' @return Character vector of length 2:
+#'   \code{c("out_dir/vi_modis_YYYYMM_terra.nc", "out_dir/vi_modis_YYYYMM_aqua.nc")}.
+#'   Both files are always written (all-NA when no source data exist).
+#' @export
+vi_modis_netcdf_to_grid <- function(
+  netcdf_directory,
+  domain_raster,
+  month_start,
+  out_dir  = "data/target_outputs/modis_vi/",
+  cleanup  = Sys.getenv("GITHUB_ACTIONS") == "true",
+  verbose  = TRUE
+) {
+  month_start <- as.Date(month_start)
+  yyyymm      <- format(month_start, "%Y%m")
+
+  # Per-branch terra tempdir prevents race conditions under parallel tar_make_future()
+  terra_tmp <- file.path(getwd(), "data/temp/terra", yyyymm)
+  dir.create(terra_tmp, recursive = TRUE, showWarnings = FALSE)
+  terra::terraOptions(tempdir = terra_tmp, memfrac = 0.8)
+
+  dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+  out_terra_nc <- file.path(out_dir, paste0("vi_modis_", yyyymm, "_terra.nc"))
+  out_aqua_nc  <- file.path(out_dir, paste0("vi_modis_", yyyymm, "_aqua.nc"))
+
+  # Load domain template (needed even for the all-NA fallback)
+  domain_template <- if (is.character(domain_raster)) terra::rast(domain_raster) else domain_raster
+  stopifnot("pid" %in% names(domain_template))
+
+  # Helper: write an all-NA two-variable NC for one sensor (EVI + doy)
+  write_empty_sensor_nc <- function(out_nc, t_date) {
+    empty_r <- terra::setValues(domain_template[[1]], NA_real_)
+    terra::time(empty_r) <- t_date
+    terra::writeCDF(empty_r, out_nc,
+                    varname  = "EVI",
+                    longname = "EVI x100 (QA-masked, no data)",
+                    overwrite = TRUE, verbose = FALSE)
+    terra::writeCDF(empty_r, out_nc,
+                    varname  = "doy",
+                    longname = "Composite day of year (no data)",
+                    append   = TRUE, verbose = FALSE)
+  }
+
+  # Determine source NC files — handle both directory path and skip-file path
+  nc_paths <- character(0)
+  if (!grepl("\\.skip$", netcdf_directory) && dir.exists(netcdf_directory)) {
+    nc_paths <- list.files(netcdf_directory, pattern = "\\.nc$",
+                           full.names = TRUE, recursive = TRUE)
+  }
+
+  if (length(nc_paths) == 0) {
+    if (verbose) message("No source NCs for ", yyyymm, " — writing all-NA grid files")
+    write_empty_sensor_nc(out_terra_nc, month_start)
+    write_empty_sensor_nc(out_aqua_nc,  month_start)
+    if (cleanup && !grepl("\\.skip$", netcdf_directory) && dir.exists(netcdf_directory)) {
+      unlink(netcdf_directory, recursive = TRUE, force = TRUE)
+    }
+    return(c(out_terra_nc, out_aqua_nc))
+  }
+
+  # Read QA lookup tables (AppEEARS includes them alongside the NC files)
+  qa_lookup <- list.files(netcdf_directory, pattern = "VI-Quality.*\\.csv$",
+                          full.names = TRUE, recursive = TRUE)
+  if (!length(qa_lookup)) {
+    stop("QA lookup table not found in netcdf_directory; cannot QA-mask VI data")
+  }
+  keep_values <- parse_qa(qa_lookup)
+  if (!length(keep_values)) stop("No good-quality QA entries found in lookup tables")
+
+  if (verbose) {
+    message("Processing ", length(nc_paths), " NC files for ", yyyymm,
+            " (", length(keep_values), " QA keep values)")
+  }
+
+  # Classify each NC as Terra (MOD13A1) or Aqua (MYD13A1)
+  detect_sensor <- function(nc_path) {
+    sensor <- "terra"
+    tryCatch({
+      nc_obj <- ncdf4::nc_open(nc_path)
+      attrs  <- ncdf4::ncatt_get(nc_obj, 0)
+      ncdf4::nc_close(nc_obj)
+      for (val in attrs) {
+        if (is.character(val) && grepl("MYD13", val, ignore.case = TRUE)) {
+          sensor <- "aqua"
+          break
+        }
+      }
+    }, error = function(e) invisible(NULL))
+    sensor
+  }
+
+  sensor_labels <- vapply(nc_paths, detect_sensor, character(1L))
+  terra_ncs <- nc_paths[sensor_labels == "terra"]
+  aqua_ncs  <- nc_paths[sensor_labels == "aqua"]
+  if (verbose) {
+    message("Sensor split: ", length(terra_ncs), " Terra NC(s), ",
+            length(aqua_ncs), " Aqua NC(s)")
+  }
+
+  # Process one set of same-sensor NC files → (EVI stack, doy stack) aligned to domain.
+  # Multiple NCs may cover different spatial tiles for the same time step and
+  # are mosaiced before reprojection.
+  process_sensor_ncs <- function(ncs, keep_values, domain_template, verbose) {
+    if (length(ncs) == 0L) return(NULL)
+
+    # Collect all unique time values (as numeric days since epoch) across all NCs
+    all_t_numeric <- unique(unlist(lapply(ncs, function(p) {
+      r       <- terra::rast(p)
+      evi_idx <- which(grepl("EVI", names(r), ignore.case = TRUE) &
+                       !grepl("Quality|composite_day", names(r), ignore.case = TRUE))
+      if (length(evi_idx) == 0L) return(NULL)
+      as.numeric(terra::time(r[[evi_idx]]))
+    })))
+    all_t_numeric <- sort(all_t_numeric[is.finite(all_t_numeric)])
+    if (length(all_t_numeric) == 0L) return(NULL)
+
+    evi_layers <- vector("list", length(all_t_numeric))
+    doy_layers <- vector("list", length(all_t_numeric))
+    valid_t    <- logical(length(all_t_numeric))
+
+    for (ti in seq_along(all_t_numeric)) {
+      t_val     <- all_t_numeric[ti]
+      evi_tiles <- list()
+      doy_tiles <- list()
+
+      for (nc_path in ncs) {
+        r <- terra::rast(nc_path)
+
+        evi_idx <- which(grepl("EVI", names(r), ignore.case = TRUE) &
+                         !grepl("Quality|composite_day", names(r), ignore.case = TRUE))
+        qa_idx  <- which(grepl("VI_Quality|vi_quality|Quality", names(r), ignore.case = TRUE))
+        doy_idx <- which(grepl("composite_day_of_the_year", names(r), ignore.case = TRUE))
+
+        if (length(evi_idx) == 0L) next
+
+        # Find the layer(s) for this specific time step
+        r_times <- as.numeric(terra::time(r[[evi_idx]]))
+        t_match <- which(r_times == t_val)
+        if (length(t_match) == 0L) next
+
+        i_evi <- evi_idx[t_match[1L]]
+        i_qa  <- qa_idx[min(t_match[1L], length(qa_idx))]
+        i_doy <- doy_idx[min(t_match[1L], length(doy_idx))]
+
+        # Apply QA mask; scale EVI by 100 (matches existing parquet schema)
+        keep_mask  <- terra::app(r[[i_qa]], function(x) x %in% keep_values)
+        evi_masked <- terra::mask(r[[i_evi]], keep_mask, maskvalue = FALSE) |>
+                      terra::app(function(x) as.integer(round(x * 100)))
+        doy_masked <- terra::mask(r[[i_doy]], keep_mask, maskvalue = FALSE)
+
+        evi_tiles[[length(evi_tiles) + 1L]] <- evi_masked
+        doy_tiles[[length(doy_tiles) + 1L]] <- doy_masked
+      }
+
+      if (length(evi_tiles) == 0L) next
+
+      # Mosaic spatial tiles for this time step
+      if (length(evi_tiles) == 1L) {
+        evi_m <- evi_tiles[[1L]]
+        doy_m <- doy_tiles[[1L]]
+      } else {
+        evi_m <- do.call(terra::mosaic, c(evi_tiles, list(fun = "mean")))
+        doy_m <- do.call(terra::mosaic, c(doy_tiles, list(fun = "first")))
+      }
+
+      # Reproject to domain grid and mask to domain pixels
+      evi_proj <- terra::project(evi_m, domain_template, method = "average")
+      doy_proj <- terra::project(doy_m, domain_template, method = "mode")
+      domain_mask <- !is.na(domain_template[["pid"]])
+      evi_proj <- terra::mask(evi_proj, domain_mask, maskvalue = FALSE)
+      doy_proj <- terra::mask(doy_proj, domain_mask, maskvalue = FALSE)
+
+      evi_layers[[ti]] <- evi_proj
+      doy_layers[[ti]] <- doy_proj
+      valid_t[ti]      <- TRUE
+    }
+
+    keep_ti <- which(valid_t)
+    if (length(keep_ti) == 0L) return(NULL)
+
+    evi_stack <- do.call(c, evi_layers[keep_ti])
+    doy_stack <- do.call(c, doy_layers[keep_ti])
+    t_dates   <- as.Date(all_t_numeric[keep_ti], origin = "1970-01-01")
+    terra::time(evi_stack) <- t_dates
+    terra::time(doy_stack) <- t_dates
+
+    list(evi = evi_stack, doy = doy_stack)
+  }
+
+  terra_data <- process_sensor_ncs(terra_ncs, keep_values, domain_template, verbose)
+  aqua_data  <- process_sensor_ncs(aqua_ncs,  keep_values, domain_template, verbose)
+
+  # Write output NC for each sensor.  EVI and doy share the same time dimension
+  # within each sensor file, so terra::writeCDF append=TRUE works correctly.
+  write_sensor_nc <- function(sensor_data, out_nc, sensor_label, verbose) {
+    if (is.null(sensor_data)) {
+      # No valid composites for this sensor — write single all-NA time step
+      if (verbose) message("No valid composites for ", sensor_label, " in ", yyyymm,
+                           " — writing all-NA NC")
+      write_empty_sensor_nc(out_nc, month_start)
+    } else {
+      terra::writeCDF(sensor_data$evi, out_nc,
+                      varname  = "EVI",
+                      longname = paste0("EVI x100 QA-masked (", sensor_label, ")"),
+                      overwrite = TRUE, verbose = FALSE)
+      terra::writeCDF(sensor_data$doy, out_nc,
+                      varname  = "doy",
+                      longname = paste0("Composite day of year (", sensor_label, ")"),
+                      append   = TRUE, verbose = FALSE)
+      n_steps <- if (is.null(sensor_data)) 0L else terra::nlyr(sensor_data$evi)
+      if (verbose) message("Wrote ", n_steps, " time step(s) → ", basename(out_nc))
+    }
+  }
+
+  write_sensor_nc(terra_data, out_terra_nc, "Terra/MOD13A1", verbose)
+  write_sensor_nc(aqua_data,  out_aqua_nc,  "Aqua/MYD13A1",  verbose)
+
+  if (cleanup) {
+    unlink(netcdf_directory, recursive = TRUE, force = TRUE)
+    gc()
+    unlink(terra_tmp, recursive = TRUE, force = TRUE)
+  }
+
+  c(out_terra_nc, out_aqua_nc)
 }
 
 
@@ -467,190 +709,118 @@ extract_vi_observations <- function(
 }
 
 
-#' @title Convert MODIS VI NetCDF files to parquet format
-#' @description Processes downloaded NetCDF files: applies QA masking, reprojects to domain grid,
-#' and converts observations to parquet format with one row per observation.
-#' @author EMMA Team
-#' @param netcdf_directory Path to directory containing downloaded NetCDF files and metadata
-#' @param domain_raster A SpatRaster (domain.tif) defining the output grid and mask
-#' @param month_start Start date for monthly period (YYYY-MM-DD)
-#' @param out_dir Output directory for parquet files
-#' @param cleanup Logical to delete temporary files after processing. Defaults to TRUE on GitHub Actions (GITHUB_ACTIONS env var), FALSE on local execution.
-#' @param verbose Logical for progress messages
-#' @return Character path to output parquet file (format: modis_vi_YYYYMM.parquet)
+#' @title Convert MODIS VI sensor NetCDF grids to parquet format
+#' @description Reads the two sensor NC files produced by
+#'   \code{vi_modis_netcdf_to_grid()} and extracts one row per valid
+#'   (non-NA EVI) pixel per 16-day composite.  The \code{date} column
+#'   contains the per-pixel composite day-of-year converted to days
+#'   since 1970-01-01, preserving the actual observation date rather
+#'   than the nominal month start.
+#'
+#' @param nc_files Character vector of length 2:
+#'   \code{c("vi_modis_YYYYMM_terra.nc", "vi_modis_YYYYMM_aqua.nc")} as
+#'   returned by \code{vi_modis_netcdf_to_grid()}.
+#' @param domain_raster Character path or SpatRaster containing a \code{pid}
+#'   layer.
+#' @param month_start Date or "YYYY-MM-DD".  Used for output file naming and
+#'   for converting composite day-of-year to a calendar date (year context).
+#' @param out_dir Character.  Output directory for parquet files.
+#' @param verbose Logical.  Print progress messages?
+#'
+#' @return Character path to the output parquet file
+#'   (\code{dynamic_modis_vi_YYYYMM.parquet}), or a \code{.skip} path if
+#'   all grid layers are NA.
+#'
 #' @details
-#' Parquet schema:
-#' - pid (int32): Pixel ID from domain grid
-#' - date (int32): Days since epoch (1970-01-01)
-#' - variable (int32): Sensor code (1=Terra, 2=Aqua, 3=VIIRS)
-#' - value (int32): EVI value × 100
-#' 
-#' One row per unique observation (pid, date, sensor combination).
+#' Parquet schema (one row per observation):
+#' \describe{
+#'   \item{pid}{int32 — pixel ID from domain grid}
+#'   \item{date}{int32 — days since 1970-01-01, from per-pixel composite DOY}
+#'   \item{variable}{int32 — sensor code: 1 = Terra (MOD13A1), 2 = Aqua (MYD13A1)}
+#'   \item{value}{int32 — EVI × 100}
+#' }
 #' @export
 vi_modis_netcdf_to_parquet <- function(
-  netcdf_directory,
+  nc_files,
   domain_raster,
   month_start,
-  out_dir = "data/processed_data/dynamic_parquet/modis_vi",
-  cleanup = Sys.getenv("GITHUB_ACTIONS") == "true",
-  verbose = TRUE
+  out_dir  = "data/target_outputs/modis_vi/",
+  verbose  = TRUE
 ) {
-  
   month_start <- as.Date(month_start)
-  yyyymm <- format(month_start, "%Y%m")
+  yyyymm      <- format(month_start, "%Y%m")
 
-  # Use a per-branch terra tempdir to prevent race conditions when multiple
-  # months are processed in parallel by tar_make_future().
-  terra_tmp <- file.path(getwd(), "data/temp/terra", yyyymm)
-  dir.create(terra_tmp, recursive = TRUE, showWarnings = FALSE)
-  terra::terraOptions(tempdir = terra_tmp, memfrac = 0.8)
-  
-  # Validate and load NetCDF files
-  nc_paths <- list.files(netcdf_directory, pattern = "\\.nc$", full.names = TRUE, recursive = TRUE)
-  if (length(nc_paths) == 0) {
-    if (verbose) message("No NetCDF files found in ", netcdf_directory, " - writing skip marker")
-    
-    # Create a lightweight skip marker file instead of fake data
-    dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
-    skip_file <- file.path(out_dir, paste0("modis_vi_", yyyymm, "_monthly.skip"))
-    
-    writeLines(
-      c(
-        paste("Month:", yyyymm),
-        paste("Reason: No NetCDF files available for processing"),
-        paste("Note: Possible causes - polar region, cloud cover, instrument malfunction, or outside data availability period"),
-        paste("Timestamp:", Sys.time())
-      ),
-      skip_file
-    )
-    
-    if (verbose) message("Created skip marker: ", skip_file)
-    
-    if (cleanup) {
-      unlink(netcdf_directory, recursive = TRUE, force = TRUE)
-      gc()
-      unlink(terra_tmp, recursive = TRUE, force = TRUE)
-    }
-    
-    return(skip_file)
-  }
-  
-  if (verbose) message("Reading ", length(nc_paths), " NetCDF files")
-  
-
-# Vargas et al.,15 pixels with any of the following QA flags were removed: 
-# not confidently clear, adjacent to cloud, cloud shadow, snow or ice, thin cirrus cloud, 
-# high aerosol loading, solar zenith angle >65 deg, and not over land.
-
-  # Apply QA mask to VI layers
-  qa_lookup <- list.files(
-    netcdf_directory,
-    pattern = "(VI-Quality-lookup).*\\.csv$",
-    full.names = TRUE,
-    recursive = TRUE
-  )
-  if (!length(qa_lookup)) {
-    stop("QA lookup table (VI_Quality*.csv) not found in netcdf_directory; cannot mask VI data")
-  }
-  
-  keep_values <- parse_qa(qa_lookup)
-  if (!length(keep_values)) {
-    stop("No 'good quality' entries found in any QA table; refusing to proceed")
-  }
-  
-  if (verbose) message("Using ", length(keep_values), " QA values for masking")
-  
-  # Load and validate domain raster
-  domain_template <- if (is.character(domain_raster)) terra::rast(domain_raster) else domain_raster
-  
-  if (!"pid" %in% names(domain_template)) {
-    stop("domain_raster must include a 'pid' layer")
-  }
-  
-  # Get domain mask and valid pids
-  mask_layer <- if ("domain" %in% names(domain_template)) domain_template[["domain"]] else domain_template
-  pid_raster <- terra::mask(domain_template[["pid"]], mask_layer)
-  valid_pids <- unique(terra::values(pid_raster)[, 1])
-  valid_pids <- valid_pids[!is.na(valid_pids)]
-  
-  if (verbose) message("Domain has ", length(valid_pids), " valid pixels")
-  
-  # Process each NetCDF file independently (call helper once per file)
-  all_obs <- list()
-  
-  for (nc_path in nc_paths) {
-    obs <- extract_vi_observations(
-      nc_path = nc_path,
-      domain_template = domain_template,
-      keep_values = keep_values,
-      month_start = month_start,
-      verbose = verbose
-    )
-    
-    if (!is.null(obs)) {
-      # Filter to domain pids
-      obs <- obs[obs$pid %in% valid_pids, ]
-      if (nrow(obs) > 0) {
-        all_obs[[length(all_obs) + 1]] <- obs
-      }
-    }
-  }
-  
-  if (length(all_obs) == 0) {
-    if (verbose) message("No valid observations found after QA masking and domain filtering - writing skip marker")
-
-    dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
-    skip_file <- file.path(out_dir, paste0("modis_vi_", yyyymm, "_monthly.skip"))
-    writeLines(
-      c(
-        paste("Month:", yyyymm),
-        paste("Reason: No valid observations after QA masking and domain filtering"),
-        paste("Timestamp:", Sys.time())
-      ),
-      skip_file
-    )
-    if (verbose) message("Created skip marker: ", skip_file)
-
-    if (cleanup) {
-      unlink(netcdf_directory, recursive = TRUE, force = TRUE)
-      gc()
-      unlink(terra_tmp, recursive = TRUE, force = TRUE)
-    }
-    return(skip_file)
-  }
-  
-  # Bind all observations into single dataframe and drop any NAs (should be none after filtering, but just in case)
-  df <- dplyr::bind_rows(all_obs)|>
-        dplyr::filter(!is.na(.data$value))
-  
-  
-  # Write to parquet
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
-  parquet_file <- file.path(out_dir, sprintf("dynamic_modis_vi_%s.parquet", yyyymm))
+  parquet_file <- file.path(out_dir, paste0("dynamic_modis_vi_", yyyymm, ".parquet"))
 
-  # At most once per day: return immediately if the parquet was written < 24 h ago
-  if (file.exists(parquet_file) &&
-      difftime(Sys.time(), file.mtime(parquet_file), units = "days") < 1) {
-    if (verbose) message("Parquet already current (< 1 day old), skipping: ", parquet_file)
-    return(parquet_file)
+  # Load domain for pid values
+  domain_template <- if (is.character(domain_raster)) terra::rast(domain_raster) else domain_raster
+  stopifnot("pid" %in% names(domain_template))
+  pid_vec  <- terra::values(domain_template[["pid"]])[, 1]
+  ref_year <- as.integer(format(month_start, "%Y"))
+  year_start_epoch <- as.integer(as.Date(paste0(ref_year, "-01-01")) - as.Date("1970-01-01"))
+
+  # Detect sensor code from filename: _terra_ → 1, _aqua_ → 2
+  sensor_code <- function(nc_path) {
+    if (grepl("_terra_", basename(nc_path))) 1L else 2L
+  }
+
+  # Extract observations from one sensor NC (EVI + doy variables, N time steps)
+  extract_sensor_obs <- function(nc_path) {
+    s_id  <- sensor_code(nc_path)
+    evi_r <- tryCatch(terra::rast(nc_path, subds = "EVI"),
+                      error = function(e) NULL)
+    doy_r <- tryCatch(terra::rast(nc_path, subds = "doy"),
+                      error = function(e) NULL)
+    if (is.null(evi_r) || is.null(doy_r)) {
+      if (verbose) message("Could not read subdatasets from: ", basename(nc_path))
+      return(NULL)
+    }
+    n_steps <- terra::nlyr(evi_r)
+    obs <- vector("list", n_steps)
+    for (ti in seq_len(n_steps)) {
+      evi_v <- terra::values(evi_r[[ti]])[, 1]
+      doy_v <- terra::values(doy_r[[ti]])[, 1]
+      valid <- !is.na(evi_v) & !is.na(doy_v) & !is.na(pid_vec)
+      if (!any(valid)) next
+      # Convert composite day-of-year to days since 1970-01-01
+      epoch_dates <- as.integer(year_start_epoch + as.integer(doy_v[valid]) - 1L)
+      obs[[ti]] <- tibble::tibble(
+        pid      = as.integer(pid_vec[valid]),
+        date     = epoch_dates,
+        variable = s_id,
+        value    = as.integer(evi_v[valid])
+      )
+    }
+    dplyr::bind_rows(obs)
+  }
+
+  all_obs <- purrr::map(nc_files, function(nc) {
+    tryCatch(extract_sensor_obs(nc),
+             error = function(e) {
+               warning("Failed to process ", basename(nc), ": ", conditionMessage(e))
+               NULL
+             })
+  })
+
+  df <- dplyr::bind_rows(purrr::compact(all_obs)) |>
+        dplyr::filter(!is.na(.data$value))
+
+  if (nrow(df) == 0L) {
+    if (verbose) message("No valid VI observations for ", yyyymm, " — writing skip marker")
+    skip_file <- file.path(out_dir, paste0("vi_modis_", yyyymm, ".skip"))
+    writeLines(
+      c(paste("Month:", yyyymm),
+        "Reason: All-NA after reading sensor grid NCs",
+        paste("Timestamp:", Sys.time())),
+      skip_file
+    )
+    return(skip_file)
   }
 
   unlink(parquet_file)
-  if (verbose) message("Writing ", nrow(df), " observations to parquet")
-  arrow::write_parquet(
-    df,
-    sink = parquet_file,
-    compression = "gzip"
-  )
-  
-  if (verbose) message("Parquet file saved: ", parquet_file)
-  
-  # Cleanup
-  if (cleanup) {
-    unlink(netcdf_directory, recursive = TRUE, force = TRUE)
-    gc()
-    unlink(terra_tmp, recursive = TRUE, force = TRUE)
-  }
-  
+  if (verbose) message("Writing ", nrow(df), " observations → ", basename(parquet_file))
+  arrow::write_parquet(df, sink = parquet_file, compression = "gzip")
+
   parquet_file
 }

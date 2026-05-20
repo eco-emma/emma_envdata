@@ -72,11 +72,11 @@ merge_burn_dates <- function(
     return(tibble::tibble(pid = integer(), date = integer(), burn_doy = integer(), source = character()))
   }
 
-  # Combine and deduplicate: for the same pixel × date, keep MODIS over VIIRS
+  # Combine and deduplicate: for the same pixel × date, keep VIIRS over MODIS
   all_burns <- dplyr::bind_rows(modis_burns, viirs_burns) |>
     dplyr::filter(!is.na(.data$date), .data$burn_doy > 0L) |>
-    # Rank by source preference: MODIS first, then VIIRS
-    dplyr::mutate(source_rank = dplyr::if_else(.data$source == "modis", 1L, 2L)) |>
+    # Rank by source preference: VIIRS first, then MODIS
+    dplyr::mutate(source_rank = dplyr::if_else(.data$source == "viirs", 1L, 2L)) |>
     dplyr::group_by(.data$pid, .data$date) |>
     dplyr::slice_min(.data$source_rank, n = 1, with_ties = FALSE) |>
     dplyr::ungroup() |>
@@ -239,4 +239,99 @@ vi_load_observation_dates <- function(
 
   if (verbose) message("Found ", length(dates), " unique observation dates")
   dates
+}
+
+
+#' @title Rasterize most-recent-burn parquet to a domain-aligned NetCDF
+#'
+#' @description Reads \code{most_recent_burn.parquet} (columns: pid, as_of_date,
+#'   last_burn_date, fire_age_days), finds the latest available \code{as_of_date},
+#'   and writes a two-variable NetCDF snapshot raster to \code{out_file}:
+#'   \describe{
+#'     \item{fire_age_days}{Integer days since last fire per pixel}
+#'     \item{last_burn_date}{Integer days since 1970-01-01 of last burn per pixel}
+#'   }
+#'   Pixels that never burned are written as \code{NA}.
+#'
+#' @param parquet_file Character path to \code{most_recent_burn.parquet}.
+#' @param domain_raster A \code{SpatRaster} (or file path) carrying a \code{pid}
+#'   layer used to map pixel IDs to grid cells.
+#' @param out_file Character path for the output NetCDF file.
+#' @param verbose Logical. Print progress messages?
+#'
+#' @return Character path to the written NetCDF file.
+#' @export
+most_recent_burn_to_grid <- function(
+    parquet_file,
+    domain_raster,
+    out_file = "data/target_outputs/most_recent_burn.nc",
+    verbose  = TRUE) {
+
+  # Load domain grid (accept file path or SpatRaster)
+  if (is.character(domain_raster)) {
+    domain_template <- terra::rast(domain_raster)
+  } else {
+    domain_template <- domain_raster
+  }
+
+  df <- arrow::read_parquet(parquet_file)
+
+  dir.create(dirname(out_file), recursive = TRUE, showWarnings = FALSE)
+
+  if (nrow(df) == 0L) {
+    if (verbose) message("most_recent_burn parquet is empty — writing all-NA NC")
+    empty_r <- domain_template[[1]]
+    terra::values(empty_r) <- NA_real_
+    terra::time(empty_r)   <- Sys.Date()
+    terra::writeCDF(empty_r, out_file,
+                    varname  = "fire_age_days",
+                    longname = "Days since last fire (snapshot)",
+                    overwrite = TRUE)
+    terra::writeCDF(empty_r, out_file,
+                    varname  = "last_burn_date",
+                    longname = "Last burn date (days since 1970-01-01)",
+                    append   = TRUE)
+    return(out_file)
+  }
+
+  # Snapshot: use the latest as_of_date only
+  latest_date   <- max(df$as_of_date)
+  df_latest     <- df[df$as_of_date == latest_date, ]
+  snapshot_date <- as.Date(latest_date, origin = "1970-01-01")
+
+  if (verbose) {
+    message("Rasterizing most_recent_burn snapshot for ", format(snapshot_date),
+            " (", nrow(df_latest), " burned pixels)")
+  }
+
+  # Map pid → raster cell values
+  pid_vec <- terra::values(domain_template[["pid"]])[, 1]
+
+  fire_age_map  <- setNames(df_latest$fire_age_days,  as.character(df_latest$pid))
+  last_burn_map <- setNames(df_latest$last_burn_date, as.character(df_latest$pid))
+
+  fire_age_vec  <- as.integer(fire_age_map[as.character(pid_vec)])
+  last_burn_vec <- as.integer(last_burn_map[as.character(pid_vec)])
+
+  # Build rasters
+  fire_age_r  <- domain_template[[1]]
+  last_burn_r <- domain_template[[1]]
+  terra::values(fire_age_r)  <- fire_age_vec
+  terra::values(last_burn_r) <- last_burn_vec
+  terra::time(fire_age_r)    <- snapshot_date
+  terra::time(last_burn_r)   <- snapshot_date
+
+  terra::writeCDF(fire_age_r,  out_file,
+                  varname  = "fire_age_days",
+                  longname = "Days since last fire (snapshot)",
+                  unit     = "days",
+                  overwrite = TRUE)
+  terra::writeCDF(last_burn_r, out_file,
+                  varname  = "last_burn_date",
+                  longname = "Last burn date (days since 1970-01-01)",
+                  unit     = "days",
+                  append   = TRUE)
+
+  if (verbose) message("Wrote most_recent_burn NC: ", out_file)
+  out_file
 }
