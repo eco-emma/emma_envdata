@@ -304,7 +304,7 @@ identify_missing_burn_dates_viirs <- function(
     start_date  = "2012-01-01",   # VNP64A1 first available data
     end_date    = NULL) {
 
-  missing <- identify_missing_vi(
+  missing <- find_missing_months(
     output_dir = output_dir,
     dataset    = "burn_date_viirs",
     start_date = start_date,

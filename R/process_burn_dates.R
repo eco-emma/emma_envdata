@@ -217,7 +217,7 @@ compute_most_recent_burn <- function(
 #'
 #' @return Integer vector of unique observation dates (days since epoch).
 #' @export
-get_vi_observation_dates <- function(
+vi_load_observation_dates <- function(
     modis_vi_dir = "data/target_outputs/modis_vi",
     verbose      = TRUE) {
 

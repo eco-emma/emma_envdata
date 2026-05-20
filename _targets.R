@@ -143,20 +143,20 @@ list(
 # Domain raster with pixel IDs, remnants, and distance to remnants. This defines the model grid that is used for everything!
   # Stores as terra rast object in qs format; also writes domain.nc file for reference
   tar_target(   
-    domain_nc,
+    domain_grid,
     domain_rasterize(
       domain_boundary = domain_boundary, 
       remnants = remnants,
       out_file = "data/target_outputs/domain.nc"
     )
-    #   targets::tar_invalidate(domain_nc)
+    #   targets::tar_invalidate(domain_grid)
   ),
 
   # Export domain raster to GeoParquet format for easy distribution
   tar_target(
     domain_geoparquet,
     domain_to_geoparquet(
-      domain_raster_file = domain_nc,
+      domain_raster_file = domain_grid,
       out_file = "data/target_outputs/domain.parquet",
       verbose = TRUE
     ),
@@ -167,7 +167,7 @@ list(
   # Stores as terra rast object in qs format; also writes vegmap.nc file for reference
   tar_target( 
     vegmap_nc,
-    process_vegmap(domain_raster = domain_nc,
+    process_vegmap(domain_raster = domain_grid,
                 vegmap_shp = vegmap,
                 out_file = "data/target_outputs/vegmap.nc")
   ),
@@ -187,7 +187,7 @@ list(
     clouds_wilson,
     get_clouds_wilson(
       domain        = domain_boundary,
-      domain_raster = domain_nc,
+      domain_raster = domain_grid,
       temp_directory = "data/temp/appeears/clouds_wilson/",
       out_file      = "data/target_outputs/clouds_wilson.nc",
       cleanup       = cleanup_mode,
@@ -212,7 +212,7 @@ list(
     download_elevation_results(
       task_id = elevation_task_id,
       domain_vector = domain_boundary,
-      domain_raster = domain_nc,
+      domain_raster = domain_grid,
       out_file = "data/target_outputs/elevation_nasadem.nc",
       temp_directory = "data/temp/appeears/elevation_nasadem/",
       verbose = TRUE
@@ -232,7 +232,7 @@ list(
   tar_target(
     soil_soilgrids,
     get_soil_soilgrids(
-      domain_raster  = domain_nc,
+      domain_raster  = domain_grid,
       temp_directory = "data/temp/appeears/soil_soilgrids/",
       out_file       = "data/target_outputs/soil_soilgrids.nc",
       cleanup        = cleanup_mode,
@@ -261,13 +261,13 @@ list(
 
   # Identify which monthly periods need to be downloaded
   tar_target(
-    modis_vi_to_download,
+    vi_modis_pending,
     {
       output_dir <- "data/target_outputs/modis_vi"
       
       # Check which monthly periods have already been downloaded
-      # identify_missing_vi() checks for existing NetCDF files
-      missing <- identify_missing_vi(
+      # find_missing_months() checks for existing NetCDF files
+      missing <- find_missing_months(
         output_dir = output_dir,
         dataset = "modis_vi",
         start_date = modis_start_date,
@@ -309,61 +309,61 @@ list(
 
   # Dynamically submit monthly AppEEARS tasks
   tar_target(
-    modis_vi_task_ids,
+    vi_modis_task_ids,
     {
-      # Within this branch, modis_vi_to_download is auto-sliced to one row
+      # Within this branch, vi_modis_pending is auto-sliced to one row
       submit_modis_vi(
         domain_vector = domain_boundary,
-        month_start = modis_vi_to_download$month_start,
-        month_end = modis_vi_to_download$month_end
+        month_start = vi_modis_pending$month_start,
+        month_end = vi_modis_pending$month_end
       )
     },
-    pattern = map(modis_vi_to_download)
+    pattern = map(vi_modis_pending)
   ),
 
   # Download NetCDF files from AppEEARS (I/O only)
   # Stores as terra rast object in qs format; temp netcdf files cleaned up based on cleanup_mode
   tar_target(
-    modis_vi_netcdf,
+    vi_modis_netcdf,
     {
       download_modis_vi_netcdf(
-        task_id = modis_vi_task_ids,
-        month_start = modis_vi_to_download$month_start,
+        task_id = vi_modis_task_ids,
+        month_start = vi_modis_pending$month_start,
         temp_directory = "data/temp/appeears/modis_vi/",
         cleanup = cleanup_mode,
         verbose = TRUE
       )
     },
-    pattern = map(modis_vi_task_ids, modis_vi_to_download)
+    pattern = map(vi_modis_task_ids, vi_modis_pending)
   ),
 
   # Process NetCDF to parquet format
   tar_target(
-    modis_vi_parquet,
+    vi_modis_parquet,
     {
-      netcdf_to_parquet(
-        netcdf_directory = modis_vi_netcdf,
+      vi_modis_netcdf_to_parquet(
+        netcdf_directory = vi_modis_netcdf,
         domain_raster = "data/target_outputs/domain.nc",
-        month_start = modis_vi_to_download$month_start,
+        month_start = vi_modis_pending$month_start,
         out_dir = "data/target_outputs/modis_vi/",
         cleanup = cleanup_mode,
         verbose = TRUE
       )
     },
-    pattern = map(modis_vi_netcdf, modis_vi_to_download),
+    pattern = map(vi_modis_netcdf, vi_modis_pending),
     format = "file"
   ),
 
   # Generate STAC Collection for MODIS VI dataset
   tar_target(
-    modis_vi_stac,
+    vi_modis_stac,
     generate_modis_vi_stac(
-      parquet_files    = modis_vi_parquet,  # branched target; aggregated automatically
+      parquet_files    = vi_modis_parquet,  # branched target; aggregated automatically
       parquet_dir      = "data/target_outputs/modis_vi",
       stac_dir         = "data/stac/modis_vi",
       parent_catalog_path = "data/stac",
       gh_repo          = "AdamWilsonLab/emma_envdata",
-      gh_release_tag   = "dynamic_modis_vi",
+      gh_release_tag   = "vi_modis_dynamic",
       verbose          = TRUE
     ),
     format = "file"
@@ -376,7 +376,7 @@ list(
   # Identify which months of MODIS burned area are missing.
   # Always includes the current month (logic lives in identify_missing_burn_dates_modis).
   tar_target(
-    burn_modis_to_download,
+    burn_modis_pending,
     identify_missing_burn_dates_modis(
       output_dir = "data/target_outputs/burn_dates_modis",
       start_date = burn_start_date,
@@ -389,11 +389,11 @@ list(
     burn_modis_task_ids,
     submit_burn_date_modis_task(
       domain_vector = domain_boundary,
-      month_start   = burn_modis_to_download$month_start,
-      month_end     = burn_modis_to_download$month_end,
+      month_start   = burn_modis_pending$month_start,
+      month_end     = burn_modis_pending$month_end,
       verbose       = TRUE
     ),
-    pattern = map(burn_modis_to_download)
+    pattern = map(burn_modis_pending)
   ),
 
   # Download NetCDF results from AppEEARS (I/O only)
@@ -401,12 +401,12 @@ list(
     burn_modis_netcdf,
     download_burn_date_modis_netcdf(
       task_id        = burn_modis_task_ids,
-      month_start    = burn_modis_to_download$month_start,
+      month_start    = burn_modis_pending$month_start,
       temp_directory = "data/temp/appeears/burn_dates_modis/",
       cleanup        = cleanup_mode,
       verbose        = TRUE
     ),
-    pattern = map(burn_modis_task_ids, burn_modis_to_download)
+    pattern = map(burn_modis_task_ids, burn_modis_pending)
   ),
 
   # Convert NetCDF to parquet (QA masking + domain clipping)
@@ -414,13 +414,13 @@ list(
     burn_modis_parquet,
     burn_date_modis_netcdf_to_parquet(
       netcdf_directory = burn_modis_netcdf,
-      domain_raster    = domain_nc,
-      month_start      = burn_modis_to_download$month_start,
+      domain_raster    = domain_grid,
+      month_start      = burn_modis_pending$month_start,
       out_dir          = "data/target_outputs/burn_dates_modis",
       cleanup          = cleanup_mode,
       verbose          = TRUE
     ),
-    pattern = map(burn_modis_netcdf, burn_modis_to_download),
+    pattern = map(burn_modis_netcdf, burn_modis_pending),
     format  = "file"
   ),
 
@@ -431,7 +431,7 @@ list(
 
   # Always includes the current month (logic lives in identify_missing_burn_dates_viirs).
   tar_target(
-    burn_viirs_to_download,
+    burn_viirs_pending,
     identify_missing_burn_dates_viirs(
       output_dir = "data/target_outputs/burn_dates_viirs",
       start_date = viirs_start_date,
@@ -443,36 +443,36 @@ list(
     burn_viirs_task_ids,
     submit_burn_date_viirs_task(
       domain_vector = domain_boundary,
-      month_start   = burn_viirs_to_download$month_start,
-      month_end     = burn_viirs_to_download$month_end,
+      month_start   = burn_viirs_pending$month_start,
+      month_end     = burn_viirs_pending$month_end,
       verbose       = TRUE
     ),
-    pattern = map(burn_viirs_to_download)
+    pattern = map(burn_viirs_pending)
   ),
 
   tar_target(
     burn_viirs_netcdf,
     download_burn_date_viirs_netcdf(
       task_id        = burn_viirs_task_ids,
-      month_start    = burn_viirs_to_download$month_start,
+      month_start    = burn_viirs_pending$month_start,
       temp_directory = "data/temp/appeears/burn_dates_viirs/",
       cleanup        = cleanup_mode,
       verbose        = TRUE
     ),
-    pattern = map(burn_viirs_task_ids, burn_viirs_to_download)
+    pattern = map(burn_viirs_task_ids, burn_viirs_pending)
   ),
 
   tar_target(
     burn_viirs_parquet,
     burn_date_viirs_netcdf_to_parquet(
       netcdf_directory = burn_viirs_netcdf,
-      domain_raster    = domain_nc,
-      month_start      = burn_viirs_to_download$month_start,
+      domain_raster    = domain_grid,
+      month_start      = burn_viirs_pending$month_start,
       out_dir          = "data/target_outputs/burn_dates_viirs",
       cleanup          = cleanup_mode,
       verbose          = TRUE
     ),
-    pattern = map(burn_viirs_netcdf, burn_viirs_to_download),
+    pattern = map(burn_viirs_netcdf, burn_viirs_pending),
     format  = "file"
   ),
 
@@ -500,7 +500,7 @@ list(
     most_recent_burn,
     {
       # Query at the same dates as MODIS VI observations so fire age aligns exactly
-      vi_dates <- get_vi_observation_dates(
+      vi_dates <- vi_load_observation_dates(
         modis_vi_dir = "data/target_outputs/modis_vi",
         verbose      = TRUE
       )
@@ -526,9 +526,9 @@ list(
       viirs_parquet_dir      = "data/target_outputs/burn_dates_viirs",
       stac_dir               = "data/stac/fire_history",
       gh_repo                = "AdamWilsonLab/emma_envdata",
-      gh_release_tag_modis   = "dynamic_burn_dates_modis",
-      gh_release_tag_viirs   = "dynamic_burn_dates_viirs",
-      gh_release_tag_derived = "fire_history",
+      gh_release_tag_modis   = "burndate_modis_dynamic",
+      gh_release_tag_viirs   = "burndate_viirs_dynamic",
+      gh_release_tag_derived = "firehistory_dynamic",
       verbose                = TRUE
     ),
     format = "file",
@@ -541,7 +541,7 @@ list(
 
   # Upload all static NetCDF files (domain, elevation, climate, clouds, soil, topography)
   tar_target(
-    upload_static_data,
+    upload_static,
     upload_to_github_release(
       files = c(
         "data/target_outputs/domain.nc",
@@ -562,14 +562,14 @@ list(
   ),
 
   # Upload dynamic MODIS VI parquet files
-  # Pass modis_vi_parquet directly — targets aggregates the branched vector automatically,
+  # Pass vi_modis_parquet directly — targets aggregates the branched vector automatically,
   # so this target re-runs whenever a new month is added.
   tar_target(
-    upload_modis_vi_data,
+    upload_vi_modis,
     upload_to_github_release(
-      files        = modis_vi_parquet[!is.na(modis_vi_parquet) & !grepl("\\.skip$", modis_vi_parquet)],
+      files        = vi_modis_parquet[!is.na(vi_modis_parquet) & !grepl("\\.skip$", vi_modis_parquet)],
       repo         = gh_repo_config$repo,
-      release_tag  = "dynamic_modis_vi",
+      release_tag  = "vi_modis_dynamic",
       release_name = "Dynamic MODIS Vegetation Index",
       verbose      = TRUE
     ),
@@ -578,11 +578,11 @@ list(
 
   # Upload MODIS burned area parquets
   tar_target(
-    upload_burn_modis_data,
+    upload_burn_modis,
     upload_to_github_release(
       files        = burn_modis_parquet[!grepl("\\.skip$", burn_modis_parquet)],
       repo         = gh_repo_config$repo,
-      release_tag  = "dynamic_burn_dates_modis",
+      release_tag  = "burndate_modis_dynamic",
       release_name = "Dynamic MODIS Burned Area (MCD64A1)",
       verbose      = TRUE
     ),
@@ -595,7 +595,7 @@ list(
     upload_to_github_release(
       files        = burn_viirs_parquet[!grepl("\\.skip$", burn_viirs_parquet)],
       repo         = gh_repo_config$repo,
-      release_tag  = "dynamic_burn_dates_viirs",
+      release_tag  = "burndate_viirs_dynamic",
       release_name = "Dynamic VIIRS Burned Area (VNP64A1)",
       verbose      = TRUE
     ),
@@ -608,7 +608,7 @@ list(
     upload_to_github_release(
       files        = most_recent_burn,   # file path returned by that target
       repo         = gh_repo_config$repo,
-      release_tag  = "fire_history",
+      release_tag  = "firehistory_dynamic",
       release_name = "Fire History (most recent burn, postfire age)",
       verbose      = TRUE
     ),
@@ -648,7 +648,7 @@ list(
         verbose      = TRUE,
         overwrite    = TRUE,  # always re-upload STAC JSONs — content changes with every new month
         emma_stac_catalog,  # explicit dependency — catalog must be written first
-        modis_vi_stac,
+        vi_modis_stac,
         fire_history_stac
       )
     },
@@ -664,7 +664,7 @@ list(
 #
 # When to run:
 #   1. After first-time setup (full historical download)
-#   2. After changing the domain grid (tar_invalidate(domain_nc) was called)
+#   2. After changing the domain grid (tar_invalidate(domain_grid) was called)
 #   3. After adding a new multi-year dataset
 #
 # Usage: select this block and run it, or source() with chdir = TRUE.

@@ -402,7 +402,7 @@ identify_missing_burn_dates_modis <- function(
     end_date    = NULL) {
 
   # Reuse the generic VI helper; just change the pattern prefix
-  missing <- identify_missing_vi(
+  missing <- find_missing_months(
     output_dir = output_dir,
     dataset    = "burn_date_modis",
     start_date = start_date,

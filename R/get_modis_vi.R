@@ -38,7 +38,7 @@ generate_monthly_sequence <- function(start_date = "2000-02-18", end_date = NULL
 #' @param end_date End date for sequence (YYYY-MM-DD), default is today
 #' @return Data frame of months that haven't been downloaded yet
 #' @export
-identify_missing_vi <- function(output_dir, dataset = "modis_vi", start_date = "2000-02-18", end_date = NULL) {
+find_missing_months <- function(output_dir, dataset = "modis_vi", start_date = "2000-02-18", end_date = NULL) {
   
   # Create full monthly sequence
   all_months <- generate_monthly_sequence(start_date, end_date)
@@ -298,7 +298,7 @@ download_modis_vi_netcdf <- function(
 #' @param qa_lookup_files Character vector of paths to VI Quality lookup CSV files
 #' @return Integer vector of QA flag values that pass all quality filters
 #' @keywords internal
-extract_keep_qa_values <- function(qa_lookup_files) {
+parse_qa <- function(qa_lookup_files) {
   
   extract_keep <- function(path) {
     tab <- tryCatch(read.csv(path, stringsAsFactors = FALSE), error = function(e) NULL)
@@ -487,7 +487,7 @@ extract_vi_observations <- function(
 #' 
 #' One row per unique observation (pid, date, sensor combination).
 #' @export
-netcdf_to_parquet <- function(
+vi_modis_netcdf_to_parquet <- function(
   netcdf_directory,
   domain_raster,
   month_start,
@@ -553,7 +553,7 @@ netcdf_to_parquet <- function(
     stop("QA lookup table (VI_Quality*.csv) not found in netcdf_directory; cannot mask VI data")
   }
   
-  keep_values <- extract_keep_qa_values(qa_lookup)
+  keep_values <- parse_qa(qa_lookup)
   if (!length(keep_values)) {
     stop("No 'good quality' entries found in any QA table; refusing to proceed")
   }

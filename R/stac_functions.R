@@ -18,7 +18,7 @@ generate_modis_vi_stac <- function(
   stac_dir = "data/stac/modis_vi",
   parent_catalog_path = "data/stac",
   gh_repo = "AdamWilsonLab/emma_envdata",
-  gh_release_tag = "data_modis_vi_current",
+  gh_release_tag = "vi_modis_dynamic",
   verbose = TRUE
 ) {
   
@@ -551,9 +551,9 @@ generate_fire_history_stac <- function(
   viirs_parquet_dir      = "data/target_outputs/burn_dates_viirs",
   stac_dir               = "data/stac/fire_history",
   gh_repo                = "AdamWilsonLab/emma_envdata",
-  gh_release_tag_modis   = "dynamic_burn_dates_modis",
-  gh_release_tag_viirs   = "dynamic_burn_dates_viirs",
-  gh_release_tag_derived = "fire_history",
+  gh_release_tag_modis   = "burndate_modis_dynamic",
+  gh_release_tag_viirs   = "burndate_viirs_dynamic",
+  gh_release_tag_derived = "firehistory_dynamic",
   verbose                = TRUE
 ) {
   dir.create(stac_dir, recursive = TRUE, showWarnings = FALSE)
