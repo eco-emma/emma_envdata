@@ -26,13 +26,7 @@
       "rel": "child",
       "href": "modis_vi_collection.json",
       "type": "application/json",
-      "title": "modis_vi - Dynamic VI observations"
-    },
-    {
-      "rel": "child",
-      "href": "fire_history_collection.json",
-      "type": "application/json",
-      "title": "fire_history - Dynamic VI observations"
+      "title": "modis_vi"
     }
   ]
 }

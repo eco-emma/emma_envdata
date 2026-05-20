@@ -366,16 +366,110 @@ list(
     format  = "file"
   ),
 
-  # Generate STAC Collection for MODIS VI dataset (NC rasters)
+  # ============================================================================
+  # VIIRS VI Pipeline (VNP13A1 S-NPP + VJ113A1 NOAA-20, dynamically branched)
+  # ============================================================================
+
   tar_target(
-    vi_modis_stac,
+    vi_viirs_pending,
+    {
+      output_dir <- "data/target_outputs/viirs_vi"
+
+      missing <- find_missing_months(
+        output_dir = output_dir,
+        dataset    = "vi_viirs",
+        start_date = "2012-01-19",   # VNP13A1.002 (S-NPP) temporal start
+        end_date   = modis_end_date
+      )
+
+      today               <- Sys.Date()
+      current_month_start <- as.Date(paste0(format(today, "%Y-%m"), "-01"))
+      current_month_end   <- as.Date(paste0(format(today + 31, "%Y-%m"), "-01")) - 1
+      current_month_str   <- format(current_month_start, "%Y-%m")
+
+      if (!any(missing$date_str == current_month_str)) {
+        missing <- rbind(missing, data.frame(
+          month_start = current_month_start,
+          month_end   = current_month_end,
+          date_str    = current_month_str
+        ))
+      }
+
+      if (nrow(missing) == 0) {
+        message("All VIIRS VI monthly periods already downloaded")
+        data.frame(
+          month_start = as.Date(character(0)),
+          month_end   = as.Date(character(0)),
+          date_str    = character(0)
+        )
+      } else {
+        message("Found ", nrow(missing), " missing VIIRS VI monthly periods")
+        missing
+      }
+    }
+  ),
+
+  tar_target(
+    vi_viirs_task_ids,
+    submit_viirs_vi(
+      domain_vector = domain_boundary,
+      month_start   = vi_viirs_pending$month_start,
+      month_end     = vi_viirs_pending$month_end
+    ),
+    pattern = map(vi_viirs_pending)
+  ),
+
+  tar_target(
+    vi_viirs_netcdf,
+    download_viirs_vi_netcdf(
+      task_id        = vi_viirs_task_ids,
+      month_start    = vi_viirs_pending$month_start,
+      temp_directory = "data/temp/appeears/viirs_vi/",
+      cleanup        = cleanup_mode,
+      verbose        = TRUE
+    ),
+    pattern = map(vi_viirs_task_ids, vi_viirs_pending)
+  ),
+
+  tar_target(
+    vi_viirs_grid,
+    vi_viirs_netcdf_to_grid(
+      netcdf_directory = vi_viirs_netcdf,
+      domain_raster    = "data/target_outputs/domain.nc",
+      month_start      = vi_viirs_pending$month_start,
+      out_dir          = "data/target_outputs/viirs_vi/",
+      cleanup          = cleanup_mode,
+      verbose          = TRUE
+    ),
+    pattern = map(vi_viirs_netcdf, vi_viirs_pending),
+    format  = "file"
+  ),
+
+  tar_target(
+    vi_viirs_parquet,
+    vi_viirs_netcdf_to_parquet(
+      nc_files      = vi_viirs_grid,
+      domain_raster = "data/target_outputs/domain.nc",
+      month_start   = vi_viirs_pending$month_start,
+      out_dir       = "data/target_outputs/viirs_vi/",
+      verbose       = TRUE
+    ),
+    pattern = map(vi_viirs_grid, vi_viirs_pending),
+    format  = "file"
+  ),
+
+  # Generate unified STAC Collection for all VI sensors (MODIS + VIIRS)
+  tar_target(
+    vi_stac,
     generate_modis_vi_stac(
-      nc_files            = vi_modis_grid,
-      stac_dir            = "data/stac/modis_vi",
-      parent_catalog_path = "data/stac",
-      gh_repo             = "AdamWilsonLab/emma_envdata",
-      gh_release_tag      = "vi_modis_dynamic_raster",
-      verbose             = TRUE
+      nc_files             = vi_modis_grid,
+      viirs_nc_files       = vi_viirs_grid,
+      stac_dir             = "data/stac/modis_vi",
+      parent_catalog_path  = "data/stac",
+      gh_repo              = "AdamWilsonLab/emma_envdata",
+      gh_release_tag       = "vi_modis_dynamic_raster",
+      gh_release_tag_viirs = "vi_viirs_dynamic_raster",
+      verbose              = TRUE
     ),
     format     = "file",
     deployment = "main"
@@ -686,6 +780,19 @@ list(
     deployment = "main"
   ),
 
+  # Upload VIIRS VI sensor raster grids (S-NPP + NOAA-20 NC files)
+  tar_target(
+    upload_vi_viirs_grid,
+    upload_to_github_release(
+      files        = vi_viirs_grid[!grepl("\\.skip$", vi_viirs_grid)],
+      repo         = gh_repo_config$repo,
+      release_tag  = "vi_viirs_dynamic_raster",
+      release_name = "Dynamic VIIRS VI Rasters (S-NPP + NOAA-20, 16-day composites)",
+      verbose      = TRUE
+    ),
+    deployment = "main"
+  ),
+
   # Upload MODIS burned area raster grids
   tar_target(
     upload_burn_modis_grid,
@@ -759,7 +866,7 @@ list(
         verbose      = TRUE,
         overwrite    = TRUE,  # always re-upload STAC JSONs — content changes with every new month
         emma_stac_catalog,  # explicit dependency — catalog must be written first
-        vi_modis_stac,
+        vi_stac,
         burn_stac,
         static_stac
       )

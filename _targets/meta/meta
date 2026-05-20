@@ -10,7 +10,6 @@ modis_vi_to_download|stem|73b9b833b3b9e4ab|92e00a234ba7236a|c03381bec08bdc9a|775
 burn_modis_to_download|stem|73b9b833b3b9e4ab|daa63d88a9314157|a53479755be666e6|-1390447933||t20593.5291288135s|s217b|217|qs|local|vector||burn_modis_to_download_c8dfe4ae1c83f23c|0.028||
 burn_viirs_to_download|stem|73b9b833b3b9e4ab|44aca4f3a50d6a8a|e4459801ca6739d9|1598416215||t20593.5291318881s|s217b|217|qs|local|vector||burn_viirs_to_download_c8dfe4ae1c83f23c|0.011||
 release_manifest|stem|f163a540df5548a8|e44cc6da33616092|2c530c1562a7fbd1|-1353715925|data/target_outputs/TARGET_MANIFEST.json|t20593.5291346973s|s10663b|10663|file|local|vector|||0.02||
-emma_stac_catalog|stem|f78fd0a3a7e13dd3|845693ee438dd764|2c530c1562a7fbd1|400305184|data/stac/catalog.json|t20593.5291373785s|s1039b|1039|file|local|vector|||0.011||
 remnants|stem|24d5d9481a03a1a9|2d3a742e536dbeb9|2c530c1562a7fbd1|-2133618822||t20592.8732957325s|s606388715b|606388715|qs|local|vector|||73.837||
 country|stem|70efeb0268894ac5|81ddbcfc163d4096|2c530c1562a7fbd1|-430139696||t20592.8732773713s|s3642946b|3642946|qs|local|vector|||10.4||
 capenature_fires|stem|c2bdd0ce9139f1f5|a3fa952e4821001f|2c530c1562a7fbd1|1456744106||t20592.8732613962s|s12660118b|12660118|qs|local|vector|||0.188||
@@ -32,30 +31,15 @@ upload_burn_modis_data|stem|5dcdafb0bc8e6f64|f40a9a3bfa3d7097|24fde8fb191ccf11|8
 modis_vi_stac|stem|e03c30d94f2a9897|7785c09550e9ebaa|3770d552b4d65e6c|-118413829|data/stac/modis_vi/modis_vi_collection.json|t20592.8733375516s|s2796b|2796|file|local|vector|||0.045||
 upload_modis_vi_data|stem|9bd354ef42ca0b76|f8c4fa05e31f5cf4|26c70f83bda87f9e|925520158||t20592.8732719758s|s131b|131|qs|local|vector|||285.537|Verification incomplete after 5 attempts: 1 file(s) not confirmed in release: dynamic_modis_vi_202605.parquet Files may still be available after GitHub finishes indexing.|
 upload_static_data|stem|5dcdafb0bc8e6f64|bcdb859a92f5d518|f65cddf142ce19a3|1146067362||t20592.873275223s|s68b|68|qs|local|vector|||7.876|Unable to list files in release: undefined columns selected. Failed to upload: domain.nc - Release 'static_data' not found in 'AdamWilsonLab/emma_envdata'. No upload performed.. Failed to upload: domain.parquet - Release 'static_data' not found in 'AdamWilsonLab/emma_envdata'. No upload performed.. Failed to upload: vegmap.nc - Release 'static_data' not found in 'AdamWilsonLab/emma_envdata'. No upload performed.. Failed to upload: elevation_nasadem.nc - Release 'static_data' not found in 'AdamWilsonLab/emma_envdata'. No upload performed.. Failed to upload: CHELSA_bio01_1981-2010_V.2.1.nc - Release 'static_data' not found in 'AdamWilsonLab/emma_envdata'. No upload performed.. Failed to upload: CHELSA_bio02_1981-2010_V.2.1.nc - Release 'static_data' not found in 'AdamWilsonLab/emma_envdata'. No upload performed.. Failed to upload: CHELSA_bio03_1981-2010_V.2.1.nc - Release 'static_data' not found in 'AdamWilsonLab/emma_envdata'. No upload performed.. Failed to upload: CHELSA_bio04_1981-2010_V.2.1.nc - Release 'static_data' not found in 'AdamWilsonLab/emma_envdata'. No upload performed.. Failed to upload: CHELSA_bio05_1981-2010_V.2.1.nc - Release 'static_data' not found in 'AdamWilsonLab/emma_envdata'. No upload performed.. Failed to upload: CHELSA_bio06_1981-2010_V.2.1.nc - Release 'static_data' not found in 'AdamWilsonLab/emma_envdata'. No upload performed.. Failed to upload: CHELSA_bio07_1981-2010_V.2.1.nc - Release 'static_data' not found in 'AdamWilsonLab/emma_envdata'. No upload performed.. Failed to upload: CHELSA_bio08_1981-2010_V.2.1.nc - Release 'static_data' not found in 'AdamWilsonLab/emma_envdata'. No upload performed.. Failed to upload: CHELSA_bio09_1981-2010_V.2.1.nc - Release 'static_data' not found in 'AdamWilsonLab/emma_envdata'. No upload perf|
-tar_upload_github_release|function|3fcac7b21b275138
-gh_repo_config|object|9048f5d584aa7b80
-.check_file_integrity|function|9f6c84eea8561f7e
-burn_start_date|object|f1911cd6006b2c3d
-sys_info|object|ad121fe2e554a42e
-viirs_start_date|object|f1911cd6006b2c3d
-modis_start_date|object|f1911cd6006b2c3d
-.Random.seed|object|dec27dabe1f35c75
-description_packages|object|ff782d31b0ed0f28
-cleanup_mode|object|cc6a331fb3c0077c
-modis_end_date|object|4fa2c2d845cd5748
-tar_download_github_release|function|60929c0779b8d011
-vi_modis_pending|stem|73b9b833b3b9e4ab|4105d554633afae6|c03381bec08bdc9a|2093254202||t20593.5519050208s|s217b|217|qs|local|vector||vi_modis_pending_c8dfe4ae1c83f23c|0.008||
 burn_modis_pending|stem|73b9b833b3b9e4ab|daa63d88a9314157|a53479755be666e6|-925203116||t20593.5519080723s|s217b|217|qs|local|vector||burn_modis_pending_c8dfe4ae1c83f23c|0.023||
 burn_viirs_pending|stem|73b9b833b3b9e4ab|44aca4f3a50d6a8a|e4459801ca6739d9|1602365224||t20593.5519111775s|s217b|217|qs|local|vector||burn_viirs_pending_c8dfe4ae1c83f23c|0.007||
 domain_grid|stem|6c2d290aed100353|126978e541b6a92f|d0fae0fdcf3a7f52|-2124189182||t20593.5538807123s|s101b|101|qs|local|vector|||165.579|attribute variables are assumed to be spatially constant throughout all geometries. NAs introduced by coercion to integer range. NAs introduced by coercion to integer range|
 vi_modis_task_ids_a40026e81fde1e30|branch|edbece0a9a98d850|c5422d6cdb22c354|3e501ae4fb191543|-1676714938||t20593.5540018964s|s103b|103|qs|local|vector|vi_modis_task_ids||9.211||
-vi_modis_task_ids|pattern|352369a760a33d6a|c5422d6cdb22c354||-1256168722||||103|qs|local|vector||vi_modis_task_ids_a40026e81fde1e30|9.211||
 burn_modis_task_ids_d62fa9084565f643|branch|c4835f949410f2cb|98f693640c705160|3e501ae4fb191543|-374521250||t20593.554140663s|s104b|104|qs|local|vector|burn_modis_task_ids||11.597||
 burn_modis_task_ids|pattern|f6260a551aa4ba5a|98f693640c705160||-36319976||||104|qs|local|vector||burn_modis_task_ids_d62fa9084565f643|11.597||
 burn_viirs_task_ids_111b4045eab4d22b|branch|0112b431dc959029|e53e16ebfa19f4c0|3e501ae4fb191543|942486968||t20593.5543967384s|s102b|102|qs|local|vector|burn_viirs_task_ids||21.767||
 burn_viirs_task_ids|pattern|6599a3abff3b1378|e53e16ebfa19f4c0||912154911||||102|qs|local|vector||burn_viirs_task_ids_111b4045eab4d22b|21.767||
 vegmap_nc|stem|c9467c1cb1634692|805eab2ef32ee09e|6c55e78849be85ff|573083685||t20593.5566791109s|s101b|101|qs|local|vector|||195.602|GDAL Message 1: dimension #1 (easting) is not a Longitude/X dimension.. GDAL Message 1: dimension #0 (northing) is not a Latitude/Y dimension.. attribute variables are assumed to be spatially constant throughout all geometries. GDAL Message 1: dimension #1 (easting) is not a Longitude/X dimension.. GDAL Message 1: dimension #0 (northing) is not a Latitude/Y dimension.. GDAL Message 1: dimension #1 (easting) is not a Longitude/X dimension.. GDAL Message 1: dimension #0 (northing) is not a Latitude/Y dimension.|
-clouds_wilson|stem|6795263bd42ace33|9f00a1ba37441855|4e0e850cb22e66ce|423108148|data/target_outputs/clouds_wilson.nc|t20593.5516688737s|s2428b|2428|file|local|vector|||0.026||
 soil_soilgrids|stem|0d426f34ffe68e64|c2725aa56ada5365|4dbc3f17f59df137|836214838|data/target_outputs/soil_soilgrids.nc|t20592.8736362255s|s54087908b|54087908|file|local|vector|||0.008||
 domain_geoparquet|stem|728d469d294296a4|eafb925fd22e974a|2d5e45d4970d8fe5|-1258951668|data/target_outputs/domain.parquet|t20593.5567186445s|s9779824b|9779824|file|local|vector|||1.829|GDAL Message 1: dimension #1 (easting) is not a Longitude/X dimension.. GDAL Message 1: dimension #0 (northing) is not a Latitude/Y dimension.. GDAL Message 1: dimension #1 (easting) is not a Longitude/X dimension.. GDAL Message 1: dimension #0 (northing) is not a Latitude/Y dimension.. This is an initial implementation of Parquet/Feather file support and geo metadata. This is tracking version 0.1.0 of the metadata (https://github.com/geopandas/geo-arrow-spec). This metadata specification may change and does not yet make stability promises.  We do not yet recommend using this in a production setting unless you are able to rewrite your Parquet/Feather files.|
 vi_modis_netcdf_2613bc54a8e5a678|branch|291a62ad19e4de69|2f0dc503c494742d|d6b98f8cd2d8dfcc|-503971200||t20593.556723917s|s99b|99|qs|local|vector|vi_modis_netcdf||0.009||
@@ -82,3 +66,39 @@ most_recent_burn|stem|2cced5c565b60d7c|f26f77a10c4d2dd7|1bc31ef6d65b0d06|-130134
 fire_history_stac|stem|9b22ed0db0167177|98032d4f3a1d458c|9c546ac9ec5d66aa|1724329448|data/stac/fire_history/fire_history_collection.json|t20593.5683366292s|s2992b|2992|file|local|vector|||0.056||
 upload_fire_history|stem|5dcdafb0bc8e6f64|3099b1bf4b9fae3a|50b16b091ef2b6bb|1068108102||t20593.5684413434s|s68b|68|qs|local|vector|||8.789|Unable to list files in release: undefined columns selected. Failed to upload: most_recent_burn.parquet - Release 'firehistory_dynamic' not found in 'AdamWilsonLab/emma_envdata'. No upload performed.|
 upload_stac_catalog|stem|7c968b568cdbc1a9|e5d9c4a7c7b328b4|c2bc1cf339d8e97f|2024368032||t20593.5687913988s|s211b|211|qs|local|vector|||29.95||
+tar_upload_github_release|function|3fcac7b21b275138
+gh_repo_config|object|9048f5d584aa7b80
+.check_file_integrity|function|9f6c84eea8561f7e
+burn_start_date|object|f1911cd6006b2c3d
+sys_info|object|ad121fe2e554a42e
+viirs_start_date|object|f1911cd6006b2c3d
+modis_start_date|object|f1911cd6006b2c3d
+.Random.seed|object|459be640a3cdee1f
+description_packages|object|ff782d31b0ed0f28
+cleanup_mode|object|cc6a331fb3c0077c
+modis_end_date|object|4fa2c2d845cd5748
+tar_download_github_release|function|60929c0779b8d011
+emma_stac_catalog|stem|08062b5343375299|08cc3f5056dc5a2e|2c530c1562a7fbd1|400305184|data/stac/catalog.json|t20593.6803338774s|s842b|842|file|local|vector|||0.012|Collection not found: data/stac/burn/burn_collection.json. Collection not found: data/stac/static/static_collection.json|
+vi_modis_pending|stem|b512612c7442453e|9717b1c5c03b48af|c03381bec08bdc9a|2093254202||t20593.6803366699s|s272b|272|qs|local|vector||vi_modis_pending_84894f08356528ee*vi_modis_pending_3f4d26080579a5b4*vi_modis_pending_3b221f89c583c2d5*vi_modis_pending_39dc12be53c49904*vi_modis_pending_3f870277516f4b3b*vi_modis_pending_c8dfe4ae1c83f23c|0.009||
+vi_modis_task_ids_bf6e4dc64e010313|branch|fbcc131ec4112be2|c5422d6cdb22c354|3e501ae4fb191543|-1266827631||t20593.6803877841s|s105b|105|qs|local|vector|vi_modis_task_ids||4.07||
+vi_modis_task_ids_3af550f18592c1c2|branch|525a6e1ec9345063|c5422d6cdb22c354|3e501ae4fb191543|112379035||t20593.6804330536s|s106b|106|qs|local|vector|vi_modis_task_ids||3.639||
+vi_modis_task_ids_9c3e739f54f12161|branch|422e66b4258532b9|c5422d6cdb22c354|3e501ae4fb191543|1212202241||t20593.6804804855s|s104b|104|qs|local|vector|vi_modis_task_ids||3.83||
+vi_modis_task_ids_9a15239e8a2a7d77|branch|877c763f4fce0ea5|c5422d6cdb22c354|3e501ae4fb191543|-1663693179||t20593.6805339783s|s104b|104|qs|local|vector|vi_modis_task_ids||4.295||
+vi_modis_task_ids_2ee85ca6449ffbbf|branch|09c5e019192cb09f|c5422d6cdb22c354|3e501ae4fb191543|-1354112921||t20593.6805833526s|s104b|104|qs|local|vector|vi_modis_task_ids||3.996||
+vi_modis_task_ids|pattern|c8e24456b2319386|c5422d6cdb22c354||-1256168722||||523|qs|local|vector||vi_modis_task_ids_bf6e4dc64e010313*vi_modis_task_ids_3af550f18592c1c2*vi_modis_task_ids_9c3e739f54f12161*vi_modis_task_ids_9a15239e8a2a7d77*vi_modis_task_ids_2ee85ca6449ffbbf*vi_modis_task_ids_a40026e81fde1e30|19.83||
+clouds_wilson|stem|6795263bd42ace33|9f00a1ba37441855|4e0e850cb22e66ce|423108148|data/target_outputs/clouds_wilson.nc|t20593.6801056234s|s2428b|2428|file|local|vector|||0.026||
+vegmap_grid|stem|c9467c1cb1634692|805eab2ef32ee09e|6c55e78849be85ff|454440780||t20593.6829371519s|s101b|101|qs|local|vector|||200.058|GDAL Message 1: dimension #1 (easting) is not a Longitude/X dimension.. GDAL Message 1: dimension #0 (northing) is not a Latitude/Y dimension.. attribute variables are assumed to be spatially constant throughout all geometries. GDAL Message 1: dimension #1 (easting) is not a Longitude/X dimension.. GDAL Message 1: dimension #0 (northing) is not a Latitude/Y dimension.. GDAL Message 1: dimension #1 (easting) is not a Longitude/X dimension.. GDAL Message 1: dimension #0 (northing) is not a Latitude/Y dimension.|
+tar_upload_github_release|function|3fcac7b21b275138
+gh_repo_config|object|9048f5d584aa7b80
+.check_file_integrity|function|9f6c84eea8561f7e
+burn_start_date|object|f1911cd6006b2c3d
+sys_info|object|ad121fe2e554a42e
+viirs_start_date|object|f1911cd6006b2c3d
+modis_start_date|object|f1911cd6006b2c3d
+.Random.seed|object|9c92db2844319cde
+description_packages|object|ff782d31b0ed0f28
+cleanup_mode|object|cc6a331fb3c0077c
+modis_end_date|object|4fa2c2d845cd5748
+tar_download_github_release|function|60929c0779b8d011
+clouds_wilson|stem|6795263bd42ace33|9f00a1ba37441855|4e0e850cb22e66ce|423108148|data/target_outputs/clouds_wilson.nc|t20593.7037615515s|s2428b|2428|file|local|vector|||0.026||
+vi_modis_netcdf_b060dd7089301f8d|branch|2c92374c9c4752b6|2f0dc503c494742d|572ec71a65aac39f|-227254972||t20593.755356478s|s111b|111|qs|local|vector|vi_modis_netcdf||4437.475||
