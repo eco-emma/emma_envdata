@@ -35,7 +35,7 @@ submit_burn_date_viirs_task <- function(
     month_start,
     month_end,
     verbose = TRUE) {
-
+  ensure_appeears_auth()  
   month_start <- as.Date(month_start)
   month_end   <- as.Date(month_end)
 
@@ -98,6 +98,10 @@ submit_burn_date_viirs_task <- function(
 #'
 #' @param task_id      Character. AppEEARS task ID.
 #' @param month_start  Date. First day of the month.
+#' @param domain_vector SpatVector or sf polygon used to re-submit if the task
+#'   has expired. Optional; if NULL a missing-status error is raised instead.
+#' @param month_end   Date. Last day of the month. Required only when
+#'   domain_vector is provided for automatic re-submission.
 #' @param temp_directory Character. Download directory.
 #' @param cleanup      Logical. Delete temp files after conversion?
 #' @param verbose      Logical. Print progress messages?
@@ -107,10 +111,13 @@ submit_burn_date_viirs_task <- function(
 download_burn_date_viirs_netcdf <- function(
     task_id,
     month_start,
+    domain_vector  = NULL,
+    month_end      = NULL,
     temp_directory = "data/temp/appeears/burn_dates_viirs/",
     cleanup        = Sys.getenv("GITHUB_ACTIONS") == "true",
     verbose        = TRUE) {
 
+  ensure_appeears_auth()
   month_start <- as.Date(month_start)
   yyyymm      <- format(month_start, "%Y%m")
 
@@ -131,28 +138,73 @@ download_burn_date_viirs_netcdf <- function(
   temp_directory <- file.path(temp_directory, yyyymm)
   dir.create(temp_directory, recursive = TRUE, showWarnings = FALSE)
 
-  # Poll AppEEARS for up to 2 hours
+  # Poll AppEEARS for up to 15 minutes; error = "continue" on target handles retry
   if (verbose) message("Polling AppEEARS task ", task_id, " ...")
 
-  poll_result <- purrr::reduce(
-    .x    = seq_len(120),
-    .f    = function(status, i) {
-      if (status %in% c("done", "failed", "error")) return(status)
-      task_info   <- appeears::rs_list_task(task_id = task_id, user = Sys.getenv("EARTHDATA_USER"))
-      task_status <- task_info$status
-      if (task_status %in% c("done", "failed", "error")) return(task_status)
-      if (verbose && i %% 10 == 0) message("Status: ", task_status, " (", i, "/120)")
-      Sys.sleep(60)
-      task_status
-    },
-    .init = "pending"
-  )
+  max_retries <- 15
+  retry_count <- 0
+  null_retries <- 0L  # consecutive null-status responses; AppEEARS may lag ~1-2 min after submission
 
-  if (poll_result %in% c("failed", "error")) {
-    stop("AppEEARS task ", task_id, " failed: ", poll_result)
+  repeat {
+    retry_count <- retry_count + 1
+
+    task_info   <- appeears::rs_list_task(task_id = task_id, user = Sys.getenv("EARTHDATA_USER"))
+    task_status <- task_info$status
+
+    # AppEEARS returns no 'status' field when the task is not found.  Allow 3
+    # consecutive null responses before treating as expired — a freshly submitted
+    # task may not be visible in the list endpoint for a minute or two.
+    if (is.null(task_status) || length(task_status) == 0) {
+      null_retries <- null_retries + 1L
+      if (null_retries <= 10L) {
+        if (verbose) message("Task ", task_id, " not yet visible in AppEEARS (",
+                             null_retries, "/10) — retrying...")
+        Sys.sleep(60)
+        next
+      }
+      null_retries <- 0L
+      if (!is.null(domain_vector) && !is.null(month_end)) {
+        if (verbose) {
+          message(
+            "[AppEEARS] Task ", task_id, " not found (likely expired) — re-submitting for ", yyyymm
+          )
+        }
+        task_id     <- submit_burn_date_viirs_task(
+          domain_vector = domain_vector,
+          month_start   = month_start,
+          month_end     = as.Date(month_end),
+          verbose       = verbose
+        )
+        retry_count <- 0
+        next
+      }
+      stop(
+        "AppEEARS task ", task_id, " returned no status field.\n",
+        "The task likely expired (AppEEARS retains results for ~14 days).\n",
+        "Pass domain_vector and month_end to enable automatic re-submission, ",
+        "or run tar_invalidate(burn_viirs_task_ids) to force re-submission."
+      )
+    }
+    null_retries <- 0L
+
+    if (task_status %in% c("done", "failed", "error")) {
+      if (verbose) message("Status: ", task_status, " (", retry_count, "/", max_retries, ")")
+      break
+    }
+    if (retry_count >= max_retries) {
+      stop("Task ", task_id, " timed out after ", max_retries, " minutes")
+    }
+    if (verbose && retry_count %% 10 == 0) {
+      message("Status: ", task_status, " (", retry_count, "/", max_retries, ")")
+    }
+    Sys.sleep(60)
   }
-  if (poll_result != "done") {
-    stop("Task ", task_id, " timed out after 120 minutes")
+
+  if (task_status %in% c("failed", "error")) {
+    stop("AppEEARS task ", task_id, " failed: ", task_status)
+  }
+  if (task_status != "done") {
+    stop("Task ", task_id, " timed out after ", max_retries, " minutes")
   }
 
   appeears::rs_transfer(

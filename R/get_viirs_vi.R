@@ -36,6 +36,7 @@ submit_viirs_vi <- function(
     month_end,
     verbose = TRUE) {
 
+  ensure_appeears_auth()
   month_start <- as.Date(month_start)
   month_end   <- as.Date(month_end)
 
@@ -120,9 +121,16 @@ submit_viirs_vi <- function(
 #'
 #' @description Polls for AppEEARS task completion and downloads result NCs.
 #'   Separates I/O from computation for independent parallelisation.
+#'   If the task is not found (e.g. expired after the 14-day retention window),
+#'   and domain_vector plus month_end are supplied, the task is automatically
+#'   re-submitted.
 #'
 #' @param task_id        Character. AppEEARS task ID.
 #' @param month_start    Date or "YYYY-MM-DD". First day of the month.
+#' @param domain_vector  SpatVector or sf polygon used to re-submit if the task
+#'   has expired. Optional; if NULL a missing-status error is raised instead.
+#' @param month_end      Date or "YYYY-MM-DD". Last day of the month. Required
+#'   only when domain_vector is provided for automatic re-submission.
 #' @param temp_directory Temporary working directory for downloads.
 #' @param cleanup        Logical. Delete temp files after grid NC is written?
 #'   Defaults to TRUE on GitHub Actions.
@@ -134,10 +142,13 @@ submit_viirs_vi <- function(
 download_viirs_vi_netcdf <- function(
     task_id,
     month_start,
+    domain_vector  = NULL,
+    month_end      = NULL,
     temp_directory = "data/temp/appeears/viirs_vi/",
     cleanup        = Sys.getenv("GITHUB_ACTIONS") == "true",
     verbose        = TRUE) {
 
+  ensure_appeears_auth()
   month_start <- as.Date(month_start)
   yyyymm      <- format(month_start, "%Y%m")
 
@@ -157,14 +168,51 @@ download_viirs_vi_netcdf <- function(
   dir.create(temp_directory, recursive = TRUE, showWarnings = FALSE)
 
   if (verbose) message("Polling task ", task_id, " for completion...")
-  max_retries <- 120
+  max_retries <- 15  # 15 minutes at 60s intervals; error = "continue" on target handles retry
   retry_count <- 0L
+  null_retries <- 0L  # consecutive null-status responses; AppEEARS may lag ~1-2 min after submission
 
   repeat {
     retry_count <- retry_count + 1L
     task_info   <- appeears::rs_list_task(task_id = task_id,
                                           user     = Sys.getenv("EARTHDATA_USER"))
     task_status <- task_info$status
+
+    # AppEEARS returns no 'status' field when the task is not found.  Allow 3
+    # consecutive null responses before treating as expired — a freshly submitted
+    # task may not be visible in the list endpoint for a minute or two.
+    if (is.null(task_status) || length(task_status) == 0) {
+      null_retries <- null_retries + 1L
+      if (null_retries <= 10L) {
+        if (verbose) message("Task ", task_id, " not yet visible in AppEEARS (",
+                             null_retries, "/10) — retrying...")
+        Sys.sleep(60)
+        next
+      }
+      null_retries <- 0L
+      if (!is.null(domain_vector) && !is.null(month_end)) {
+        if (verbose) {
+          message(
+            "[AppEEARS] Task ", task_id, " not found (likely expired) — re-submitting for ", yyyymm
+          )
+        }
+        task_id     <- submit_viirs_vi(
+          domain_vector = domain_vector,
+          month_start   = month_start,
+          month_end     = as.Date(month_end),
+          verbose       = verbose
+        )
+        retry_count <- 0L
+        next
+      }
+      stop(
+        "AppEEARS task ", task_id, " returned no status field.\n",
+        "The task likely expired (AppEEARS retains results for ~14 days).\n",
+        "Pass domain_vector and month_end to enable automatic re-submission, ",
+        "or run tar_invalidate(vi_viirs_task_ids) to force re-submission."
+      )
+    }
+    null_retries <- 0L
 
     if (task_status == "done") {
       if (verbose) message("Task completed successfully")
@@ -426,6 +474,8 @@ vi_viirs_netcdf_to_grid <- function(
     }
   }
 
+  if (file.exists(out_snpp_nc))   unlink(out_snpp_nc)
+  if (file.exists(out_noaa20_nc)) unlink(out_noaa20_nc)
   write_sensor_nc(snpp_data,   out_snpp_nc,   "S-NPP/VNP13A1",  verbose)
   write_sensor_nc(noaa20_data, out_noaa20_nc, "NOAA-20/VJ113A1", verbose)
 

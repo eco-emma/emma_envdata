@@ -10,7 +10,7 @@ salloc --cluster=faculty --qos=adamw --partition=adamw \
 export GROUP="adamw"
 export PROJECT_FOLDER="/projects/academic/"$GROUP
 export APPTAINER_CACHEDIR="/vscratch/grp-adamw/"$USER"/apptainer"
-export SIF_PATH=$PROJECT_FOLDER"/users/"$USER"/singularity"
+export SIF_PATH=$PROJECT_FOLDER"/users/"$USER"/apptainer"
 export SIF_FILE="AdamWilsonLab-emma_docker-latest.sif"
 
 # set singularity cache and tmp directories to the same as apptainer

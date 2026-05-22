@@ -93,6 +93,7 @@ submit_modis_vi <- function(
   verbose = TRUE
 ) {
 
+  ensure_appeears_auth()
   # Convert domain vector to sf, fix geometry, simplify, merge, and reproject to WGS84
   domain_sf <- st_as_sf(domain_vector) %>%
     st_simplify(dTolerance = 100, preserveTopology = TRUE) %>%
@@ -178,9 +179,15 @@ submit_modis_vi <- function(
 #' @title Download MODIS VI NetCDF files from AppEEARS
 #' @description Polls for completion of AppEEARS task and downloads results.
 #' Separates I/O from computation for independent parallelization.
+#' If the task is not found (e.g. expired after 14 days), and domain_vector
+#' plus month_end are supplied, the task is automatically re-submitted.
 #' @author EMMA Team
 #' @param task_id Character string with AppEEARS task ID
 #' @param month_start Start date for monthly period (YYYY-MM-DD)
+#' @param domain_vector SpatVector or sf polygon used to re-submit if the task
+#'   has expired. Optional; if NULL a missing-status error is raised instead.
+#' @param month_end End date for monthly period (YYYY-MM-DD). Required only
+#'   when domain_vector is provided for automatic re-submission.
 #' @param temp_directory Temporary working directory for downloads
 #' @param cleanup Logical to delete temporary files after processing. Defaults to TRUE on GitHub Actions (GITHUB_ACTIONS env var), FALSE on local execution.
 #' @param verbose Logical for progress messages
@@ -189,14 +196,17 @@ submit_modis_vi <- function(
 download_modis_vi_netcdf <- function(
   task_id,
   month_start,
+  domain_vector = NULL,
+  month_end = NULL,
   temp_directory = "data/temp/appeears/modis_vi/",
   cleanup = Sys.getenv("GITHUB_ACTIONS") == "true",
   verbose = TRUE
 ) {
-  
+
+  ensure_appeears_auth()
   month_start <- as.Date(month_start)
   yyyymm <- format(month_start, "%Y%m")
-  
+
   # Check if this month was already processed into a grid NC; if so, skip re-downloading.
   # vi_modis_netcdf_to_grid() writes vi_modis_YYYYMM_terra.nc when it completes.
   cache_dir <- "data/target_outputs/modis_vi"
@@ -217,34 +227,71 @@ download_modis_vi_netcdf <- function(
   # Poll for task completion
   if (verbose) message("Polling task ", task_id, " for completion...")
   
-  max_retries <- 120  # 2 hours at 60s intervals
+  max_retries <- 15  # 15 minutes at 60s intervals; error = "continue" on target handles retry
   retry_count <- 0
   task_status <- "pending"
-  
+  null_retries <- 0L  # consecutive null-status responses; AppEEARS may lag ~1-2 min after submission
+
   repeat {
     retry_count <- retry_count + 1
-    
+
     # Check task status
-    task_info <- appeears::rs_list_task(task_id = task_id, user = Sys.getenv("EARTHDATA_USER"))
+    task_info   <- appeears::rs_list_task(task_id = task_id, user = Sys.getenv("EARTHDATA_USER"))
     task_status <- task_info$status
-    
+
+    # AppEEARS returns no 'status' field when the task is not found.  Allow 3
+    # consecutive null responses before treating as expired — a freshly submitted
+    # task may not be visible in the list endpoint for a minute or two.
+    if (is.null(task_status) || length(task_status) == 0) {
+      null_retries <- null_retries + 1L
+      if (null_retries <= 10L) {
+        if (verbose) message("Task ", task_id, " not yet visible in AppEEARS (",
+                             null_retries, "/10) — retrying...")
+        Sys.sleep(60)
+        next
+      }
+      null_retries <- 0L
+      if (!is.null(domain_vector) && !is.null(month_end)) {
+        if (verbose) {
+          message(
+            "[AppEEARS] Task ", task_id, " not found (likely expired) — re-submitting for ", yyyymm
+          )
+        }
+        task_id     <- submit_modis_vi(
+          domain_vector = domain_vector,
+          month_start   = month_start,
+          month_end     = as.Date(month_end),
+          verbose       = verbose
+        )
+        retry_count <- 0
+        next
+      }
+      stop(
+        "AppEEARS task ", task_id, " returned no status field.\n",
+        "The task likely expired (AppEEARS retains results for ~14 days).\n",
+        "Pass domain_vector and month_end to enable automatic re-submission, ",
+        "or run tar_invalidate(vi_modis_task_ids) to force re-submission."
+      )
+    }
+    null_retries <- 0L
+
     if (task_status == "done") {
       if (verbose) message("Task completed successfully")
       break
     }
-    
+
     if (task_status %in% c("failed", "error")) {
       stop("AppEEARS task ", task_id, " failed with status: ", task_status)
     }
-    
+
     if (retry_count >= max_retries) {
       stop("Task ", task_id, " polling timed out after ", max_retries, " minutes")
     }
-    
+
     if (verbose && retry_count %% 10 == 0) {
       message("Task status: ", task_status, " (", retry_count, "/", max_retries, ")")
     }
-    
+
     Sys.sleep(60)
   }
 

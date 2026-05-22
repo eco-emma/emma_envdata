@@ -10,7 +10,8 @@ submit_elevation_task <- function(
   domain_vector,
   verbose = TRUE
 ) {
-  
+
+  ensure_appeears_auth()
   # Convert domain vector to sf, fix geometry, simplify, merge, and reproject to WGS84 (required by AppEEARS)
   domain_sf <- st_as_sf(domain_vector) %>%
     st_simplify(dTolerance = 100, preserveTopology = TRUE) %>%
@@ -77,7 +78,8 @@ download_elevation_results <- function(
   temp_directory = "data/temp/appeears/elevation_nasadem/",
   verbose = TRUE
 ) {
-  
+
+  ensure_appeears_auth()
   # Ensure clean temp directory
   unlink(temp_directory, recursive = TRUE, force = TRUE)
   dir.create(temp_directory, recursive = TRUE, showWarnings = FALSE)

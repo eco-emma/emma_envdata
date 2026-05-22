@@ -35,7 +35,7 @@ submit_burn_date_modis_task <- function(
     month_start,
     month_end,
     verbose = TRUE) {
-
+  ensure_appeears_auth()  
   month_start <- as.Date(month_start)
   month_end   <- as.Date(month_end)
 
@@ -98,9 +98,16 @@ submit_burn_date_modis_task <- function(
 #' @description Polls AppEEARS until the task completes, then downloads the
 #'   resulting NetCDF files. Creates a marker file so the month is skipped on
 #'   subsequent runs. Mirrors \code{download_modis_vi_netcdf()} in structure.
+#'   If the task is not found (e.g. expired after the 14-day retention window),
+#'   and domain_vector plus month_end are supplied, the task is automatically
+#'   re-submitted.
 #'
 #' @param task_id      Character. AppEEARS task ID (from \code{submit_burn_date_modis_task}).
 #' @param month_start  Date. First day of the month (used for naming marker files).
+#' @param domain_vector SpatVector or sf polygon used to re-submit if the task
+#'   has expired. Optional; if NULL a missing-status error is raised instead.
+#' @param month_end   Date. Last day of the month. Required only when
+#'   domain_vector is provided for automatic re-submission.
 #' @param temp_directory Character. Directory to download raw NetCDF files into.
 #' @param cleanup      Logical. Delete temp files after conversion? Defaults to
 #'   TRUE on GitHub Actions, FALSE locally.
@@ -111,10 +118,13 @@ submit_burn_date_modis_task <- function(
 download_burn_date_modis_netcdf <- function(
     task_id,
     month_start,
+    domain_vector  = NULL,
+    month_end      = NULL,
     temp_directory = "data/temp/appeears/burn_dates_modis/",
     cleanup        = Sys.getenv("GITHUB_ACTIONS") == "true",
     verbose        = TRUE) {
 
+  ensure_appeears_auth()
   month_start <- as.Date(month_start)
   yyyymm      <- format(month_start, "%Y%m")
 
@@ -135,36 +145,75 @@ download_burn_date_modis_netcdf <- function(
   temp_directory <- file.path(temp_directory, yyyymm)
   dir.create(temp_directory, recursive = TRUE, showWarnings = FALSE)
 
-  # Poll AppEEARS until task is done (max 2 hours at 60-second intervals)
+  # Poll AppEEARS until task is done (15 min at 60-second intervals; error = "continue" on target handles retry)
   if (verbose) message("Polling AppEEARS task ", task_id, " ...")
 
-  poll_result <- purrr::reduce(
-    .x  = seq_len(120),      # up to 120 retries
-    .f  = function(status, i) {
-      if (status %in% c("done", "failed", "error")) return(status)
+  max_retries <- 15
+  retry_count <- 0
+  null_retries <- 0L  # consecutive null-status responses; AppEEARS may lag ~1-2 min after submission
 
-      task_info   <- appeears::rs_list_task(task_id = task_id, user = Sys.getenv("EARTHDATA_USER"))
-      task_status <- task_info$status
+  repeat {
+    retry_count <- retry_count + 1
 
-      if (task_status %in% c("done", "failed", "error")) {
-        if (verbose) message("Task status: ", task_status, " (attempt ", i, ")")
-        return(task_status)
+    task_info   <- appeears::rs_list_task(task_id = task_id, user = Sys.getenv("EARTHDATA_USER"))
+    task_status <- task_info$status
+
+    # AppEEARS returns no 'status' field when the task is not found.  Allow 3
+    # consecutive null responses before treating as expired — a freshly submitted
+    # task may not be visible in the list endpoint for a minute or two.
+    if (is.null(task_status) || length(task_status) == 0) {
+      null_retries <- null_retries + 1L
+      if (null_retries <= 10L) {
+        if (verbose) message("Task ", task_id, " not yet visible in AppEEARS (",
+                             null_retries, "/10) — retrying...")
+        Sys.sleep(60)
+        next
       }
-
-      if (verbose && i %% 10 == 0) {
-        message("Task status: ", task_status, " (", i, "/120 checks)")
+      null_retries <- 0L
+      if (!is.null(domain_vector) && !is.null(month_end)) {
+        if (verbose) {
+          message(
+            "[AppEEARS] Task ", task_id, " not found (likely expired) — re-submitting for ", yyyymm
+          )
+        }
+        task_id     <- submit_burn_date_modis_task(
+          domain_vector = domain_vector,
+          month_start   = month_start,
+          month_end     = as.Date(month_end),
+          verbose       = verbose
+        )
+        retry_count <- 0
+        next
       }
-      Sys.sleep(60)
-      task_status
-    },
-    .init = "pending"
-  )
+      stop(
+        "AppEEARS task ", task_id, " returned no status field.\n",
+        "The task likely expired (AppEEARS retains results for ~14 days).\n",
+        "Pass domain_vector and month_end to enable automatic re-submission, ",
+        "or run tar_invalidate(burn_modis_task_ids) to force re-submission."
+      )
+    }
+    null_retries <- 0L
 
-  if (poll_result %in% c("failed", "error")) {
-    stop("AppEEARS task ", task_id, " failed with status: ", poll_result)
+    if (task_status %in% c("done", "failed", "error")) {
+      if (verbose) message("Task status: ", task_status, " (attempt ", retry_count, ")")
+      break
+    }
+
+    if (retry_count >= max_retries) {
+      stop("Task ", task_id, " polling timed out after ", max_retries, " minutes")
+    }
+
+    if (verbose && retry_count %% 10 == 0) {
+      message("Task status: ", task_status, " (", retry_count, "/", max_retries, " checks)")
+    }
+    Sys.sleep(60)
   }
-  if (poll_result != "done") {
-    stop("Task ", task_id, " polling timed out after 120 minutes")
+
+  if (task_status %in% c("failed", "error")) {
+    stop("AppEEARS task ", task_id, " failed with status: ", task_status)
+  }
+  if (task_status != "done") {
+    stop("Task ", task_id, " polling timed out after ", max_retries, " minutes")
   }
 
   # Download completed files

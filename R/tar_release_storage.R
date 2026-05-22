@@ -13,8 +13,19 @@
       tiff    = ,
       nc      = { terra::rast(path);          TRUE },
       gpkg    = { sf::st_read(path, quiet = TRUE); TRUE },
-      # For binary objects (.qs, .rds, unknown) just verify the file is non-empty
-      { file.exists(path) && file.size(path) > 0 }
+      qs      = { qs2::qread(path);             TRUE },
+      rds     = { readRDS(path);               TRUE },
+      # For binary objects with no extension (targets qs/qs2 objects): verify
+      # the file is non-empty and does NOT look like a GitHub API error response
+      # (which is a JSON object starting with '{', ASCII 0x7B).
+      {
+        if (!file.exists(path) || file.size(path) == 0) return(FALSE)
+        con <- file(path, "rb")
+        fb  <- readBin(con, raw(), n = 1L)
+        close(con)
+        if (length(fb) == 1L && fb[[1L]] == as.raw(0x7b)) return(FALSE)  # JSON
+        TRUE
+      }
     )
   }, error = function(e) FALSE)
 }
@@ -155,8 +166,10 @@ tar_download_github_release <- function(
       if (verbose) message("[tar_github_release] Already cached: ", asset_name)
     }
     
-    # Copy from cache to appropriate target location
-    if (file.exists(cached_path)) {
+    # Copy from cache to appropriate target location — only if the cached file
+    # passed integrity validation (guards against GitHub API error JSON responses
+    # that were saved when the release asset was missing or auth failed).
+    if (file.exists(cached_path) && .check_file_integrity(cached_path)) {
       if (is_file_format) {
         # For file-format targets: 
         # 1. Copy actual file to _targets/workspaces/ (where targets expects it)

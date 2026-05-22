@@ -13,7 +13,7 @@
 
 get_climate_chelsa <- function(
     domain,
-    temp_directory = "data/temp/appeears/climate_chelsa/",
+    temp_directory = "data/temp/raw_data/climate_chelsa/",
     out_dir = "data/target_outputs/",
     cleanup = TRUE,
     verbose = TRUE
@@ -73,10 +73,14 @@ get_climate_chelsa <- function(
     tif_filename <- file.path(temp_directory, paste("CHELSA_bio", sprintf("%02d", idx), 
                                                       "_1981-2010_V.2.1.tif", sep = ""))
     
-    # Skip download if file already exists (when cleanup = FALSE, running locally)
-    if (!cleanup && file.exists(tif_filename)) {
+    # Skip download if file already exists AND is readable (when cleanup = FALSE, running locally)
+    cached_valid <- !cleanup && file.exists(tif_filename) &&
+      tryCatch({ terra::rast(tif_filename); TRUE }, error = function(e) FALSE)
+    if (cached_valid) {
       if (verbose) message("  File already cached, skipping download: ", basename(tif_filename))
     } else {
+      if (!cleanup && file.exists(tif_filename))
+        if (verbose) message("  Cached file invalid, re-downloading: ", basename(tif_filename))
       # Download the file
       if (verbose) message("  Downloading...")
       robust_download_file(

@@ -17,7 +17,7 @@ message("Starting tar_make()")
 library(targets)
 # tar_make()
 
-devtools::load_all() # load all functions in R
+tar_source("R")  # source all R files; unlike devtools::load_all(), tar_source() makes functions available to crew workers
 description_packages <- load_description_packages(verbose=TRUE)  # Load all packages from DESCRIPTION and get list
 
 
@@ -48,13 +48,13 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
   )
 
   tar_option_set(
-#    controller = crew::crew_controller_local(workers = 16),
+    #controller = if (Sys.getenv("GITHUB_ACTIONS") != "true") crew::crew_controller_local(workers = 16) else NULL,
     memory = "transient", 
     garbage_collection = TRUE,  # run gc() after each target to free memory
     packages = description_packages,  # Use all packages from DESCRIPTION file
     repository = "local",  # Store targets locally; upload to release after tar_make() completes
     cue = tar_cue(mode = "thorough"),  # Recompute if any inputs change
-    format = "qs"  # Default: fast serialization for R objects (rasters, dataframes, task IDs, etc.)
+    format = "qs"  # Default: fast serialization using qs2 (targets >= 1.8.0 uses qs2::qs_save/qs_read)
   )
 
   # Download cached targets from GitHub release before running pipeline
@@ -89,7 +89,7 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
   modis_start_date <- "2026-01-01"  # MODIS Terra first available data
   viirs_start_date <- "2026-01-01"  # VIIRS first available data
   burn_start_date  <- "2026-01-01"  # MCD64A1 first available data
-  modis_end_date   <- as.character(Sys.Date())
+  modis_end_date   <- "2026-05-01" #as.character(Sys.Date())
 
 
 
@@ -114,18 +114,21 @@ list(
       repo      = "AdamWilsonLab/emma_envdata",
       tag       = "manual-data",
       local_dir = "data/manual_download/RLE_2021_Remnants"
-    )
+    ),
+    cue = tar_cue(mode = "never")  # Manual download: only run locally, never on CI
   ),
 
   tar_target(
     capenature_fires,
-    sf::st_read("data/manual_download/All_fires_23_24_gw/All_fires_23_24_gw.shp")
+    sf::st_read("data/manual_download/All_fires_23_24_gw/All_fires_23_24_gw.shp"),
+    cue = tar_cue(mode = "never")  # Manual download: only run locally, never on CI
   ),
 
 # Get country boundary
   tar_target( 
     country,
-    get_country()
+    get_country(),
+    cue = tar_cue(mode = "never")  # Manual download: only run locally, never on CI
   ),
 
   # Create domain file based on country boundary and vegmap
@@ -138,6 +141,7 @@ list(
   tar_target(   
     domain_bbox,
     make_domain_bbox(domain_boundary, buffer_m = 50000),
+    cue = tar_cue(mode = "never")  # Manual download: only run locally, never on CI
   ),
 
 # Domain raster with pixel IDs, remnants, and distance to remnants. This defines the model grid that is used for everything!
@@ -148,7 +152,8 @@ list(
       domain_boundary = domain_boundary, 
       remnants = remnants,
       out_file = "data/target_outputs/domain.nc"
-    )
+    ),
+    cue = tar_cue(mode = "never")  # Manual download: only run locally, never on CI
     #   targets::tar_invalidate(domain_grid)
   ),
 
@@ -160,6 +165,7 @@ list(
       out_file = "data/target_outputs/domain.parquet",
       verbose = TRUE
     ),
+    cue = tar_cue(mode = "never"),  # Manual download: only run locally, never on CI,
     format = "file"
   ),
 
@@ -169,7 +175,8 @@ list(
     vegmap_grid,
     process_vegmap(domain_raster = domain_grid,
                 vegmap_shp = vegmap,
-                out_file = "data/target_outputs/vegmap.nc")
+                out_file = "data/target_outputs/vegmap.nc"),
+    cue = tar_cue(mode = "never")  # Manual download: only run locally, never on CI
   ),
 
 # Climate CHELSA bioclimatic variables (BIO1-BIO19)
@@ -179,6 +186,7 @@ list(
         domain = domain_boundary,
         cleanup = cleanup_mode,
         verbose = TRUE),
+    cue = tar_cue(mode = "never"),  # Manual download: only run locally, never on CI
       format = "file"
     ),
 
@@ -193,6 +201,7 @@ list(
       cleanup       = cleanup_mode,
       verbose       = TRUE
     ),
+    cue = tar_cue(mode = "never"),  # Manual download: only run locally, never on CI,
     format = "file"
   ),
 
@@ -278,7 +287,7 @@ list(
       today <- Sys.Date()
       current_month_start <- as.Date(paste0(format(today, "%Y-%m"), "-01"))
       current_month_end <- as.Date(paste0(format(today + 31, "%Y-%m"), "-01")) - 1
-      current_month_str <- format(current_month_start, "%Y-%m")
+      current_month_str <- format(current_month_start, "%Y%m")
       
       # Check if current month is already in missing
       current_in_missing <- any(missing$date_str == current_month_str)
@@ -321,19 +330,25 @@ list(
     pattern = map(vi_modis_pending)
   ),
 
-  # Download NetCDF files from AppEEARS (I/O only)
+  # Download NetCDF files from AppEEARS (I/O only).
+  # AppEEARS tasks can queue for hours or days; error = "continue" lets the
+  # pipeline finish with available data and retries this branch on the next
+  # tar_make() against the same cached task ID.
   tar_target(
     vi_modis_netcdf,
     {
       download_modis_vi_netcdf(
-        task_id = vi_modis_task_ids,
-        month_start = vi_modis_pending$month_start,
+        task_id       = vi_modis_task_ids,
+        month_start   = vi_modis_pending$month_start,
+        month_end     = vi_modis_pending$month_end,
+        domain_vector = domain_boundary,
         temp_directory = "data/temp/appeears/modis_vi/",
         cleanup = cleanup_mode,
         verbose = TRUE
       )
     },
-    pattern = map(vi_modis_task_ids, vi_modis_pending)
+    pattern = map(vi_modis_task_ids, vi_modis_pending),
+    error   = "continue"
   ),
 
   # Project raw AppEEARS downloads to domain-aligned grid NCs (one per sensor per month).
@@ -378,14 +393,14 @@ list(
       missing <- find_missing_months(
         output_dir = output_dir,
         dataset    = "vi_viirs",
-        start_date = "2012-01-19",   # VNP13A1.002 (S-NPP) temporal start
+        start_date = viirs_start_date,
         end_date   = modis_end_date
       )
 
       today               <- Sys.Date()
       current_month_start <- as.Date(paste0(format(today, "%Y-%m"), "-01"))
       current_month_end   <- as.Date(paste0(format(today + 31, "%Y-%m"), "-01")) - 1
-      current_month_str   <- format(current_month_start, "%Y-%m")
+      current_month_str   <- format(current_month_start, "%Y%m")
 
       if (!any(missing$date_str == current_month_str)) {
         missing <- rbind(missing, data.frame(
@@ -424,11 +439,14 @@ list(
     download_viirs_vi_netcdf(
       task_id        = vi_viirs_task_ids,
       month_start    = vi_viirs_pending$month_start,
+      month_end      = vi_viirs_pending$month_end,
+      domain_vector  = domain_boundary,
       temp_directory = "data/temp/appeears/viirs_vi/",
       cleanup        = cleanup_mode,
       verbose        = TRUE
     ),
-    pattern = map(vi_viirs_task_ids, vi_viirs_pending)
+    pattern = map(vi_viirs_task_ids, vi_viirs_pending),
+    error   = "continue"
   ),
 
   tar_target(
@@ -508,11 +526,14 @@ list(
     download_burn_date_modis_netcdf(
       task_id        = burn_modis_task_ids,
       month_start    = burn_modis_pending$month_start,
+      month_end      = burn_modis_pending$month_end,
+      domain_vector  = domain_boundary,
       temp_directory = "data/temp/appeears/burn_dates_modis/",
       cleanup        = cleanup_mode,
       verbose        = TRUE
     ),
-    pattern = map(burn_modis_task_ids, burn_modis_pending)
+    pattern = map(burn_modis_task_ids, burn_modis_pending),
+    error   = "continue"
   ),
 
   # Project raw downloads to domain-aligned grid NC (burn_modis_YYYYMM.nc)
@@ -575,11 +596,14 @@ list(
     download_burn_date_viirs_netcdf(
       task_id        = burn_viirs_task_ids,
       month_start    = burn_viirs_pending$month_start,
+      month_end      = burn_viirs_pending$month_end,
+      domain_vector  = domain_boundary,
       temp_directory = "data/temp/appeears/burn_dates_viirs/",
       cleanup        = cleanup_mode,
       verbose        = TRUE
     ),
-    pattern = map(burn_viirs_task_ids, burn_viirs_pending)
+    pattern = map(burn_viirs_task_ids, burn_viirs_pending),
+    error   = "continue"
   ),
 
   # Project raw downloads to domain-aligned grid NC (burn_viirs_YYYYMM.nc)
