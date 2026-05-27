@@ -57,6 +57,10 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
     verbose = TRUE
   )
 
+  # Restore static NC files (domain.nc, vegmap.nc, CHELSA, etc.) from the
+  # static_data GitHub release so downstream targets can open them via terra.
+  restore_static_data(repo = gh_repo_config$repo)
+
   tar_option_set(
     #controller = if (Sys.getenv("GITHUB_ACTIONS") != "true") crew::crew_controller_local(workers = 16) else NULL,
     memory = "transient", 

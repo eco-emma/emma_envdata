@@ -43,7 +43,9 @@ Imports:
   httr2,
   geojsonsf,
   glue,
-  stringr
+  stringr,
+  gh,
+  httr
 Suggests:
   rgee,
   reticulate,
