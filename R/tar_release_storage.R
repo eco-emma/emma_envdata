@@ -58,7 +58,32 @@ tar_download_github_release <- function(
   
   dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
   dir.create(objects_dir, recursive = TRUE, showWarnings = FALSE)
-  
+
+  # Restore _targets/meta/meta first so tar_make() knows the previous pipeline
+  # state and does not re-run targets that are already up to date.
+  meta_dest <- "_targets/meta/meta"
+  if (!file.exists(meta_dest)) {
+    meta_cached <- file.path(cache_dir, "_targets_meta")
+    tryCatch({
+      piggyback::pb_download(
+        file = "_targets_meta",
+        repo = repo,
+        tag  = tag,
+        dest = cache_dir,
+        overwrite = TRUE
+      )
+      if (file.exists(meta_cached) && file.size(meta_cached) > 0) {
+        dir.create("_targets/meta", recursive = TRUE, showWarnings = FALSE)
+        file.copy(meta_cached, meta_dest, overwrite = TRUE)
+        if (verbose) message("[tar_github_release] Restored targets meta")
+      }
+    }, error = function(e) {
+      if (verbose) message("[tar_github_release] No targets meta in release (first run?): ", conditionMessage(e))
+    })
+  } else {
+    if (verbose) message("[tar_github_release] Targets meta already present, skipping restore")
+  }
+
   # Get list of assets on GitHub release
   # pb_list() throws "undefined columns selected" on empty releases (piggyback bug) — treat as 0 assets
   assets <- tryCatch({
@@ -455,6 +480,43 @@ tar_upload_github_release <- function(
     }
   }
   
+  # Upload _targets/meta/meta so CI can restore the pipeline state and avoid
+  # re-running targets that were already completed on the server.
+  meta_path <- "_targets/meta/meta"
+  if (file.exists(meta_path)) {
+    upload_name <- "_targets_meta"
+    if (verbose) message("[tar_github_release] Uploading targets meta: ", meta_path)
+    # Delete old asset if present
+    if (any(remote_assets$file_name == upload_name)) {
+      tryCatch({
+        old_id <- remote_assets$id[remote_assets$file_name == upload_name]
+        gh::gh("DELETE /repos/{owner}/{repo}/releases/assets/{asset_id}",
+               owner = owner_repo[1], repo = owner_repo[2],
+               asset_id = old_id[1], .token = .token)
+        Sys.sleep(1)
+      }, error = function(e) {
+        if (verbose) message("[tar_github_release] Could not delete old meta asset: ", conditionMessage(e))
+      })
+    }
+    tryCatch({
+      r <- httr::RETRY(
+        verb  = "POST",
+        url   = upload_url_base,
+        query = list(name = upload_name),
+        httr::add_headers(Authorization = paste("token", .token)),
+        body  = httr::upload_file(meta_path),
+        times = 3,
+        terminate_on = c(400, 401, 403, 404, 422)
+      )
+      httr::stop_for_status(r)
+      if (verbose) message("[tar_github_release] Uploaded targets meta")
+    }, error = function(e) {
+      warning("[tar_github_release] Failed to upload targets meta: ", conditionMessage(e))
+    })
+  } else {
+    if (verbose) message("[tar_github_release] No targets meta file found, skipping")
+  }
+
   if (verbose) message("[tar_github_release] Upload complete")
   invisible(NULL)
 }
