@@ -82,7 +82,20 @@ jobs:
         run: |
           Rscript -e "options(error = function() { traceback(2) ; quit(status = 1)}); targets::tar_make()" 2>&1 | tee targets-output.log
           # Rscript -e "targets::tar_make()" 2>&1 | tee targets-output.log
-        shell: bash        
+        shell: bash
+      - name: Upload targets cache to GitHub release
+        if: always()
+        run: |
+          Rscript -e "
+            source('R/tar_release_storage.R')
+            tar_upload_github_release(
+              repo      = 'AdamWilsonLab/emma_envdata',
+              tag       = 'targets-cache',
+              cache_dir = '_targets/cache',
+              verbose   = TRUE
+            )
+          "
+        continue-on-error: true
       - name: Export domain GeoPackage to releases
         if: github.ref == 'refs/heads/main'
         run: |

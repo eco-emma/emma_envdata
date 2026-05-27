@@ -59,30 +59,30 @@ tar_download_github_release <- function(
   dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
   dir.create(objects_dir, recursive = TRUE, showWarnings = FALSE)
 
-  # Restore _targets/meta/meta first so tar_make() knows the previous pipeline
-  # state and does not re-run targets that are already up to date.
-  meta_dest <- "_targets/meta/meta"
-  if (!file.exists(meta_dest)) {
-    meta_cached <- file.path(cache_dir, "_targets_meta")
-    tryCatch({
-      piggyback::pb_download(
-        file = "_targets_meta",
-        repo = repo,
-        tag  = tag,
-        dest = cache_dir,
-        overwrite = TRUE
-      )
-      if (file.exists(meta_cached) && file.size(meta_cached) > 0) {
-        dir.create("_targets/meta", recursive = TRUE, showWarnings = FALSE)
-        file.copy(meta_cached, meta_dest, overwrite = TRUE)
-        if (verbose) message("[tar_github_release] Restored targets meta")
-      }
-    }, error = function(e) {
-      if (verbose) message("[tar_github_release] No targets meta in release (first run?): ", conditionMessage(e))
-    })
-  } else {
-    if (verbose) message("[tar_github_release] Targets meta already present, skipping restore")
-  }
+  # Always restore _targets/meta/meta from the release so that the meta and
+  # objects are consistent with each other (both from the same server run).
+  # Skipping this when a local meta already exists causes inconsistency: the
+  # local meta was written by the previous CI run (with CI-specific branch
+  # hashes) while the release objects are from the server run — mismatch
+  # causes every non-cue="never" target to re-run on subsequent CI runs.
+  meta_dest   <- "_targets/meta/meta"
+  meta_cached <- file.path(cache_dir, "_targets_meta")
+  tryCatch({
+    piggyback::pb_download(
+      file      = "_targets_meta",
+      repo      = repo,
+      tag       = tag,
+      dest      = cache_dir,
+      overwrite = TRUE
+    )
+    if (file.exists(meta_cached) && file.size(meta_cached) > 0) {
+      dir.create("_targets/meta", recursive = TRUE, showWarnings = FALSE)
+      file.copy(meta_cached, meta_dest, overwrite = TRUE)
+      if (verbose) message("[tar_github_release] Restored targets meta")
+    }
+  }, error = function(e) {
+    if (verbose) message("[tar_github_release] No targets meta in release (first run?): ", conditionMessage(e))
+  })
 
   # Get list of assets on GitHub release
   # pb_list() throws "undefined columns selected" on empty releases (piggyback bug) — treat as 0 assets
@@ -131,26 +131,11 @@ tar_download_github_release <- function(
     local_path <- file.path(objects_dir, target_name)
     cached_path <- file.path(cache_dir, asset_name)
 
-    # ── Skip if already valid in _targets/objects/ ──────────────────────────
-    # Handles the case where _targets/cache/ was cleared but objects were
-    # already restored from a previous run — avoids redundant downloads.
-    already_valid <- tryCatch({
-      obj_path_check <- file.path(objects_dir, target_name)
-      if (is_file_format) {
-        if (!file.exists(obj_path_check)) FALSE
-        else {
-          data_file <- readRDS(obj_path_check)
-          is.character(data_file) && file.exists(data_file) && .check_file_integrity(data_file)
-        }
-      } else {
-        file.exists(obj_path_check) && file.size(obj_path_check) > 0
-      }
-    }, error = function(e) FALSE)
-
-    if (already_valid) {
-      if (verbose) message("[tar_github_release] Already restored locally, skipping: ", target_name)
-      next
-    }
+    # NOTE: no early-exit based on whether the object already exists locally.
+    # A previous CI run may have left objects with different branch hashes than
+    # the server release; keeping those would make the meta (always from the
+    # server release) inconsistent with the objects and force re-runs.
+    # The _targets/cache/ check below avoids redundant GitHub downloads.
 
     # Download to cache if not already there, with retry + integrity check
     if (!file.exists(cached_path) || !.check_file_integrity(cached_path)) {
