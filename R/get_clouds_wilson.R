@@ -107,14 +107,19 @@ get_clouds_wilson <- function(
   names(cloud_stack) <- cloud_layers$layer_name
 
   # Write with CF-1.8 metadata
-  terra::writeCDF(
-    cloud_stack,
-    filename  = out_file,
-    overwrite = TRUE,
-    varname   = "cloud_frequency",
-    longname  = paste(cloud_layers$long_name, collapse = "; "),
-    unit      = paste(cloud_layers$units, collapse = "; ")
-  )
+  local({
+    tmp_file <- tempfile(tmpdir = dirname(out_file), fileext = ".nc")
+    on.exit(unlink(tmp_file), add = TRUE)
+    terra::writeCDF(
+      cloud_stack,
+      filename  = tmp_file,
+      varname   = "cloud_frequency",
+      longname  = paste(cloud_layers$long_name, collapse = "; "),
+      unit      = paste(cloud_layers$units, collapse = "; ")
+    )
+    unlink(out_file)
+    if (!file.rename(tmp_file, out_file)) stop("Could not rename ", tmp_file, " -> ", out_file)
+  })
 
   if (verbose) message("Cloud cover NetCDF written: ", out_file)
 

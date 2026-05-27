@@ -5,7 +5,7 @@
   ],
   "type": "Feature",
   "id": "modis_vi_202601",
-  "description": "MODIS EVI observations for January 2026",
+  "description": "MODIS VI rasters (Terra + Aqua) for January 2026",
   "geometry": {
     "type": "Polygon",
     "coordinates": [
@@ -48,11 +48,11 @@
     }
   ],
   "assets": {
-    "data": {
-      "href": "https://github.com/AdamWilsonLab/emma_envdata/releases/download/vi_modis_dynamic/dynamic_modis_vi_202601.parquet",
-      "title": "MODIS VI Parquet - 202601",
-      "description": "Enhanced Vegetation Index observations in parquet format",
-      "type": "application/octet-stream",
+    "aqua": {
+      "href": "https://github.com/AdamWilsonLab/emma_envdata/releases/download/vi_modis_dynamic_raster/vi_modis_202601_aqua.nc",
+      "title": "MODIS VI — Aqua (MYD13A1) — 202601",
+      "description": "Aqua (MYD13A1) EVI (x100) + composite DOY, 500m domain-aligned grid",
+      "type": "application/x-netcdf",
       "roles": [
         "data"
       ]

@@ -167,14 +167,19 @@ get_soil_soilgrids <- function(
 
   names(soil_stack) <- prop_names
 
-  terra::writeCDF(
-    soil_stack,
-    filename  = out_file,
-    overwrite = TRUE,
-    varname   = "soil",
-    longname  = paste(soil_properties$long_name, collapse = "; "),
-    unit      = paste(soil_properties$units, collapse = "; ")
-  )
+  local({
+    tmp_file <- tempfile(tmpdir = dirname(out_file), fileext = ".nc")
+    on.exit(unlink(tmp_file), add = TRUE)
+    terra::writeCDF(
+      soil_stack,
+      filename  = tmp_file,
+      varname   = "soil",
+      longname  = paste(soil_properties$long_name, collapse = "; "),
+      unit      = paste(soil_properties$units, collapse = "; ")
+    )
+    unlink(out_file)
+    if (!file.rename(tmp_file, out_file)) stop("Could not rename ", tmp_file, " -> ", out_file)
+  })
 
   if (verbose) message("Soil NetCDF written: ", out_file)
 

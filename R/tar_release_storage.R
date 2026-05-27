@@ -242,14 +242,21 @@ tar_upload_github_release <- function(
     stop("GitHub release configuration not set. Provide repo and tag parameters or set environment variables.")
   }
   
-  # Ensure release exists
-  tryCatch({
-    piggyback::pb_list(repo = repo, tag = tag)
-  }, error = function(e) {
+  # Ensure release exists.
+  # Use pb_releases() (not pb_list()) to check existence — pb_list() populates
+  # piggyback's internal memoise cache with a "not found" result, which then
+  # causes pb_upload() to fail with "length(url) == 1 is not TRUE" even after
+  # the release is created, because the stale memo is still in effect.
+  existing_releases <- tryCatch(
+    piggyback::pb_releases(repo = repo),
+    error = function(e) data.frame(tag_name = character(0))
+  )
+  if (!tag %in% existing_releases$tag_name) {
     if (verbose) message("[tar_github_release] Creating release: ", tag)
     piggyback::pb_new_release(repo = repo, tag = tag)
-  })
-  
+    Sys.sleep(3)  # let GitHub propagate before first upload
+  }
+
   # Get metadata to find file-format target paths
   meta_df <- tryCatch({
     tar_meta()
@@ -257,8 +264,9 @@ tar_upload_github_release <- function(
     if (verbose) message("[tar_github_release] Could not read targets metadata")
     data.frame(name = character(0), format = character(0), path = list())
   })
-  
-  # Get current assets on GitHub to check what exists
+
+  # Prime the piggyback release cache so pb_upload() finds the correct upload
+  # URL on the first attempt.
   remote_assets <- tryCatch({
     piggyback::pb_list(repo = repo, tag = tag)
   }, error = function(e) {

@@ -286,12 +286,16 @@ burn_modis_netcdf_to_grid <- function(
 
   # Helper: write all-NA NC so find_missing_months() treats this month as done
   write_empty_nc <- function() {
+    tmp_nc <- tempfile(tmpdir = dirname(out_nc), fileext = ".nc")
+    on.exit(unlink(tmp_nc), add = TRUE)
     empty_r <- terra::setValues(domain_template[[1]], NA_real_)
     terra::time(empty_r) <- month_start
-    terra::writeCDF(empty_r, out_nc,
+    terra::writeCDF(empty_r, tmp_nc,
                     varname  = "burn_doy",
                     longname = "Burn day of year (MCD64A1, no data)",
-                    overwrite = TRUE, verbose = FALSE)
+                    verbose  = FALSE)
+    unlink(out_nc)
+    if (!file.rename(tmp_nc, out_nc)) stop("Could not rename ", tmp_nc, " -> ", out_nc)
   }
 
   # Resolve source NCs
@@ -352,10 +356,16 @@ burn_modis_netcdf_to_grid <- function(
 
   # Write NC with burn_doy variable and a time dimension = month_start
   terra::time(burn_mosaic) <- month_start
-  terra::writeCDF(burn_mosaic, out_nc,
-                  varname  = "burn_doy",
-                  longname = "Burn day of year (MCD64A1, QA=0)",
-                  overwrite = TRUE, verbose = FALSE)
+  local({
+    tmp_nc <- tempfile(tmpdir = dirname(out_nc), fileext = ".nc")
+    on.exit(unlink(tmp_nc), add = TRUE)
+    terra::writeCDF(burn_mosaic, tmp_nc,
+                    varname  = "burn_doy",
+                    longname = "Burn day of year (MCD64A1, QA=0)",
+                    verbose  = FALSE)
+    unlink(out_nc)
+    if (!file.rename(tmp_nc, out_nc)) stop("Could not rename ", tmp_nc, " -> ", out_nc)
+  })
 
   if (verbose) message("Wrote burn grid NC: ", basename(out_nc))
 

@@ -102,11 +102,13 @@ get_climate_chelsa <- function(
 
     # Write as NetCDF with CF-compliant metadata
     nc_filename <- file.path(out_dir, paste("CHELSA_", i, "_1981-2010_V.2.1.nc", sep = ""))
-    
-    terra::writeCDF(x = rast_i,
-                    filename = nc_filename,
-                    overwrite = TRUE,
-                    compression = 9)
+    local({
+      tmp_nc <- tempfile(tmpdir = dirname(nc_filename), fileext = ".nc")
+      on.exit(unlink(tmp_nc), add = TRUE)
+      terra::writeCDF(x = rast_i, filename = tmp_nc, compression = 9)
+      unlink(nc_filename)
+      if (!file.rename(tmp_nc, nc_filename)) stop("Could not rename ", tmp_nc, " -> ", nc_filename)
+    })
     
     # Add CF-compliant metadata using ncdf4 package
     nc_file <- ncdf4::nc_open(nc_filename, write = TRUE)

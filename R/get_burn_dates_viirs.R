@@ -269,12 +269,16 @@ burn_viirs_netcdf_to_grid <- function(
   stopifnot("pid" %in% names(domain_template))
 
   write_empty_nc <- function() {
+    tmp_nc <- tempfile(tmpdir = dirname(out_nc), fileext = ".nc")
+    on.exit(unlink(tmp_nc), add = TRUE)
     empty_r <- terra::setValues(domain_template[[1]], NA_real_)
     terra::time(empty_r) <- month_start
-    terra::writeCDF(empty_r, out_nc,
+    terra::writeCDF(empty_r, tmp_nc,
                     varname  = "burn_doy",
                     longname = "Burn day of year (VNP64A1, no data)",
-                    overwrite = TRUE, verbose = FALSE)
+                    verbose  = FALSE)
+    unlink(out_nc)
+    if (!file.rename(tmp_nc, out_nc)) stop("Could not rename ", tmp_nc, " -> ", out_nc)
   }
 
   nc_paths <- character(0)
@@ -332,10 +336,16 @@ burn_viirs_netcdf_to_grid <- function(
   burn_mosaic <- terra::mask(burn_mosaic, domain_mask, maskvalue = FALSE)
 
   terra::time(burn_mosaic) <- month_start
-  terra::writeCDF(burn_mosaic, out_nc,
-                  varname  = "burn_doy",
-                  longname = "Burn day of year (VNP64A1, QA=0)",
-                  overwrite = TRUE, verbose = FALSE)
+  local({
+    tmp_nc <- tempfile(tmpdir = dirname(out_nc), fileext = ".nc")
+    on.exit(unlink(tmp_nc), add = TRUE)
+    terra::writeCDF(burn_mosaic, tmp_nc,
+                    varname  = "burn_doy",
+                    longname = "Burn day of year (VNP64A1, QA=0)",
+                    verbose  = FALSE)
+    unlink(out_nc)
+    if (!file.rename(tmp_nc, out_nc)) stop("Could not rename ", tmp_nc, " -> ", out_nc)
+  })
 
   if (verbose) message("Wrote VIIRS burn grid NC: ", basename(out_nc))
 
@@ -365,93 +375,77 @@ burn_viirs_netcdf_to_grid <- function(
 #'   burned pixels are found.
 #' @export
 burn_date_viirs_netcdf_to_parquet <- function(
-    netcdf_directory,
+    nc_file,
     domain_raster,
     month_start,
     out_dir  = "data/target_outputs/burn_dates_viirs",
-    cleanup  = Sys.getenv("GITHUB_ACTIONS") == "true",
     verbose  = TRUE) {
 
   month_start <- as.Date(month_start)
   yyyymm      <- format(month_start, "%Y%m")
 
-  # Use a per-branch terra tempdir to prevent race conditions between parallel workers.
-  terra_tmp <- file.path(getwd(), "data/temp/terra", yyyymm)
-  dir.create(terra_tmp, recursive = TRUE, showWarnings = FALSE)
-  terra::terraOptions(tempdir = terra_tmp, memfrac = 0.8)
+  dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
-  nc_paths <- list.files(netcdf_directory, pattern = "\\.nc$", full.names = TRUE, recursive = TRUE)
-
-  if (length(nc_paths) == 0) {
-    if (verbose) message("No VIIRS NetCDF files found for ", yyyymm)
-    dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+  # Handle skip-file path from upstream burn_viirs_grid target
+  if (grepl("\\.skip$", nc_file)) {
     skip_file <- file.path(out_dir, paste0("burn_date_viirs_", yyyymm, ".skip"))
-    writeLines(
-      c(paste("Month:", yyyymm), "Reason: No NetCDF files available", paste("Timestamp:", Sys.time())),
-      con = skip_file
-    )
+    writeLines(c(paste("Month:", yyyymm), "Reason: upstream grid target skipped",
+                 paste("Timestamp:", Sys.time())), skip_file)
     return(skip_file)
   }
 
   domain_template <- if (is.character(domain_raster)) terra::rast(domain_raster) else domain_raster
   stopifnot("pid" %in% names(domain_template))
+  pid_vec          <- terra::values(domain_template[["pid"]])[, 1]
+  ref_year         <- as.integer(format(month_start, "%Y"))
+  year_start_epoch <- as.integer(as.Date(paste0(ref_year, "-01-01")) - as.Date("1970-01-01"))
 
-  pid_raster <- domain_template[["pid"]]
-  valid_pids <- terra::values(pid_raster)[, 1] |> na.omit() |> unique()
+  # Read burn_doy from the grid NC produced by burn_viirs_netcdf_to_grid()
+  burn_r <- tryCatch(
+    terra::rast(nc_file, subds = "burn_doy"),
+    error = function(e) {
+      warning("Could not read burn_doy from ", basename(nc_file), ": ", conditionMessage(e))
+      NULL
+    }
+  )
 
-  if (verbose) message("Processing ", length(nc_paths), " VIIRS NetCDF files for ", yyyymm)
-
-  # extract_burn_date_observations() is shared with the MODIS pipeline;
-  # nearest-neighbour reprojection handles the 375m → 500m resampling automatically
-  obs_list <- purrr::map(nc_paths, function(nc_path) {
-    tryCatch(
-      extract_burn_date_observations(
-        nc_path         = nc_path,
-        domain_template = domain_template,
-        month_start     = month_start,
-        verbose         = verbose
-      ),
-      error = function(e) {
-        warning("Failed to process ", basename(nc_path), ": ", conditionMessage(e))
-        NULL
-      }
-    )
-  })
-
-  df <- obs_list |>
-    purrr::compact() |>
-    dplyr::bind_rows() |>
-    dplyr::filter(.data$pid %in% valid_pids) |>
-    dplyr::filter(.data$burn_doy > 0L) |>
-    dplyr::filter(!is.na(.data$date))
-
-  if (nrow(df) == 0) {
-    if (verbose) message("No VIIRS burned pixels found for ", yyyymm)
-    dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+  if (is.null(burn_r)) {
     skip_file <- file.path(out_dir, paste0("burn_date_viirs_", yyyymm, ".skip"))
-    writeLines(c(paste("Month:", yyyymm), "Reason: No burned pixels after QA"), con = skip_file)
-    if (cleanup) unlink(netcdf_directory, recursive = TRUE, force = TRUE)
+    writeLines(c(paste("Month:", yyyymm), "Reason: Could not read grid NC",
+                 paste("Timestamp:", Sys.time())), skip_file)
     return(skip_file)
   }
 
-  dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
-  parquet_file <- file.path(out_dir, paste0("burn_date_viirs_", yyyymm, ".parquet"))
-  unlink(parquet_file)
-
-  arrow::write_parquet(df, sink = parquet_file, compression = "gzip")
-
-  if (verbose) {
-    message(
-      "Wrote ", nrow(df), " VIIRS burned pixels for ", yyyymm,
-      " → ", basename(parquet_file)
+  # Vectorise: one row per burned pixel (burn_doy > 0) per time step
+  n_layers <- terra::nlyr(burn_r)
+  obs_list <- vector("list", n_layers)
+  for (ti in seq_len(n_layers)) {
+    doy_v <- terra::values(burn_r[[ti]])[, 1]
+    valid <- !is.na(pid_vec) & !is.na(doy_v) & doy_v > 0L
+    if (!any(valid)) next
+    epoch_dates <- as.integer(year_start_epoch + as.integer(doy_v[valid]) - 1L)
+    obs_list[[ti]] <- tibble::tibble(
+      pid      = as.integer(pid_vec[valid]),
+      date     = epoch_dates,
+      burn_doy = as.integer(doy_v[valid]),
+      qa       = 0L   # QA filtering was applied in burn_viirs_netcdf_to_grid()
     )
   }
 
-  if (cleanup) {
-    unlink(netcdf_directory, recursive = TRUE, force = TRUE)
-    gc()
-    unlink(terra_tmp, recursive = TRUE, force = TRUE)
+  df <- dplyr::bind_rows(purrr::compact(obs_list))
+
+  if (nrow(df) == 0L) {
+    if (verbose) message("No burned pixels for ", yyyymm, " — writing skip marker")
+    skip_file <- file.path(out_dir, paste0("burn_date_viirs_", yyyymm, ".skip"))
+    writeLines(c(paste("Month:", yyyymm), "Reason: No burned pixels (burn_doy = 0)",
+                 paste("Timestamp:", Sys.time())), skip_file)
+    return(skip_file)
   }
+
+  parquet_file <- file.path(out_dir, paste0("burn_date_viirs_", yyyymm, ".parquet"))
+  unlink(parquet_file)
+  arrow::write_parquet(df, sink = parquet_file, compression = "gzip")
+  if (verbose) message("Wrote ", nrow(df), " burned pixels \u2192 ", basename(parquet_file))
 
   parquet_file
 }

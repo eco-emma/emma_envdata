@@ -147,14 +147,17 @@ process_topographic_diversity <- function(
     topographic_div  = "unitless"
   )
 
+  tmp_file <- tempfile(tmpdir = dirname(out_file), fileext = ".nc")
+  on.exit(unlink(tmp_file), add = TRUE)
   terra::writeCDF(
     topo_stack,
-    filename  = out_file,
-    overwrite = TRUE,
+    filename  = tmp_file,
     varname   = "topography",
     longname  = paste(longnames[names(topo_stack)], collapse = "; "),
     unit      = paste(units_vec[names(topo_stack)], collapse = "; ")
   )
+  unlink(out_file)
+  if (!file.rename(tmp_file, out_file)) stop("Could not rename ", tmp_file, " -> ", out_file)
 
   if (verbose) {
     message(

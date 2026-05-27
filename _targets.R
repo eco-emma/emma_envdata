@@ -54,7 +54,7 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
     packages = description_packages,  # Use all packages from DESCRIPTION file
     repository = "local",  # Store targets locally; upload to release after tar_make() completes
     cue = tar_cue(mode = "thorough"),  # Recompute if any inputs change
-    format = "qs"  # Default: fast serialization using qs2 (targets >= 1.8.0 uses qs2::qs_save/qs_read)
+    format = "qs"  # targets uses qs2 under the hood for this format
   )
 
   # Download cached targets from GitHub release before running pipeline
@@ -862,9 +862,10 @@ list(
     generate_emma_stac_catalog(
       stac_base_dir       = "data/stac",
       dataset_collections = list(
-        modis_vi = "data/stac/modis_vi",
-        burn     = "data/stac/burn",
-        static   = "data/stac/static"
+        modis_vi     = "data/stac/modis_vi",
+        burn         = "data/stac/burn",
+        fire_history = "data/stac/fire_history",
+        static       = "data/stac/static"
       ),
       gh_repo = "AdamWilsonLab/emma_envdata",
       verbose = TRUE

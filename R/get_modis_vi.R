@@ -383,20 +383,6 @@ vi_modis_netcdf_to_grid <- function(
   domain_template <- if (is.character(domain_raster)) terra::rast(domain_raster) else domain_raster
   stopifnot("pid" %in% names(domain_template))
 
-  # Helper: write an all-NA two-variable NC for one sensor (EVI + doy)
-  write_empty_sensor_nc <- function(out_nc, t_date) {
-    empty_r <- terra::setValues(domain_template[[1]], NA_real_)
-    terra::time(empty_r) <- t_date
-    terra::writeCDF(empty_r, out_nc,
-                    varname  = "EVI",
-                    longname = "EVI x100 (QA-masked, no data)",
-                    overwrite = TRUE, verbose = FALSE)
-    terra::writeCDF(empty_r, out_nc,
-                    varname  = "doy",
-                    longname = "Composite day of year (no data)",
-                    append   = TRUE, verbose = FALSE)
-  }
-
   # Determine source NC files — handle both directory path and skip-file path
   nc_paths <- character(0)
   if (!grepl("\\.skip$", netcdf_directory) && dir.exists(netcdf_directory)) {
@@ -406,8 +392,8 @@ vi_modis_netcdf_to_grid <- function(
 
   if (length(nc_paths) == 0) {
     if (verbose) message("No source NCs for ", yyyymm, " — writing all-NA grid files")
-    write_empty_sensor_nc(out_terra_nc, month_start)
-    write_empty_sensor_nc(out_aqua_nc,  month_start)
+    write_sensor_nc(NULL, out_terra_nc, "Terra/MOD13A1", verbose)
+    write_sensor_nc(NULL, out_aqua_nc,  "Aqua/MYD13A1",  verbose)
     if (cleanup && !grepl("\\.skip$", netcdf_directory) && dir.exists(netcdf_directory)) {
       unlink(netcdf_directory, recursive = TRUE, force = TRUE)
     }
@@ -546,28 +532,70 @@ vi_modis_netcdf_to_grid <- function(
   terra_data <- process_sensor_ncs(terra_ncs, keep_values, domain_template, verbose)
   aqua_data  <- process_sensor_ncs(aqua_ncs,  keep_values, domain_template, verbose)
 
-  # Write output NC for each sensor.  EVI and doy share the same time dimension
-  # within each sensor file, so terra::writeCDF append=TRUE works correctly.
-  write_sensor_nc <- function(sensor_data, out_nc, sensor_label, verbose) {
-    if (is.null(sensor_data)) {
-      # No valid composites for this sensor — write single all-NA time step
-      if (verbose) message("No valid composites for ", sensor_label, " in ", yyyymm,
-                           " — writing all-NA NC")
-      write_empty_sensor_nc(out_nc, month_start)
-    } else {
-      terra::writeCDF(sensor_data$evi, out_nc,
-                      varname  = "EVI",
-                      longname = paste0("EVI x100 QA-masked (", sensor_label, ")"),
-                      overwrite = TRUE, verbose = FALSE)
-      terra::writeCDF(sensor_data$doy, out_nc,
-                      varname  = "doy",
-                      longname = paste0("Composite day of year (", sensor_label, ")"),
-                      append   = TRUE, verbose = FALSE)
-      n_steps <- if (is.null(sensor_data)) 0L else terra::nlyr(sensor_data$evi)
-      if (verbose) message("Wrote ", n_steps, " time step(s) → ", basename(out_nc))
-    }
+  # Write output NC for each sensor using temp-file + rename so terra never sees
+  # a pre-existing file regardless of whether overwrite=TRUE is honoured.
+  # terra 1.9.27 only has writeCDF(x, filename, ...) — no overwrite or append.
+  # Write each variable to its own temp file, then merge doy into the EVI file
+  # using ncdf4::ncvar_add so terra never sees a pre-existing filename.
+  merge_doy_into_nc <- function(tmp_doy, tmp_nc, doy_long) {
+    nc_src <- ncdf4::nc_open(tmp_doy)
+    nc_dst <- ncdf4::nc_open(tmp_nc, write = TRUE)
+    tryCatch({
+      new_var <- ncdf4::ncvar_def(
+        name     = "doy",
+        units    = "",
+        dim      = nc_dst$var[[names(nc_dst$var)[1]]]$dim,
+        longname = doy_long,
+        prec     = "float"
+      )
+      nc_dst <- ncdf4::ncvar_add(nc_dst, new_var)
+      ncdf4::ncvar_put(nc_dst, "doy", ncdf4::ncvar_get(nc_src, "doy"))
+    }, finally = {
+      ncdf4::nc_close(nc_src)
+      ncdf4::nc_close(nc_dst)
+    })
   }
 
+  write_sensor_nc <- function(sensor_data, out_nc, sensor_label, verbose) {
+    tmp_nc  <- tempfile(tmpdir = dirname(out_nc), fileext = ".nc")
+    tmp_doy <- tempfile(tmpdir = dirname(out_nc), fileext = ".nc")
+    on.exit({ unlink(tmp_nc); unlink(tmp_doy) }, add = TRUE)
+
+    if (is.null(sensor_data)) {
+      if (verbose) message("No valid composites for ", sensor_label, " in ", yyyymm,
+                           " — writing all-NA NC")
+      empty_r <- terra::setValues(domain_template[[1]], NA_real_)
+      terra::time(empty_r) <- month_start
+      terra::writeCDF(empty_r, tmp_nc,
+                      varname  = "EVI",
+                      longname = "EVI x100 (QA-masked, no data)",
+                      verbose  = FALSE)
+      terra::writeCDF(empty_r, tmp_doy,
+                      varname  = "doy",
+                      longname = "Composite day of year (no data)",
+                      verbose  = FALSE)
+      merge_doy_into_nc(tmp_doy, tmp_nc, "Composite day of year (no data)")
+    } else {
+      terra::writeCDF(sensor_data$evi, tmp_nc,
+                      varname  = "EVI",
+                      longname = paste0("EVI x100 QA-masked (", sensor_label, ")"),
+                      verbose  = FALSE)
+      terra::writeCDF(sensor_data$doy, tmp_doy,
+                      varname  = "doy",
+                      longname = paste0("Composite day of year (", sensor_label, ")"),
+                      verbose  = FALSE)
+      merge_doy_into_nc(tmp_doy, tmp_nc, paste0("Composite day of year (", sensor_label, ")"))
+      n_steps <- terra::nlyr(sensor_data$evi)
+      if (verbose) message("Wrote ", n_steps, " time step(s) -> ", basename(out_nc))
+    }
+
+    unlink(out_nc)
+    if (!file.rename(tmp_nc, out_nc))
+      stop("Could not rename ", tmp_nc, " -> ", out_nc)
+  }
+
+  unlink(out_terra_nc)
+  unlink(out_aqua_nc)
   write_sensor_nc(terra_data, out_terra_nc, "Terra/MOD13A1", verbose)
   write_sensor_nc(aqua_data,  out_aqua_nc,  "Aqua/MYD13A1",  verbose)
 

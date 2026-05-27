@@ -277,20 +277,47 @@ most_recent_burn_to_grid <- function(
   df <- arrow::read_parquet(parquet_file)
 
   dir.create(dirname(out_file), recursive = TRUE, showWarnings = FALSE)
+  # Write to local /tmp (avoids NFS stat-cache issue), then copy to final path.
+  # terra 1.9.27 has no append/overwrite support: write each variable to its own
+  # temp file and merge the second variable in using ncdf4::ncvar_add.
+  tmp_file  <- tempfile(fileext = ".nc")
+  tmp_file2 <- tempfile(fileext = ".nc")
+  on.exit({ unlink(tmp_file); unlink(tmp_file2) }, add = TRUE)
+
+  merge_var_into_nc <- function(src_path, var_name, dst_path, longname, units = "") {
+    nc_src <- ncdf4::nc_open(src_path)
+    nc_dst <- ncdf4::nc_open(dst_path, write = TRUE)
+    tryCatch({
+      new_var <- ncdf4::ncvar_def(
+        name     = var_name,
+        units    = units,
+        dim      = nc_dst$var[[names(nc_dst$var)[1]]]$dim,
+        longname = longname,
+        prec     = "float"
+      )
+      nc_dst <- ncdf4::ncvar_add(nc_dst, new_var)
+      ncdf4::ncvar_put(nc_dst, var_name, ncdf4::ncvar_get(nc_src, var_name))
+    }, finally = {
+      ncdf4::nc_close(nc_src)
+      ncdf4::nc_close(nc_dst)
+    })
+  }
 
   if (nrow(df) == 0L) {
     if (verbose) message("most_recent_burn parquet is empty — writing all-NA NC")
     empty_r <- domain_template[[1]]
     terra::values(empty_r) <- NA_real_
     terra::time(empty_r)   <- Sys.Date()
-    terra::writeCDF(empty_r, out_file,
+    terra::writeCDF(empty_r, tmp_file,
                     varname  = "fire_age_days",
-                    longname = "Days since last fire (snapshot)",
-                    overwrite = TRUE)
-    terra::writeCDF(empty_r, out_file,
+                    longname = "Days since last fire (snapshot)")
+    terra::writeCDF(empty_r, tmp_file2,
                     varname  = "last_burn_date",
-                    longname = "Last burn date (days since 1970-01-01)",
-                    append   = TRUE)
+                    longname = "Last burn date (days since 1970-01-01)")
+    merge_var_into_nc(tmp_file2, "last_burn_date", tmp_file,
+                      "Last burn date (days since 1970-01-01)")
+    if (!file.copy(tmp_file, out_file, overwrite = TRUE))
+      stop("Could not copy tmp NC to ", out_file)
     return(out_file)
   }
 
@@ -321,16 +348,19 @@ most_recent_burn_to_grid <- function(
   terra::time(fire_age_r)    <- snapshot_date
   terra::time(last_burn_r)   <- snapshot_date
 
-  terra::writeCDF(fire_age_r,  out_file,
+  terra::writeCDF(fire_age_r,  tmp_file,
                   varname  = "fire_age_days",
                   longname = "Days since last fire (snapshot)",
-                  unit     = "days",
-                  overwrite = TRUE)
-  terra::writeCDF(last_burn_r, out_file,
+                  unit     = "days")
+  terra::writeCDF(last_burn_r, tmp_file2,
                   varname  = "last_burn_date",
                   longname = "Last burn date (days since 1970-01-01)",
-                  unit     = "days",
-                  append   = TRUE)
+                  unit     = "days")
+  merge_var_into_nc(tmp_file2, "last_burn_date", tmp_file,
+                    "Last burn date (days since 1970-01-01)", units = "days")
+
+  if (!file.copy(tmp_file, out_file, overwrite = TRUE))
+    stop("Could not copy tmp NC to ", out_file)
 
   if (verbose) message("Wrote most_recent_burn NC: ", out_file)
   out_file
