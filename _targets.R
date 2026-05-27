@@ -47,6 +47,16 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
     TAR_GH_RELEASE_CACHE_DIR = gh_repo_config$cache_dir
   )
 
+  # Download cached targets from GitHub release before tar_option_set() so the
+  # restored store is visible before any cue or format options are applied.
+  source('R/tar_release_storage.R')
+  tar_download_github_release(
+    repo = gh_repo_config$repo,
+    tag = gh_repo_config$tag,
+    cache_dir = gh_repo_config$cache_dir,
+    verbose = TRUE
+  )
+
   tar_option_set(
     #controller = if (Sys.getenv("GITHUB_ACTIONS") != "true") crew::crew_controller_local(workers = 16) else NULL,
     memory = "transient", 
@@ -55,15 +65,6 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
     repository = "local",  # Store targets locally; upload to release after tar_make() completes
     cue = tar_cue(mode = "thorough"),  # Recompute if any inputs change
     format = "qs"  # targets uses qs2 under the hood for this format
-  )
-
-  # Download cached targets from GitHub release before running pipeline
-  source('R/tar_release_storage.R')
-  tar_download_github_release(
-    repo = gh_repo_config$repo,
-    tag = gh_repo_config$tag,
-    cache_dir = gh_repo_config$cache_dir,
-    verbose = TRUE
   )
 
   terraOptions(tempdir = "data/temp/terra", memfrac = 0.8)

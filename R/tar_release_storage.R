@@ -265,13 +265,37 @@ tar_upload_github_release <- function(
     data.frame(name = character(0), format = character(0), path = list())
   })
 
-  # Prime the piggyback release cache so pb_upload() finds the correct upload
-  # URL on the first attempt.
-  remote_assets <- tryCatch({
-    piggyback::pb_list(repo = repo, tag = tag)
-  }, error = function(e) {
-    data.frame(file_name = character(0))
-  })
+  # Fetch the release and its assets directly via gh (no caching layer).
+  # This avoids piggyback memoisation issues entirely after release creation.
+  .token     <- gh::gh_token()
+  owner_repo <- strsplit(repo, "/")[[1]]
+  release_gh <- tryCatch(
+    gh::gh(
+      "GET /repos/{owner}/{repo}/releases/tags/{tag}",
+      owner = owner_repo[1], repo = owner_repo[2], tag = tag,
+      .token = .token
+    ),
+    error = function(e) stop("[tar_github_release] Release '", tag, "' not accessible: ", conditionMessage(e))
+  )
+  upload_url_base <- sub("\\{.*", "", release_gh$upload_url)
+
+  asset_list <- tryCatch(
+    gh::gh(
+      "GET /repos/{owner}/{repo}/releases/{release_id}/assets",
+      owner = owner_repo[1], repo = owner_repo[2],
+      release_id = release_gh$id, .limit = Inf, .token = .token
+    ),
+    error = function(e) list()
+  )
+  remote_assets <- if (length(asset_list) > 0) {
+    data.frame(
+      file_name = vapply(asset_list, `[[`, character(1), "name"),
+      id        = vapply(asset_list, `[[`, integer(1),   "id"),
+      stringsAsFactors = FALSE
+    )
+  } else {
+    data.frame(file_name = character(0), id = integer(0))
+  }
   
   # Get list of local target files
   if (is.null(which_targets)) {
@@ -291,27 +315,16 @@ tar_upload_github_release <- function(
       }
     }
     
-    # Also get actual data files from data/target_outputs/
-    data_output_files <- character(0)
-    if (dir.exists("data/target_outputs")) {
-      all_output_files <- list.files("data/target_outputs", full.names = TRUE, recursive = FALSE)
-      # Exclude hidden/system directories (e.g. .DS_Store)
-      data_output_files <- all_output_files[!grepl("^\\.", basename(all_output_files))]
-    }
-    
-    local_files <- c(regular_files, file_format_targets, data_output_files)
+    local_files <- c(regular_files, file_format_targets)
     if (verbose) message("[tar_github_release] Found ", length(local_files), " local target files to upload")
   } else {
     # Find specific targets - check all locations
     regular_files <- character(0)
     file_format_targets <- character(0)
-    data_output_files <- character(0)
     
     for (target in which_targets) {
       obj_file <- file.path("_targets/objects", target)
-      ws_file <- file.path("_targets/workspaces", target)
-      data_file <- file.path("data/target_outputs", target)
-      
+      ws_file  <- file.path("_targets/workspaces", target)
       if (file.exists(obj_file)) {
         regular_files <- c(regular_files, obj_file)
       } else if (file.exists(ws_file)) {
@@ -319,11 +332,9 @@ tar_upload_github_release <- function(
         if (nrow(target_meta) > 0 && target_meta$format[1] == "file") {
           file_format_targets <- c(file_format_targets, ws_file)
         }
-      } else if (file.exists(data_file)) {
-        data_output_files <- c(data_output_files, data_file)
       }
     }
-    local_files <- c(regular_files, file_format_targets, data_output_files)
+    local_files <- c(regular_files, file_format_targets)
   }
   
   if (length(local_files) == 0) {
@@ -372,94 +383,75 @@ tar_upload_github_release <- function(
       
       if (verbose) message("[tar_github_release] Uploading file-format target: ", upload_name, " from ", local_file)
       
-      # Check if already exists on GitHub
+      # Delete existing asset if present (by ID — no piggyback needed)
       exists_on_github <- any(remote_assets$file_name == upload_name)
       if (exists_on_github) {
-        if (verbose) message("[tar_github_release] File already on GitHub, deleting old version: ", upload_name)
+        if (verbose) message("[tar_github_release] Deleting old asset: ", upload_name)
         tryCatch({
-          # Delete old version
-          old_asset <- remote_assets[remote_assets$file_name == upload_name, ]
-          if (nrow(old_asset) > 0) {
-            piggyback::pb_delete(repo = repo, tag = tag, file = upload_name)
-            Sys.sleep(1)
-          }
+          old_id <- remote_assets$id[remote_assets$file_name == upload_name]
+          gh::gh("DELETE /repos/{owner}/{repo}/releases/assets/{asset_id}",
+                 owner = owner_repo[1], repo = owner_repo[2],
+                 asset_id = old_id[1], .token = .token)
+          Sys.sleep(1)
         }, error = function(e) {
           if (verbose) message("[tar_github_release] Could not delete old asset: ", conditionMessage(e))
         })
       }
-      
-      max_attempts <- 3
-      for (attempt in 1:max_attempts) {
-        tryCatch({
-          piggyback::pb_upload(
-            file = local_file,
-            repo = repo,
-            tag = tag,
-            name = upload_name,
-            overwrite = FALSE
-          )
-          if (verbose) message("[tar_github_release] Uploaded: ", upload_name)
-          Sys.sleep(1)
-          break
-        }, error = function(e) {
-          if (attempt < max_attempts) {
-            if (verbose) message("[tar_github_release] Upload attempt ", attempt, " failed: ", conditionMessage(e))
-            Sys.sleep(2)
-          } else {
-            warning("[tar_github_release] Failed to upload after ", max_attempts, " attempts: ", conditionMessage(e))
-          }
-        })
-      }
+
+      # Upload directly via httr (bypasses all piggyback caching)
+      tryCatch({
+        r <- httr::RETRY(
+          verb = "POST",
+          url  = upload_url_base,
+          query = list(name = upload_name),
+          httr::add_headers(Authorization = paste("token", .token)),
+          body = httr::upload_file(local_file),
+          times = 3,
+          terminate_on = c(400, 401, 403, 404, 422)
+        )
+        httr::stop_for_status(r)
+        if (verbose) message("[tar_github_release] Uploaded: ", upload_name)
+        Sys.sleep(0.5)
+      }, error = function(e) {
+        warning("[tar_github_release] Failed to upload ", upload_name, ": ", conditionMessage(e))
+      })
     } else {
-      # Regular objects or data output files
-      # Determine if it's from data/target_outputs or _targets/objects
-      is_data_output <- grepl("data/target_outputs", local_file)
-      
-      if (is_data_output) {
-        # Data output file - upload with its original name
-        upload_name <- basename(local_file)
-        if (verbose) message("[tar_github_release] Uploading data file: ", upload_name)
-      } else {
-        # Serialized object from _targets/objects
-        upload_name <- target_name
-        if (verbose) message("[tar_github_release] Uploading object: ", target_name)
-      }
-      
-      # Check if already exists on GitHub
+      # Serialized object from _targets/objects
+      upload_name <- target_name
+      if (verbose) message("[tar_github_release] Uploading object: ", target_name)
+
+      # Delete existing asset if present
       exists_on_github <- any(remote_assets$file_name == upload_name)
       if (exists_on_github) {
-        if (verbose) message("[tar_github_release] File already on GitHub, deleting old version: ", upload_name)
+        if (verbose) message("[tar_github_release] Deleting old asset: ", upload_name)
         tryCatch({
-          # Delete old version
-          piggyback::pb_delete(repo = repo, tag = tag, file = upload_name)
+          old_id <- remote_assets$id[remote_assets$file_name == upload_name]
+          gh::gh("DELETE /repos/{owner}/{repo}/releases/assets/{asset_id}",
+                 owner = owner_repo[1], repo = owner_repo[2],
+                 asset_id = old_id[1], .token = .token)
           Sys.sleep(1)
         }, error = function(e) {
           if (verbose) message("[tar_github_release] Could not delete old asset: ", conditionMessage(e))
         })
       }
-      
-      max_attempts <- 3
-      for (attempt in 1:max_attempts) {
-        tryCatch({
-          piggyback::pb_upload(
-            file = local_file,
-            repo = repo,
-            tag = tag,
-            name = upload_name,
-            overwrite = FALSE
-          )
-          if (verbose) message("[tar_github_release] Uploaded: ", upload_name)
-          Sys.sleep(1)
-          break
-        }, error = function(e) {
-          if (attempt < max_attempts) {
-            if (verbose) message("[tar_github_release] Upload attempt ", attempt, " failed: ", conditionMessage(e))
-            Sys.sleep(2)
-          } else {
-            warning("[tar_github_release] Failed to upload: ", conditionMessage(e))
-          }
-        })
-      }
+
+      # Upload directly via httr (bypasses all piggyback caching)
+      tryCatch({
+        r <- httr::RETRY(
+          verb = "POST",
+          url  = upload_url_base,
+          query = list(name = upload_name),
+          httr::add_headers(Authorization = paste("token", .token)),
+          body = httr::upload_file(local_file),
+          times = 3,
+          terminate_on = c(400, 401, 403, 404, 422)
+        )
+        httr::stop_for_status(r)
+        if (verbose) message("[tar_github_release] Uploaded: ", upload_name)
+        Sys.sleep(0.5)
+      }, error = function(e) {
+        warning("[tar_github_release] Failed to upload ", upload_name, ": ", conditionMessage(e))
+      })
     }
   }
   

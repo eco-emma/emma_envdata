@@ -361,11 +361,14 @@ vi_viirs_netcdf_to_grid <- function(
     if (length(ncs) == 0L) return(NULL)
 
     all_t_numeric <- unique(unlist(lapply(ncs, function(p) {
-      r       <- terra::rast(p)
-      evi_idx <- which(grepl("EVI", names(r), ignore.case = TRUE) &
-                       !grepl("Quality|composite_day", names(r), ignore.case = TRUE))
-      if (length(evi_idx) == 0L) return(NULL)
-      as.numeric(terra::time(r[[evi_idx]]))
+      nc_h  <- tryCatch(ncdf4::nc_open(p), error = function(e) NULL)
+      if (is.null(nc_h)) return(NULL)
+      t_raw <- tryCatch(ncdf4::ncvar_get(nc_h, "time"), error = function(e) NULL)
+      ncdf4::nc_close(nc_h)
+      if (is.null(t_raw)) return(NULL)
+      # AppEEARS stores time as seconds-since-epoch but labels units as "days since 1970-1-1";
+      # days for 2000-2030 are ~10950-22000; seconds are ~1e9 — detect by magnitude
+      as.integer(round(if (any(t_raw > 1e6, na.rm = TRUE)) t_raw / 86400 else t_raw))
     })))
     all_t_numeric <- sort(all_t_numeric[is.finite(all_t_numeric)])
     if (length(all_t_numeric) == 0L) return(NULL)
@@ -389,7 +392,13 @@ vi_viirs_netcdf_to_grid <- function(
 
         if (length(evi_idx) == 0L) next
 
-        r_times <- as.numeric(terra::time(r[[evi_idx]]))
+        # Read corrected time values via ncdf4 (bypasses terra's units misread)
+        nc_h  <- tryCatch(ncdf4::nc_open(nc_path), error = function(e) NULL)
+        if (is.null(nc_h)) next
+        t_raw <- tryCatch(ncdf4::ncvar_get(nc_h, "time"), error = function(e) NULL)
+        ncdf4::nc_close(nc_h)
+        if (is.null(t_raw)) next
+        r_times <- as.integer(round(if (any(t_raw > 1e6, na.rm = TRUE)) t_raw / 86400 else t_raw))
         t_match <- which(r_times == t_val)
         if (length(t_match) == 0L) next
 
