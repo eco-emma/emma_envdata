@@ -36,7 +36,7 @@ on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
   schedule:
-    - cron: '0 3 1 * *' # runs on the 1st of every month at 03:00 UTC (update mode: catches new months)
+    - cron: '0 3 * * 1' # runs every Monday at 03:00 UTC
 
 name: targets
 
@@ -49,6 +49,7 @@ jobs:
       pull-requests: write
       issues: write
     env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
       EARTHDATA_PASSWORD: ${{ secrets.EARTHDATA_PASSWORD }}
       EARTHDATA_USER: ${{ secrets.EARTHDATA_USER }}
@@ -60,23 +61,18 @@ jobs:
           lfs: true
       - name: Whitelist directory
         run: git config --global --add safe.directory /__w/emma_envdata/emma_envdata
-      - name: Install system deps for keyring
-        run: |
-          apt-get update
-          apt-get install -y libsecret-1-0 libsecret-1-dev
       - name: Install R Package Dependencies
         run: |-
           Rscript -e "questionr::qscan(list.files(pattern='*.R',recursive=T), load = TRUE, detail = TRUE)" # this scans all scripts and installs any needed packages
           
       - name: Parse _targets.R
-        run: Rscript -e "parse('_targets.R')"
-        
-      - name: Cache targets store
-        uses: actions/cache@v3
-        with:
-          path: _targets/
-          key: targets-${{ hashFiles('_targets.R', 'R/**') }}
-          restore-keys: targets-
+        run: Rscript -e "parse('_targets.R')"       
+#      - name: Cache targets store
+#        uses: actions/cache@v3
+#        with:
+#          path: _targets/
+#          key: targets-${{ hashFiles('_targets.R', 'R/**') }}
+#          restore-keys: targets-
       - name: Run targets pipeline
         run: |
           Rscript -e "options(error = function() { traceback(2) ; quit(status = 1)}); targets::tar_make()" 2>&1 | tee targets-output.log
@@ -95,29 +91,29 @@ jobs:
             )
           "
         continue-on-error: true
-      - name: Export domain GeoPackage to releases
-        if: github.ref == 'refs/heads/main'
-        run: |
-          Rscript -e "
-            dir.create('data/releases', recursive = TRUE, showWarnings = FALSE)
-            # Load domain boundary and write as GeoPackage for downstream consumers
-            targets::tar_load(domain_boundary)
-            sf::st_write(domain_boundary, 'data/releases/domain.gpkg', delete_dsn = TRUE)
-          "
-        continue-on-error: true
-        
-      - name: Upload to GitHub Releases
-        if: github.ref == 'refs/heads/main'
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: latest
-          files: |
-            data/releases/*
-          body: |
-            Latest data products from targets pipeline
-            Updated: ${{ github.event.head_commit.timestamp }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#      - name: Export domain GeoPackage to releases
+#        if: github.ref == 'refs/heads/main'
+#        run: |
+#          Rscript -e "
+#            dir.create('data/releases', recursive = TRUE, showWarnings = FALSE)
+#            # Load domain boundary and write as GeoPackage for downstream consumers
+#            targets::tar_load(domain_boundary)
+#            sf::st_write(domain_boundary, 'data/releases/domain.gpkg', delete_dsn = TRUE)
+#          "
+#        continue-on-error: true
+#        
+#      - name: Upload to GitHub Releases
+#        if: github.ref == 'refs/heads/main'
+#        uses: softprops/action-gh-release@v1
+#        with:
+#          tag_name: latest
+#          files: |
+#            data/releases/*
+#          body: |
+#            Latest data products from targets pipeline
+#            Updated: ${{ github.event.head_commit.timestamp }}
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Install GitHub CLI
         if: failure() && github.event_name == 'push'
