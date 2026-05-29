@@ -51,11 +51,17 @@ tar_download_github_release <- function(
   tag <- tag %||% Sys.getenv("TAR_GH_RELEASE_TAG") %||% "targets-cache"
   cache_dir <- cache_dir %||% Sys.getenv("TAR_GH_RELEASE_CACHE_DIR") %||% "_targets/cache"
   objects_dir <- "_targets/objects"
-  
+
   if (!nzchar(repo) || !nzchar(tag)) {
     stop("GitHub release configuration not set. Provide repo and tag parameters or set environment variables.")
   }
-  
+
+  # Resolve token once and pass explicitly to all API calls.
+  # gh::gh_token() checks GITHUB_PAT first, then GITHUB_TOKEN (no format
+  # validation on GITHUB_TOKEN, so GitHub Actions service tokens work correctly
+  # as long as GITHUB_PAT is not set in the workflow env).
+  .token <- gh::gh_token()
+
   dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
   dir.create(objects_dir, recursive = TRUE, showWarnings = FALSE)
 
@@ -73,7 +79,8 @@ tar_download_github_release <- function(
       repo      = repo,
       tag       = tag,
       dest      = cache_dir,
-      overwrite = TRUE
+      overwrite = TRUE,
+      .token    = .token
     )
     if (file.exists(meta_cached) && file.size(meta_cached) > 0) {
       dir.create("_targets/meta", recursive = TRUE, showWarnings = FALSE)
@@ -87,7 +94,7 @@ tar_download_github_release <- function(
   # Get list of assets on GitHub release
   # pb_list() throws "undefined columns selected" on empty releases (piggyback bug) — treat as 0 assets
   assets <- tryCatch({
-    result <- piggyback::pb_list(repo = repo, tag = tag)
+    result <- piggyback::pb_list(repo = repo, tag = tag, .token = .token)
     if (is.null(result)) result <- data.frame(file_name = character(0), stringsAsFactors = FALSE)
     if (verbose) message("[tar_github_release] Found ", nrow(result), " assets on GitHub release")
     result
@@ -149,11 +156,12 @@ tar_download_github_release <- function(
       for (attempt in 1:max_attempts) {
         tryCatch({
           piggyback::pb_download(
-            file = asset_name,
-            repo = repo,
-            tag = tag,
-            dest = cache_dir,
-            overwrite = TRUE
+            file      = asset_name,
+            repo      = repo,
+            tag       = tag,
+            dest      = cache_dir,
+            overwrite = TRUE,
+            .token    = .token
           )
         }, error = function(e) {
           if (verbose) message("[tar_github_release] Download attempt ", attempt, " error: ", conditionMessage(e))
@@ -247,11 +255,11 @@ tar_upload_github_release <- function(
   repo <- repo %||% Sys.getenv("TAR_GH_RELEASE_REPO") %||% "AdamWilsonLab/emma_envdata"
   tag <- tag %||% Sys.getenv("TAR_GH_RELEASE_TAG") %||% "targets-cache"
   cache_dir <- cache_dir %||% Sys.getenv("TAR_GH_RELEASE_CACHE_DIR") %||% "_targets/cache"
-  
+
   if (!nzchar(repo) || !nzchar(tag)) {
     stop("GitHub release configuration not set. Provide repo and tag parameters or set environment variables.")
   }
-  
+
   # Ensure release exists.
   # Use pb_releases() (not pb_list()) to check existence — pb_list() populates
   # piggyback's internal memoise cache with a "not found" result, which then
@@ -275,9 +283,11 @@ tar_upload_github_release <- function(
     data.frame(name = character(0), format = character(0), path = list())
   })
 
+  # Resolve token once; same reasoning as tar_download_github_release.
+  .token <- gh::gh_token()
+
   # Fetch the release and its assets directly via gh (no caching layer).
   # This avoids piggyback memoisation issues entirely after release creation.
-  .token     <- gh::gh_token()
   owner_repo <- strsplit(repo, "/")[[1]]
   release_gh <- tryCatch(
     gh::gh(
