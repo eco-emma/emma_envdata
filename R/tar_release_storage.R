@@ -273,18 +273,35 @@ tar_upload_github_release <- function(
     stop("GitHub release configuration not set. Provide repo and tag parameters or set environment variables.")
   }
 
+  # Resolve token and repo parts early — needed for all gh::gh() calls below.
+  # Use .gh_token() to bypass gh package format validation for ghs_ tokens.
+  .token     <- .gh_token()
+  owner_repo <- strsplit(repo, "/")[[1]]
+
   # Ensure release exists.
-  # Use pb_releases() (not pb_list()) to check existence — pb_list() populates
-  # piggyback's internal memoise cache with a "not found" result, which then
-  # causes pb_upload() to fail with "length(url) == 1 is not TRUE" even after
-  # the release is created, because the stale memo is still in effect.
-  existing_releases <- tryCatch(
-    piggyback::pb_releases(repo = repo),
-    error = function(e) data.frame(tag_name = character(0))
-  )
+  # Use gh::gh() directly (not piggyback) so we can pass .token explicitly;
+  # piggyback::pb_releases() and pb_new_release() call gh::gh_token() internally
+  # regardless of the .token parameter, which fails with ghs_ service tokens.
+  existing_releases <- tryCatch({
+    rels <- gh::gh(
+      "GET /repos/{owner}/{repo}/releases",
+      owner = owner_repo[1], repo = owner_repo[2],
+      .limit = Inf, .token = .token
+    )
+    data.frame(tag_name = vapply(rels, `[[`, character(1), "tag_name"),
+               stringsAsFactors = FALSE)
+  }, error = function(e) data.frame(tag_name = character(0)))
+
   if (!tag %in% existing_releases$tag_name) {
     if (verbose) message("[tar_github_release] Creating release: ", tag)
-    piggyback::pb_new_release(repo = repo, tag = tag)
+    gh::gh(
+      "POST /repos/{owner}/{repo}/releases",
+      owner      = owner_repo[1], repo = owner_repo[2],
+      tag_name   = tag,
+      name       = tag,
+      prerelease = TRUE,
+      .token     = .token
+    )
     Sys.sleep(3)  # let GitHub propagate before first upload
   }
 
@@ -296,12 +313,8 @@ tar_upload_github_release <- function(
     data.frame(name = character(0), format = character(0), path = list())
   })
 
-  # Resolve token once; same reasoning as tar_download_github_release.
-  .token <- .gh_token()
-
   # Fetch the release and its assets directly via gh (no caching layer).
   # This avoids piggyback memoisation issues entirely after release creation.
-  owner_repo <- strsplit(repo, "/")[[1]]
   release_gh <- tryCatch(
     gh::gh(
       "GET /repos/{owner}/{repo}/releases/tags/{tag}",

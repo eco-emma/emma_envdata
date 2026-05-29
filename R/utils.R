@@ -6,7 +6,8 @@
 # execution continues so that a missing release does not abort unrelated targets.
 restore_static_data <- function(repo, out_dir = "data/target_outputs", verbose = TRUE) {
   tryCatch({
-    token      <- gh::gh_token()
+    # Use .gh_token() to bypass gh package format validation for ghs_ tokens.
+    token      <- if (exists(".gh_token", mode = "function")) .gh_token() else Sys.getenv("GITHUB_TOKEN", unset = "")
     owner_repo <- strsplit(repo, "/")[[1]]
     rel <- gh::gh(
       "GET /repos/{owner}/{repo}/releases/tags/{tag}",
