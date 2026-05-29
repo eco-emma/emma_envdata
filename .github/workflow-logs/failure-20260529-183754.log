@@ -1,0 +1,24 @@
+Starting tar_make()
+System info: sysname=Linux; release=6.17.0-1015-azure; version=#15~24.04.1-Ubuntu SMP Wed May  6 22:37:49 UTC 2026; nodename=7762e60ae0c5; machine=x86_64; login=unknown; user=root; effective_user=root
+Error:
+! Error in tar_make():
+  unused argument (exclude = c("R/tar_release_storage.R", "R/utils.R"))
+  See https://books.ropensci.org/targets/debugging.html
+10: (function () 
+    {
+        traceback(2)
+        quit(status = 1)
+    })()
+9: stop(fallback)
+8: signal_abort(cnd, .file)
+7: rlang::abort(message = message, class = class, call = tar_envir_base)
+6: tar_error(message = paste0(...), class = base::union(custom_error_classes(class), 
+       c("tar_condition_run", "tar_condition_targets")))
+5: tar_throw_run(message, class = class(traced_condition$condition))
+4: callr_error(traced_condition = out, fun = fun)
+3: if_any(inherits(out, "tar_condition_traced"), callr_error(traced_condition = out, 
+       fun = fun), out)
+2: callr_outer(targets_function = tar_make_inner, targets_arguments = targets_arguments, 
+       callr_function = callr_function, callr_arguments = callr_arguments, 
+       envir = envir, script = script, store = store, fun = "tar_make")
+1: targets::tar_make()
