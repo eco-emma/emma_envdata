@@ -1,4 +1,18 @@
 # ---------------------------------------------------------------------------
+# Internal helper: resolve a GitHub token without triggering gh package format
+# validation.  gh::gh_token() rejects ghs_ GitHub Actions service tokens when
+# they appear in GITHUB_PAT, and newer gh versions may also validate
+# GITHUB_TOKEN.  Reading GITHUB_TOKEN directly bypasses all validation.
+# Falls back to gh::gh_token() for interactive use (GITHUB_PAT / credential
+# store) when GITHUB_TOKEN is not set.
+# ---------------------------------------------------------------------------
+.gh_token <- function() {
+  tok <- Sys.getenv("GITHUB_TOKEN")
+  if (nzchar(tok)) return(tok)
+  gh::gh_token()
+}
+
+# ---------------------------------------------------------------------------
 # Internal helper: verify a downloaded file can actually be opened.
 # Returns TRUE if the file passes its format-specific integrity check,
 # FALSE on any read error. Used by tar_download_github_release() to avoid
@@ -57,10 +71,9 @@ tar_download_github_release <- function(
   }
 
   # Resolve token once and pass explicitly to all API calls.
-  # gh::gh_token() checks GITHUB_PAT first, then GITHUB_TOKEN (no format
-  # validation on GITHUB_TOKEN, so GitHub Actions service tokens work correctly
-  # as long as GITHUB_PAT is not set in the workflow env).
-  .token <- gh::gh_token()
+  # Use .gh_token() rather than gh::gh_token() directly to bypass gh package
+  # format validation, which rejects ghs_ GitHub Actions service tokens.
+  .token <- .gh_token()
 
   dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
   dir.create(objects_dir, recursive = TRUE, showWarnings = FALSE)
@@ -284,7 +297,7 @@ tar_upload_github_release <- function(
   })
 
   # Resolve token once; same reasoning as tar_download_github_release.
-  .token <- gh::gh_token()
+  .token <- .gh_token()
 
   # Fetch the release and its assets directly via gh (no caching layer).
   # This avoids piggyback memoisation issues entirely after release creation.
