@@ -45,7 +45,8 @@ Imports:
   glue,
   stringr,
   gh,
-  httr
+  httr,
+  memoise
 Suggests:
   rgee,
   reticulate,
