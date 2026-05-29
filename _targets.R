@@ -17,7 +17,7 @@ message("Starting tar_make()")
 library(targets)
 # tar_make()
 
-tar_source("R")  # source all R files; unlike devtools::load_all(), tar_source() makes functions available to crew workers
+tar_source("R", exclude = c("R/tar_release_storage.R", "R/utils.R"))  # source pipeline functions; exclude setup utilities to prevent their changes from invalidating the targets cache
 description_packages <- load_description_packages(verbose=TRUE)  # Load all packages from DESCRIPTION and get list
 
 
