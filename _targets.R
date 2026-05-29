@@ -17,7 +17,7 @@ message("Starting tar_make()")
 library(targets)
 # tar_make()
 
-tar_source("R", exclude = c("R/tar_release_storage.R", "R/utils.R"))  # source pipeline functions; exclude setup utilities to prevent their changes from invalidating the targets cache
+tar_source("R")  # source all R files; unlike devtools::load_all(), tar_source() makes functions available to crew workers
 description_packages <- load_description_packages(verbose=TRUE)  # Load all packages from DESCRIPTION and get list
 
 
@@ -94,7 +94,7 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
   modis_start_date <- "2026-01-01"  # MODIS Terra first available data
   viirs_start_date <- "2026-01-01"  # VIIRS first available data
   burn_start_date  <- "2026-01-01"  # MCD64A1 first available data
-  modis_end_date   <- "2026-05-01" #as.character(Sys.Date())
+  modis_end_date   <- as.character(Sys.Date())
 
 
 
@@ -273,52 +273,12 @@ list(
   # MODIS VI Download Pipeline (Dynamically Branched)
   # ============================================================================
 
-  # Identify which monthly periods need to be downloaded
+  # All months in the date range; targets cache handles deduplication.
+  # modis_end_date = Sys.Date() advances each month, adding one new branch
+  # while leaving existing cached branches untouched.
   tar_target(
     vi_modis_pending,
-    {
-      output_dir <- "data/target_outputs/modis_vi"
-      
-      # Check which monthly periods have already been downloaded
-      # find_missing_months() checks for existing NetCDF files
-      missing <- find_missing_months(
-        output_dir = output_dir,
-        dataset = "vi_modis",
-        start_date = modis_start_date,
-        end_date = modis_end_date
-      )
-      
-      # Always include the current month to ensure up-to-date data
-      today <- Sys.Date()
-      current_month_start <- as.Date(paste0(format(today, "%Y-%m"), "-01"))
-      current_month_end <- as.Date(paste0(format(today + 31, "%Y-%m"), "-01")) - 1
-      current_month_str <- format(current_month_start, "%Y%m")
-      
-      # Check if current month is already in missing
-      current_in_missing <- any(missing$date_str == current_month_str)
-      
-      if (!current_in_missing) {
-        current_row <- data.frame(
-          month_start = current_month_start,
-          month_end = current_month_end,
-          date_str = current_month_str
-        )
-        missing <- rbind(missing, current_row)
-      }
-      
-      if (nrow(missing) == 0) {
-        message("All monthly periods from ", modis_start_date, " to ", modis_end_date, " already downloaded")
-        # Return empty data frame with correct structure
-        data.frame(
-          month_start = as.Date(character(0)),
-          month_end = as.Date(character(0)),
-          date_str = character(0)
-        )
-      } else {
-        message("Found ", nrow(missing), " missing monthly periods to download (current month always included)")
-        missing
-      }
-    }
+    generate_monthly_sequence(start_date = modis_start_date, end_date = modis_end_date)
   ),
 
   # Dynamically submit monthly AppEEARS tasks
@@ -392,41 +352,7 @@ list(
 
   tar_target(
     vi_viirs_pending,
-    {
-      output_dir <- "data/target_outputs/viirs_vi"
-
-      missing <- find_missing_months(
-        output_dir = output_dir,
-        dataset    = "vi_viirs",
-        start_date = viirs_start_date,
-        end_date   = modis_end_date
-      )
-
-      today               <- Sys.Date()
-      current_month_start <- as.Date(paste0(format(today, "%Y-%m"), "-01"))
-      current_month_end   <- as.Date(paste0(format(today + 31, "%Y-%m"), "-01")) - 1
-      current_month_str   <- format(current_month_start, "%Y%m")
-
-      if (!any(missing$date_str == current_month_str)) {
-        missing <- rbind(missing, data.frame(
-          month_start = current_month_start,
-          month_end   = current_month_end,
-          date_str    = current_month_str
-        ))
-      }
-
-      if (nrow(missing) == 0) {
-        message("All VIIRS VI monthly periods already downloaded")
-        data.frame(
-          month_start = as.Date(character(0)),
-          month_end   = as.Date(character(0)),
-          date_str    = character(0)
-        )
-      } else {
-        message("Found ", nrow(missing), " missing VIIRS VI monthly periods")
-        missing
-      }
-    }
+    generate_monthly_sequence(start_date = viirs_start_date, end_date = modis_end_date)
   ),
 
   tar_target(
@@ -502,15 +428,10 @@ list(
   # MODIS Burned Area Pipeline (MCD64A1, dynamically branched by month)
   # ============================================================================
 
-  # Identify which months of MODIS burned area are missing.
-  # Always includes the current month (logic lives in identify_missing_burn_dates_modis).
+  # All months in the date range; targets cache handles deduplication.
   tar_target(
     burn_modis_pending,
-    identify_missing_burn_dates_modis(
-      output_dir = "data/target_outputs/burn_dates_modis",
-      start_date = burn_start_date,
-      end_date   = modis_end_date
-    )
+    generate_monthly_sequence(start_date = burn_start_date, end_date = modis_end_date)
   ),
 
   # Submit one AppEEARS task per missing month (branched)
@@ -575,14 +496,10 @@ list(
   # Coverage: 2012-01-01 to present
   # ============================================================================
 
-  # Always includes the current month (logic lives in identify_missing_burn_dates_viirs).
+  # All months in the date range; targets cache handles deduplication.
   tar_target(
     burn_viirs_pending,
-    identify_missing_burn_dates_viirs(
-      output_dir = "data/target_outputs/burn_dates_viirs",
-      start_date = viirs_start_date,
-      end_date   = modis_end_date
-    )
+    generate_monthly_sequence(start_date = viirs_start_date, end_date = modis_end_date)
   ),
 
   tar_target(
