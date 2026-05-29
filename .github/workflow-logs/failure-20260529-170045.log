@@ -1,0 +1,241 @@
+Starting tar_make()
+System info: sysname=Linux; release=6.17.0-1015-azure; version=#15~24.04.1-Ubuntu SMP Wed May  6 22:37:49 UTC 2026; nodename=852729ff2e2f; machine=x86_64; login=unknown; user=root; effective_user=root
+tar_source() only sources R scripts. Ignoring non-R files: R/ccr_startup.sh
+Loaded 38 packages from DESCRIPTION
+[tar_github_release] Restored targets meta
+[tar_github_release] Found 63 assets on GitHub release
+[tar_github_release] Already cached: burn_events_merged
+[tar_github_release] Restored: burn_events_merged
+[tar_github_release] Already cached: burn_modis_netcdf_00fa82c3b006a2a9
+[tar_github_release] Restored: burn_modis_netcdf_00fa82c3b006a2a9
+[tar_github_release] Already cached: burn_modis_netcdf_61623137d0de99d0
+[tar_github_release] Restored: burn_modis_netcdf_61623137d0de99d0
+[tar_github_release] Already cached: burn_modis_netcdf_6f971e1456e1fb97
+[tar_github_release] Restored: burn_modis_netcdf_6f971e1456e1fb97
+[tar_github_release] Already cached: burn_modis_netcdf_f6a73f9cf66be693
+[tar_github_release] Restored: burn_modis_netcdf_f6a73f9cf66be693
+[tar_github_release] Already cached: burn_modis_pending
+[tar_github_release] Restored: burn_modis_pending
+[tar_github_release] Already cached: burn_modis_task_ids_4109381bbf511081
+[tar_github_release] Restored: burn_modis_task_ids_4109381bbf511081
+[tar_github_release] Already cached: burn_modis_task_ids_780669cec39cbbdc
+[tar_github_release] Restored: burn_modis_task_ids_780669cec39cbbdc
+[tar_github_release] Already cached: burn_modis_task_ids_b5f92022b79867ea
+[tar_github_release] Restored: burn_modis_task_ids_b5f92022b79867ea
+[tar_github_release] Already cached: burn_modis_task_ids_d62fa9084565f643
+[tar_github_release] Restored: burn_modis_task_ids_d62fa9084565f643
+[tar_github_release] Already cached: burn_viirs_netcdf_03217ce9d92d655f
+[tar_github_release] Restored: burn_viirs_netcdf_03217ce9d92d655f
+[tar_github_release] Already cached: burn_viirs_netcdf_1211205d0b93e702
+[tar_github_release] Restored: burn_viirs_netcdf_1211205d0b93e702
+[tar_github_release] Already cached: burn_viirs_netcdf_ac597710dac1c30c
+[tar_github_release] Restored: burn_viirs_netcdf_ac597710dac1c30c
+[tar_github_release] Already cached: burn_viirs_netcdf_b2f5a73c7b7be7da
+[tar_github_release] Restored: burn_viirs_netcdf_b2f5a73c7b7be7da
+[tar_github_release] Downloading: burn_viirs_parquet_8272bbbd0d6a20ee
+[tar_github_release] Downloaded and verified: burn_viirs_parquet_8272bbbd0d6a20ee
+[tar_github_release] Restored: burn_viirs_parquet_8272bbbd0d6a20ee
+[tar_github_release] Already cached: burn_viirs_parquet_8272bbbd0d6a20ee.skip
+[tar_github_release] Skipped RDS write (qs object already present): burn_viirs_parquet_8272bbbd0d6a20ee
+[tar_github_release] Already cached: burn_viirs_pending
+[tar_github_release] Restored: burn_viirs_pending
+[tar_github_release] Already cached: burn_viirs_task_ids_00d51b3cd5b31fde
+[tar_github_release] Restored: burn_viirs_task_ids_00d51b3cd5b31fde
+[tar_github_release] Already cached: burn_viirs_task_ids_111b4045eab4d22b
+[tar_github_release] Restored: burn_viirs_task_ids_111b4045eab4d22b
+[tar_github_release] Already cached: burn_viirs_task_ids_1d620c7c69751ccf
+[tar_github_release] Restored: burn_viirs_task_ids_1d620c7c69751ccf
+[tar_github_release] Already cached: burn_viirs_task_ids_49729aff4591f4da
+[tar_github_release] Restored: burn_viirs_task_ids_49729aff4591f4da
+[tar_github_release] Already cached: capenature_fires
+[tar_github_release] Restored: capenature_fires
+[tar_github_release] Already cached: country
+[tar_github_release] Restored: country
+[tar_github_release] Already cached: domain_bbox
+[tar_github_release] Restored: domain_bbox
+[tar_github_release] Already cached: domain_boundary
+[tar_github_release] Restored: domain_boundary
+[tar_github_release] Already cached: domain_grid
+[tar_github_release] Restored: domain_grid
+[tar_github_release] Already cached: elevation_task_id
+[tar_github_release] Restored: elevation_task_id
+[tar_github_release] Cached file failed integrity check, re-downloading: recentburn_grid.nc
+[tar_github_release] Integrity check failed (attempt 1), retrying...
+[tar_github_release] Integrity check failed (attempt 2), retrying...
+[tar_github_release] Integrity check failed (attempt 3), retrying...
+[tar_github_release] Integrity check failed (attempt 4), retrying...
+[tar_github_release] Already cached: remnants
+[tar_github_release] Restored: remnants
+[tar_github_release] Already cached: upload_burn_modis
+[tar_github_release] Restored: upload_burn_modis
+[tar_github_release] Already cached: upload_burn_modis_grid
+[tar_github_release] Restored: upload_burn_modis_grid
+[tar_github_release] Already cached: upload_burn_viirs_data
+[tar_github_release] Restored: upload_burn_viirs_data
+[tar_github_release] Already cached: upload_burn_viirs_grid
+[tar_github_release] Restored: upload_burn_viirs_grid
+[tar_github_release] Already cached: upload_fire_history
+[tar_github_release] Restored: upload_fire_history
+[tar_github_release] Already cached: upload_stac_catalog
+[tar_github_release] Restored: upload_stac_catalog
+[tar_github_release] Already cached: upload_static
+[tar_github_release] Restored: upload_static
+[tar_github_release] Already cached: upload_vi_modis
+[tar_github_release] Restored: upload_vi_modis
+[tar_github_release] Already cached: upload_vi_modis_grid
+[tar_github_release] Restored: upload_vi_modis_grid
+[tar_github_release] Already cached: upload_vi_viirs_grid
+[tar_github_release] Restored: upload_vi_viirs_grid
+[tar_github_release] Already cached: vegmap
+[tar_github_release] Restored: vegmap
+[tar_github_release] Already cached: vegmap_grid
+[tar_github_release] Restored: vegmap_grid
+[tar_github_release] Already cached: vi_modis_netcdf_2ff3a4c5100334a9
+[tar_github_release] Restored: vi_modis_netcdf_2ff3a4c5100334a9
+[tar_github_release] Already cached: vi_modis_netcdf_39afd13666cbe54f
+[tar_github_release] Restored: vi_modis_netcdf_39afd13666cbe54f
+[tar_github_release] Already cached: vi_modis_netcdf_6761dfd9dfc52918
+[tar_github_release] Restored: vi_modis_netcdf_6761dfd9dfc52918
+[tar_github_release] Already cached: vi_modis_netcdf_7032171b9a489b9e
+[tar_github_release] Restored: vi_modis_netcdf_7032171b9a489b9e
+[tar_github_release] Already cached: vi_modis_netcdf_c0cd55608a213754
+[tar_github_release] Restored: vi_modis_netcdf_c0cd55608a213754
+[tar_github_release] Already cached: vi_modis_pending
+[tar_github_release] Restored: vi_modis_pending
+[tar_github_release] Already cached: vi_modis_task_ids_18f45b684063e89c
+[tar_github_release] Restored: vi_modis_task_ids_18f45b684063e89c
+[tar_github_release] Already cached: vi_modis_task_ids_37666a455b3185c6
+[tar_github_release] Restored: vi_modis_task_ids_37666a455b3185c6
+[tar_github_release] Already cached: vi_modis_task_ids_900d7c54ef89e696
+[tar_github_release] Restored: vi_modis_task_ids_900d7c54ef89e696
+[tar_github_release] Already cached: vi_modis_task_ids_9f88fac294762d3f
+[tar_github_release] Restored: vi_modis_task_ids_9f88fac294762d3f
+[tar_github_release] Already cached: vi_modis_task_ids_bfc84bbbea21069e
+[tar_github_release] Restored: vi_modis_task_ids_bfc84bbbea21069e
+[tar_github_release] Cached file failed integrity check, re-downloading: vi_viirs_grid_2082151e07f720a7.nc
+[tar_github_release] Integrity check failed (attempt 1), retrying...
+[tar_github_release] Integrity check failed (attempt 2), retrying...
+[tar_github_release] Integrity check failed (attempt 3), retrying...
+[tar_github_release] Integrity check failed (attempt 4), retrying...
+[tar_github_release] Already cached: vi_viirs_netcdf_0a6fd378a04026b8
+[tar_github_release] Restored: vi_viirs_netcdf_0a6fd378a04026b8
+[tar_github_release] Already cached: vi_viirs_netcdf_1a1867be123b9604
+[tar_github_release] Restored: vi_viirs_netcdf_1a1867be123b9604
+[tar_github_release] Already cached: vi_viirs_netcdf_dbf4e751065280ff
+[tar_github_release] Restored: vi_viirs_netcdf_dbf4e751065280ff
+[tar_github_release] Already cached: vi_viirs_netcdf_e12bf280d164d46c
+[tar_github_release] Restored: vi_viirs_netcdf_e12bf280d164d46c
+[tar_github_release] Already cached: vi_viirs_pending
+[tar_github_release] Restored: vi_viirs_pending
+[tar_github_release] Already cached: vi_viirs_task_ids_0fab081c2db54ded
+[tar_github_release] Restored: vi_viirs_task_ids_0fab081c2db54ded
+[tar_github_release] Already cached: vi_viirs_task_ids_72f782e4feb6cbb6
+[tar_github_release] Restored: vi_viirs_task_ids_72f782e4feb6cbb6
+[tar_github_release] Already cached: vi_viirs_task_ids_9e1f7a4daa469973
+[tar_github_release] Restored: vi_viirs_task_ids_9e1f7a4daa469973
+[tar_github_release] Already cached: vi_viirs_task_ids_b9efd63381667452
+[tar_github_release] Restored: vi_viirs_task_ids_b9efd63381667452
+[tar_github_release] Already cached: _targets_meta
+[tar_github_release] Restored: _targets_meta
+[tar_github_release] Download complete
+Failed to download static file: CHELSA_bio01_1981-2010_V.2.1.nc
+Failed to download static file: CHELSA_bio02_1981-2010_V.2.1.nc
+Failed to download static file: CHELSA_bio03_1981-2010_V.2.1.nc
+Failed to download static file: CHELSA_bio04_1981-2010_V.2.1.nc
+Failed to download static file: CHELSA_bio05_1981-2010_V.2.1.nc
+Failed to download static file: CHELSA_bio06_1981-2010_V.2.1.nc
+Failed to download static file: CHELSA_bio07_1981-2010_V.2.1.nc
+Failed to download static file: CHELSA_bio08_1981-2010_V.2.1.nc
+Failed to download static file: CHELSA_bio09_1981-2010_V.2.1.nc
+Failed to download static file: CHELSA_bio10_1981-2010_V.2.1.nc
+Failed to download static file: CHELSA_bio11_1981-2010_V.2.1.nc
+Failed to download static file: CHELSA_bio12_1981-2010_V.2.1.nc
+Failed to download static file: CHELSA_bio13_1981-2010_V.2.1.nc
+Failed to download static file: CHELSA_bio14_1981-2010_V.2.1.nc
+Failed to download static file: CHELSA_bio15_1981-2010_V.2.1.nc
+Failed to download static file: CHELSA_bio16_1981-2010_V.2.1.nc
+Failed to download static file: CHELSA_bio17_1981-2010_V.2.1.nc
+Failed to download static file: CHELSA_bio18_1981-2010_V.2.1.nc
+Failed to download static file: CHELSA_bio19_1981-2010_V.2.1.nc
+Failed to download static file: clouds_wilson.nc
+Failed to download static file: domain.nc
+Failed to download static file: domain.parquet
+Failed to download static file: elevation_nasadem.nc
+Failed to download static file: soil_soilgrids.nc
+Failed to download static file: topographic_diversity.nc
+Failed to download static file: vegmap.nc
++ release_manifest dispatched
+✔ release_manifest completed [17ms, 7.82 kB]
++ vi_viirs_task_ids declared [4 branches]
++ vi_modis_task_ids declared [5 branches]
++ burn_modis_task_ids declared [4 branches]
++ burn_viirs_task_ids declared [4 branches]
++ soil_soilgrids dispatched
+Soil data file already exists: data/target_outputs/soil_soilgrids.nc
+✔ soil_soilgrids completed [43ms, 112 B]
++ vi_viirs_netcdf declared [4 branches]
+AppEEARS auth: user='wilsonadam9' pass_nchar=15
+✖ vi_viirs_netcdf_dbf4e751065280ff errored
+Error: Could not validate login information.
+
+AppEEARS auth: user='wilsonadam9' pass_nchar=15
+✖ vi_viirs_netcdf_1a1867be123b9604 errored
+Error: Could not validate login information.
+
+AppEEARS auth: user='wilsonadam9' pass_nchar=15
+✖ vi_viirs_netcdf_0a6fd378a04026b8 errored
+Error: Could not validate login information.
+
+AppEEARS auth: user='wilsonadam9' pass_nchar=15
+Polling task 022847b4-c547-4298-a271-3b9e67f25a47 for completion...
+✖ vi_viirs_netcdf_e12bf280d164d46c errored
+Error: Failed to login
+
++ vi_modis_netcdf declared [5 branches]
+Polling task f8e6fd20-ab87-483b-b590-77b319e17c14 for completion...
+✖ vi_modis_netcdf_39afd13666cbe54f errored
+Error: Failed to login
+
+Polling task 443f3aca-104c-49fe-9ac9-f372597bdf19 for completion...
+✖ vi_modis_netcdf_c0cd55608a213754 errored
+Error: Failed to login
+
+Polling task 980bf31a-99b6-47a5-9759-abdc34bd2964 for completion...
+✖ vi_modis_netcdf_2ff3a4c5100334a9 errored
+Error: Failed to login
+
+Polling task a8278625-e0ae-4cdc-a22a-29d87975e4f1 for completion...
+✖ vi_modis_netcdf_6761dfd9dfc52918 errored
+Error: Failed to login
+
+Polling task c484f0cf-c8b3-4267-90cb-d0b44df0da28 for completion...
+✖ vi_modis_netcdf_7032171b9a489b9e errored
+Error: Failed to login
+
++ elevation dispatched
+Polling task 26963bd8-05c7-4af7-81a7-76008b0f30d9 for completion...
+✖ elevation errored
+✖ errored pipeline [5m 8.8s, 2 completed, 34 skipped]
+There were 30 warnings (use warnings() to see them)
+Error:
+! Error in tar_make():
+  Failed to login
+  See https://books.ropensci.org/targets/debugging.html
+10: (function () 
+    {
+        traceback(2)
+        quit(status = 1)
+    })()
+9: stop(fallback)
+8: signal_abort(cnd, .file)
+7: rlang::abort(message = message, class = class, call = tar_envir_base)
+6: tar_error(message = paste0(...), class = base::union(custom_error_classes(class), 
+       c("tar_condition_run", "tar_condition_targets")))
+5: tar_throw_run(message, class = class(traced_condition$condition))
+4: callr_error(traced_condition = out, fun = fun)
+3: if_any(inherits(out, "tar_condition_traced"), callr_error(traced_condition = out, 
+       fun = fun), out)
+2: callr_outer(targets_function = tar_make_inner, targets_arguments = targets_arguments, 
+       callr_function = callr_function, callr_arguments = callr_arguments, 
+       envir = envir, script = script, store = store, fun = "tar_make")
+1: targets::tar_make()
