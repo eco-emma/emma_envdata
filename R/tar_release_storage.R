@@ -24,8 +24,16 @@
     switch(ext,
       parquet = { arrow::open_dataset(path); TRUE },
       tif     = ,
-      tiff    = ,
-      nc      = { terra::rast(path);          TRUE },
+      tiff    = { terra::rast(path);          TRUE },
+      nc      = {
+        # NC assets in the targets-cache may be actual NetCDF files OR may be
+        # format="file" RDS path-string wrappers (e.g. elevation.nc). Try
+        # readRDS first; if it returns a character string, the file is valid.
+        rds_val <- tryCatch(readRDS(path), error = function(e) NULL)
+        if (is.character(rds_val)) return(TRUE)
+        terra::rast(path)
+        TRUE
+      },
       gpkg    = { sf::st_read(path, quiet = TRUE); TRUE },
       qs      = { qs2::qread(path);             TRUE },
       rds     = { readRDS(path);               TRUE },
