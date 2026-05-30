@@ -14,18 +14,24 @@ generate_monthly_sequence <- function(start_date = "2000-02-18", end_date = NULL
   
   # Generate all month starts from beginning month
   month_starts <- seq(as.Date(cut(start_date, "month")), end_date, by = "month")
-  month_ends <- c(month_starts[-1] - 1, end_date)
-  
-  # Trim if extends past end_date
+
+  # Use last day of each calendar month so rows are stable within a month.
+  # pmin(..., end_date) is intentionally avoided: trimming to the exact
+  # end_date would make the current month's row change daily, invalidating
+  # downstream targets every day instead of only when a new month begins.
+  month_ends <- as.Date(format(month_starts + 32, "%Y-%m-01")) - 1
+
+  # Drop any month that starts after end_date (can occur when end_date falls
+  # on the 1st of a month that seq() would otherwise include)
   valid_idx <- month_starts <= end_date
   month_starts <- month_starts[valid_idx]
-  month_ends <- month_ends[valid_idx]
-  
+  month_ends   <- month_ends[valid_idx]
+
   data.frame(
     month_start = month_starts,
-    month_end = pmin(month_ends, end_date),
-    date_str = format(month_starts, "%Y%m"),
-    row.names = NULL
+    month_end   = month_ends,
+    date_str    = format(month_starts, "%Y%m"),
+    row.names   = NULL
   )
 }
 

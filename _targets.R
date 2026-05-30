@@ -274,11 +274,18 @@ list(
   # ============================================================================
 
   # All months in the date range; targets cache handles deduplication.
-  # modis_end_date = Sys.Date() advances each month, adding one new branch
-  # while leaving existing cached branches untouched.
+  # The current (incomplete) month gets run_date = Sys.Date(), which changes
+  # daily and forces its branch to re-run on every tar_make() — re-submitting
+  # a fresh AppEEARS task to capture any newly available data.
+  # Historical months have run_date = NA so their branches stay cached.
   tar_target(
     vi_modis_pending,
-    generate_monthly_sequence(start_date = modis_start_date, end_date = modis_end_date)
+    {
+      months <- generate_monthly_sequence(start_date = modis_start_date, end_date = modis_end_date)
+      months$run_date <- as.Date(NA_character_)
+      months$run_date[months$date_str == format(Sys.Date(), "%Y%m")] <- Sys.Date()
+      months
+    }
   ),
 
   # Dynamically submit monthly AppEEARS tasks
@@ -350,9 +357,15 @@ list(
   # VIIRS VI Pipeline (VNP13A1 S-NPP + VJ113A1 NOAA-20, dynamically branched)
   # ============================================================================
 
+  # Current month tagged with Sys.Date() to force daily re-submission to AppEEARS.
   tar_target(
     vi_viirs_pending,
-    generate_monthly_sequence(start_date = viirs_start_date, end_date = modis_end_date)
+    {
+      months <- generate_monthly_sequence(start_date = viirs_start_date, end_date = modis_end_date)
+      months$run_date <- as.Date(NA_character_)
+      months$run_date[months$date_str == format(Sys.Date(), "%Y%m")] <- Sys.Date()
+      months
+    }
   ),
 
   tar_target(
@@ -429,9 +442,15 @@ list(
   # ============================================================================
 
   # All months in the date range; targets cache handles deduplication.
+  # Current month tagged with Sys.Date() to force daily re-submission to AppEEARS.
   tar_target(
     burn_modis_pending,
-    generate_monthly_sequence(start_date = burn_start_date, end_date = modis_end_date)
+    {
+      months <- generate_monthly_sequence(start_date = burn_start_date, end_date = modis_end_date)
+      months$run_date <- as.Date(NA_character_)
+      months$run_date[months$date_str == format(Sys.Date(), "%Y%m")] <- Sys.Date()
+      months
+    }
   ),
 
   # Submit one AppEEARS task per missing month (branched)
@@ -497,9 +516,15 @@ list(
   # ============================================================================
 
   # All months in the date range; targets cache handles deduplication.
+  # Current month tagged with Sys.Date() to force daily re-submission to AppEEARS.
   tar_target(
     burn_viirs_pending,
-    generate_monthly_sequence(start_date = viirs_start_date, end_date = modis_end_date)
+    {
+      months <- generate_monthly_sequence(start_date = viirs_start_date, end_date = modis_end_date)
+      months$run_date <- as.Date(NA_character_)
+      months$run_date[months$date_str == format(Sys.Date(), "%Y%m")] <- Sys.Date()
+      months
+    }
   ),
 
   tar_target(
