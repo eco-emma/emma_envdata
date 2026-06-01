@@ -550,3 +550,43 @@ tar_upload_github_release <- function(
   invisible(NULL)
 }
 
+# ============================================================================
+# GitHub release asset presence check (used by idempotent submit functions)
+# ============================================================================
+
+# Session-level cache so repeated calls within one tar_make() worker don't
+# repeat the API call for the same release tag.
+.gh_release_asset_cache <- new.env(parent = emptyenv())
+
+#' Check whether a named asset exists on a GitHub release
+#'
+#' @param repo         "owner/repo" string.
+#' @param release_tag  Release tag string (e.g. "vi_modis_dynamic_raster").
+#' @param asset_name   File name to look for (e.g. "vi_modis_202601_terra.nc").
+#' @param verbose      Print a message when the release is fetched from GitHub.
+#' @return Logical scalar.
+#' @export
+gh_release_has_asset <- function(repo, release_tag, asset_name, verbose = FALSE) {
+  # Populate cache for this release tag if not already fetched this session
+  if (!exists(release_tag, envir = .gh_release_asset_cache, inherits = FALSE)) {
+    token      <- .gh_token()
+    owner_repo <- strsplit(repo, "/")[[1]]
+    asset_names <- tryCatch({
+      if (verbose) message("[gh_release_has_asset] Fetching asset list for release: ", release_tag)
+      rel <- gh::gh(
+        "GET /repos/{owner}/{repo}/releases/tags/{tag}",
+        owner  = owner_repo[1],
+        repo   = owner_repo[2],
+        tag    = release_tag,
+        .token = token
+      )
+      vapply(rel[["assets"]], `[[`, character(1), "name")
+    }, error = function(e) {
+      # Release doesn't exist yet — treat as empty
+      character(0)
+    })
+    assign(release_tag, asset_names, envir = .gh_release_asset_cache)
+  }
+  asset_name %in% get(release_tag, envir = .gh_release_asset_cache, inherits = FALSE)
+}
+

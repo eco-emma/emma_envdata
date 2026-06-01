@@ -34,7 +34,29 @@ submit_viirs_vi <- function(
     domain_vector,
     month_start,
     month_end,
-    verbose = TRUE) {
+    out_dir        = NULL,
+    gh_release_tag = NULL,
+    verbose        = TRUE) {
+
+  yyyymm <- format(as.Date(month_start), "%Y%m")
+
+  # Check local disk (fast — works on server after a completed run)
+  if (!is.null(out_dir)) {
+    snpp_nc <- file.path(out_dir, paste0("vi_viirs_", yyyymm, "_snpp.nc"))
+    if (file.exists(snpp_nc)) {
+      if (verbose) message("Grid NC on disk for ", yyyymm, " — skipping AppEEARS submission")
+      return(paste0("cached:", yyyymm))
+    }
+  }
+
+  # Check GitHub release (authoritative — works on CI where disk is empty)
+  if (!is.null(gh_release_tag)) {
+    repo <- Sys.getenv("TAR_GH_RELEASE_REPO", unset = "AdamWilsonLab/emma_envdata")
+    if (gh_release_has_asset(repo, gh_release_tag, paste0("vi_viirs_", yyyymm, "_snpp.nc"), verbose = verbose)) {
+      if (verbose) message("Month ", yyyymm, " already on GitHub release '", gh_release_tag, "' — skipping AppEEARS submission")
+      return(paste0("cached:", yyyymm))
+    }
+  }
 
   ensure_appeears_auth()
   month_start <- as.Date(month_start)
@@ -147,6 +169,15 @@ download_viirs_vi_netcdf <- function(
     temp_directory = "data/temp/appeears/viirs_vi/",
     cleanup        = Sys.getenv("GITHUB_ACTIONS") == "true",
     verbose        = TRUE) {
+
+  # Sentinel task_id means submit_viirs_vi() found the month already complete —
+  # skip all AppEEARS polling and return the temp directory path directly.
+  if (startsWith(task_id, "cached:")) {
+    yyyymm_sentinel <- sub("^cached:", "", task_id)
+    if (verbose) message("Sentinel task_id for ", yyyymm_sentinel, " — skipping AppEEARS download")
+    dir.create(temp_directory, recursive = TRUE, showWarnings = FALSE)
+    return(temp_directory)
+  }
 
   ensure_appeears_auth()
   month_start <- as.Date(month_start)

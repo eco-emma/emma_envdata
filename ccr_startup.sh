@@ -5,7 +5,7 @@
 ssh vortex.ccr.buffalo.edu
 salloc --cluster=faculty --qos=adamw --partition=adamw \
        --job-name=InteractiveJob --nodes=1 --ntasks=16 \
-       --mem=250G -C INTEL --time=24:00:00
+       --mem=25G -C INTEL --time=24:00:00
 
 export GROUP="adamw"
 export PROJECT_FOLDER="/projects/academic/"$GROUP
