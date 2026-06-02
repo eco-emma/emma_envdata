@@ -1,0 +1,84 @@
+Starting tar_make()
+System info: sysname=Linux; release=6.17.0-1015-azure; version=#15~24.04.1-Ubuntu SMP Wed May  6 22:37:49 UTC 2026; nodename=51597c66c216; machine=x86_64; login=unknown; user=root; effective_user=root
+tar_source() only sources R scripts. Ignoring non-R files: R/ccr_startup.sh
+Loaded 38 packages from DESCRIPTION
+[tar_github_release] No targets meta in release (first run?): values must be length 1,
+ but FUN(X[[1]]) result is length 0
+[tar_github_release] Release has no assets or does not exist yet, skipping download
+[tar_github_release] No assets to download
+Downloaded static file: CHELSA_bio01_1981-2010_V.2.1.nc (260055 bytes)
+Downloaded static file: CHELSA_bio02_1981-2010_V.2.1.nc (118973 bytes)
+Downloaded static file: CHELSA_bio03_1981-2010_V.2.1.nc (289374 bytes)
+Downloaded static file: CHELSA_bio04_1981-2010_V.2.1.nc (584640 bytes)
+Downloaded static file: CHELSA_bio05_1981-2010_V.2.1.nc (267813 bytes)
+Downloaded static file: CHELSA_bio06_1981-2010_V.2.1.nc (280437 bytes)
+Downloaded static file: CHELSA_bio07_1981-2010_V.2.1.nc (215352 bytes)
+Downloaded static file: CHELSA_bio08_1981-2010_V.2.1.nc (286982 bytes)
+Downloaded static file: CHELSA_bio09_1981-2010_V.2.1.nc (274532 bytes)
+Downloaded static file: CHELSA_bio10_1981-2010_V.2.1.nc (256084 bytes)
+Downloaded static file: CHELSA_bio11_1981-2010_V.2.1.nc (272129 bytes)
+Downloaded static file: CHELSA_bio12_1981-2010_V.2.1.nc (395179 bytes)
+Downloaded static file: CHELSA_bio13_1981-2010_V.2.1.nc (487180 bytes)
+Downloaded static file: CHELSA_bio14_1981-2010_V.2.1.nc (273663 bytes)
+Downloaded static file: CHELSA_bio15_1981-2010_V.2.1.nc (320592 bytes)
+Downloaded static file: CHELSA_bio16_1981-2010_V.2.1.nc (629562 bytes)
+Downloaded static file: CHELSA_bio17_1981-2010_V.2.1.nc (468514 bytes)
+Downloaded static file: CHELSA_bio18_1981-2010_V.2.1.nc (520832 bytes)
+Downloaded static file: CHELSA_bio19_1981-2010_V.2.1.nc (609583 bytes)
+Downloaded static file: clouds_wilson.nc (2428 bytes)
+Downloaded static file: domain.nc (1650232 bytes)
+Downloaded static file: domain.parquet (9779824 bytes)
+Downloaded static file: elevation_nasadem.nc (3271632 bytes)
+Downloaded static file: soil_soilgrids.nc (54087908 bytes)
+Downloaded static file: topographic_diversity.nc (1871 bytes)
+Downloaded static file: vegmap.nc (546459 bytes)
++ vi_viirs_pending dispatched
+✔ vi_viirs_pending completed [15ms, 252 B]
++ burn_modis_pending dispatched
+✔ burn_modis_pending completed [2ms, 252 B]
++ vi_modis_pending dispatched
+✔ vi_modis_pending completed [2ms, 252 B]
++ burn_viirs_pending dispatched
+✔ burn_viirs_pending completed [3ms, 252 B]
++ release_manifest dispatched
+✔ release_manifest completed [22ms, 7.82 kB]
++ domain_boundary dispatched
+✖ domain_boundary errored
+✖ errored pipeline [2.7s, 5 completed, 5 skipped]
+Warning messages:
+1: In gh_auth(x$token %||% gh_token(x$api_url)) :
+  Token contains whitespace characters
+2: In gh_auth(x$token %||% gh_token(x$api_url)) :
+  Token contains whitespace characters
+3: In gh_auth(x$token %||% gh_token(x$api_url)) :
+  Token contains whitespace characters
+4: <anonymous>: ..1 may be used in an incorrect context
+ 
+5: <anonymous>: ..2 may be used in an incorrect context
+ 
+6: <anonymous>: ..1 may be used in an incorrect context
+ 
+7: <anonymous>: ..2 may be used in an incorrect context
+ 
+Error:
+! Error in tar_make():
+  could not load dependency vegmap of target domain_boundary. there is no package called ‘qs’
+  See https://books.ropensci.org/targets/debugging.html
+10: (function () 
+    {
+        traceback(2)
+        quit(status = 1)
+    })()
+9: stop(fallback)
+8: signal_abort(cnd, .file)
+7: rlang::abort(message = message, class = class, call = tar_envir_base)
+6: tar_error(message = paste0(...), class = base::union(custom_error_classes(class), 
+       c("tar_condition_run", "tar_condition_targets")))
+5: tar_throw_run(message, class = class(traced_condition$condition))
+4: callr_error(traced_condition = out, fun = fun)
+3: if_any(inherits(out, "tar_condition_traced"), callr_error(traced_condition = out, 
+       fun = fun), out)
+2: callr_outer(targets_function = tar_make_inner, targets_arguments = targets_arguments, 
+       callr_function = callr_function, callr_arguments = callr_arguments, 
+       envir = envir, script = script, store = store, fun = "tar_make")
+1: targets::tar_make()
