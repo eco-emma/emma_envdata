@@ -57,9 +57,14 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
     verbose = TRUE
   )
 
-  # Restore static NC files (domain.nc, vegmap.nc, CHELSA, etc.) from the
-  # static_data GitHub release so downstream targets can open them via terra.
-  restore_static_data(repo = gh_repo_config$repo)
+  # Restore static NC files needed by actively-running targets from the
+  # static_data GitHub release.  Skip files whose targets are cue=never
+  # (CHELSA, soil, elevation, clouds, topo) — those are never re-run on CI
+  # and their large files do not need to be on disk for the update pipeline.
+  restore_static_data(
+    repo          = gh_repo_config$repo,
+    skip_patterns = "^(CHELSA_|soil_soilgrids|topographic_diversity|elevation_nasadem|clouds_wilson)"
+  )
 
   tar_option_set(
     #controller = if (Sys.getenv("GITHUB_ACTIONS") != "true") crew::crew_controller_local(workers = 16) else NULL,
@@ -255,7 +260,8 @@ list(
       cleanup        = cleanup_mode,
       verbose        = TRUE
     ),
-    format = "file"
+    format = "file",
+    cue = tar_cue(mode = "never")  # Static data: only run locally, never on CI
   ),
 
   # Topographic diversity metrics derived from the NASADEM elevation (no new download needed)
@@ -269,7 +275,8 @@ list(
       focal_radius   = 1L,
       verbose        = TRUE
     ),
-    format = "file"
+    format = "file",
+    cue = tar_cue(mode = "never")  # Derived from elevation: only run locally, never on CI
   ),
 
   # ============================================================================

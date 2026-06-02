@@ -4,7 +4,7 @@
 # are present on disk even when those targets are restored from the targets cache.
 # Skips files that already exist.  Errors are non-fatal: a message is printed and
 # execution continues so that a missing release does not abort unrelated targets.
-restore_static_data <- function(repo, out_dir = "data/target_outputs", verbose = TRUE) {
+restore_static_data <- function(repo, out_dir = "data/target_outputs", skip_patterns = NULL, verbose = TRUE) {
   tryCatch({
     # Use .gh_token() to bypass gh package format validation for ghs_ tokens.
     token      <- if (exists(".gh_token", mode = "function")) .gh_token() else Sys.getenv("GITHUB_TOKEN", unset = "")
@@ -19,6 +19,10 @@ restore_static_data <- function(repo, out_dir = "data/target_outputs", verbose =
     for (asset in rel[["assets"]]) {
       dest <- file.path(out_dir, asset[["name"]])
       if (file.exists(dest)) next  # skip files already present
+      if (!is.null(skip_patterns) && grepl(skip_patterns, asset[["name"]])) {
+        if (verbose) message("Skipping static file (cue=never target): ", asset[["name"]])
+        next
+      }
       r <- httr::GET(
         asset[["url"]],
         httr::add_headers(
