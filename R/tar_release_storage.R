@@ -181,15 +181,20 @@ tar_download_github_release <- function(
   for (i in seq_len(nrow(assets))) {
     asset_name <- assets$file_name[i]
     
-    # Check if this is a file-format target (has extension)
-    # File-format targets are stored as "target_name.extension" (e.g., "country.parquet")
-    # Regular objects are stored as "target_name" (e.g., "elevation_task_id")
+    # Check if this is a legacy file-format workspace asset (has extension, e.g. "elevation.nc").
+    # These were uploaded by older code from _targets/workspaces/ — they are debug environments,
+    # not actual data files. If the bare qs object also exists in the release, skip this asset.
     is_file_format <- grepl("\\.[^.]+$", asset_name)
     
     if (is_file_format) {
       # Extract target name by removing extension
       target_name <- sub("\\.[^.]+$", "", asset_name)
       file_ext <- sub(".*\\.", "", asset_name)
+      # Skip if the bare qs object is present — it is the authoritative copy
+      if (any(assets$file_name == target_name)) {
+        if (verbose) message("[tar_github_release] Skipping legacy workspace asset (bare qs object present): ", asset_name)
+        next
+      }
     } else {
       target_name <- asset_name
       file_ext <- NULL
@@ -385,6 +390,29 @@ tar_upload_github_release <- function(
     data.frame(file_name = character(0), id = integer(0), size = integer(0))
   }
 
+  # One-time cleanup: delete any legacy workspace assets ({name}.{ext}) whose bare
+  # name also exists as an asset. These were uploaded by older code from
+  # _targets/workspaces/ and are debug environments, not real data files.
+  legacy_mask <- grepl("\\.[^.]+$", remote_assets$file_name) &
+    remote_assets$file_name != "_targets_meta"
+  if (any(legacy_mask)) {
+    legacy_assets <- remote_assets[legacy_mask, ]
+    bare_names    <- sub("\\.[^.]+$", "", legacy_assets$file_name)
+    has_bare      <- bare_names %in% remote_assets$file_name
+    for (i in which(has_bare)) {
+      if (verbose) message("[tar_github_release] Deleting legacy workspace asset: ", legacy_assets$file_name[i])
+      tryCatch(
+        gh::gh("DELETE /repos/{owner}/{repo}/releases/assets/{asset_id}",
+               owner = owner_repo[1], repo = owner_repo[2],
+               asset_id = legacy_assets$id[i], .token = .token),
+        error = function(e) {
+          if (verbose) message("[tar_github_release] Could not delete legacy asset: ", conditionMessage(e))
+        })
+      Sys.sleep(0.5)
+    }
+    remote_assets <- remote_assets[!(remote_assets$file_name %in% legacy_assets$file_name[has_bare]), , drop = FALSE]
+  }
+
   # Download the remote _targets_meta (a small file) and build a name → data-hash
   # lookup. Used by the objects upload loop to skip assets whose targets hash
   # matches the last uploaded meta — a reliable content-equality check that does
@@ -426,40 +454,21 @@ tar_upload_github_release <- function(
     # end of this function. Uploading it here too causes a GitHub 422 conflict.
     regular_files <- list.files("_targets/objects", full.names = TRUE, recursive = FALSE)
     regular_files <- regular_files[basename(regular_files) != "_targets_meta"]
-    
-    # Also get file-format targets from _targets/workspaces/
-    file_format_targets <- character(0)
-    if (dir.exists("_targets/workspaces")) {
-      ws_files <- list.files("_targets/workspaces", full.names = FALSE, recursive = FALSE)
-      # Filter to only include those that are file-format targets (have metadata)
-      for (ws_file in ws_files) {
-        target_meta <- meta_df[meta_df$name == ws_file, ]
-        if (nrow(target_meta) > 0 && target_meta$format[1] == "file") {
-          file_format_targets <- c(file_format_targets, file.path("_targets/workspaces", ws_file))
-        }
-      }
-    }
-    
-    local_files <- c(regular_files, file_format_targets)
+    # Note: _targets/workspaces/ files are debug environments, not target values.
+    # format="file" targets store the path string in _targets/objects/ (qs-serialized).
+    # Uploading workspace files causes integrity check failures on download.
+    local_files <- regular_files
     if (verbose) message("[tar_github_release] Found ", length(local_files), " local target files to upload")
   } else {
-    # Find specific targets - check all locations
+    # Find specific targets in _targets/objects/ only
     regular_files <- character(0)
-    file_format_targets <- character(0)
-    
     for (target in which_targets) {
       obj_file <- file.path("_targets/objects", target)
-      ws_file  <- file.path("_targets/workspaces", target)
       if (file.exists(obj_file)) {
         regular_files <- c(regular_files, obj_file)
-      } else if (file.exists(ws_file)) {
-        target_meta <- meta_df[meta_df$name == target, ]
-        if (nrow(target_meta) > 0 && target_meta$format[1] == "file") {
-          file_format_targets <- c(file_format_targets, ws_file)
-        }
       }
     }
-    local_files <- c(regular_files, file_format_targets)
+    local_files <- regular_files
   }
   
   if (length(local_files) == 0) {
@@ -470,89 +479,7 @@ tar_upload_github_release <- function(
   # Upload each file
   for (local_file in local_files) {
     target_name <- basename(local_file)
-    
-    # Determine if this is a file-format target based on location
-    # Files in _targets/workspaces/ are file-format targets
-    is_file_target <- grepl("_targets/workspaces", local_file)
-    
-    if (is_file_target) {
-      # This is a file-format target in _targets/workspaces/
-      # Use the file from workspaces as the source to upload
-      # Get extension from metadata or from actual file
-      target_meta <- meta_df[meta_df$name == target_name, ]
-      
-      # Try to get extension from metadata path
-      ext <- ""
-      if (nrow(target_meta) > 0) {
-        metadata_path <- target_meta$path[[1]]
-        # Handle case where path is a vector with multiple values
-        if (is.character(metadata_path) && length(metadata_path) > 0) {
-          # Take the first one and get the extension from it
-          ext <- tools::file_ext(metadata_path[1])
-        }
-      }
-      
-      # If we couldn't get extension from metadata, skip this file
-      if (nchar(ext) == 0) {
-        if (verbose) message("[tar_github_release] Skipping file-format target (no extension found): ", target_name)
-        next
-      }
-      
-      # Create upload name - avoid double extensions
-      # If target name already ends with this extension, don't add it again
-      if (grepl(paste0("\\.", ext, "$"), target_name)) {
-        upload_name <- target_name
-      } else {
-        upload_name <- paste0(target_name, ".", ext)
-      }
-      
-      # Skip upload if remote asset exists with the same file size
-      exists_on_github <- any(remote_assets$file_name == upload_name)
-      if (exists_on_github) {
-        remote_size <- remote_assets$size[remote_assets$file_name == upload_name][1]
-        local_size  <- file.size(local_file)
-        if (!is.na(remote_size) && remote_size == local_size) {
-          if (verbose) message("[tar_github_release] Skipping (unchanged): ", upload_name)
-          next
-        }
-      }
-
-      if (verbose) message("[tar_github_release] Uploading file-format target: ", upload_name, " from ", local_file)
-      
-      # Delete existing asset if present (by ID — no piggyback needed)
-      if (exists_on_github) {
-        if (verbose) message("[tar_github_release] Deleting old asset: ", upload_name)
-        tryCatch({
-          old_id <- remote_assets$id[remote_assets$file_name == upload_name]
-          gh::gh("DELETE /repos/{owner}/{repo}/releases/assets/{asset_id}",
-                 owner = owner_repo[1], repo = owner_repo[2],
-                 asset_id = old_id[1], .token = .token)
-          Sys.sleep(1)
-        }, error = function(e) {
-          if (verbose) message("[tar_github_release] Could not delete old asset: ", conditionMessage(e))
-        })
-      }
-
-      # Upload directly via httr (bypasses all piggyback caching)
-      tryCatch({
-        r <- httr::RETRY(
-          verb = "POST",
-          url  = upload_url_base,
-          query = list(name = upload_name),
-          httr::add_headers(Authorization = paste("token", .token)),
-          body = httr::upload_file(local_file),
-          times = 3,
-          terminate_on = c(400, 401, 403, 404, 422)
-        )
-        httr::stop_for_status(r)
-        if (verbose) message("[tar_github_release] Uploaded: ", upload_name)
-        Sys.sleep(0.5)
-      }, error = function(e) {
-        warning("[tar_github_release] Failed to upload ", upload_name, ": ", conditionMessage(e))
-      })
-    } else {
-      # Serialized object from _targets/objects
-      upload_name <- target_name
+    upload_name <- target_name
 
       # Skip upload if the targets content hash matches the remote meta.
       # This is the authoritative content-equality check: same hash means the
@@ -603,7 +530,6 @@ tar_upload_github_release <- function(
       }, error = function(e) {
         warning("[tar_github_release] Failed to upload ", upload_name, ": ", conditionMessage(e))
       })
-    }
   }
   
   # Upload _targets/meta/meta so CI can restore the pipeline state and avoid
