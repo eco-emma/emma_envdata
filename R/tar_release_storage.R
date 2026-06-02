@@ -344,13 +344,47 @@ tar_upload_github_release <- function(
   remote_assets <- if (length(asset_list) > 0) {
     data.frame(
       file_name = vapply(asset_list, `[[`, character(1), "name"),
-      id        = vapply(asset_list, `[[`, integer(1),   "id"),
+      id        = vapply(asset_list, `[[`, numeric(1),   "id"),
+      size      = vapply(asset_list, `[[`, numeric(1),   "size"),
       stringsAsFactors = FALSE
     )
   } else {
-    data.frame(file_name = character(0), id = integer(0))
+    data.frame(file_name = character(0), id = integer(0), size = integer(0))
   }
-  
+
+  # Download the remote _targets_meta (a small file) and build a name → data-hash
+  # lookup. Used by the objects upload loop to skip assets whose targets hash
+  # matches the last uploaded meta — a reliable content-equality check that does
+  # not depend on byte-count coincidences in qs2 serialisation.
+  remote_meta_hashes <- tryCatch({
+    meta_row <- remote_assets[remote_assets$file_name == "_targets_meta", ]
+    if (nrow(meta_row) == 0) return(NULL)
+
+    temp_store    <- tempfile(pattern = "tar_upload_meta_")
+    temp_meta_dir <- file.path(temp_store, "meta")
+    dir.create(temp_meta_dir, recursive = TRUE, showWarnings = FALSE)
+    temp_meta_path <- file.path(temp_meta_dir, "meta")
+
+    r <- httr::GET(
+      sprintf("https://api.github.com/repos/%s/%s/releases/assets/%s",
+              owner_repo[1], owner_repo[2], meta_row$id[1]),
+      httr::add_headers(Authorization = paste("token", .token),
+                        Accept = "application/octet-stream"),
+      httr::write_disk(temp_meta_path, overwrite = TRUE)
+    )
+    httr::stop_for_status(r)
+
+    remote_df <- targets::tar_meta(store = temp_store)
+    unlink(temp_store, recursive = TRUE)
+    if (verbose) message("[tar_github_release] Fetched remote meta (",
+                         nrow(remote_df), " targets) for hash comparison")
+    setNames(remote_df$data, remote_df$name)
+  }, error = function(e) {
+    if (verbose) message("[tar_github_release] Could not fetch remote meta for hash comparison ",
+                         "(will upload all objects): ", conditionMessage(e))
+    NULL
+  })
+
   # Get list of local target files
   if (is.null(which_targets)) {
     # Get all targets from _targets/objects/ (regular objects).
@@ -439,10 +473,20 @@ tar_upload_github_release <- function(
         upload_name <- paste0(target_name, ".", ext)
       }
       
+      # Skip upload if remote asset exists with the same file size
+      exists_on_github <- any(remote_assets$file_name == upload_name)
+      if (exists_on_github) {
+        remote_size <- remote_assets$size[remote_assets$file_name == upload_name][1]
+        local_size  <- file.size(local_file)
+        if (!is.na(remote_size) && remote_size == local_size) {
+          if (verbose) message("[tar_github_release] Skipping (unchanged): ", upload_name)
+          next
+        }
+      }
+
       if (verbose) message("[tar_github_release] Uploading file-format target: ", upload_name, " from ", local_file)
       
       # Delete existing asset if present (by ID — no piggyback needed)
-      exists_on_github <- any(remote_assets$file_name == upload_name)
       if (exists_on_github) {
         if (verbose) message("[tar_github_release] Deleting old asset: ", upload_name)
         tryCatch({
@@ -476,10 +520,26 @@ tar_upload_github_release <- function(
     } else {
       # Serialized object from _targets/objects
       upload_name <- target_name
+
+      # Skip upload if the targets content hash matches the remote meta.
+      # This is the authoritative content-equality check: same hash means the
+      # object the server produced is identical to what was last uploaded,
+      # regardless of byte-count coincidences in qs2 serialisation.
+      exists_on_github <- any(remote_assets$file_name == upload_name)
+      if (exists_on_github) {
+        local_hash <- meta_df$data[meta_df$name == target_name]
+        if (!is.null(remote_meta_hashes) &&
+            length(local_hash) == 1 && !is.na(local_hash) &&
+            target_name %in% names(remote_meta_hashes) &&
+            identical(local_hash, remote_meta_hashes[[target_name]])) {
+          if (verbose) message("[tar_github_release] Skipping (hash unchanged): ", upload_name)
+          next
+        }
+      }
+
       if (verbose) message("[tar_github_release] Uploading object: ", target_name)
 
       # Delete existing asset if present
-      exists_on_github <- any(remote_assets$file_name == upload_name)
       if (exists_on_github) {
         if (verbose) message("[tar_github_release] Deleting old asset: ", upload_name)
         tryCatch({

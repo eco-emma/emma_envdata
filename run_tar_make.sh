@@ -128,6 +128,7 @@ apptainer run \
     "${SIF_PATH}/${SIF_FILE}" \
     Rscript -e "
       setwd('${WORK_DIR}')
+      library(targets)
       source('R/tar_release_storage.R')
       tar_upload_github_release(
         repo      = 'AdamWilsonLab/emma_envdata',
