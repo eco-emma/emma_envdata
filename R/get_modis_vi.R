@@ -910,7 +910,9 @@ vi_modis_netcdf_to_parquet <- function(
         value    = as.integer(evi_v[valid])
       )
     }
-    dplyr::bind_rows(obs)
+    result <- dplyr::bind_rows(obs)
+    if (nrow(result) == 0L) return(NULL)
+    result
   }
 
   all_obs <- purrr::map(nc_files, function(nc) {
@@ -921,8 +923,13 @@ vi_modis_netcdf_to_parquet <- function(
              })
   })
 
-  df <- dplyr::bind_rows(purrr::compact(all_obs)) |>
-        dplyr::filter(!is.na(.data$value))
+  compact_obs <- purrr::compact(all_obs)
+  df <- if (length(compact_obs) > 0L) {
+    dplyr::bind_rows(compact_obs) |>
+      dplyr::filter(!is.na(.data$value))
+  } else {
+    tibble::tibble(pid = integer(), date = integer(), variable = integer(), value = integer())
+  }
 
   if (nrow(df) == 0L) {
     if (verbose) message("No valid VI observations for ", yyyymm, " — writing skip marker")
