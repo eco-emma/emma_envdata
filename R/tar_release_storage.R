@@ -353,8 +353,12 @@ tar_upload_github_release <- function(
   
   # Get list of local target files
   if (is.null(which_targets)) {
-    # Get all targets from _targets/objects/ (regular objects)
+    # Get all targets from _targets/objects/ (regular objects).
+    # Exclude _targets_meta — it is a cached copy from the last download and is
+    # uploaded separately (and authoritatively) from _targets/meta/meta at the
+    # end of this function. Uploading it here too causes a GitHub 422 conflict.
     regular_files <- list.files("_targets/objects", full.names = TRUE, recursive = FALSE)
+    regular_files <- regular_files[basename(regular_files) != "_targets_meta"]
     
     # Also get file-format targets from _targets/workspaces/
     file_format_targets <- character(0)

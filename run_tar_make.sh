@@ -112,11 +112,40 @@ apptainer run \
 EXIT_CODE=${PIPESTATUS[0]}
 
 # =============================================================================
+# Upload targets cache to GitHub release (runs even on partial tar_make failure
+# so that completed targets are cached for the next run)
+# =============================================================================
+echo "============================================================" | tee -a "${LOG}"
+echo "Uploading targets cache to GitHub release..."                 | tee -a "${LOG}"
+echo "Started  : $(date)"                                           | tee -a "${LOG}"
+echo "============================================================" | tee -a "${LOG}"
+
+apptainer run \
+    --bind "${PROJECT_FOLDER}:${PROJECT_FOLDER}" \
+    --bind "${APPTAINER_CACHEDIR}/tmp:/tmp" \
+    --bind "${APPTAINER_CACHEDIR}/run:/run" \
+    --env-file "${APPTAINER_ENV_FILE}" \
+    "${SIF_PATH}/${SIF_FILE}" \
+    Rscript -e "
+      setwd('${WORK_DIR}')
+      source('R/tar_release_storage.R')
+      tar_upload_github_release(
+        repo      = 'AdamWilsonLab/emma_envdata',
+        tag       = 'targets-cache',
+        cache_dir = '_targets/cache',
+        verbose   = TRUE
+      )
+    " 2>&1 | tee -a "${LOG}"
+
+UPLOAD_EXIT_CODE=${PIPESTATUS[0]}
+
+# =============================================================================
 # Finish
 # =============================================================================
 echo "============================================================" | tee -a "${LOG}"
-echo "Finished : $(date)"                                           | tee -a "${LOG}"
-echo "Exit code: ${EXIT_CODE}"                                      | tee -a "${LOG}"
+echo "Finished      : $(date)"                                      | tee -a "${LOG}"
+echo "tar_make exit : ${EXIT_CODE}"                                 | tee -a "${LOG}"
+echo "upload exit   : ${UPLOAD_EXIT_CODE}"                          | tee -a "${LOG}"
 echo "============================================================" | tee -a "${LOG}"
 
 exit ${EXIT_CODE}
