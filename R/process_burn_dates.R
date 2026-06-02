@@ -141,7 +141,7 @@ compute_most_recent_burn <- function(
   }
 
   # Default query dates: monthly sequence from first burn to today
-  if (is.null(query_dates)) {
+  if (is.null(query_dates) || length(query_dates) == 0L) {
     first_burn    <- as.Date(min(burn_events$date, na.rm = TRUE), origin = "1970-01-01")
     first_month   <- as.Date(format(first_burn, "%Y-%m-01"))
     all_months    <- seq(first_month, Sys.Date(), by = "month")
@@ -224,7 +224,8 @@ vi_load_observation_dates <- function(
   parquet_files <- list.files(modis_vi_dir, pattern = "\\.parquet$", full.names = TRUE)
 
   if (length(parquet_files) == 0) {
-    stop("No MODIS VI parquet files found in ", modis_vi_dir)
+    if (verbose) message("No MODIS VI parquet files found in ", modis_vi_dir, " — returning empty date vector")
+    return(integer(0))
   }
 
   if (verbose) message("Scanning ", length(parquet_files), " MODIS VI parquets for observation dates")
