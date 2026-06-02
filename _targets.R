@@ -233,7 +233,8 @@ list(
       temp_directory = "data/temp/appeears/elevation_nasadem/",
       verbose = TRUE
     ),
-    format = "file"
+    format = "file",
+    cue = tar_cue(mode = "never")
   ),
 
   # Generate manifest of all targets from live pipeline store (via tar_meta)
@@ -289,9 +290,11 @@ list(
     {
       # Within this branch, vi_modis_pending is auto-sliced to one row
       submit_modis_vi(
-        domain_vector = domain_boundary,
-        month_start = vi_modis_pending$month_start,
-        month_end = vi_modis_pending$month_end
+        domain_vector  = domain_boundary,
+        month_start    = vi_modis_pending$month_start,
+        month_end      = vi_modis_pending$month_end,
+        out_dir        = "data/target_outputs/modis_vi/",
+        gh_release_tag = "vi_modis_dynamic_raster"
       )
     },
     pattern = map(vi_modis_pending)
@@ -360,9 +363,11 @@ list(
   tar_target(
     vi_viirs_task_ids,
     submit_viirs_vi(
-      domain_vector = domain_boundary,
-      month_start   = vi_viirs_pending$month_start,
-      month_end     = vi_viirs_pending$month_end
+      domain_vector  = domain_boundary,
+      month_start    = vi_viirs_pending$month_start,
+      month_end      = vi_viirs_pending$month_end,
+      out_dir        = "data/target_outputs/viirs_vi/",
+      gh_release_tag = "vi_viirs_dynamic_raster"
     ),
     pattern = map(vi_viirs_pending)
   ),
@@ -439,10 +444,12 @@ list(
   tar_target(
     burn_modis_task_ids,
     submit_burn_date_modis_task(
-      domain_vector = domain_boundary,
-      month_start   = burn_modis_pending$month_start,
-      month_end     = burn_modis_pending$month_end,
-      verbose       = TRUE
+      domain_vector  = domain_boundary,
+      month_start    = burn_modis_pending$month_start,
+      month_end      = burn_modis_pending$month_end,
+      out_dir        = "data/target_outputs/burn_dates_modis/",
+      gh_release_tag = "burn_dates_modis_raster",
+      verbose        = TRUE
     ),
     pattern = map(burn_modis_pending)
   ),
@@ -505,10 +512,12 @@ list(
   tar_target(
     burn_viirs_task_ids,
     submit_burn_date_viirs_task(
-      domain_vector = domain_boundary,
-      month_start   = burn_viirs_pending$month_start,
-      month_end     = burn_viirs_pending$month_end,
-      verbose       = TRUE
+      domain_vector  = domain_boundary,
+      month_start    = burn_viirs_pending$month_start,
+      month_end      = burn_viirs_pending$month_end,
+      out_dir        = "data/target_outputs/burn_dates_viirs/",
+      gh_release_tag = "burn_dates_viirs_raster",
+      verbose        = TRUE
     ),
     pattern = map(burn_viirs_pending)
   ),
@@ -667,6 +676,7 @@ list(
       repo         = gh_repo_config$repo,
       release_tag  = "static_data",
       release_name = "Static Environmental Data",
+      overwrite    = TRUE,
       verbose      = TRUE
     ),
     deployment = "main"
