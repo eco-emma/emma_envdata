@@ -82,55 +82,94 @@ tar_download_github_release <- function(
   # Use .gh_token() rather than gh::gh_token() directly to bypass gh package
   # format validation, which rejects ghs_ GitHub Actions service tokens.
   .token <- .gh_token()
+  owner_repo <- strsplit(repo, "/")[[1]]
 
   dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
   dir.create(objects_dir, recursive = TRUE, showWarnings = FALSE)
 
+  # Fetch release and full asset list via direct gh::gh() calls.
+  # piggyback::pb_list() / pb_download() call gh::gh_token() internally and
+  # have been observed to fail silently (returning empty results) even when
+  # the token is valid — direct API calls are more reliable.
+  release_gh <- tryCatch(
+    gh::gh(
+      "GET /repos/{owner}/{repo}/releases/tags/{tag}",
+      owner = owner_repo[1], repo = owner_repo[2], tag = tag,
+      .token = .token
+    ),
+    error = function(e) NULL
+  )
+
+  if (is.null(release_gh)) {
+    if (verbose) message("[tar_github_release] Release '", tag, "' not found, skipping download")
+    return(invisible(NULL))
+  }
+
+  asset_list <- tryCatch(
+    gh::gh(
+      "GET /repos/{owner}/{repo}/releases/{release_id}/assets",
+      owner = owner_repo[1], repo = owner_repo[2],
+      release_id = release_gh$id, .limit = Inf, .token = .token
+    ),
+    error = function(e) list()
+  )
+
+  assets <- if (length(asset_list) > 0) {
+    data.frame(
+      file_name = vapply(asset_list, `[[`, character(1), "name"),
+      id        = vapply(asset_list, `[[`, numeric(1),   "id"),
+      size      = vapply(asset_list, `[[`, numeric(1),   "size"),
+      stringsAsFactors = FALSE
+    )
+  } else {
+    data.frame(file_name = character(0), id = integer(0), size = integer(0))
+  }
+
+  if (verbose) message("[tar_github_release] Found ", nrow(assets), " assets on GitHub release")
+
+  # Helper: download a single asset by ID to a local path using httr (no piggyback).
+  .download_asset <- function(asset_id, dest_path) {
+    r <- httr::RETRY(
+      verb  = "GET",
+      url   = sprintf("https://api.github.com/repos/%s/%s/releases/assets/%s",
+                      owner_repo[1], owner_repo[2], asset_id),
+      httr::add_headers(Authorization  = paste("token", .token),
+                        Accept         = "application/octet-stream"),
+      httr::write_disk(dest_path, overwrite = TRUE),
+      times = 3,
+      terminate_on = c(401, 403, 404)
+    )
+    httr::stop_for_status(r)
+    invisible(dest_path)
+  }
+
   # Always restore _targets/meta/meta from the release so that the meta and
   # objects are consistent with each other (both from the same server run).
-  # Skipping this when a local meta already exists causes inconsistency: the
-  # local meta was written by the previous CI run (with CI-specific branch
-  # hashes) while the release objects are from the server run — mismatch
-  # causes every non-cue="never" target to re-run on subsequent CI runs.
   meta_dest   <- "_targets/meta/meta"
   meta_cached <- file.path(cache_dir, "_targets_meta")
-  tryCatch({
-    piggyback::pb_download(
-      file      = "_targets_meta",
-      repo      = repo,
-      tag       = tag,
-      dest      = cache_dir,
-      overwrite = TRUE,
-      .token    = .token
-    )
-    if (file.exists(meta_cached) && file.size(meta_cached) > 0) {
-      dir.create("_targets/meta", recursive = TRUE, showWarnings = FALSE)
-      file.copy(meta_cached, meta_dest, overwrite = TRUE)
-      if (verbose) message("[tar_github_release] Restored targets meta")
-    }
-  }, error = function(e) {
-    if (verbose) message("[tar_github_release] No targets meta in release (first run?): ", conditionMessage(e))
-  })
+  meta_row    <- assets[assets$file_name == "_targets_meta", ]
+  if (nrow(meta_row) > 0) {
+    tryCatch({
+      .download_asset(meta_row$id[1], meta_cached)
+      if (file.exists(meta_cached) && file.size(meta_cached) > 0) {
+        dir.create("_targets/meta", recursive = TRUE, showWarnings = FALSE)
+        file.copy(meta_cached, meta_dest, overwrite = TRUE)
+        if (verbose) message("[tar_github_release] Restored targets meta")
+      }
+    }, error = function(e) {
+      if (verbose) message("[tar_github_release] Failed to download targets meta: ", conditionMessage(e))
+    })
+  } else {
+    if (verbose) message("[tar_github_release] No targets meta in release (first run?)")
+  }
 
-  # Get list of assets on GitHub release
-  # pb_list() throws "undefined columns selected" on empty releases (piggyback bug) — treat as 0 assets
-  assets <- tryCatch({
-    result <- piggyback::pb_list(repo = repo, tag = tag, .token = .token)
-    if (is.null(result)) result <- data.frame(file_name = character(0), stringsAsFactors = FALSE)
-    if (verbose) message("[tar_github_release] Found ", nrow(result), " assets on GitHub release")
-    result
-  }, error = function(e) {
-    msg <- conditionMessage(e)
-    if (grepl("undefined columns selected|subscript out of bounds|no releases found|values must be length|Cannot find release|HTTP error 404|release not found", msg, ignore.case = TRUE)) {
-      if (verbose) message("[tar_github_release] Release has no assets or does not exist yet, skipping download")
-      return(data.frame(file_name = character(0), stringsAsFactors = FALSE))
-    }
-    stop("[tar_github_release] Could not access GitHub release: ", msg)
-  })
+  # Exclude _targets_meta from the per-object download loop
+  assets <- assets[assets$file_name != "_targets_meta", ]
   
   # Filter assets if specific targets requested
   if (!is.null(which_targets)) {
-    assets <- assets[assets$file_name %in% which_targets | startsWith(assets$file_name, which_targets), ]
+    assets <- assets[assets$file_name %in% which_targets |
+                       sapply(assets$file_name, function(n) any(startsWith(n, which_targets))), ]
   }
   
   if (is.null(assets) || nrow(assets) == 0) {
@@ -175,15 +214,9 @@ tar_download_github_release <- function(
       }
       max_attempts <- 5
       for (attempt in 1:max_attempts) {
+        asset_row <- assets[assets$file_name == asset_name, ]
         tryCatch({
-          piggyback::pb_download(
-            file      = asset_name,
-            repo      = repo,
-            tag       = tag,
-            dest      = cache_dir,
-            overwrite = TRUE,
-            .token    = .token
-          )
+          .download_asset(asset_row$id[1], cached_path)
         }, error = function(e) {
           if (verbose) message("[tar_github_release] Download attempt ", attempt, " error: ", conditionMessage(e))
         })
