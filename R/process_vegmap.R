@@ -2,15 +2,14 @@
 
 process_vegmap <- function(domain_raster,
                         vegmap_shp,
-                        disagg_factor = 10,
-                        out_file = "data/raw/vegmap.nc") {
+                        disagg_factor = 10) {
 
-  # Load domain raster (may be passed as file path or raster object)
+  # Load domain raster (may be file path or multi-band SpatRaster from tar_terra_rast)
   domain <- if (is.character(domain_raster)) {
     # If it's a file path, load the 'domain' variable from NetCDF
     rast(domain_raster, subds = "domain")
   } else {
-    domain_raster
+    domain_raster[["domain"]]  # extract domain band from the 4-band domain_grid SpatRaster
   }
 
   # Load and prep vegmap (accepts sf object or file path)
@@ -60,108 +59,24 @@ process_vegmap <- function(domain_raster,
     dplyr::rename(vegbiome = t_biomeid, vegbioregion = t_brgnid, vegtype = t_vegtypeid) %>%
     dplyr::distinct()
 
-  # Create output file path (ensure directory exists)
-  output_file <- out_file
-  dir.create(dirname(output_file), recursive = TRUE, showWarnings = FALSE)
-  
-  # Get spatial extent and resolution for dimensions
-  ext <- ext(multiband)
-  dx <- res(multiband)[1]
-  dy <- res(multiband)[2]
-  
-  x_vals <- seq(ext$xmin + dx/2, ext$xmax - dx/2, by = dx)
-  y_vals <- seq(ext$ymax - dy/2, ext$ymin + dy/2, by = -dy)
-  
-  # Define dimensions with coordinate vectors
-  dim_x <- ncdf4::ncdim_def(name = "easting", units = "meter", vals = x_vals, longname = "easting")
-  dim_y <- ncdf4::ncdim_def(name = "northing", units = "meter", vals = y_vals, longname = "northing")
-  
-  # Define variables with compression level 9 for categorical data (storage as short integers)
-  var_biome <- ncdf4::ncvar_def(
-    name = "vegbiome",
-    units = "dimensionless",
-    dim = list(dim_x, dim_y),
-    longname = "Biome ID (biomeid_18)",
-    missval = -32768,
-    prec = "short",
-    compression = 9
+  # Store lookup table as JSON embedded in COG TIFF GDAL metadata
+  # terra::metags() writes to TIFFTAG_GDAL_METADATA; survives COG round-trip
+  terra::metags(multiband) <- c(
+    vegtype_lut  = jsonlite::toJSON(lookup_tbl, dataframe = "rows", auto_unbox = TRUE),
+    source       = "South Africa National Vegetation Map 2024",
+    date_created = as.character(Sys.Date())
   )
-  
-  var_bioregion <- ncdf4::ncvar_def(
-    name = "vegbioregion",
-    units = "dimensionless",
-    dim = list(dim_x, dim_y),
-    longname = "Bioregion ID (brgnid_18)",
-    missval = -32768,
-    prec = "short",
-    compression = 9
+  terra::metags(multiband, layer = 1) <- c(
+    description = "Biome ID (biomeid_18)", units = "dimensionless"
   )
-  
-  var_vegtype <- ncdf4::ncvar_def(
-    name = "vegtype",
-    units = "dimensionless",
-    dim = list(dim_x, dim_y),
-    longname = "Vegetation type code (mapcode18)",
-    missval = -32768,
-    prec = "short",
-    compression = 9
+  terra::metags(multiband, layer = 2) <- c(
+    description = "Bioregion ID (brgnid_18)", units = "dimensionless"
   )
-  
-  # Create NetCDF file with all variables
-  unlink(output_file)
-  nc <- ncdf4::nc_create(
-    filename = output_file,
-    vars = list(var_biome, var_bioregion, var_vegtype),
-    force_v4 = TRUE
+  terra::metags(multiband, layer = 3) <- c(
+    description = "Vegetation type ID (derived from mapcode18)", units = "dimensionless"
   )
-  
-  # Convert rasters to matrices, transpose to match dimension order, replace NAs with fill values
-  biome_matrix <- t(as.matrix(biome_raster, wide = TRUE))
-  biome_matrix <- as.integer(biome_matrix)
-  biome_matrix[is.na(biome_matrix)] <- -32768
 
-  bioregion_matrix <- t(as.matrix(bioregion_raster, wide = TRUE))
-  bioregion_matrix <- as.integer(bioregion_matrix)
-  bioregion_matrix[is.na(bioregion_matrix)] <- -32768
-
-  vegtype_matrix <- t(as.matrix(vegtype_raster, wide = TRUE))
-  vegtype_matrix <- as.integer(vegtype_matrix)
-  vegtype_matrix[is.na(vegtype_matrix)] <- -32768
-  
-  # Write data to variables
-  ncdf4::ncvar_put(nc, var_biome, biome_matrix)
-  ncdf4::ncvar_put(nc, var_bioregion, bioregion_matrix)
-  ncdf4::ncvar_put(nc, var_vegtype, vegtype_matrix)
-  
-  # Add global attributes
-  ncdf4::ncatt_put(nc, 0, "title", "Vegetation Map - Biome, Bioregion, and Vegetation Type")
-  ncdf4::ncatt_put(nc, 0, "source", "South Africa National Vegetation Map 2024")
-  ncdf4::ncatt_put(nc, 0, "history", paste0("created: ", Sys.time()))
-  ncdf4::ncatt_put(nc, 0, "crs", as.character(crs(multiband)))
-  ncdf4::ncatt_put(nc, 0, "Conventions", "CF-1.8")
-  ncdf4::ncatt_put(nc, 0, "lookup_table_json", jsonlite::toJSON(lookup_tbl, dataframe = "rows", auto_unbox = TRUE))
-  
-  # Add CRS variable for CF compliance and GIS compatibility
-  crs_var <- ncdf4::ncvar_def("crs", "", list(), prec = "integer")
-  nc <- ncdf4::ncvar_add(nc, crs_var)
-  
-  crs_wkt <- as.character(crs(multiband))
-#  ncdf4::ncatt_put(nc, "crs", "grid_mapping_name", "albers_conical_equal_area")
-  ncdf4::ncatt_put(nc, "crs", "crs_wkt", crs_wkt)
-  ncdf4::ncatt_put(nc, "crs", "spatial_ref", crs_wkt)
-  
-  # Add geotransform for GDAL compatibility
-  ncdf4::ncatt_put(nc, "crs", "GeoTransform", paste(ext$xmin, dx, 0, ext$ymax, 0, -dy))
-  
-  # Add grid_mapping to data variables
-  ncdf4::ncatt_put(nc, "vegbiome", "grid_mapping", "crs")
-  ncdf4::ncatt_put(nc, "vegbioregion", "grid_mapping", "crs")
-  ncdf4::ncatt_put(nc, "vegtype", "grid_mapping", "crs")
-  
-  # Close file
-  ncdf4::nc_close(nc)
-  
-  return(output_file)
+  multiband
 }
 
 if(F){

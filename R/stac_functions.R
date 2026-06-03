@@ -1,25 +1,29 @@
-#' @title Generate STAC Collection for VI dataset (MODIS + VIIRS NetCDF rasters)
-#' @description Creates a STAC Collection and individual Item files for monthly VI
-#'   NetCDF rasters from MODIS (Terra + Aqua) and, optionally, VIIRS (S-NPP + NOAA-20).
-#'   Each STAC item covers one month and one sensor family; assets point to GitHub
-#'   release URLs.
+#' @title Generate STAC Collection for VI dataset (MODIS + VIIRS COG GeoTIFFs)
+#' @description Creates a STAC Collection and individual Item files for VI
+#'   COG GeoTIFFs from MODIS (Terra + Aqua) and VIIRS (S-NPP + NOAA-20).
+#'   Both sensor families are first-class inputs: MODIS extends the record back
+#'   to 2000-02; VIIRS provides independent observations from 2012-01 onward.
+#'   Each STAC item covers one 16-day composite date and carries all available
+#'   sensors as named assets (modis_terra, modis_aqua, viirs_snpp, viirs_noaa20),
+#'   making the data source explicit. Items are sorted chronologically.
 #' @author EMMA Team
-#' @param nc_files Character vector of NC paths from \code{vi_modis_grid}.
-#'   Named \code{vi_modis_YYYYMM_terra.nc} / \code{vi_modis_YYYYMM_aqua.nc}.
-#' @param viirs_nc_files Optional character vector of NC paths from \code{vi_viirs_grid}.
-#'   Named \code{vi_viirs_YYYYMM_snpp.nc} / \code{vi_viirs_YYYYMM_noaa20.nc}.
-#'   Skip-marker files are filtered automatically.
+#' @param tif_files Character vector of COG TIF paths from \code{vi_modis_grid}.
+#'   Named \code{vi_modis_terra_YYYYMMDD.tif} / \code{vi_modis_aqua_YYYYMMDD.tif}.
+#' @param viirs_tif_files Character vector of COG TIF paths from
+#'   \code{vi_viirs_grid}. Named \code{vi_viirs_snpp_YYYYMMDD.tif} /
+#'   \code{vi_viirs_noaa20_YYYYMMDD.tif}. Skip-marker files are filtered
+#'   automatically. NULL only during pipeline bootstrapping (pre-2012 dates).
 #' @param stac_dir Output directory for this collection's STAC JSON files.
 #' @param parent_catalog_path Path to parent catalog directory (for link context).
 #' @param gh_repo GitHub repository in format "owner/repo".
-#' @param gh_release_tag GitHub release tag for MODIS NC raster files.
-#' @param gh_release_tag_viirs GitHub release tag for VIIRS NC raster files.
+#' @param gh_release_tag GitHub release tag for MODIS COG raster files.
+#' @param gh_release_tag_viirs GitHub release tag for VIIRS COG raster files.
 #' @param verbose Logical for progress messages.
 #' @return Character path to the collection JSON file.
 #' @keywords internal
 generate_modis_vi_stac <- function(
-  nc_files,
-  viirs_nc_files       = NULL,
+  tif_files,
+  viirs_tif_files      = NULL,
   stac_dir             = "data/stac/modis_vi",
   parent_catalog_path  = "data/stac",
   gh_repo              = "AdamWilsonLab/emma_envdata",
@@ -30,154 +34,192 @@ generate_modis_vi_stac <- function(
 
   dir.create(stac_dir, recursive = TRUE, showWarnings = FALSE)
 
-  # Keep only valid NC files; discard .skip markers
-  nc_files <- nc_files[grepl("\\.nc$", nc_files) & !grepl("\\.skip$", nc_files)]
+  # Keep only valid TIF files; discard .skip markers
+  tif_files <- tif_files[grepl("\\.tif$", tif_files) & !grepl("\\.skip$", tif_files)]
 
-  if (length(nc_files) == 0) {
-    stop("No MODIS VI NC files found. Check that vi_modis_grid targets completed successfully.")
+  if (length(tif_files) == 0) {
+    stop("No MODIS VI TIF files found. Check that vi_modis_grid targets completed successfully.")
   }
 
   # Filter VIIRS files (may be NULL or empty)
-  has_viirs <- !is.null(viirs_nc_files) && length(viirs_nc_files) > 0
+  has_viirs <- !is.null(viirs_tif_files) && length(viirs_tif_files) > 0
   if (has_viirs) {
-    viirs_nc_files <- viirs_nc_files[grepl("\\.nc$", viirs_nc_files) &
-                                     !grepl("\\.skip$", viirs_nc_files)]
-    has_viirs <- length(viirs_nc_files) > 0
+    viirs_tif_files <- viirs_tif_files[
+      grepl("\\.tif$", viirs_tif_files) & !grepl("\\.skip$", viirs_tif_files)
+    ]
+    has_viirs <- length(viirs_tif_files) > 0
   }
 
-  bn       <- basename(nc_files)
-  yyyymm   <- regmatches(bn, regexpr("\\d{6}", bn))
-  sensor   <- ifelse(grepl("_terra_", bn), "terra", "aqua")
-  months   <- sort(unique(yyyymm))
-  dates    <- as.Date(paste0(months, "01"), "%Y%m%d")
-
-  # Compute overall temporal extent including VIIRS if present
-  all_dates <- dates
-  if (has_viirs) {
-    vbn      <- basename(viirs_nc_files)
-    vyyyymm  <- regmatches(vbn, regexpr("\\d{6}", vbn))
-    vdates   <- as.Date(paste0(sort(unique(vyyyymm)), "01"), "%Y%m%d")
-    all_dates <- sort(unique(c(all_dates, vdates)))
-  }
-
-  collection_title <- if (has_viirs) {
-    "MODIS + VIIRS VI Rasters (Terra, Aqua, S-NPP, NOAA-20 \u2014 16-day composites, 500m)"
-  } else {
-    "MODIS VI Rasters \u2014 Terra + Aqua (16-day composites, 500m)"
-  }
-
-  collection_desc <- if (has_viirs) {
-    paste(
-      "Domain-aligned 500m NetCDF rasters of Enhanced Vegetation Index (EVI) from MODIS and VIIRS.",
-      "MODIS provides Terra (MOD13A1) and Aqua (MYD13A1) sensors from 2000-02 onward.",
-      "VIIRS provides S-NPP (VNP13A1) from 2012-01 and NOAA-20 (VJ113A1) from 2018-01 onward.",
-      "Each NC contains EVI (x100, QA-masked, integer) and composite day-of-year (doy) variables.",
-      "Items are grouped by sensor family: MODIS items have terra/aqua assets; VIIRS items have snpp/noaa20 assets."
+  # Parse filenames into a unified asset table.
+  # Naming convention: vi_{modis|viirs}_{sensor_token}_YYYYMMDD.tif
+  # sensor_token is one of: terra, aqua, snpp, noaa20
+  parse_tif_assets <- function(files, family, release_tag) {
+    bn         <- basename(files)
+    date_str   <- regmatches(bn, regexpr("\\d{8}", bn))
+    sensor_tok <- sub(
+      paste0("^vi_(?:modis|viirs)_(terra|aqua|snpp|noaa20)_\\d{8}\\.tif$"),
+      "\\1", bn, perl = TRUE
     )
-  } else {
-    paste(
-      "Domain-aligned 500m NetCDF rasters of MODIS Enhanced Vegetation Index (EVI).",
-      "Terra (MOD13A1) and Aqua (MYD13A1) sensors are provided as separate files per month.",
-      "Each NC contains EVI (x100, QA-masked, integer) and composite day-of-year (doy) variables.",
-      "The time dimension carries the 16-day composite period present in the monthly download."
+    asset_labels <- c(
+      terra  = "Terra (MOD13A1.061)",
+      aqua   = "Aqua (MYD13A1.061)",
+      snpp   = "S-NPP (VNP13A1.002)",
+      noaa20 = "NOAA-20 (VJ113A1.002)"
+    )
+    tibble::tibble(
+      file        = files,
+      date_str    = date_str,
+      sensor_tok  = sensor_tok,
+      # e.g. "modis_terra" or "viirs_snpp" — the asset key in the STAC item
+      asset_key   = paste0(family, "_", sensor_tok),
+      asset_label = asset_labels[sensor_tok],
+      release_tag = release_tag
     )
   }
+
+  all_assets <- dplyr::bind_rows(
+    parse_tif_assets(tif_files, "modis", gh_release_tag),
+    if (has_viirs) parse_tif_assets(viirs_tif_files, "viirs", gh_release_tag_viirs)
+    else NULL
+  )
+
+  # All unique composite dates sorted chronologically
+  all_dates_str <- sort(unique(all_assets$date_str))
+  all_dates     <- as.Date(all_dates_str, "%Y%m%d")
+
+  collection_title <- "MODIS + VIIRS VI Rasters (Terra, Aqua, S-NPP, NOAA-20 — 16-day composites, 500m)"
+
+  collection_desc <- paste(
+    "Domain-aligned 500m COG GeoTIFF rasters of Enhanced Vegetation Index (EVI).",
+    "Each STAC item covers one 16-day composite period and carries all sensors",
+    "available for that date as named assets (modis_terra, modis_aqua,",
+    "viirs_snpp, viirs_noaa20), making the data source explicit in the asset key.",
+    "MODIS: Terra (MOD13A1.061) and Aqua (MYD13A1.061).",
+    "VIIRS: S-NPP (VNP13A1.002) from 2012-01 and NOAA-20 (VJ113A1.002) from 2018-01."
+  )
 
   if (verbose) message(
-    "Generating STAC Collection for VI (", length(months), " MODIS months",
-    if (has_viirs) paste0(", ", length(sort(unique(vyyyymm))), " VIIRS months") else "",
-    " | ", length(nc_files) + if (has_viirs) length(viirs_nc_files) else 0L, " NC files)"
+    "Generating STAC Collection for VI: ", length(all_dates_str), " composite dates, ",
+    nrow(all_assets), " total assets (",
+    length(tif_files), " MODIS",
+    if (has_viirs) paste0(", ", length(viirs_tif_files), " VIIRS") else "",
+    ")"
   )
 
   collection <- list(
-    stac_version = "1.0.0",
+    stac_version    = "1.0.0",
     stac_extensions = list(
       "https://stac-extensions.github.io/scientific/v1.0.0/schema.json"
     ),
-    type = "Collection",
-    id = "modis_vi",
-    title = collection_title,
+    type        = "Collection",
+    id          = "vi",
+    title       = collection_title,
     description = collection_desc,
-    license = "CC-BY-4.0",
-    keywords = c("MODIS", "VIIRS", "EVI", "vegetation", "Terra", "Aqua",
-                 "S-NPP", "NOAA-20", "500m", "16-day", "NetCDF"),
+    license     = "CC-BY-4.0",
+    keywords    = c("MODIS", "VIIRS", "EVI", "vegetation", "Terra", "Aqua",
+                    "S-NPP", "NOAA-20", "500m", "16-day", "COG"),
     extent = list(
-      spatial = list(
-        bbox = list(c(-180, -90, 180, 90))
-      ),
-      temporal = list(
-        interval = list(c(
-          paste0(format(min(all_dates), "%Y-%m-%d"), "T00:00:00Z"),
-          paste0(format(max(all_dates), "%Y-%m-%d"), "T23:59:59Z")
-        ))
-      )
+      spatial  = list(bbox = list(c(-180, -90, 180, 90))),
+      temporal = list(interval = list(c(
+        paste0(format(min(all_dates), "%Y-%m-%d"), "T00:00:00Z"),
+        paste0(format(max(all_dates), "%Y-%m-%d"), "T23:59:59Z")
+      )))
     ),
     links = list(
       list(rel = "root",    href = "catalog.json",           type = "application/json"),
       list(rel = "parent",  href = "catalog.json",           type = "application/json"),
-      list(rel = "license", href = "https://creativecommons.org/licenses/by/4.0/", type = "text/html"),
-      list(
-        rel   = "about",
-        href  = "https://lpdaac.usgs.gov/products/mod13a1v061/",
-        title = "MOD13A1.061 Product Information",
-        type  = "text/html"
-      )
+      list(rel = "license", href = "https://creativecommons.org/licenses/by/4.0/",
+           type = "text/html"),
+      list(rel = "about",   href = "https://lpdaac.usgs.gov/products/mod13a1v061/",
+           title = "MOD13A1.061 Product Information", type = "text/html")
     ),
     providers = list(
-      list(name = "USGS LP DAAC",   description = "Data source for MOD13A1 and MYD13A1",    roles = c("producer", "licensor"), url = "https://lpdaac.usgs.gov/"),
-      list(name = "NASA AppEEARS",  description = "Data access and subsetting service",       roles = list("processor"),         url = "https://appeears.org/"),
-      list(name = "EMMA Lab",       description = "Data processing and aggregation",          roles = list("processor"),         url = "https://adamwilsonlab.github.io/")
+      list(
+        name        = "USGS LP DAAC",
+        description = "Data source for MOD13A1, MYD13A1, VNP13A1, VJ113A1",
+        roles       = c("producer", "licensor"),
+        url         = "https://lpdaac.usgs.gov/"
+      ),
+      list(name = "NASA AppEEARS", description = "Data access and subsetting service",
+           roles = list("processor"), url = "https://appeears.org/"),
+      list(name = "EMMA Lab",      description = "Data processing and aggregation",
+           roles = list("processor"), url = "https://adamwilsonlab.github.io/")
     ),
     summaries = list(
-      sci_doi     = "10.5067/MODIS/MOD13A1.061|10.5067/MODIS/MYD13A1.061|10.5067/VIIRS/VNP13A1.002|10.5067/VIIRS/VJ113A1.002",
+      sci_doi     = paste(
+        "10.5067/MODIS/MOD13A1.061", "10.5067/MODIS/MYD13A1.061",
+        "10.5067/VIIRS/VNP13A1.002", "10.5067/VIIRS/VJ113A1.002",
+        sep = "|"
+      ),
       platforms   = c("Terra", "Aqua", "Suomi NPP", "NOAA-20"),
       instruments = list("MODIS", "VIIRS"),
       gsd         = list(500),
       variables   = list(
-        list(name = "EVI",  description = "EVI x100 (QA-masked, integer)", data_type = "int32"),
-        list(name = "doy",  description = "Composite day of year per pixel", data_type = "int16")
+        list(name = "EVI", description = "EVI x10000 (QA-masked, integer)", data_type = "int16"),
+        list(name = "doy", description = "Composite day of year per pixel",  data_type = "int16")
       )
     )
   )
 
-  collection_file <- file.path(stac_dir, "modis_vi_collection.json")
+  collection_file <- file.path(stac_dir, "vi_collection.json")
   jsonlite::write_json(collection, collection_file, pretty = TRUE, auto_unbox = TRUE)
 
   if (verbose) message("Created STAC Collection: ", collection_file)
 
-  # One STAC item per month; each item has up to two assets (terra + aqua)
-  for (i in seq_along(months)) {
-    ym        <- months[i]
-    pq_date   <- dates[i]
-    month_end <- as.Date(paste0(format(pq_date + 31, "%Y-%m"), "-01")) - 1
+  # One STAC item per composite date; assets keyed by sensor family + token.
+  # Items are written in chronological order (all_dates_str is already sorted).
+  for (i in seq_along(all_dates_str)) {
+    ds      <- all_dates_str[i]
+    pd      <- all_dates[i]
+    # 16-day composite window
+    end_d   <- pd + 15L
 
-    # Collect NC files for this month
-    month_ncs     <- nc_files[yyyymm == ym]
-    month_sensors <- sensor[yyyymm == ym]
+    # All sensor assets available for this composite date
+    date_rows <- all_assets[all_assets$date_str == ds, ]
 
     assets <- list()
-    for (j in seq_along(month_ncs)) {
-      s       <- month_sensors[j]
-      tag     <- if (s == "terra") "Terra (MOD13A1)" else "Aqua (MYD13A1)"
-      gh_url  <- paste0("https://github.com/", gh_repo, "/releases/download/",
-                        gh_release_tag, "/", basename(month_ncs[j]))
-      assets[[s]] <- list(
+    for (j in seq_len(nrow(date_rows))) {
+      row    <- date_rows[j, ]
+      gh_url <- paste0(
+        "https://github.com/", gh_repo,
+        "/releases/download/", row$release_tag, "/",
+        basename(row$file)
+      )
+      assets[[row$asset_key]] <- list(
         href        = gh_url,
-        title       = paste0("MODIS VI — ", tag, " — ", ym),
-        description = paste0(tag, " EVI (x100) + composite DOY, 500m domain-aligned grid"),
-        type        = "application/x-netcdf",
-        roles       = list("data")
+        title       = paste0(row$asset_label, " EVI — ", ds),
+        description = paste0(
+          row$asset_label, " Enhanced Vegetation Index (scaled integer) +",
+          " composite DOY, 500m domain-aligned COG GeoTIFF"
+        ),
+        type  = "image/tiff; application=geotiff; profile=cloud-optimized",
+        roles = list("data")
       )
     }
 
+    # Derive platform + instrument lists from the sensors present in this item
+    platforms <- c(
+      if (any(date_rows$asset_key %in% c("modis_terra", "modis_aqua"))) c("Terra", "Aqua"),
+      if (any(date_rows$asset_key == "viirs_snpp"))                      "Suomi NPP",
+      if (any(date_rows$asset_key == "viirs_noaa20"))                    "NOAA-20"
+    )
+    instruments <- c(
+      if (any(grepl("^modis_", date_rows$asset_key))) "MODIS",
+      if (any(grepl("^viirs_", date_rows$asset_key))) "VIIRS"
+    )
+
     item <- list(
-      stac_version = "1.0.0",
+      stac_version    = "1.0.0",
       stac_extensions = list(
         "https://stac-extensions.github.io/scientific/v1.0.0/schema.json"
       ),
       type        = "Feature",
-      id          = paste0("modis_vi_", ym),
-      description = paste("MODIS VI rasters (Terra + Aqua) for", format(pq_date, "%B %Y")),
+      id          = paste0("vi_", ds),
+      description = paste0(
+        "Vegetation index rasters (",
+        paste(instruments, collapse = " + "),
+        ") for composite starting ", format(pd, "%Y-%m-%d")
+      ),
       geometry = list(
         type = "Polygon",
         coordinates = list(list(
@@ -186,111 +228,42 @@ generate_modis_vi_stac <- function(
       ),
       bbox = c(-180, -90, 180, 90),
       properties = list(
-        `datetime`     = paste0(format(pq_date, "%Y-%m-%d"), "T00:00:00Z"),
-        start_datetime = paste0(format(pq_date, "%Y-%m-01"), "T00:00:00Z"),
-        end_datetime   = paste0(format(month_end, "%Y-%m-%d"), "T23:59:59Z"),
-        platforms      = c("Terra", "Aqua"),
-        instruments    = list("MODIS"),
+        `datetime`     = paste0(format(pd, "%Y-%m-%d"), "T00:00:00Z"),
+        start_datetime = paste0(format(pd, "%Y-%m-%d"), "T00:00:00Z"),
+        end_datetime   = paste0(format(end_d, "%Y-%m-%d"), "T23:59:59Z"),
+        platforms      = as.list(platforms),
+        instruments    = as.list(instruments),
         gsd            = 500,
-        dataset        = "modis_vi"
+        dataset        = "vi"
       ),
       links = list(
-        list(rel = "collection", href = "modis_vi_collection.json", type = "application/json"),
-        list(rel = "root",       href = "catalog.json",             type = "application/json"),
-        list(rel = "parent",     href = "modis_vi_collection.json", type = "application/json")
+        list(rel = "collection", href = "vi_collection.json", type = "application/json"),
+        list(rel = "root",       href = "catalog.json",       type = "application/json"),
+        list(rel = "parent",     href = "vi_collection.json", type = "application/json")
       ),
       assets = assets
     )
 
-    item_file <- file.path(stac_dir, paste0("modis_vi_", ym, ".json"))
+    item_file <- file.path(stac_dir, paste0("vi_", ds, ".json"))
     jsonlite::write_json(item, item_file, pretty = TRUE, auto_unbox = TRUE)
 
     collection$links[[length(collection$links) + 1]] <- list(
       rel   = "item",
-      href  = paste0("modis_vi_", ym, ".json"),
+      href  = paste0("vi_", ds, ".json"),
       type  = "application/json",
-      title = paste("MODIS VI", ym)
+      title = paste0(
+        "VI ", format(pd, "%Y-%m-%d"),
+        " (", paste(instruments, collapse = "+"), ")"
+      )
     )
-  }
-
-  # ── VIIRS items (one per month; snpp + noaa20 assets) ────────────────────
-  if (has_viirs) {
-    vsensor  <- ifelse(grepl("_snpp_", basename(viirs_nc_files)), "snpp", "noaa20")
-    vmonths  <- sort(unique(vyyyymm))
-    vdates_m <- as.Date(paste0(vmonths, "01"), "%Y%m%d")
-
-    for (i in seq_along(vmonths)) {
-      vym       <- vmonths[i]
-      vpq_date  <- vdates_m[i]
-      vmonth_end <- as.Date(paste0(format(vpq_date + 31, "%Y-%m"), "-01")) - 1
-
-      vmonth_ncs     <- viirs_nc_files[vyyyymm == vym]
-      vmonth_sensors <- vsensor[vyyyymm == vym]
-
-      vassets <- list()
-      for (j in seq_along(vmonth_ncs)) {
-        s      <- vmonth_sensors[j]
-        vtag   <- if (s == "snpp") "S-NPP (VNP13A1)" else "NOAA-20 (VJ113A1)"
-        gh_url <- paste0("https://github.com/", gh_repo, "/releases/download/",
-                         gh_release_tag_viirs, "/", basename(vmonth_ncs[j]))
-        vassets[[s]] <- list(
-          href        = gh_url,
-          title       = paste0("VIIRS VI \u2014 ", vtag, " \u2014 ", vym),
-          description = paste0(vtag, " EVI (x100) + composite DOY, 500m domain-aligned grid"),
-          type        = "application/x-netcdf",
-          roles       = list("data")
-        )
-      }
-
-      vitem <- list(
-        stac_version = "1.0.0",
-        stac_extensions = list(
-          "https://stac-extensions.github.io/scientific/v1.0.0/schema.json"
-        ),
-        type        = "Feature",
-        id          = paste0("viirs_vi_", vym),
-        description = paste("VIIRS VI rasters (S-NPP + NOAA-20) for", format(vpq_date, "%B %Y")),
-        geometry = list(
-          type = "Polygon",
-          coordinates = list(list(
-            c(-180, -90), c(180, -90), c(180, 90), c(-180, 90), c(-180, -90)
-          ))
-        ),
-        bbox = c(-180, -90, 180, 90),
-        properties = list(
-          `datetime`     = paste0(format(vpq_date, "%Y-%m-%d"), "T00:00:00Z"),
-          start_datetime = paste0(format(vpq_date, "%Y-%m-01"), "T00:00:00Z"),
-          end_datetime   = paste0(format(vmonth_end, "%Y-%m-%d"), "T23:59:59Z"),
-          platforms      = c("Suomi NPP", "NOAA-20"),
-          instruments    = list("VIIRS"),
-          gsd            = 500,
-          dataset        = "viirs_vi"
-        ),
-        links = list(
-          list(rel = "collection", href = "modis_vi_collection.json", type = "application/json"),
-          list(rel = "root",       href = "catalog.json",             type = "application/json"),
-          list(rel = "parent",     href = "modis_vi_collection.json", type = "application/json")
-        ),
-        assets = vassets
-      )
-
-      vitem_file <- file.path(stac_dir, paste0("viirs_vi_", vym, ".json"))
-      jsonlite::write_json(vitem, vitem_file, pretty = TRUE, auto_unbox = TRUE)
-
-      collection$links[[length(collection$links) + 1]] <- list(
-        rel   = "item",
-        href  = paste0("viirs_vi_", vym, ".json"),
-        type  = "application/json",
-        title = paste("VIIRS VI", vym)
-      )
-    }
-
-    if (verbose) message("Generated ", length(vmonths), " VIIRS STAC items (S-NPP + NOAA-20 assets)")
   }
 
   jsonlite::write_json(collection, collection_file, pretty = TRUE, auto_unbox = TRUE)
 
-  if (verbose) message("Generated ", length(months), " MODIS STAC items (Terra + Aqua assets per month)")
+  if (verbose) message(
+    "Generated ", length(all_dates_str), " STAC items (sorted by date; assets: ",
+    paste(sort(unique(all_assets$asset_key)), collapse = ", "), ")"
+  )
 
   collection_file
 }
@@ -687,13 +660,15 @@ generate_burn_stac <- function(
     title       = "Burned Area — MODIS MCD64A1 + VIIRS VNP64A1 (NetCDF rasters)",
     description = paste(
       "Monthly burned area NetCDF rasters for ecosystem fire-history analysis.",
-      "MODIS MCD64A1 (Terra, 500m, 2000-present) and VIIRS VNP64A1 (Suomi NPP, 375m",
-      "resampled to 500m, 2012-present) are provided as separate domain-aligned files.",
-      "Each NC contains a burn_doy variable (day-of-year of burn detection, QA=0 only).",
-      "VIIRS is preferred over MODIS in all downstream deduplication and fire-history",
-      "products because of its higher spatial resolution (375m vs 500m).",
-      "Note temporal discontinuity: VIIRS data begin January 2012.",
-      "Also includes most_recent_burn.nc: fire_age_days and last_burn_date snapshot per pixel."
+      "Both MODIS and VIIRS are first-class sensor families: MODIS MCD64A1 (Terra,",
+      "500m, 2000-present) extends the long-term record; VIIRS VNP64A1 (Suomi NPP,",
+      "375m resampled to 500m, 2012-present) provides independent, finer-resolution",
+      "detections from 2012 onward. Both are retained and delivered as separate",
+      "domain-aligned files. Each NC contains a burn_doy variable (day-of-year of",
+      "burn detection, QA=0 only). In the merged fire-history product, detections",
+      "from both sensors are combined; where they overlap spatially, VIIRS is used",
+      "in preference to MODIS given its finer spatial resolution (375m vs 500m).",
+      "Also includes most_recent_burn.nc: fire_age_days and last_burn_date per pixel."
     ),
     license = "proprietary",
     extent = list(
@@ -908,15 +883,15 @@ generate_burn_stac <- function(
 #'   and topographic diversity metrics.  All assets point to a single GitHub
 #'   release tag (\code{"static_data"}).
 #'
-#' @param domain_nc       Path to \code{domain.nc}.
+#' @param domain_file     Path to \code{domain.tif} or \code{domain.nc}.
 #' @param domain_parquet  Path to \code{domain.parquet}.
-#' @param vegmap_nc       Path to \code{vegmap.nc}.
-#' @param elevation_nc    Path returned by the \code{elevation} target (NASADEM NC).
-#' @param climate_nc_files Character vector of paths returned by \code{climate_chelsa}
-#'   (CHELSA BIO variable NCs, typically 19 files).
-#' @param clouds_nc       Path returned by the \code{clouds_wilson} target.
-#' @param soil_nc         Path returned by the \code{soil_soilgrids} target.
-#' @param topo_nc         Path returned by the \code{topographic_diversity} target.
+#' @param vegmap_file     Path to \code{vegmap.tif}.
+#' @param elevation       Path returned by the \code{elevation} target (NASADEM COG).
+#' @param climate_files   Character vector of paths returned by \code{climate_chelsa}
+#'   (CHELSA BIO variable files, typically 19 files).
+#' @param clouds          Path returned by the \code{clouds_wilson} target.
+#' @param soil            Path returned by the \code{soilgrid} target.
+#' @param topo            Path returned by the \code{topographic_diversity} target.
 #' @param stac_dir        Output directory for STAC JSON files.
 #' @param gh_repo         GitHub repo in "owner/repo" format.
 #' @param gh_release_tag  GitHub release tag hosting the static NC files.
@@ -925,14 +900,14 @@ generate_burn_stac <- function(
 #' @return Character path to \code{static_collection.json}.
 #' @keywords internal
 generate_static_layers_stac <- function(
-    domain_nc        = "data/target_outputs/domain.nc",
+    domain_file      = "data/target_outputs/domain.tif",
     domain_parquet   = "data/target_outputs/domain.parquet",
-    vegmap_nc        = "data/target_outputs/vegmap.nc",
-    elevation_nc,
-    climate_nc_files,
-    clouds_nc,
-    soil_nc,
-    topo_nc,
+    vegmap_file      = "data/target_outputs/vegmap.tif",
+    elevation,
+    climate_files,
+    clouds,
+    soil,
+    topo,
     stac_dir         = "data/stac/static",
     gh_repo          = "AdamWilsonLab/emma_envdata",
     gh_release_tag   = "static_data",
@@ -1024,10 +999,10 @@ generate_static_layers_stac <- function(
     properties  = c(static_props, list(dataset = "static", layer = "domain")),
     links       = common_links(),
     assets = list(
-      domain_nc = list(
-        href = gh_url(domain_nc), title = "Domain grid (NC)",
-        description = "Domain NetCDF: pid layer (integer pixel IDs) at 500m resolution.",
-        type = "application/x-netcdf", roles = list("data")
+      domain_file = list(
+        href = gh_url(domain_file), title = "Domain grid",
+        description = "Domain raster: pid layer (integer pixel IDs) at 500m resolution.",
+        type = "image/tiff; application=geotiff; profile=cloud-optimized", roles = list("data")
       ),
       domain_parquet = list(
         href = gh_url(domain_parquet), title = "Domain grid (Parquet)",
@@ -1046,10 +1021,10 @@ generate_static_layers_stac <- function(
     properties  = c(static_props, list(dataset = "static", layer = "vegmap")),
     links       = common_links(),
     assets = list(
-      vegmap_nc = list(
-        href = gh_url(vegmap_nc), title = "Vegetation map (NC)",
+      vegmap = list(
+        href = gh_url(vegmap_file), title = "Vegetation map",
         description = "Vegetation class per pixel (integer codes), 500m domain-aligned grid.",
-        type = "application/x-netcdf", roles = list("data")
+        type = "image/tiff; application=geotiff; profile=cloud-optimized", roles = list("data")
       )
     )
   ), "static_vegmap")
@@ -1070,10 +1045,10 @@ generate_static_layers_stac <- function(
            type = "text/html", title = "NASADEM_HGT v001 Product Page")
     )),
     assets = list(
-      elevation_nc = list(
-        href = gh_url(elevation_nc), title = "Elevation NC (NASADEM)",
+      elevation = list(
+        href = gh_url(elevation), title = "Elevation (NASADEM)",
         description = "Elevation in metres, 500m domain-aligned grid.",
-        type = "application/x-netcdf", roles = list("data")
+        type = "image/tiff; application=geotiff; profile=cloud-optimized", roles = list("data")
       )
     )
   ), "static_elevation")
@@ -1081,11 +1056,11 @@ generate_static_layers_stac <- function(
   # ── 4. CHELSA bioclimatic variables (BIO1-BIO19) ─────────────────────────
   # One asset per BIO variable; key extracted from filename (e.g. "bio1")
   climate_assets <- list()
-  for (nc in climate_nc_files) {
-    m       <- regexpr("bio\\d+", basename(nc), ignore.case = TRUE)
-    bio_key <- if (m > 0L) tolower(regmatches(basename(nc), m)) else tools::file_path_sans_ext(basename(nc))
+  for (f in climate_files) {
+    m       <- regexpr("bio\\d+", basename(f), ignore.case = TRUE)
+    bio_key <- if (m > 0L) tolower(regmatches(basename(f), m)) else tools::file_path_sans_ext(basename(f))
     climate_assets[[bio_key]] <- list(
-      href        = gh_url(nc),
+      href        = gh_url(f),
       title       = paste0("CHELSA ", toupper(bio_key), " (1981-2010)"),
       description = paste0("CHELSA bioclimatic variable ", toupper(bio_key),
                            " (1981-2010 mean), 500m domain-aligned grid."),
@@ -1131,10 +1106,10 @@ generate_static_layers_stac <- function(
            type = "text/html", title = "EarthEnv Cloud Data")
     )),
     assets = list(
-      clouds_nc = list(
-        href = gh_url(clouds_nc), title = "Cloud frequency NC (MODCF / Wilson)",
+      clouds = list(
+        href = gh_url(clouds), title = "Cloud frequency (MODCF / Wilson)",
         description = "Mean annual cloud fraction + seasonality index, 500m domain-aligned grid.",
-        type = "application/x-netcdf", roles = list("data")
+        type = "image/tiff; application=geotiff; profile=cloud-optimized", roles = list("data")
       )
     )
   ), "static_clouds")
@@ -1157,10 +1132,10 @@ generate_static_layers_stac <- function(
            type = "text/html", title = "SoilGrids v2 Product Page")
     )),
     assets = list(
-      soil_nc = list(
-        href = gh_url(soil_nc), title = "Soil properties NC (SoilGrids v2)",
+      soil = list(
+        href = gh_url(soil), title = "Soil properties (SoilGrids v2)",
         description = "SOC (g/kg), clay (%), sand (%), pH, bulk density (kg/dm3); 0-30 cm mean; 500m grid.",
-        type = "application/x-netcdf", roles = list("data")
+        type = "image/tiff; application=geotiff; profile=cloud-optimized", roles = list("data")
       )
     )
   ), "static_soil")
@@ -1177,10 +1152,10 @@ generate_static_layers_stac <- function(
     properties = c(static_props, list(dataset = "static", layer = "topography", gsd = 500)),
     links      = common_links(),
     assets = list(
-      topo_nc = list(
-        href = gh_url(topo_nc), title = "Topographic diversity NC",
+      topo = list(
+        href = gh_url(topo), title = "Topographic diversity",
         description = "Slope (deg), aspect (deg), TRI, TPI; derived from NASADEM at 500m.",
-        type = "application/x-netcdf", roles = list("data")
+        type = "image/tiff; application=geotiff; profile=cloud-optimized", roles = list("data")
       )
     )
   ), "static_topography")

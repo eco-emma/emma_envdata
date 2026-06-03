@@ -10,9 +10,7 @@ collect results, and produce a single summary report.
 ## Steps
 
 1. **Lint** — check R/ directory files for tidyverse style issues:
-   ```
-   Rscript scripts/agents/tidyverse_check.R
-   ```
+
 2. **Geospatial review** — invoke the `geo` agent on `data/` and any spatial
    processing scripts that changed since the last commit.
 3. **Statistical checks** — invoke the `stats` agent on any modelling or

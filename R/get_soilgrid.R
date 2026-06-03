@@ -34,31 +34,27 @@ SOILGRIDS_WCS_BASE <- "https://maps.isric.org/mapserv?map=/map/{property}.map"
 #'
 #' @description Downloads five soil properties from the ISRIC SoilGrids v2 REST API,
 #'   averages across the 0–30cm depth interval, reprojects to the domain grid, and
-#'   writes a multi-layer NetCDF. Properties included: SOC, clay, sand, pH, bulk density.
+#'   returns a multi-layer SpatRaster for storage as a COG via geotargets::tar_terra_rast().
+#'   Properties included: SOC, clay, sand, pH, bulk density.
 #'
-#' @param domain_raster   SpatRaster or file path to domain.nc (defines target grid and CRS).
+#' @param domain_raster   SpatRaster or file path to domain raster (defines target grid and CRS).
 #' @param temp_directory  Character. Directory for downloaded raw GeoTIFFs.
-#' @param out_file        Character. Output NetCDF path.
-#' @param cleanup         Logical. Delete raw downloads after writing NetCDF?
+#' @param cleanup         Logical. Delete raw downloads after processing?
 #' @param verbose         Logical. Print progress messages? Default TRUE.
 #'
-#' @return Character path to the output NetCDF file.
+#' @return A 5-band SpatRaster (EPSG:9221, 500m) with bands: soc, clay, sand, phh2o, bdod.
 #' @export
-get_soil_soilgrids <- function(
+get_soilgrid <- function(
     domain_raster,
-    temp_directory = "data/temp/appeears/soil_soilgrids/",
-    out_file       = "data/target_outputs/soil_soilgrids.nc",
+    temp_directory = "data/temp/appeears/soilgrid/",
     cleanup        = Sys.getenv("GITHUB_ACTIONS") == "true",
     verbose        = TRUE) {
 
   # Return cached file if already processed (avoids re-downloading on local runs)
-  if (file.exists(out_file)) {
-    if (verbose) message("Soil data file already exists: ", out_file)
-    return(out_file)
-  }
+  # Note: caching is now handled by targets (cue = "never"); this guard is kept
+  # only for interactive use outside the pipeline.
 
   dir.create(temp_directory, recursive = TRUE, showWarnings = FALSE)
-  dir.create(dirname(out_file), recursive = TRUE, showWarnings = FALSE)
 
   old_timeout <- getOption("timeout")
   options(timeout = 600)
@@ -77,11 +73,11 @@ get_soil_soilgrids <- function(
   # quantile: "mean" is the expected value of the posterior distribution.
   soil_properties <- tibble::tribble(
     ~property, ~long_name,               ~units,    ~scale_factor,
-    "soc",     "Soil Organic Carbon",    "g/kg",    10,   # stored as dg/kg in SoilGrids → ÷10
-    "clay",    "Clay Content",           "g/kg",    10,
-    "sand",    "Sand Content",           "g/kg",    10,
-    "phh2o",   "pH in Water (× 10)",     "pH×10",    10,
-    "bdod",    "Bulk Density",           "kg/dm3",  100   # stored as cg/cm3 → ÷100
+    "soc",     "Soil_Organic_Carbon",    "g_kg",    10,   # stored as dg/kg in SoilGrids → ÷10
+    "clay",    "Clay_Content",           "g_kg",    10,
+    "sand",    "Sand_Content",           "g_kg",    10,
+    "phh2o",   "pH_in_Water",            "pH",      10,
+    "bdod",    "Bulk_Density",           "kg_dm3",  100   # stored as cg/cm3 → ÷100
   )
 
   depth_intervals <- c("0-5cm", "5-15cm", "15-30cm")
@@ -133,8 +129,18 @@ get_soil_soilgrids <- function(
       terra::project(domain_template, method = "bilinear")
   }
 
-  # Download all layers; use purrr::pmap for tidy iteration over the grid rows
-  all_layers <- purrr::pmap(download_grid, download_one_layer)
+  # Download all layers; iterate by row index so terra's ..1/..2 internals
+  # do not conflict with purrr's ..N argument passing
+  all_layers <- purrr::map(seq_len(nrow(download_grid)), function(i) {
+    row <- download_grid[i, ]
+    download_one_layer(
+      property     = row$property,
+      long_name    = row$long_name,
+      units        = row$units,
+      scale_factor = row$scale_factor,
+      depth        = row$depth
+    )
+  })
 
   # ── Average across depth intervals for each property ────────────────────
   # For each property, stack the 3 depth layers and compute the pixel-wise mean.
@@ -149,44 +155,41 @@ get_soil_soilgrids <- function(
 
   depth_averaged_list <- purrr::map(seq_len(n_props), function(pi) {
     # Extract the 3 depth layers for this property
-    layer_indices <- seq(pi, length(all_layers), by = n_props)
+    n_depths      <- length(depth_intervals)
+    layer_indices <- ((pi - 1L) * n_depths + 1L):(pi * n_depths)
     depth_stack   <- terra::rast(all_layers[layer_indices])
 
-    # Weighted average: multiply each depth layer by its weight and sum
+    # Weighted average: 0-5cm=5, 5-15cm=10, 15-30cm=15 → sum weights = 30
     weights <- unname(depth_weights[depth_intervals])
-    terra::app(depth_stack, fun = function(x) sum(x * weights, na.rm = TRUE))
+    terra::app(depth_stack, fun = function(x) sum(x * weights, na.rm = TRUE)) |>
+      terra::mask(domain_template[["pid"]])  # mask per-layer so stack stays multi-source
   })
 
   names(depth_averaged_list) <- prop_names
 
-  # ── Stack and mask to domain, then write NetCDF ──────────────────────────
-  if (verbose) message("Writing soil properties NetCDF ...")
+  # Stack and name — masking already applied per-layer above
+  if (verbose) message("Stacking soil properties and masking to domain ...")
 
-  soil_stack <- terra::rast(depth_averaged_list) |>
-    terra::mask(domain_template[["pid"]])  # apply domain mask
-
+  soil_stack <- terra::rast(depth_averaged_list)
   names(soil_stack) <- prop_names
 
-  local({
-    tmp_file <- tempfile(tmpdir = dirname(out_file), fileext = ".nc")
-    on.exit(unlink(tmp_file), add = TRUE)
-    terra::writeCDF(
-      soil_stack,
-      filename  = tmp_file,
-      varname   = "soil",
-      longname  = paste(soil_properties$long_name, collapse = "; "),
-      unit      = paste(soil_properties$units, collapse = "; ")
-    )
-    unlink(out_file)
-    if (!file.rename(tmp_file, out_file)) stop("Could not rename ", tmp_file, " -> ", out_file)
-  })
+  # Per-layer long names and units — stored as GDAL band fields that survive
+  # COG round-trips
+  terra::longnames(soil_stack) <- soil_properties$long_name
+  terra::units(soil_stack)     <- soil_properties$units
 
-  if (verbose) message("Soil NetCDF written: ", out_file)
+  # Dataset-level provenance (survives COG round-trip via GDAL metadata)
+  terra::metags(soil_stack) <- c(
+    source       = "ISRIC SoilGrids v2 (CC BY 4.0)",
+    depth        = "0-30cm depth-weighted mean",
+    date_created = as.character(Sys.Date())
+  )
 
   if (cleanup) {
     unlink(temp_directory, recursive = TRUE, force = TRUE)
     if (verbose) message("Cleaned up temp directory: ", temp_directory)
   }
 
-  out_file
+  if (verbose) message("Soil properties processing complete (", terra::nlyr(soil_stack), " layers).")
+  soil_stack
 }

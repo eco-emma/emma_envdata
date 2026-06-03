@@ -98,50 +98,31 @@ get_climate_chelsa <- function(
     rast_i <- terra::crop(x = rast_i, y = ext(domain_tf2))
     rast_i <- terra::mask(rast_i, mask = terra::vect(domain_tf2))
 
-     # Check if raster has data after masking
+    # Embed CHELSA metadata in TIFF IFD via GDAL metags (survives COG round-trip)
+    terra::metags(rast_i) <- c(
+      title          = paste("CHELSA Bioclimatic Variable", i),
+      source         = "CHELSA v.2.1 (https://chelsa-climate.org/)",
+      temporal_range = "1981-2010",
+      download_date  = as.character(download_date),
+      long_name      = bio_metadata$long_name[idx],
+      units          = bio_metadata$units[idx]
+    )
 
-    # Write as NetCDF with CF-compliant metadata
-    nc_filename <- file.path(out_dir, paste("CHELSA_", i, "_1981-2010_V.2.1.nc", sep = ""))
+    # Write as Cloud-Optimised GeoTIFF; COG driver writes overview pyramids inline
+    cog_filename <- file.path(
+      out_dir, paste0("CHELSA_", i, "_1981-2010_V.2.1.tif")
+    )
     local({
-      tmp_nc <- tempfile(tmpdir = dirname(nc_filename), fileext = ".nc")
-      on.exit(unlink(tmp_nc), add = TRUE)
-      terra::writeCDF(x = rast_i, filename = tmp_nc, compression = 9)
-      unlink(nc_filename)
-      if (!file.rename(tmp_nc, nc_filename)) stop("Could not rename ", tmp_nc, " -> ", nc_filename)
+      tmp_tif <- tempfile(tmpdir = dirname(cog_filename), fileext = ".tif")
+      on.exit(unlink(tmp_tif), add = TRUE)
+      terra::writeRaster(rast_i, filename = tmp_tif, filetype = "COG",
+                         overwrite = TRUE)
+      unlink(cog_filename)
+      if (!file.rename(tmp_tif, cog_filename)) {
+        stop("Could not rename ", tmp_tif, " -> ", cog_filename)
+      }
     })
-    
-    # Add CF-compliant metadata using ncdf4 package
-    nc_file <- ncdf4::nc_open(nc_filename, write = TRUE)
-    
-    # Get variable name
-    var_name <- names(rast_i)
-    if (is.null(var_name) || var_name == "") {
-      var_name <- i
-    }
-    
-    # Get metadata for this bioclimatic variable
-    long_name <- bio_metadata$long_name[idx]
-    units <- bio_metadata$units[idx]
-    
-    # Add global attributes
-    ncdf4::ncatt_put(nc_file, 0, "title", 
-                     paste("CHELSA Bioclimatic Variable", i, sep = " "))
-    ncdf4::ncatt_put(nc_file, 0, "source", "CHELSA v.2.1 (Climatologies at high resolution for the earth land areas)")
-    ncdf4::ncatt_put(nc_file, 0, "dataset_url", "https://chelsa-climate.org/")
-    ncdf4::ncatt_put(nc_file, 0, "download_date", as.character(download_date))
-    ncdf4::ncatt_put(nc_file, 0, "temporal_range", "1981-2010")
-    ncdf4::ncatt_put(nc_file, 0, "Conventions", "CF-1.8")
-    ncdf4::ncatt_put(nc_file, 0, "history", 
-                     paste("Downloaded on", as.character(download_date), 
-                           "and clipped to domain. Processed using terra and ncdf4 R packages."))
-    
-    # Add variable attributes
-    ncdf4::ncatt_put(nc_file, var_name, "long_name", long_name)
-    ncdf4::ncatt_put(nc_file, var_name, "units", units)
-    ncdf4::ncatt_put(nc_file, var_name, "standard_name", paste("bioclimatic_variable_", i, sep = ""))
-    
-    ncdf4::nc_close(nc_file)
-    output_files <- c(output_files, nc_filename)
+    output_files <- c(output_files, cog_filename)
     
     rm(rast_i)
   }

@@ -72,3 +72,20 @@ load_description_packages <- function(description_file = "DESCRIPTION", quietly 
   if (verbose) message(paste("Loaded", length(packages), "packages from DESCRIPTION"))
   invisible(packages)
 }
+
+# Generate the complete MODIS/VIIRS 16-day composite schedule between two dates.
+# Anchor date 2000-02-18 is the first MODIS Terra 16-day composite period.
+# Returns a tibble with one row per composite; composite_date = period start,
+# composite_end = period end (start + 15 days).
+generate_composite_sequence <- function(start_date, end_date) {
+  anchor     <- as.Date("2000-02-18")
+  start_date <- as.Date(start_date)
+  end_date   <- as.Date(end_date)
+  n_steps    <- floor(as.numeric(end_date - anchor) / 16)
+  all_dates  <- anchor + (0:n_steps * 16L)
+  dates      <- all_dates[all_dates >= start_date & all_dates <= end_date]
+  tibble::tibble(
+    composite_date = dates,
+    composite_end  = dates + 15L
+  )
+}

@@ -44,17 +44,8 @@
 process_topographic_diversity <- function(
     elevation_file,
     domain_raster,
-    out_file     = "data/target_outputs/topographic_diversity.nc",
     focal_radius = 1L,
     verbose      = TRUE) {
-
-  # Return cached file if already processed
-  if (file.exists(out_file)) {
-    if (verbose) message("Topographic diversity file already exists: ", out_file)
-    return(out_file)
-  }
-
-  dir.create(dirname(out_file), recursive = TRUE, showWarnings = FALSE)
 
   # Load elevation (accepts SpatRaster or NetCDF file path)
   elev <- if (is.character(elevation_file)) {
@@ -125,46 +116,25 @@ process_topographic_diversity <- function(
   )
   names(topodiv) <- "topographic_div"
 
-  # ── 3. Stack, mask, write NetCDF ─────────────────────────────────────────
-  if (verbose) message("Stacking terrain layers and writing NetCDF ...")
+  # ── 3. Stack and mask terrain layers ─────────────────────────────────────
+  if (verbose) message("Stacking terrain layers and masking to domain ...")
 
   topo_stack <- c(terrain_stack, topodiv) |>
     terra::mask(domain_mask)   # restrict to valid domain pixels
 
-  # CF-compliant long names for documentation
-  longnames <- c(
-    slope_deg        = "Terrain Slope",
-    aspect_deg       = "Terrain Aspect",
-    tri              = "Terrain Ruggedness Index",
-    tpi              = "Topographic Position Index",
-    topographic_div  = "Topographic Diversity (Theobald et al. 2015)"
+  # Embed metadata in COG TIFF GDAL metadata (survives COG round-trip)
+  terra::metags(topo_stack) <- c(
+    source       = "NASADEM_HGT.001 via AppEEARS — terrain metrics from terra::terrain()",
+    reference    = "Theobald et al. (2015) Ecography 38:1155-1166",
+    date_created = as.character(Sys.Date())
   )
-  units_vec <- c(
-    slope_deg        = "degrees",
-    aspect_deg       = "degrees (clockwise from north)",
-    tri              = "meters",
-    tpi              = "meters",
-    topographic_div  = "unitless"
-  )
-
-  tmp_file <- tempfile(tmpdir = dirname(out_file), fileext = ".nc")
-  on.exit(unlink(tmp_file), add = TRUE)
-  terra::writeCDF(
-    topo_stack,
-    filename  = tmp_file,
-    varname   = "topography",
-    longname  = paste(longnames[names(topo_stack)], collapse = "; "),
-    unit      = paste(units_vec[names(topo_stack)], collapse = "; ")
-  )
-  unlink(out_file)
-  if (!file.rename(tmp_file, out_file)) stop("Could not rename ", tmp_file, " -> ", out_file)
 
   if (verbose) {
     message(
-      "Topographic diversity NetCDF written: ", out_file,
-      " (", terra::nlyr(topo_stack), " layers)"
+      "Topographic diversity computed: ",
+      terra::nlyr(topo_stack), " layers"
     )
   }
 
-  out_file
+  topo_stack
 }

@@ -26,10 +26,7 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
   options(tidyverse.quiet = TRUE)
 
   # Ensure output directories exist early (before terra options)
-  dir.create("data/raw", recursive = TRUE, showWarnings = FALSE)
-  dir.create("data/temp", recursive = TRUE, showWarnings = FALSE)
   dir.create("data/temp/terra", recursive = TRUE, showWarnings = FALSE)
-  dir.create("data/releases", recursive = TRUE, showWarnings = FALSE)
   dir.create("data/target_outputs", recursive = TRUE, showWarnings = FALSE)
 
   # GitHub release repository configuration - releases are used to store target objects and publish final data
@@ -50,21 +47,17 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
   # Download cached targets from GitHub release before tar_option_set() so the
   # restored store is visible before any cue or format options are applied.
   source('R/tar_release_storage.R')
-  tar_download_github_release(
-    repo = gh_repo_config$repo,
-    tag = gh_repo_config$tag,
-    cache_dir = gh_repo_config$cache_dir,
-    verbose = TRUE
-  )
+ # tar_download_github_release(
+ #   repo = gh_repo_config$repo,
+ #   tag = gh_repo_config$tag,
+ #   cache_dir = gh_repo_config$cache_dir,
+ #   verbose = TRUE
+ # )
 
-  # Restore static NC files needed by actively-running targets from the
-  # static_data GitHub release.  Skip files whose targets are cue=never
-  # (CHELSA, soil, elevation, clouds, topo) — those are never re-run on CI
-  # and their large files do not need to be on disk for the update pipeline.
-  restore_static_data(
-    repo          = gh_repo_config$repo,
-    skip_patterns = "^(CHELSA_|soil_soilgrids|topographic_diversity|elevation_nasadem|clouds_wilson)"
-  )
+  # Static NC files are no longer written to disk — domain_grid, vegmap_grid,
+  # elevation, clouds_wilson, soilgrid, topographic_diversity are stored
+  # as COG-backed SpatRaster targets via geotargets::tar_terra_rast().
+  # restore_static_data() is no longer needed and has been removed.
 
   tar_option_set(
     #controller = if (Sys.getenv("GITHUB_ACTIONS") != "true") crew::crew_controller_local(workers = 16) else NULL,
@@ -77,6 +70,9 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
   )
 
   terraOptions(tempdir = "data/temp/terra", memfrac = 0.8)
+
+  # All SpatRaster targets use COG-backed GeoTIFF storage via geotargets
+  geotargets::geotargets_option_set(gdal_raster_driver = "COG")
 
   # Set cleanup behavior based on execution environment
   # In GitHub Actions, we want to clean up temp files to avoid filling up disk space.  Locally, we may want to keep them for debugging or inspection.
@@ -96,9 +92,9 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
 #  burn_start_date  <- "2000-11-01"  # MCD64A1 first available data
 #  modis_end_date   <- as.character(Sys.Date())
 
-  modis_start_date <- "2026-01-01"  # MODIS Terra first available data
-  viirs_start_date <- "2026-01-01"  # VIIRS first available data
-  burn_start_date  <- "2026-01-01"  # MCD64A1 first available data
+  modis_start_date <- "2026-03-01"  # MODIS Terra first available data
+  viirs_start_date <- "2026-03-01"  # VIIRS first available data
+  burn_start_date  <- "2026-03-01"  # MCD64A1 first available data
   # Lag ~14 days past month end so both 16-day MODIS composites are published
   # on AppEEARS before the month enters the pipeline (avoids partial data).
   modis_end_date   <- as.character(as.Date(format(Sys.Date() - 14, "%Y-%m-01")) - 1)
@@ -149,27 +145,18 @@ list(
     domain_define(vegmap = vegmap, country = country),
   ),
 
-  # Stable bounding box for downloads (50km buffer around domain)
-  tar_target(   
-    domain_bbox,
-    make_domain_bbox(domain_boundary, buffer_m = 50000),
-    cue = tar_cue(mode = "never")  # Manual download: only run locally, never on CI
-  ),
-
 # Domain raster with pixel IDs, remnants, and distance to remnants. This defines the model grid that is used for everything!
-  # Stores as terra rast object in qs format; also writes domain.nc file for reference
-  tar_target(   
+  geotargets::tar_terra_rast(
     domain_grid,
     domain_rasterize(
-      domain_boundary = domain_boundary, 
-      remnants = remnants,
-      out_file = "data/target_outputs/domain.nc"
+      domain_boundary = domain_boundary,
+      remnants = remnants
     ),
     cue = tar_cue(mode = "never")  # Manual download: only run locally, never on CI
-    #   targets::tar_invalidate(domain_grid)
+    #   targets::tar_invalidate(domain_grid) #run this to force regeneration of domain grid (e.g. if remnant layer is updated) which will restart everything below
   ),
 
-  # Export domain raster to GeoParquet format for easy distribution
+  # Export domain raster to GeoParquet format for easy distribution 
   tar_target(
     domain_geoparquet,
     domain_to_geoparquet(
@@ -182,12 +169,12 @@ list(
   ),
 
 # Rasterize the vegetation map
-  # Stores as terra rast object in qs format; also writes vegmap.nc file for reference
-  tar_target( 
+  geotargets::tar_terra_rast(
     vegmap_grid,
-    process_vegmap(domain_raster = domain_grid,
-                vegmap_shp = vegmap,
-                out_file = "data/target_outputs/vegmap.nc"),
+    process_vegmap(
+      domain_raster = domain_grid,
+      vegmap_shp    = vegmap
+    ),
     cue = tar_cue(mode = "never")  # Manual download: only run locally, never on CI
   ),
 
@@ -203,18 +190,16 @@ list(
     ),
 
   # Cloud cover: Wilson MODCF mean annual and seasonality (EarthEnv, ~1km → 500m domain grid)
-  tar_target(
+  geotargets::tar_terra_rast(
     clouds_wilson,
     get_clouds_wilson(
-      domain        = domain_boundary,
-      domain_raster = domain_grid,
+      domain         = domain_boundary,
+      domain_raster  = domain_grid,
       temp_directory = "data/temp/appeears/clouds_wilson/",
-      out_file      = "data/target_outputs/clouds_wilson.nc",
-      cleanup       = cleanup_mode,
-      verbose       = TRUE
+      cleanup        = cleanup_mode,
+      verbose        = TRUE
     ),
-    cue = tar_cue(mode = "never"),  # Manual download: only run locally, never on CI,
-    format = "file"
+    cue = tar_cue(mode = "never")  # Manual download: only run locally, never on CI
   ),
 
   ##################### AppEEARS Static Data Processing #########################
@@ -228,17 +213,15 @@ list(
     )
   ),
 
-  tar_target(
+  geotargets::tar_terra_rast(
     elevation,
     download_elevation_results(
-      task_id = elevation_task_id,
-      domain_vector = domain_boundary,
-      domain_raster = domain_grid,
-      out_file = "data/target_outputs/elevation_nasadem.nc",
+      task_id        = elevation_task_id,
+      domain_vector  = domain_boundary,
+      domain_raster  = domain_grid,
       temp_directory = "data/temp/appeears/elevation_nasadem/",
-      verbose = TRUE
+      verbose        = TRUE
     ),
-    format = "file",
     cue = tar_cue(mode = "never")
   ),
 
@@ -249,33 +232,29 @@ list(
     format = "file"
   ),
 
-  # Soil properties: SoilGrids v2 (ISRIC REST API) — replaces broken RDryad/GCFR source
+  # Soil properties: SoilGrids v2 (ISRIC REST API)
   # Properties: SOC, clay, sand, pH, bulk density averaged over 0-30cm depth
-  tar_target(
-    soil_soilgrids,
-    get_soil_soilgrids(
+  geotargets::tar_terra_rast(
+    soilgrid,
+    get_soilgrid(
       domain_raster  = domain_grid,
-      temp_directory = "data/temp/appeears/soil_soilgrids/",
-      out_file       = "data/target_outputs/soil_soilgrids.nc",
+      temp_directory = "data/temp/appeears/soilgrid/",
       cleanup        = cleanup_mode,
       verbose        = TRUE
     ),
-    format = "file",
     cue = tar_cue(mode = "never")  # Static data: only run locally, never on CI
   ),
 
   # Topographic diversity metrics derived from the NASADEM elevation (no new download needed)
   # Metrics: slope, aspect, TRI, TPI, topographic diversity index
-  tar_target(
+  geotargets::tar_terra_rast(
     topographic_diversity,
     process_topographic_diversity(
-      elevation_file = elevation,     # file path (format="file" on elevation target)
-      domain_raster  = "data/target_outputs/domain.nc",  # literal path avoids terra pointer issues
-      out_file       = "data/target_outputs/topographic_diversity.nc",
+      elevation_file = elevation,
+      domain_raster  = domain_grid,
       focal_radius   = 1L,
       verbose        = TRUE
     ),
-    format = "file",
     cue = tar_cue(mode = "never")  # Derived from elevation: only run locally, never on CI
   ),
 
@@ -285,14 +264,14 @@ list(
   tar_target(
     static_geoparquet,
     combine_static_layers_to_geoparquet(
-      domain_parquet   = "data/target_outputs/domain.parquet",
-      domain_nc        = "data/target_outputs/domain.nc",
-      elevation_nc     = elevation,
-      climate_nc_files = climate_chelsa,
-      clouds_nc        = clouds_wilson,
-      soil_nc          = soil_soilgrids,
-      topo_nc          = topographic_diversity,
-      vegmap_nc        = "data/target_outputs/vegmap.nc",
+      domain_parquet   = domain_geoparquet,
+      domain_raster  = domain_grid,
+      elevation      = elevation,
+      climate_files  = climate_chelsa,
+      clouds         = clouds_wilson,
+      soil           = soilgrid,
+      topo           = topographic_diversity,
+      vegmap         = vegmap_grid,
       out_file         = "data/target_outputs/static_covariates.parquet",
       verbose          = TRUE
     ),
@@ -309,18 +288,18 @@ list(
   # only change when a new complete month is added by modis_end_date advancing.
   tar_target(
     vi_modis_pending,
-    generate_monthly_sequence(start_date = modis_start_date, end_date = modis_end_date)
+    generate_composite_sequence(start_date = modis_start_date, end_date = modis_end_date)
   ),
 
-  # Dynamically submit monthly AppEEARS tasks
+  # Dynamically submit 16-day composite AppEEARS tasks
   tar_target(
     vi_modis_task_ids,
     {
       # Within this branch, vi_modis_pending is auto-sliced to one row
       submit_modis_vi(
         domain_vector  = domain_boundary,
-        month_start    = vi_modis_pending$month_start,
-        month_end      = vi_modis_pending$month_end,
+        composite_date = vi_modis_pending$composite_date,
+        composite_end  = vi_modis_pending$composite_end,
         out_dir        = "data/target_outputs/modis_vi/",
         gh_release_tag = "vi_modis_dynamic_raster"
       )
@@ -328,52 +307,52 @@ list(
     pattern = map(vi_modis_pending)
   ),
 
-  # Download NetCDF files from AppEEARS (I/O only).
+  # Download GeoTIFF files from AppEEARS (I/O only).
   # AppEEARS tasks can queue for hours or days; error = "continue" lets the
   # pipeline finish with available data and retries this branch on the next
   # tar_make() against the same cached task ID.
   tar_target(
-    vi_modis_netcdf,
+    vi_modis_geotiff,
     {
-      download_modis_vi_netcdf(
-        task_id       = vi_modis_task_ids,
-        month_start   = vi_modis_pending$month_start,
-        month_end     = vi_modis_pending$month_end,
-        domain_vector = domain_boundary,
+      download_modis_vi_geotiff(
+        task_id        = vi_modis_task_ids,
+        composite_date = vi_modis_pending$composite_date,
+        composite_end  = vi_modis_pending$composite_end,
+        domain_vector  = domain_boundary,
         temp_directory = "data/temp/appeears/modis_vi/",
-        cleanup = cleanup_mode,
-        verbose = TRUE
+        cleanup        = cleanup_mode,
+        verbose        = TRUE
       )
     },
     pattern = map(vi_modis_task_ids, vi_modis_pending),
     error   = "continue"
   ),
 
-  # Project raw AppEEARS downloads to domain-aligned grid NCs (one per sensor per month).
-  # Returns c(terra_nc, aqua_nc) tracked as files by targets.
+  # Project raw AppEEARS downloads to domain-aligned COGs (one per sensor per composite).
+  # Returns c(terra_tif, aqua_tif) tracked as files by targets.
   tar_target(
     vi_modis_grid,
-    vi_modis_netcdf_to_grid(
-      netcdf_directory = vi_modis_netcdf,
-      domain_raster    = "data/target_outputs/domain.nc",
-      month_start      = vi_modis_pending$month_start,
-      out_dir          = "data/target_outputs/modis_vi/",
-      cleanup          = cleanup_mode,
-      verbose          = TRUE
+    vi_modis_geotiff_to_grid(
+      geotiff_directory = vi_modis_geotiff,
+      domain_raster     = domain_grid,
+      composite_date    = vi_modis_pending$composite_date,
+      out_dir           = "data/target_outputs/modis_vi/",
+      cleanup           = cleanup_mode,
+      verbose           = TRUE
     ),
-    pattern = map(vi_modis_netcdf, vi_modis_pending),
+    pattern = map(vi_modis_geotiff, vi_modis_pending),
     format  = "file"
   ),
 
-  # Convert sensor grid NCs to parquet (one parquet per month)
+  # Convert sensor grid COGs to parquet (one parquet per composite)
   tar_target(
     vi_modis_parquet,
-    vi_modis_netcdf_to_parquet(
-      nc_files      = vi_modis_grid,
-      domain_raster = "data/target_outputs/domain.nc",
-      month_start   = vi_modis_pending$month_start,
-      out_dir       = "data/target_outputs/modis_vi/",
-      verbose       = TRUE
+    vi_modis_geotiff_to_parquet(
+      tif_files      = vi_modis_grid,
+      domain_raster  = domain_grid,
+      composite_date = vi_modis_pending$composite_date,
+      out_dir        = "data/target_outputs/modis_vi/",
+      verbose        = TRUE
     ),
     pattern = map(vi_modis_grid, vi_modis_pending),
     format  = "file"
@@ -385,15 +364,15 @@ list(
 
   tar_target(
     vi_viirs_pending,
-    generate_monthly_sequence(start_date = viirs_start_date, end_date = modis_end_date)
+    generate_composite_sequence(start_date = viirs_start_date, end_date = modis_end_date)
   ),
 
   tar_target(
     vi_viirs_task_ids,
     submit_viirs_vi(
       domain_vector  = domain_boundary,
-      month_start    = vi_viirs_pending$month_start,
-      month_end      = vi_viirs_pending$month_end,
+      composite_date = vi_viirs_pending$composite_date,
+      composite_end  = vi_viirs_pending$composite_end,
       out_dir        = "data/target_outputs/viirs_vi/",
       gh_release_tag = "vi_viirs_dynamic_raster"
     ),
@@ -401,11 +380,11 @@ list(
   ),
 
   tar_target(
-    vi_viirs_netcdf,
-    download_viirs_vi_netcdf(
+    vi_viirs_geotiff,
+    download_viirs_vi_geotiff(
       task_id        = vi_viirs_task_ids,
-      month_start    = vi_viirs_pending$month_start,
-      month_end      = vi_viirs_pending$month_end,
+      composite_date = vi_viirs_pending$composite_date,
+      composite_end  = vi_viirs_pending$composite_end,
       domain_vector  = domain_boundary,
       temp_directory = "data/temp/appeears/viirs_vi/",
       cleanup        = cleanup_mode,
@@ -417,26 +396,26 @@ list(
 
   tar_target(
     vi_viirs_grid,
-    vi_viirs_netcdf_to_grid(
-      netcdf_directory = vi_viirs_netcdf,
-      domain_raster    = "data/target_outputs/domain.nc",
-      month_start      = vi_viirs_pending$month_start,
-      out_dir          = "data/target_outputs/viirs_vi/",
-      cleanup          = cleanup_mode,
-      verbose          = TRUE
+    vi_viirs_geotiff_to_grid(
+      geotiff_directory = vi_viirs_geotiff,
+      domain_raster     = domain_grid,
+      composite_date    = vi_viirs_pending$composite_date,
+      out_dir           = "data/target_outputs/viirs_vi/",
+      cleanup           = cleanup_mode,
+      verbose           = TRUE
     ),
-    pattern = map(vi_viirs_netcdf, vi_viirs_pending),
+    pattern = map(vi_viirs_geotiff, vi_viirs_pending),
     format  = "file"
   ),
 
   tar_target(
     vi_viirs_parquet,
-    vi_viirs_netcdf_to_parquet(
-      nc_files      = vi_viirs_grid,
-      domain_raster = "data/target_outputs/domain.nc",
-      month_start   = vi_viirs_pending$month_start,
-      out_dir       = "data/target_outputs/viirs_vi/",
-      verbose       = TRUE
+    vi_viirs_geotiff_to_parquet(
+      tif_files      = vi_viirs_grid,
+      domain_raster  = domain_grid,
+      composite_date = vi_viirs_pending$composite_date,
+      out_dir        = "data/target_outputs/viirs_vi/",
+      verbose        = TRUE
     ),
     pattern = map(vi_viirs_grid, vi_viirs_pending),
     format  = "file"
@@ -446,8 +425,8 @@ list(
   tar_target(
     vi_stac,
     generate_modis_vi_stac(
-      nc_files             = vi_modis_grid,
-      viirs_nc_files       = vi_viirs_grid,
+      tif_files            = vi_modis_grid,
+      viirs_tif_files      = vi_viirs_grid,
       stac_dir             = "data/stac/modis_vi",
       parent_catalog_path  = "data/stac",
       gh_repo              = "AdamWilsonLab/emma_envdata",
@@ -482,10 +461,10 @@ list(
     pattern = map(burn_modis_pending)
   ),
 
-  # Download NetCDF results from AppEEARS (I/O only)
+  # Download GeoTIFF results from AppEEARS (I/O only)
   tar_target(
-    burn_modis_netcdf,
-    download_burn_date_modis_netcdf(
+    burn_modis_geotiff,
+    download_burn_date_modis_geotiff(
       task_id        = burn_modis_task_ids,
       month_start    = burn_modis_pending$month_start,
       month_end      = burn_modis_pending$month_end,
@@ -498,26 +477,26 @@ list(
     error   = "continue"
   ),
 
-  # Project raw downloads to domain-aligned grid NC (burn_modis_YYYYMM.nc)
+  # Project raw downloads to domain-aligned grid COG (burn_modis_YYYYMM.tif)
   tar_target(
     burn_modis_grid,
-    burn_modis_netcdf_to_grid(
-      netcdf_directory = burn_modis_netcdf,
-      domain_raster    = "data/target_outputs/domain.nc",
-      month_start      = burn_modis_pending$month_start,
-      out_dir          = "data/target_outputs/burn_dates_modis/",
-      cleanup          = cleanup_mode,
-      verbose          = TRUE
+    burn_modis_geotiff_to_grid(
+      geotiff_directory = burn_modis_geotiff,
+      domain_raster     = domain_grid,
+      month_start       = burn_modis_pending$month_start,
+      out_dir           = "data/target_outputs/burn_dates_modis/",
+      cleanup           = cleanup_mode,
+      verbose           = TRUE
     ),
-    pattern = map(burn_modis_netcdf, burn_modis_pending),
+    pattern = map(burn_modis_geotiff, burn_modis_pending),
     format  = "file"
   ),
 
-  # Convert grid NC to parquet
+  # Convert grid COG to parquet
   tar_target(
     burn_modis_parquet,
-    burn_date_modis_netcdf_to_parquet(
-      nc_file       = burn_modis_grid,
+    burn_date_modis_geotiff_to_parquet(
+      tif_file      = burn_modis_grid,
       domain_raster = domain_grid,
       month_start   = burn_modis_pending$month_start,
       out_dir       = "data/target_outputs/burn_dates_modis",
@@ -551,8 +530,8 @@ list(
   ),
 
   tar_target(
-    burn_viirs_netcdf,
-    download_burn_date_viirs_netcdf(
+    burn_viirs_geotiff,
+    download_burn_date_viirs_geotiff(
       task_id        = burn_viirs_task_ids,
       month_start    = burn_viirs_pending$month_start,
       month_end      = burn_viirs_pending$month_end,
@@ -565,25 +544,25 @@ list(
     error   = "continue"
   ),
 
-  # Project raw downloads to domain-aligned grid NC (burn_viirs_YYYYMM.nc)
+  # Project raw downloads to domain-aligned grid COG (burn_viirs_YYYYMM.tif)
   tar_target(
     burn_viirs_grid,
-    burn_viirs_netcdf_to_grid(
-      netcdf_directory = burn_viirs_netcdf,
-      domain_raster    = "data/target_outputs/domain.nc",
-      month_start      = burn_viirs_pending$month_start,
-      out_dir          = "data/target_outputs/burn_dates_viirs/",
-      cleanup          = cleanup_mode,
-      verbose          = TRUE
+    burn_viirs_geotiff_to_grid(
+      geotiff_directory = burn_viirs_geotiff,
+      domain_raster     = domain_grid,
+      month_start       = burn_viirs_pending$month_start,
+      out_dir           = "data/target_outputs/burn_dates_viirs/",
+      cleanup           = cleanup_mode,
+      verbose           = TRUE
     ),
-    pattern = map(burn_viirs_netcdf, burn_viirs_pending),
+    pattern = map(burn_viirs_geotiff, burn_viirs_pending),
     format  = "file"
   ),
 
   tar_target(
     burn_viirs_parquet,
-    burn_date_viirs_netcdf_to_parquet(
-      nc_file       = burn_viirs_grid,
+    burn_date_viirs_geotiff_to_parquet(
+      tif_file      = burn_viirs_grid,
       domain_raster = domain_grid,
       month_start   = burn_viirs_pending$month_start,
       out_dir       = "data/target_outputs/burn_dates_viirs",
@@ -666,14 +645,14 @@ list(
   tar_target(
     static_stac,
     generate_static_layers_stac(
-      domain_nc        = "data/target_outputs/domain.nc",
-      domain_parquet   = "data/target_outputs/domain.parquet",
-      vegmap_nc        = "data/target_outputs/vegmap.nc",
-      elevation_nc     = elevation,
-      climate_nc_files = climate_chelsa,
-      clouds_nc        = clouds_wilson,
-      soil_nc          = soil_soilgrids,
-      topo_nc          = topographic_diversity,
+      domain_file      = terra::sources(domain_grid)[[1]],
+      domain_parquet   = domain_geoparquet,
+      vegmap_file      = terra::sources(vegmap_grid)[[1]],
+      elevation        = terra::sources(elevation)[[1]],
+      climate_files    = climate_chelsa,
+      clouds           = terra::sources(clouds_wilson)[[1]],
+      soil             = terra::sources(soilgrid)[[1]],
+      topo             = terra::sources(topographic_diversity)[[1]],
       stac_dir         = "data/stac/static",
       gh_repo          = "AdamWilsonLab/emma_envdata",
       gh_release_tag   = "static_data",
@@ -692,14 +671,14 @@ list(
     upload_static,
     upload_to_github_release(
       files = c(
-        "data/target_outputs/domain.nc",
+        terra::sources(domain_grid)[[1]],
         "data/target_outputs/domain.parquet",
-        "data/target_outputs/vegmap.nc",
-        elevation,               # file path returned by elevation target
-        climate_chelsa,          # file path returned by climate target
-        clouds_wilson,           # file path returned by clouds target
-        soil_soilgrids,          # file path returned by soil target
-        topographic_diversity    # file path returned by topo target
+        terra::sources(vegmap_grid)[[1]],
+        terra::sources(elevation)[[1]],
+        climate_chelsa,
+        terra::sources(clouds_wilson)[[1]],
+        terra::sources(soilgrid)[[1]],
+        terra::sources(topographic_diversity)[[1]]
       ),
       repo         = gh_repo_config$repo,
       release_tag  = "static_data",

@@ -31,7 +31,11 @@ country= country %>%
     st_as_sf() %>%
     mutate(domain=1)
 
-  
+  # reproject to EPSG:9221 (Albers SA Grid, WGS84) — official South African equal-area grid;
+  # 500 m resolution preserved (metres-based CRS)
+  domain <- domain |>
+    st_transform(crs = st_crs(9221))
+
   return(domain)
 
 }

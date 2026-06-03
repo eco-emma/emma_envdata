@@ -42,9 +42,9 @@ submit_burn_date_viirs_task <- function(
 
   # Check local disk (fast — works on server after a completed run)
   if (!is.null(out_dir)) {
-    grid_nc <- file.path(out_dir, paste0("burn_viirs_", yyyymm, ".nc"))
-    if (file.exists(grid_nc)) {
-      if (verbose) message("Grid NC on disk for ", yyyymm, " — skipping AppEEARS submission")
+    grid_tif <- file.path(out_dir, paste0("burn_viirs_", yyyymm, ".tif"))
+    if (file.exists(grid_tif)) {
+      if (verbose) message("Grid COG on disk for ", yyyymm, " — skipping AppEEARS submission")
       return(paste0("cached:", yyyymm))
     }
   }
@@ -52,7 +52,7 @@ submit_burn_date_viirs_task <- function(
   # Check GitHub release (authoritative — works on CI where disk is empty)
   if (!is.null(gh_release_tag)) {
     repo <- Sys.getenv("TAR_GH_RELEASE_REPO", unset = "AdamWilsonLab/emma_envdata")
-    if (gh_release_has_asset(repo, gh_release_tag, paste0("burn_viirs_", yyyymm, ".nc"), verbose = verbose)) {
+    if (gh_release_has_asset(repo, gh_release_tag, paste0("burn_viirs_", yyyymm, ".tif"), verbose = verbose)) {
       if (verbose) message("Month ", yyyymm, " already on GitHub release '", gh_release_tag, "' — skipping AppEEARS submission")
       return(paste0("cached:", yyyymm))
     }
@@ -93,8 +93,8 @@ submit_burn_date_viirs_task <- function(
         list(product = "VNP64A1.002", layer = "QA")
       ),
       output = list(
-        format     = list(type = "netcdf4"),
-        projection = "native"
+        format     = list(type = "geotiff", filename_date = "calendar"),
+        projection = "native"  # keep native VIIRS sinusoidal; reproject to EPSG:9221 during processing
       ),
       geo = domain_geojson
     )
@@ -113,10 +113,10 @@ submit_burn_date_viirs_task <- function(
 }
 
 
-#' @title Download VIIRS burned area NetCDF files from AppEEARS
+#' @title Download VIIRS burned area GeoTIFF files from AppEEARS
 #'
 #' @description Polls until the task completes, downloads the results, and creates
-#'   a marker file. Identical to \code{download_burn_date_modis_netcdf()} except
+#'   a marker file. Identical to \code{download_burn_date_modis_geotiff()} except
 #'   for dataset naming conventions.
 #'
 #' @param task_id      Character. AppEEARS task ID.
@@ -129,9 +129,9 @@ submit_burn_date_viirs_task <- function(
 #' @param cleanup      Logical. Delete temp files after conversion?
 #' @param verbose      Logical. Print progress messages?
 #'
-#' @return Character path to temp directory containing downloaded NetCDF files.
+#' @return Character path to temp directory containing downloaded GeoTIFF files.
 #' @export
-download_burn_date_viirs_netcdf <- function(
+download_burn_date_viirs_geotiff <- function(
     task_id,
     month_start,
     domain_vector  = NULL,
@@ -153,15 +153,15 @@ download_burn_date_viirs_netcdf <- function(
   month_start <- as.Date(month_start)
   yyyymm      <- format(month_start, "%Y%m")
 
-  # Skip if grid NC for this month already exists.
-  # burn_viirs_netcdf_to_grid() writes burn_viirs_YYYYMM.nc when it completes.
-  marker_dir  <- "data/target_outputs/burn_dates_viirs"
+  # Skip if grid COG for this month already exists.
+  # burn_viirs_geotiff_to_grid() writes burn_viirs_YYYYMM.tif when it completes.
+  marker_dir   <- "data/target_outputs/burn_dates_viirs"
   dir.create(marker_dir,      recursive = TRUE, showWarnings = FALSE)
   dir.create(temp_directory,  recursive = TRUE, showWarnings = FALSE)
-  grid_nc_done <- file.path(marker_dir, paste0("burn_viirs_", yyyymm, ".nc"))
+  grid_tif_done <- file.path(marker_dir, paste0("burn_viirs_", yyyymm, ".tif"))
 
-  if (file.exists(grid_nc_done)) {
-    if (verbose) message("VIIRS grid NC found for ", yyyymm, " — skipping download")
+  if (file.exists(grid_tif_done)) {
+    if (verbose) message("VIIRS grid COG found for ", yyyymm, " — skipping download")
     return(temp_directory)
   }
 
@@ -246,41 +246,41 @@ download_burn_date_viirs_netcdf <- function(
     verbose = verbose
   )
 
-  nc_paths <- list.files(temp_directory, pattern = "\\.nc$", full.names = TRUE, recursive = TRUE)
-  if (length(nc_paths) == 0) {
-    if (verbose) message("No NetCDF files returned for VIIRS month ", yyyymm)
+  tif_paths <- list.files(temp_directory, pattern = "\\.tif$", full.names = TRUE, recursive = TRUE)
+  if (length(tif_paths) == 0) {
+    if (verbose) message("No GeoTIFF files returned for VIIRS month ", yyyymm)
     skip_file <- file.path(marker_dir, paste0("burn_viirs_", yyyymm, ".skip"))
     writeLines(
-      c(paste("Month:", yyyymm), "Reason: No NetCDF returned from AppEEARS", paste("Timestamp:", Sys.time())),
+      c(paste("Month:", yyyymm), "Reason: No GeoTIFF returned from AppEEARS", paste("Timestamp:", Sys.time())),
       con = skip_file
     )
     return(skip_file)
   }
 
-  if (verbose) message("Downloaded ", length(nc_paths), " VIIRS NetCDF files for ", yyyymm)
-  # Return temp directory; burn_viirs_netcdf_to_grid() acts as the persistent marker.
+  if (verbose) message("Downloaded ", length(tif_paths), " VIIRS GeoTIFF files for ", yyyymm)
+  # Return temp directory; burn_viirs_geotiff_to_grid() acts as the persistent marker.
   temp_directory
 }
 
 
-#' @title Convert VIIRS burned area NetCDF tiles to a domain-aligned raster grid
-#' @description Identical workflow to \code{burn_modis_netcdf_to_grid()} but for
-#'   VNP64A1 (VIIRS, 375m).  The 375m pixels are resampled to the 500m domain
-#'   grid via nearest-neighbour reprojection.  Writes a single NetCDF containing
-#'   a \code{burn_doy} variable (burn day-of-year, QA = 0 pixels only).
+#' @title Convert VIIRS burned area GeoTIFFs to a domain-aligned COG
+#' @description Identical workflow to \code{burn_modis_geotiff_to_grid()} but for
+#'   VNP64A1 (VIIRS, 375 m).  The 375 m pixels are resampled to the 500 m domain
+#'   grid (EPSG:9221) via nearest-neighbour reprojection.  Writes a single 1-band
+#'   COG containing a \code{burn_doy} band (burn day-of-year, QA = 0 pixels only).
 #'
-#' @param netcdf_directory Character.  Path to AppEEARS temp directory or a
+#' @param geotiff_directory Character.  Path to AppEEARS temp directory or a
 #'   \code{.skip} path.
 #' @param domain_raster Character path or SpatRaster with a \code{pid} layer.
 #' @param month_start Date or "YYYY-MM-DD".
-#' @param out_dir Character.  Output directory for the grid NC.
+#' @param out_dir Character.  Output directory for the grid COG.
 #' @param cleanup Logical.  Delete raw temp files after writing?
 #' @param verbose Logical.
 #'
-#' @return Character path to \code{burn_viirs_YYYYMM.nc}.
+#' @return Character path to \code{burn_viirs_YYYYMM.tif}.
 #' @export
-burn_viirs_netcdf_to_grid <- function(
-  netcdf_directory,
+burn_viirs_geotiff_to_grid <- function(
+  geotiff_directory,
   domain_raster,
   month_start,
   out_dir  = "data/target_outputs/burn_dates_viirs/",
@@ -295,70 +295,79 @@ burn_viirs_netcdf_to_grid <- function(
   terra::terraOptions(tempdir = terra_tmp, memfrac = 0.8)
 
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
-  out_nc <- file.path(out_dir, paste0("burn_viirs_", yyyymm, ".nc"))
+  out_tif <- file.path(out_dir, paste0("burn_viirs_", yyyymm, ".tif"))
 
   domain_template <- if (is.character(domain_raster)) terra::rast(domain_raster) else domain_raster
   stopifnot("pid" %in% names(domain_template))
 
-  write_empty_nc <- function() {
-    tmp_nc <- tempfile(tmpdir = dirname(out_nc), fileext = ".nc")
-    on.exit(unlink(tmp_nc), add = TRUE)
-    empty_r <- terra::setValues(domain_template[[1]], NA_real_)
-    terra::time(empty_r) <- month_start
-    terra::writeCDF(empty_r, tmp_nc,
-                    varname  = "burn_doy",
-                    longname = "Burn day of year (VNP64A1, no data)",
-                    verbose  = FALSE)
-    unlink(out_nc)
-    if (!file.rename(tmp_nc, out_nc)) stop("Could not rename ", tmp_nc, " -> ", out_nc)
+  write_empty_cog <- function() {
+    empty_r        <- terra::setValues(domain_template[[1L]], NA_real_)
+    names(empty_r) <- "burn_doy"
+    terra::metags(empty_r) <- c(
+      month        = yyyymm,
+      source       = "VNP64A1.002",
+      date_created = as.character(Sys.Date())
+    )
+    unlink(out_tif)
+    terra::writeRaster(empty_r, out_tif, filetype = "COG", overwrite = TRUE)
   }
 
-  nc_paths <- character(0)
-  if (!grepl("\\.skip$", netcdf_directory) && dir.exists(netcdf_directory)) {
-    nc_paths <- list.files(netcdf_directory, pattern = "\\.nc$",
-                           full.names = TRUE, recursive = TRUE)
+  # Resolve source GeoTIFFs (AppEEARS also writes CSVs and JSONs)
+  tif_paths <- character(0)
+  if (!grepl("\\.skip$", geotiff_directory) && dir.exists(geotiff_directory)) {
+    tif_paths <- list.files(geotiff_directory, pattern = "\\.tif$",
+                            full.names = TRUE, recursive = TRUE)
   }
 
-  if (length(nc_paths) == 0L) {
-    if (verbose) message("No VIIRS burn NCs for ", yyyymm, " — writing all-NA grid")
-    write_empty_nc()
-    if (cleanup && !grepl("\\.skip$", netcdf_directory) && dir.exists(netcdf_directory)) {
-      unlink(netcdf_directory, recursive = TRUE, force = TRUE)
+  if (length(tif_paths) == 0L) {
+    if (verbose) message("No VIIRS burn GeoTIFFs for ", yyyymm, " — writing all-NA grid")
+    write_empty_cog()
+    if (cleanup && !grepl("\\.skip$", geotiff_directory) && dir.exists(geotiff_directory)) {
+      unlink(geotiff_directory, recursive = TRUE, force = TRUE)
     }
-    return(out_nc)
+    return(out_tif)
   }
 
-  burn_tiles <- list()
-  for (nc_path in nc_paths) {
+  # Classify each TIF as Burn_Date or QA from filename
+  # AppEEARS filename pattern: VNP64A1.002__375m_Burn_Date_YYYYMMDDTHHMMSS_aid0001.tif
+  burn_tif_paths <- tif_paths[grepl("Burn_Date", basename(tif_paths), ignore.case = TRUE)]
+  qa_tif_paths   <- tif_paths[grepl("_QA_",      basename(tif_paths), ignore.case = TRUE)]
+
+  # Reproject each Burn_Date tile to domain (375m → 500m EPSG:9221 via nearest-neighbour)
+  burn_tiles <- purrr::map(burn_tif_paths, function(burn_path) {
     tryCatch({
-      r        <- terra::rast(nc_path)
-      burn_idx <- which(grepl("Burn_Date|BurnDate|burn_date", names(r),
-                              ignore.case = TRUE))[1]
-      qa_idx   <- which(grepl("^QA$|quality", names(r), ignore.case = TRUE))[1]
-      if (is.na(burn_idx) || is.na(qa_idx)) {
-        warning("Missing Burn_Date or QA in ", basename(nc_path), " — skipping tile")
-        return(NULL)
-      }
-      # Nearest-neighbour handles 375m → 500m resampling
-      burn_proj <- terra::project(r[[burn_idx]], domain_template, method = "near")
-      qa_proj   <- terra::project(r[[qa_idx]],   domain_template, method = "near")
-      good_qa   <- terra::app(qa_proj, function(x) x == 0)
-      burn_tiles[[length(burn_tiles) + 1L]] <- terra::mask(burn_proj, good_qa,
-                                                            maskvalue = FALSE)
-    }, error = function(e) {
-      warning("Failed to process ", basename(nc_path), ": ", conditionMessage(e))
-    })
-  }
+      date_str <- regmatches(basename(burn_path),
+                             regexpr("[0-9]{8}T[0-9]{6}", basename(burn_path)))
+      qa_path  <- qa_tif_paths[grepl(date_str, basename(qa_tif_paths))]
 
-  burn_tiles <- Filter(Negate(is.null), burn_tiles)
+      burn_r    <- terra::rast(burn_path)
+      burn_proj <- terra::project(burn_r, domain_template, method = "near")
+
+      if (length(qa_path) > 0L) {
+        qa_r    <- terra::rast(qa_path[[1L]])
+        qa_proj <- terra::project(qa_r, domain_template, method = "near")
+        good_qa   <- terra::app(qa_proj, function(x) x == 0)
+        burn_proj <- terra::mask(burn_proj, good_qa, maskvalue = FALSE)
+      }
+
+      domain_mask <- !is.na(domain_template[["pid"]])
+      terra::mask(burn_proj, domain_mask, maskvalue = FALSE)
+    }, error = function(e) {
+      warning("Failed to process ", basename(burn_path), ": ", conditionMessage(e))
+      NULL
+    })
+  })
+
+  burn_tiles <- purrr::compact(burn_tiles)
 
   if (length(burn_tiles) == 0L) {
     if (verbose) message("All VIIRS tiles empty after QA for ", yyyymm, " — writing all-NA grid")
-    write_empty_nc()
-    if (cleanup) unlink(netcdf_directory, recursive = TRUE, force = TRUE)
-    return(out_nc)
+    write_empty_cog()
+    if (cleanup) unlink(geotiff_directory, recursive = TRUE, force = TRUE)
+    return(out_tif)
   }
 
+  # Mosaic spatial tiles (first non-NA wins) and mask to domain pixels
   burn_mosaic <- if (length(burn_tiles) == 1L) {
     burn_tiles[[1L]]
   } else {
@@ -366,38 +375,36 @@ burn_viirs_netcdf_to_grid <- function(
   }
   domain_mask <- !is.na(domain_template[["pid"]])
   burn_mosaic <- terra::mask(burn_mosaic, domain_mask, maskvalue = FALSE)
+  names(burn_mosaic) <- "burn_doy"
 
-  terra::time(burn_mosaic) <- month_start
-  local({
-    tmp_nc <- tempfile(tmpdir = dirname(out_nc), fileext = ".nc")
-    on.exit(unlink(tmp_nc), add = TRUE)
-    terra::writeCDF(burn_mosaic, tmp_nc,
-                    varname  = "burn_doy",
-                    longname = "Burn day of year (VNP64A1, QA=0)",
-                    verbose  = FALSE)
-    unlink(out_nc)
-    if (!file.rename(tmp_nc, out_nc)) stop("Could not rename ", tmp_nc, " -> ", out_nc)
-  })
+  # Embed provenance metadata and write 1-band COG (burn_doy = day-of-year)
+  terra::metags(burn_mosaic) <- c(
+    month        = yyyymm,
+    source       = "VNP64A1.002",
+    date_created = as.character(Sys.Date())
+  )
+  unlink(out_tif)
+  terra::writeRaster(burn_mosaic, out_tif, filetype = "COG", overwrite = TRUE)
 
-  if (verbose) message("Wrote VIIRS burn grid NC: ", basename(out_nc))
+  if (verbose) message("Wrote VIIRS burn grid COG: ", basename(out_tif))
 
   if (cleanup) {
-    unlink(netcdf_directory, recursive = TRUE, force = TRUE)
+    unlink(geotiff_directory, recursive = TRUE, force = TRUE)
     gc()
     unlink(terra_tmp, recursive = TRUE, force = TRUE)
   }
 
-  out_nc
+  out_tif
 }
 
 
-#' @title Convert VIIRS burned area NetCDF to parquet
+#' @title Convert VIIRS burned area COG to parquet
 #'
-#' @description Reads \code{burn_doy} from the domain-aligned NC produced by
-#'   \code{burn_viirs_netcdf_to_grid()} and writes a tidy parquet.  QA filtering
-#'   was applied in the grid step, so all rows have qa = 0.
+#' @description Reads \code{burn_doy} band from the domain-aligned COG produced
+#'   by \code{burn_viirs_geotiff_to_grid()} and writes a tidy parquet.  QA
+#'   filtering was applied in the grid step, so all rows have qa = 0.
 #'
-#' @param nc_file      Character. Path to \code{burn_viirs_YYYYMM.nc}.
+#' @param tif_file     Character. Path to \code{burn_viirs_YYYYMM.tif}.
 #' @param domain_raster SpatRaster or path.  Must contain a \code{pid} layer.
 #' @param month_start  Date or "YYYY-MM-DD".
 #' @param out_dir      Character. Output directory for parquet files.
@@ -406,8 +413,8 @@ burn_viirs_netcdf_to_grid <- function(
 #' @return Character path to the parquet file, or a \code{.skip} path if no
 #'   burned pixels are found.
 #' @export
-burn_date_viirs_netcdf_to_parquet <- function(
-    nc_file,
+burn_date_viirs_geotiff_to_parquet <- function(
+    tif_file,
     domain_raster,
     month_start,
     out_dir  = "data/target_outputs/burn_dates_viirs",
@@ -419,54 +426,40 @@ burn_date_viirs_netcdf_to_parquet <- function(
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
   # Handle skip-file path from upstream burn_viirs_grid target
-  if (grepl("\\.skip$", nc_file)) {
+  if (grepl("\\.skip$", tif_file)) {
     skip_file <- file.path(out_dir, paste0("burn_date_viirs_", yyyymm, ".skip"))
     writeLines(c(paste("Month:", yyyymm), "Reason: upstream grid target skipped",
                  paste("Timestamp:", Sys.time())), skip_file)
     return(skip_file)
   }
 
-  domain_template <- if (is.character(domain_raster)) terra::rast(domain_raster) else domain_raster
+  domain_template  <- if (is.character(domain_raster)) terra::rast(domain_raster) else domain_raster
   stopifnot("pid" %in% names(domain_template))
   pid_vec          <- terra::values(domain_template[["pid"]])[, 1]
   ref_year         <- as.integer(format(month_start, "%Y"))
   year_start_epoch <- as.integer(as.Date(paste0(ref_year, "-01-01")) - as.Date("1970-01-01"))
 
-  # Read burn_doy from the grid NC produced by burn_viirs_netcdf_to_grid()
+  # Read burn_doy band from the COG produced by burn_viirs_geotiff_to_grid()
   burn_r <- tryCatch(
-    terra::rast(nc_file, subds = "burn_doy"),
+    terra::rast(tif_file)[["burn_doy"]],
     error = function(e) {
-      warning("Could not read burn_doy from ", basename(nc_file), ": ", conditionMessage(e))
+      warning("Could not read burn_doy from ", basename(tif_file), ": ", conditionMessage(e))
       NULL
     }
   )
 
   if (is.null(burn_r)) {
     skip_file <- file.path(out_dir, paste0("burn_date_viirs_", yyyymm, ".skip"))
-    writeLines(c(paste("Month:", yyyymm), "Reason: Could not read grid NC",
+    writeLines(c(paste("Month:", yyyymm), "Reason: Could not read grid COG",
                  paste("Timestamp:", Sys.time())), skip_file)
     return(skip_file)
   }
 
-  # Vectorise: one row per burned pixel (burn_doy > 0) per time step
-  n_layers <- terra::nlyr(burn_r)
-  obs_list <- vector("list", n_layers)
-  for (ti in seq_len(n_layers)) {
-    doy_v <- terra::values(burn_r[[ti]])[, 1]
-    valid <- !is.na(pid_vec) & !is.na(doy_v) & doy_v > 0L
-    if (!any(valid)) next
-    epoch_dates <- as.integer(year_start_epoch + as.integer(doy_v[valid]) - 1L)
-    obs_list[[ti]] <- tibble::tibble(
-      pid      = as.integer(pid_vec[valid]),
-      date     = epoch_dates,
-      burn_doy = as.integer(doy_v[valid]),
-      qa       = 0L   # QA filtering was applied in burn_viirs_netcdf_to_grid()
-    )
-  }
+  # Vectorise: one row per burned pixel (burn_doy > 0)
+  doy_v <- terra::values(burn_r)[, 1]
+  valid <- !is.na(pid_vec) & !is.na(doy_v) & doy_v > 0L
 
-  df <- dplyr::bind_rows(purrr::compact(obs_list))
-
-  if (nrow(df) == 0L) {
+  if (!any(valid)) {
     if (verbose) message("No burned pixels for ", yyyymm, " — writing skip marker")
     skip_file <- file.path(out_dir, paste0("burn_date_viirs_", yyyymm, ".skip"))
     writeLines(c(paste("Month:", yyyymm), "Reason: No burned pixels (burn_doy = 0)",
@@ -474,10 +467,19 @@ burn_date_viirs_netcdf_to_parquet <- function(
     return(skip_file)
   }
 
+  # Convert burn day-of-year to days since 1970-01-01
+  epoch_dates <- as.integer(year_start_epoch + as.integer(doy_v[valid]) - 1L)
+  df <- tibble::tibble(
+    pid      = as.integer(pid_vec[valid]),
+    date     = epoch_dates,
+    burn_doy = as.integer(doy_v[valid]),
+    qa       = 0L   # QA filtering was applied in burn_viirs_geotiff_to_grid()
+  )
+
   parquet_file <- file.path(out_dir, paste0("burn_date_viirs_", yyyymm, ".parquet"))
   unlink(parquet_file)
   arrow::write_parquet(df, sink = parquet_file, compression = "gzip")
-  if (verbose) message("Wrote ", nrow(df), " burned pixels \u2192 ", basename(parquet_file))
+  if (verbose) message("Wrote ", nrow(df), " burned pixels → ", basename(parquet_file))
 
   parquet_file
 }

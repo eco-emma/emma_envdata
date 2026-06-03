@@ -17,10 +17,12 @@ domain_to_geoparquet <- function(
   verbose = TRUE
 ) {
 
-  if (verbose) message("Loading domain raster from: ", domain_raster_file)
-  
-  # Load the pid layer from the domain raster
-  domain_raster <- terra::rast(domain_raster_file, subds = "pid")
+  # Load the pid layer from the domain raster (accepts file path or SpatRaster from tar_terra_rast)
+  domain_raster <- if (is.character(domain_raster_file)) {
+    terra::rast(domain_raster_file, subds = "pid")
+  } else {
+    domain_raster_file[["pid"]]
+  }
   
   # Convert raster to dataframe with coordinates
   # This gives us x, y coordinates and the pid value for each non-NA cell

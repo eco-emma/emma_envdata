@@ -7,11 +7,11 @@
 #' @param remnants Path to remnant vegetation shapefile.
 #' @param dx Numeric x-resolution in CRS units (default 500 m).
 #' @param dy Numeric y-resolution in CRS units (default 500 m).
-#' @param out_file Character path for output NetCDF file (default "data/raw/domain.nc").
-#' @return Character path to the written NetCDF file.
-#' @details Generates a raster template from domain bounding box, rasterizes domain and remnants, computes pixel IDs (sequential within domain) and Euclidean distance to nearest remnant (in km). Writes four variables (domain, pid, remnants, remnants_distance) to NetCDF with FORMAT=NC4, COMPRESS=DEFLATE, ZLEVEL=9, SHUFFLE=YES. Adds CF-compliant metadata via ncdf4 including long_name, units, CRS, history, and Conventions attributes.
+#' @param out_file Deprecated (removed). Output is now returned as a SpatRaster.
+#' @return SpatRaster with 4 INT4S bands: pid, domain, remnants, remnants_distance.
+#' @details Generates a raster template from domain bounding box, rasterizes domain and remnants, computes pixel IDs (sequential within domain) and Euclidean distance to nearest remnant (in km). Returns a 4-band SpatRaster with names and GDAL metadata embedded in the TIFF IFD (survives COG round-trip via geotargets::tar_terra_rast()).
 
-domain_rasterize <- function(domain_boundary, remnants, dx = 500, dy = 500, out_file = "data/raw/domain.nc") {
+domain_rasterize <- function(domain_boundary, remnants, dx = 500, dy = 500) {
 
   # Generate raster template and rasterize domain with terra (touches = TRUE)
   # Use ext()+res= form for compatibility with older terra versions (<1.7-39)
@@ -76,129 +76,38 @@ domain_rasterize <- function(domain_boundary, remnants, dx = 500, dy = 500, out_
   pid_values[domain_cells] <- seq_along(domain_cells)
   values(pid_raster) <- pid_values
 
-  # Prepare layers for per-variable write
-  layers <- list(
-    domain = domain_raster,
-    pid = pid_raster,
-    remnants = remnants_raster,
-    remnants_distance = remnants_distance
+  # Stack bands in order: pid, domain, remnants, remnants_distance
+  # Round before integer coercion: remnants_distance is float (metres), others already integers
+  r <- c(
+    terra::as.int(pid_raster),
+    terra::as.int(domain_raster),
+    terra::as.int(terra::round(remnants_raster)),
+    terra::as.int(terra::round(remnants_distance))
+  )
+  names(r) <- c("pid", "domain", "remnants", "remnants_distance")
+
+  # Embed metadata in TIFF IFD via GDAL XML (survives COG round-trip)
+  terra::metags(r) <- c(
+    date_created = as.character(Sys.Date()),
+    source       = "domain_rasterize",
+    description  = "500m model grid: domain mask, pixel IDs, remnant cover, remnant distance"
+  )
+  terra::metags(r, layer = 1) <- c(
+    description = "Unique pixel ID (sequential within domain)",
+    units       = "dimensionless"
+  )
+  terra::metags(r, layer = 2) <- c(
+    description = "Domain mask (1 = in domain)",
+    units       = "boolean"
+  )
+  terra::metags(r, layer = 3) <- c(
+    description = "Remnant natural vegetation cover (0-100%)",
+    units       = "percent"
+  )
+  terra::metags(r, layer = 4) <- c(
+    description = "Distance to nearest remnant vegetation",
+    units       = "metres"
   )
 
-  # Get spatial extent and create dimensions for NetCDF
-  ext <- ext(domain_raster)
-  x_vals <- seq(ext$xmin + dx/2, ext$xmax - dx/2, by = dx)
-  y_vals <- seq(ext$ymax - dy/2, ext$ymin + dy/2, by = -dy)
-  
-  # Define dimensions
-  dim_x <- ncdf4::ncdim_def(name = "easting", units = "meter", vals = x_vals, longname = "easting")
-  dim_y <- ncdf4::ncdim_def(name = "northing", units = "meter", vals = y_vals, longname = "northing")
-  
-  # Define variables with optimal data types and compression
-  var_domain <- ncdf4::ncvar_def(
-    name = "domain",
-    units = "dimensionless",
-    dim = list(dim_x, dim_y),
-    longname = "Domain mask (1 = in domain, NA = outside)",
-    missval = -128,
-    prec = "byte",
-    compression = 9
-  )
-  
-  var_pid <- ncdf4::ncvar_def(
-    name = "pid",
-    units = "dimensionless",
-    dim = list(dim_x, dim_y),
-    longname = "Pixel ID for domain grid cells",
-    missval = -2147483648,
-    prec = "integer",
-    compression = 9
-  )
-  
-  var_remnants <- ncdf4::ncvar_def(
-    name = "remnants",
-    units = "dimensionless",
-    dim = list(dim_x, dim_y),
-    longname = "Remnant vegetation proportion (100 = full remnant, 5 = 5% remnant, NA = not remnant)",
-    missval = -128,
-    prec = "byte",
-    compression = 9
-  )
-  
-  var_dist <- ncdf4::ncvar_def(
-    name = "remnants_distance",
-    units = "meters",
-    dim = list(dim_x, dim_y),
-    longname = "Distance to nearest remnant vegetation",
-    missval = -2147483648,
-    prec = "integer",
-    compression = 9
-  )
-  
-  # Create NetCDF file with all variables
-unlink(out_file)
-
-  nc <- ncdf4::nc_create(
-    filename = out_file,
-    vars = list(var_domain, var_pid, var_remnants, var_dist),
-    force_v4 = TRUE
-  )
-  
-  # Convert rasters to matrices and replace NAs with fill values
-  # Note: as.matrix() from terra returns (nrow, ncol), but ncdf4 expects (ncol, nrow) for (x, y) dims
-  domain_matrix <- t(as.matrix(layers$domain, wide = TRUE))
-  domain_matrix[is.na(domain_matrix)] <- -128
-  
-  pid_matrix <- t(as.matrix(layers$pid, wide = TRUE))
-  pid_matrix[is.na(pid_matrix)] <- -2147483648
-  
-  remnants_matrix <- t(as.matrix(layers$remnants, wide = TRUE))
-  remnants_matrix[is.na(remnants_matrix)] <- -128
-  
-  dist_matrix <- t(as.matrix(layers$remnants_distance, wide = TRUE))
-  dist_matrix[is.na(dist_matrix)] <- -2147483648
-  
-  # Write data to variables
-  ncdf4::ncvar_put(nc, var_domain, domain_matrix)
-  ncdf4::ncvar_put(nc, var_pid, pid_matrix)
-  ncdf4::ncvar_put(nc, var_remnants, remnants_matrix)
-  ncdf4::ncvar_put(nc, var_dist, dist_matrix)
-  
-  # Add global attributes
-  ncdf4::ncatt_put(nc, 0, "title", "Rasterized domain with remnants and distance")
-  ncdf4::ncatt_put(nc, 0, "history", paste0("created: ", Sys.time()))
-  ncdf4::ncatt_put(nc, 0, "Conventions", "CF-1.8")
-  
-  # Add CRS variable with comprehensive attributes for GIS compatibility
-  crs_var <- ncdf4::ncvar_def("crs", "", list(), prec = "integer")
-  nc <- ncdf4::ncvar_add(nc, crs_var)
-  
-  # Get CRS as WKT string (most reliable for terra)
-  crs_wkt <- as.character(crs(domain_raster))
-  
-  # Add CRS attributes
-  ncdf4::ncatt_put(nc, "crs", "grid_mapping_name", "albers_conical_equal_area")
-  ncdf4::ncatt_put(nc, "crs", "crs_wkt", crs_wkt)
-  ncdf4::ncatt_put(nc, "crs", "spatial_ref", crs_wkt)
-  
-  # Add geotransform for GDAL compatibility
-  ext_vals <- ext(domain_raster)
-  geotransform <- paste(ext_vals$xmin, dx, 0, ext_vals$ymax, 0, -dy)
-  ncdf4::ncatt_put(nc, "crs", "GeoTransform", geotransform)
-  
-  # Add grid_mapping attribute to all data variables
-  ncdf4::ncatt_put(nc, "domain", "grid_mapping", "crs")
-  ncdf4::ncatt_put(nc, "pid", "grid_mapping", "crs")
-  ncdf4::ncatt_put(nc, "remnants", "grid_mapping", "crs")
-  ncdf4::ncatt_put(nc, "remnants_distance", "grid_mapping", "crs")
-  
-  # Close file
-  ncdf4::nc_close(nc)
-
-  out_file
-}
-
-
-if(F){
-test=rast(out_file)
-plot(test$domain)
+  r
 }

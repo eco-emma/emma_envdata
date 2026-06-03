@@ -74,7 +74,6 @@ download_elevation_results <- function(
   task_id,
   domain_vector,
   domain_raster,
-  out_file = "data/target_outputs/elevation_nasadem.nc",
   temp_directory = "data/temp/appeears/elevation_nasadem/",
   verbose = TRUE
 ) {
@@ -157,59 +156,24 @@ download_elevation_results <- function(
   # Set metadata
   names(elev_masked) <- "elevation"
 
-
-
-  # Write NetCDF with compression and CF metadata
-  dir.create(dirname(out_file), recursive = TRUE, showWarnings = FALSE)
-  unlink(out_file)
-
-  ext_vals <- ext(elev_masked)
-  dx <- res(elev_masked)[1]
-  dy <- res(elev_masked)[2]
-  x_vals <- seq(ext_vals$xmin + dx/2, ext_vals$xmax - dx/2, by = dx)
-  y_vals <- seq(ext_vals$ymax - dy/2, ext_vals$ymin + dy/2, by = -dy)
-
-  dim_x <- ncdf4::ncdim_def(name = "easting", units = "meter", vals = x_vals, longname = "easting")
-  dim_y <- ncdf4::ncdim_def(name = "northing", units = "meter", vals = y_vals, longname = "northing")
-
-  var_elev <- ncdf4::ncvar_def(
-    name = "elevation",
-    units = "meters",
-    dim = list(dim_x, dim_y),
-    longname = "NASADEM elevation above mean sea level",
-    missval = -3.4e38,
-    prec = "float",
-    compression = 9
+  # Embed metadata in COG TIFF GDAL metadata (survives COG round-trip)
+  terra::metags(elev_masked) <- c(
+    date_created = as.character(Sys.Date()),
+    source       = "NASADEM_HGT.001 via AppEEARS",
+    description  = "NASADEM elevation resampled to 500m domain grid"
+  )
+  terra::metags(elev_masked, layer = 1) <- c(
+    description = "Elevation above mean sea level",
+    units       = "metres"
   )
 
-  nc <- ncdf4::nc_create(filename = out_file, vars = list(var_elev), force_v4 = TRUE)
-
-  elev_matrix <- t(as.matrix(elev_masked, wide = TRUE))
-  elev_matrix[is.na(elev_matrix)] <- -3.4e38
-  ncdf4::ncvar_put(nc, var_elev, elev_matrix)
-
-  crs_wkt <- as.character(crs(elev_masked))
-  crs_var <- ncdf4::ncvar_def("crs", "", list(), prec = "integer")
-  nc <- ncdf4::ncvar_add(nc, crs_var)
-  ncdf4::ncatt_put(nc, "crs", "crs_wkt", crs_wkt)
-  ncdf4::ncatt_put(nc, "crs", "spatial_ref", crs_wkt)
-  ncdf4::ncatt_put(nc, "crs", "GeoTransform", paste(ext_vals$xmin, dx, 0, ext_vals$ymax, 0, -dy))
-  ncdf4::ncatt_put(nc, "elevation", "grid_mapping", "crs")
-
-  ncdf4::ncatt_put(nc, 0, "title", "NASADEM elevation resampled to domain")
-  ncdf4::ncatt_put(nc, 0, "source", "NASADEM_HGT.001 via AppEEARS")
-  ncdf4::ncatt_put(nc, 0, "history", paste0("created: ", Sys.time()))
-  ncdf4::ncatt_put(nc, 0, "Conventions", "CF-1.8")
-
-  ncdf4::nc_close(nc)
-
-  # Cleanup
+  # Cleanup temp downloads
   unlink(temp_directory, recursive = TRUE, force = TRUE)
   gc()
   unlink(terra_tmp, recursive = TRUE, force = TRUE)
 
-  if (verbose) message("Elevation data saved to: ", out_file)
-  out_file
+  if (verbose) message("Elevation processing complete.")
+  elev_masked
 }
 
 
