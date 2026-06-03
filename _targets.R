@@ -279,6 +279,27 @@ list(
     cue = tar_cue(mode = "never")  # Derived from elevation: only run locally, never on CI
   ),
 
+  # Combine all static layers into a single geoparquet: one row per 500m pixel,
+  # attributes for all static covariates (remnants, elevation, climate, clouds,
+  # soil, topography, vegmap). Output used for model fitting and distribution.
+  tar_target(
+    static_geoparquet,
+    combine_static_layers_to_geoparquet(
+      domain_parquet   = "data/target_outputs/domain.parquet",
+      domain_nc        = "data/target_outputs/domain.nc",
+      elevation_nc     = elevation,
+      climate_nc_files = climate_chelsa,
+      clouds_nc        = clouds_wilson,
+      soil_nc          = soil_soilgrids,
+      topo_nc          = topographic_diversity,
+      vegmap_nc        = "data/target_outputs/vegmap.nc",
+      out_file         = "data/target_outputs/static_covariates.parquet",
+      verbose          = TRUE
+    ),
+    format = "file",
+    cue = tar_cue(mode = "never")  # Static data: only run locally, never on CI
+  ),
+
   # ============================================================================
   # MODIS VI Download Pipeline (Dynamically Branched)
   # ============================================================================
