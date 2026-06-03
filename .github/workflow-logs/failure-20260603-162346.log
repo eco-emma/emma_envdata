@@ -1,0 +1,446 @@
+Starting tar_make()
+System info: sysname=Linux; release=6.17.0-1015-azure; version=#15~24.04.1-Ubuntu SMP Wed May  6 22:37:49 UTC 2026; nodename=5e4b456c24e6; machine=x86_64; login=unknown; user=root; effective_user=root
+tar_source() only sources R scripts. Ignoring non-R files: R/ccr_startup.sh
+Loaded 38 packages from DESCRIPTION
+[tar_github_release] Found 103 assets on GitHub release
+[tar_github_release] Restored targets meta
+[tar_github_release] Downloading: burn_events_merged
+[tar_github_release] Downloaded and verified: burn_events_merged
+[tar_github_release] Restored: burn_events_merged
+[tar_github_release] Downloading: burn_modis_netcdf_22c7fd667e67110b
+[tar_github_release] Downloaded and verified: burn_modis_netcdf_22c7fd667e67110b
+[tar_github_release] Restored: burn_modis_netcdf_22c7fd667e67110b
+[tar_github_release] Downloading: burn_modis_netcdf_537c96db7a9cff4d
+[tar_github_release] Downloaded and verified: burn_modis_netcdf_537c96db7a9cff4d
+[tar_github_release] Restored: burn_modis_netcdf_537c96db7a9cff4d
+[tar_github_release] Downloading: burn_modis_netcdf_5460a1cd3a278fb8
+[tar_github_release] Downloaded and verified: burn_modis_netcdf_5460a1cd3a278fb8
+[tar_github_release] Restored: burn_modis_netcdf_5460a1cd3a278fb8
+[tar_github_release] Downloading: burn_modis_netcdf_5856c9c3e8d0a435
+[tar_github_release] Downloaded and verified: burn_modis_netcdf_5856c9c3e8d0a435
+[tar_github_release] Restored: burn_modis_netcdf_5856c9c3e8d0a435
+[tar_github_release] Downloading: burn_modis_netcdf_61e455ddfb9c7bf1
+[tar_github_release] Downloaded and verified: burn_modis_netcdf_61e455ddfb9c7bf1
+[tar_github_release] Restored: burn_modis_netcdf_61e455ddfb9c7bf1
+[tar_github_release] Downloading: burn_modis_netcdf_7579ca7a77263210
+[tar_github_release] Downloaded and verified: burn_modis_netcdf_7579ca7a77263210
+[tar_github_release] Restored: burn_modis_netcdf_7579ca7a77263210
+[tar_github_release] Downloading: burn_modis_netcdf_7eda22edaf0290d2
+[tar_github_release] Downloaded and verified: burn_modis_netcdf_7eda22edaf0290d2
+[tar_github_release] Restored: burn_modis_netcdf_7eda22edaf0290d2
+[tar_github_release] Downloading: burn_modis_netcdf_c50e30d4c4beb073
+[tar_github_release] Downloaded and verified: burn_modis_netcdf_c50e30d4c4beb073
+[tar_github_release] Restored: burn_modis_netcdf_c50e30d4c4beb073
+[tar_github_release] Downloading: burn_modis_netcdf_f5649b89cd8d4f2b
+[tar_github_release] Downloaded and verified: burn_modis_netcdf_f5649b89cd8d4f2b
+[tar_github_release] Restored: burn_modis_netcdf_f5649b89cd8d4f2b
+[tar_github_release] Downloading: burn_modis_pending
+[tar_github_release] Downloaded and verified: burn_modis_pending
+[tar_github_release] Restored: burn_modis_pending
+[tar_github_release] Downloading: burn_modis_task_ids_1197e0dd4e973775
+[tar_github_release] Downloaded and verified: burn_modis_task_ids_1197e0dd4e973775
+[tar_github_release] Restored: burn_modis_task_ids_1197e0dd4e973775
+[tar_github_release] Downloading: burn_modis_task_ids_2bd0bb29d4544931
+[tar_github_release] Downloaded and verified: burn_modis_task_ids_2bd0bb29d4544931
+[tar_github_release] Restored: burn_modis_task_ids_2bd0bb29d4544931
+[tar_github_release] Downloading: burn_modis_task_ids_4525a72bca06acc5
+[tar_github_release] Downloaded and verified: burn_modis_task_ids_4525a72bca06acc5
+[tar_github_release] Restored: burn_modis_task_ids_4525a72bca06acc5
+[tar_github_release] Downloading: burn_modis_task_ids_60042966789f5aa9
+[tar_github_release] Downloaded and verified: burn_modis_task_ids_60042966789f5aa9
+[tar_github_release] Restored: burn_modis_task_ids_60042966789f5aa9
+[tar_github_release] Downloading: burn_modis_task_ids_62c9f9716893a399
+[tar_github_release] Downloaded and verified: burn_modis_task_ids_62c9f9716893a399
+[tar_github_release] Restored: burn_modis_task_ids_62c9f9716893a399
+[tar_github_release] Downloading: burn_modis_task_ids_869f2eefd9bd86f9
+[tar_github_release] Downloaded and verified: burn_modis_task_ids_869f2eefd9bd86f9
+[tar_github_release] Restored: burn_modis_task_ids_869f2eefd9bd86f9
+[tar_github_release] Downloading: burn_modis_task_ids_90e43a3c343c507f
+[tar_github_release] Downloaded and verified: burn_modis_task_ids_90e43a3c343c507f
+[tar_github_release] Restored: burn_modis_task_ids_90e43a3c343c507f
+[tar_github_release] Downloading: burn_modis_task_ids_aa83992ec5daf13e
+[tar_github_release] Downloaded and verified: burn_modis_task_ids_aa83992ec5daf13e
+[tar_github_release] Restored: burn_modis_task_ids_aa83992ec5daf13e
+[tar_github_release] Downloading: burn_modis_task_ids_c9386ca94b635311
+[tar_github_release] Downloaded and verified: burn_modis_task_ids_c9386ca94b635311
+[tar_github_release] Restored: burn_modis_task_ids_c9386ca94b635311
+[tar_github_release] Downloading: burn_modis_task_ids_d5d527b698d2ee28
+[tar_github_release] Downloaded and verified: burn_modis_task_ids_d5d527b698d2ee28
+[tar_github_release] Restored: burn_modis_task_ids_d5d527b698d2ee28
+[tar_github_release] Downloading: burn_viirs_netcdf_0188329908724e82
+[tar_github_release] Downloaded and verified: burn_viirs_netcdf_0188329908724e82
+[tar_github_release] Restored: burn_viirs_netcdf_0188329908724e82
+[tar_github_release] Downloading: burn_viirs_netcdf_042931cec8cfe439
+[tar_github_release] Downloaded and verified: burn_viirs_netcdf_042931cec8cfe439
+[tar_github_release] Restored: burn_viirs_netcdf_042931cec8cfe439
+[tar_github_release] Downloading: burn_viirs_netcdf_0fad412420c624f4
+[tar_github_release] Downloaded and verified: burn_viirs_netcdf_0fad412420c624f4
+[tar_github_release] Restored: burn_viirs_netcdf_0fad412420c624f4
+[tar_github_release] Downloading: burn_viirs_netcdf_3719fbf75a33698a
+[tar_github_release] Downloaded and verified: burn_viirs_netcdf_3719fbf75a33698a
+[tar_github_release] Restored: burn_viirs_netcdf_3719fbf75a33698a
+[tar_github_release] Downloading: burn_viirs_netcdf_41105dbd55b338da
+[tar_github_release] Downloaded and verified: burn_viirs_netcdf_41105dbd55b338da
+[tar_github_release] Restored: burn_viirs_netcdf_41105dbd55b338da
+[tar_github_release] Downloading: burn_viirs_netcdf_5103c262069d6774
+[tar_github_release] Downloaded and verified: burn_viirs_netcdf_5103c262069d6774
+[tar_github_release] Restored: burn_viirs_netcdf_5103c262069d6774
+[tar_github_release] Downloading: burn_viirs_netcdf_b5b1f25a5b9fc958
+[tar_github_release] Downloaded and verified: burn_viirs_netcdf_b5b1f25a5b9fc958
+[tar_github_release] Restored: burn_viirs_netcdf_b5b1f25a5b9fc958
+[tar_github_release] Downloading: burn_viirs_netcdf_cbe6af9645e9785b
+[tar_github_release] Downloaded and verified: burn_viirs_netcdf_cbe6af9645e9785b
+[tar_github_release] Restored: burn_viirs_netcdf_cbe6af9645e9785b
+[tar_github_release] Downloading: burn_viirs_netcdf_e13bc296e56a0bde
+[tar_github_release] Downloaded and verified: burn_viirs_netcdf_e13bc296e56a0bde
+[tar_github_release] Restored: burn_viirs_netcdf_e13bc296e56a0bde
+[tar_github_release] Downloading: burn_viirs_pending
+[tar_github_release] Downloaded and verified: burn_viirs_pending
+[tar_github_release] Restored: burn_viirs_pending
+[tar_github_release] Downloading: burn_viirs_task_ids_22465c9de857abbf
+[tar_github_release] Downloaded and verified: burn_viirs_task_ids_22465c9de857abbf
+[tar_github_release] Restored: burn_viirs_task_ids_22465c9de857abbf
+[tar_github_release] Downloading: burn_viirs_task_ids_48b50e99a1328b6a
+[tar_github_release] Downloaded and verified: burn_viirs_task_ids_48b50e99a1328b6a
+[tar_github_release] Restored: burn_viirs_task_ids_48b50e99a1328b6a
+[tar_github_release] Downloading: burn_viirs_task_ids_54250ccbcad77176
+[tar_github_release] Downloaded and verified: burn_viirs_task_ids_54250ccbcad77176
+[tar_github_release] Restored: burn_viirs_task_ids_54250ccbcad77176
+[tar_github_release] Downloading: burn_viirs_task_ids_6c6f65356fd8ebb5
+[tar_github_release] Downloaded and verified: burn_viirs_task_ids_6c6f65356fd8ebb5
+[tar_github_release] Restored: burn_viirs_task_ids_6c6f65356fd8ebb5
+[tar_github_release] Downloading: burn_viirs_task_ids_6c79ceef920f3caa
+[tar_github_release] Downloaded and verified: burn_viirs_task_ids_6c79ceef920f3caa
+[tar_github_release] Restored: burn_viirs_task_ids_6c79ceef920f3caa
+[tar_github_release] Downloading: burn_viirs_task_ids_6f1b61c2fbf6d631
+[tar_github_release] Downloaded and verified: burn_viirs_task_ids_6f1b61c2fbf6d631
+[tar_github_release] Restored: burn_viirs_task_ids_6f1b61c2fbf6d631
+[tar_github_release] Downloading: burn_viirs_task_ids_8602a9e8af7ebb34
+[tar_github_release] Downloaded and verified: burn_viirs_task_ids_8602a9e8af7ebb34
+[tar_github_release] Restored: burn_viirs_task_ids_8602a9e8af7ebb34
+[tar_github_release] Downloading: burn_viirs_task_ids_9ec55ee42dbc0b17
+[tar_github_release] Downloaded and verified: burn_viirs_task_ids_9ec55ee42dbc0b17
+[tar_github_release] Restored: burn_viirs_task_ids_9ec55ee42dbc0b17
+[tar_github_release] Downloading: burn_viirs_task_ids_a3b2051808e02493
+[tar_github_release] Downloaded and verified: burn_viirs_task_ids_a3b2051808e02493
+[tar_github_release] Restored: burn_viirs_task_ids_a3b2051808e02493
+[tar_github_release] Downloading: burn_viirs_task_ids_a4f1fe28bb7cefb4
+[tar_github_release] Downloaded and verified: burn_viirs_task_ids_a4f1fe28bb7cefb4
+[tar_github_release] Restored: burn_viirs_task_ids_a4f1fe28bb7cefb4
+[tar_github_release] Downloading: capenature_fires
+[tar_github_release] Downloaded and verified: capenature_fires
+[tar_github_release] Restored: capenature_fires
+[tar_github_release] Downloading: country
+[tar_github_release] Downloaded and verified: country
+[tar_github_release] Restored: country
+[tar_github_release] Downloading: domain_bbox
+[tar_github_release] Downloaded and verified: domain_bbox
+[tar_github_release] Restored: domain_bbox
+[tar_github_release] Downloading: domain_boundary
+[tar_github_release] Downloaded and verified: domain_boundary
+[tar_github_release] Restored: domain_boundary
+[tar_github_release] Downloading: domain_grid
+[tar_github_release] Downloaded and verified: domain_grid
+[tar_github_release] Restored: domain_grid
+[tar_github_release] Downloading: elevation_task_id
+[tar_github_release] Downloaded and verified: elevation_task_id
+[tar_github_release] Restored: elevation_task_id
+[tar_github_release] Downloading: remnants
+[tar_github_release] Downloaded and verified: remnants
+[tar_github_release] Restored: remnants
+[tar_github_release] Downloading: upload_burn_modis
+[tar_github_release] Downloaded and verified: upload_burn_modis
+[tar_github_release] Restored: upload_burn_modis
+[tar_github_release] Downloading: upload_burn_modis_grid
+[tar_github_release] Downloaded and verified: upload_burn_modis_grid
+[tar_github_release] Restored: upload_burn_modis_grid
+[tar_github_release] Downloading: upload_burn_viirs_data
+[tar_github_release] Downloaded and verified: upload_burn_viirs_data
+[tar_github_release] Restored: upload_burn_viirs_data
+[tar_github_release] Downloading: upload_burn_viirs_grid
+[tar_github_release] Downloaded and verified: upload_burn_viirs_grid
+[tar_github_release] Restored: upload_burn_viirs_grid
+[tar_github_release] Downloading: upload_fire_history
+[tar_github_release] Downloaded and verified: upload_fire_history
+[tar_github_release] Restored: upload_fire_history
+[tar_github_release] Downloading: upload_stac_catalog
+[tar_github_release] Downloaded and verified: upload_stac_catalog
+[tar_github_release] Restored: upload_stac_catalog
+[tar_github_release] Downloading: upload_static
+[tar_github_release] Downloaded and verified: upload_static
+[tar_github_release] Restored: upload_static
+[tar_github_release] Downloading: upload_vi_modis
+[tar_github_release] Downloaded and verified: upload_vi_modis
+[tar_github_release] Restored: upload_vi_modis
+[tar_github_release] Downloading: upload_vi_modis_grid
+[tar_github_release] Downloaded and verified: upload_vi_modis_grid
+[tar_github_release] Restored: upload_vi_modis_grid
+[tar_github_release] Downloading: upload_vi_viirs_grid
+[tar_github_release] Downloaded and verified: upload_vi_viirs_grid
+[tar_github_release] Restored: upload_vi_viirs_grid
+[tar_github_release] Downloading: vegmap
+[tar_github_release] Downloaded and verified: vegmap
+[tar_github_release] Restored: vegmap
+[tar_github_release] Downloading: vegmap_grid
+[tar_github_release] Downloaded and verified: vegmap_grid
+[tar_github_release] Restored: vegmap_grid
+[tar_github_release] Downloading: vi_modis_netcdf_008d1df64449bda8
+[tar_github_release] Downloaded and verified: vi_modis_netcdf_008d1df64449bda8
+[tar_github_release] Restored: vi_modis_netcdf_008d1df64449bda8
+[tar_github_release] Downloading: vi_modis_netcdf_27961378655e45dd
+[tar_github_release] Downloaded and verified: vi_modis_netcdf_27961378655e45dd
+[tar_github_release] Restored: vi_modis_netcdf_27961378655e45dd
+[tar_github_release] Downloading: vi_modis_netcdf_2ff3a4c5100334a9
+[tar_github_release] Downloaded and verified: vi_modis_netcdf_2ff3a4c5100334a9
+[tar_github_release] Restored: vi_modis_netcdf_2ff3a4c5100334a9
+[tar_github_release] Downloading: vi_modis_netcdf_39afd13666cbe54f
+[tar_github_release] Downloaded and verified: vi_modis_netcdf_39afd13666cbe54f
+[tar_github_release] Restored: vi_modis_netcdf_39afd13666cbe54f
+[tar_github_release] Downloading: vi_modis_netcdf_6761dfd9dfc52918
+[tar_github_release] Downloaded and verified: vi_modis_netcdf_6761dfd9dfc52918
+[tar_github_release] Restored: vi_modis_netcdf_6761dfd9dfc52918
+[tar_github_release] Downloading: vi_modis_netcdf_7501135696f14de8
+[tar_github_release] Downloaded and verified: vi_modis_netcdf_7501135696f14de8
+[tar_github_release] Restored: vi_modis_netcdf_7501135696f14de8
+[tar_github_release] Downloading: vi_modis_netcdf_9e1fd0548e0952bb
+[tar_github_release] Downloaded and verified: vi_modis_netcdf_9e1fd0548e0952bb
+[tar_github_release] Restored: vi_modis_netcdf_9e1fd0548e0952bb
+[tar_github_release] Downloading: vi_modis_netcdf_a48d8f2e7b6d7b79
+[tar_github_release] Downloaded and verified: vi_modis_netcdf_a48d8f2e7b6d7b79
+[tar_github_release] Restored: vi_modis_netcdf_a48d8f2e7b6d7b79
+[tar_github_release] Downloading: vi_modis_netcdf_b584e7a323ee86a4
+[tar_github_release] Downloaded and verified: vi_modis_netcdf_b584e7a323ee86a4
+[tar_github_release] Restored: vi_modis_netcdf_b584e7a323ee86a4
+[tar_github_release] Downloading: vi_modis_netcdf_c0cd55608a213754
+[tar_github_release] Downloaded and verified: vi_modis_netcdf_c0cd55608a213754
+[tar_github_release] Restored: vi_modis_netcdf_c0cd55608a213754
+[tar_github_release] Downloading: vi_modis_pending
+[tar_github_release] Downloaded and verified: vi_modis_pending
+[tar_github_release] Restored: vi_modis_pending
+[tar_github_release] Downloading: vi_modis_task_ids_16c750f733cac70c
+[tar_github_release] Downloaded and verified: vi_modis_task_ids_16c750f733cac70c
+[tar_github_release] Restored: vi_modis_task_ids_16c750f733cac70c
+[tar_github_release] Downloading: vi_modis_task_ids_18f45b684063e89c
+[tar_github_release] Downloaded and verified: vi_modis_task_ids_18f45b684063e89c
+[tar_github_release] Restored: vi_modis_task_ids_18f45b684063e89c
+[tar_github_release] Downloading: vi_modis_task_ids_2d0fc8e93591dc8c
+[tar_github_release] Downloaded and verified: vi_modis_task_ids_2d0fc8e93591dc8c
+[tar_github_release] Restored: vi_modis_task_ids_2d0fc8e93591dc8c
+[tar_github_release] Downloading: vi_modis_task_ids_866ec3c6248fce46
+[tar_github_release] Downloaded and verified: vi_modis_task_ids_866ec3c6248fce46
+[tar_github_release] Restored: vi_modis_task_ids_866ec3c6248fce46
+[tar_github_release] Downloading: vi_modis_task_ids_8fbca19a2a326d6b
+[tar_github_release] Downloaded and verified: vi_modis_task_ids_8fbca19a2a326d6b
+[tar_github_release] Restored: vi_modis_task_ids_8fbca19a2a326d6b
+[tar_github_release] Downloading: vi_modis_task_ids_900d7c54ef89e696
+[tar_github_release] Downloaded and verified: vi_modis_task_ids_900d7c54ef89e696
+[tar_github_release] Restored: vi_modis_task_ids_900d7c54ef89e696
+[tar_github_release] Downloading: vi_modis_task_ids_9738bdbbd0a17312
+[tar_github_release] Downloaded and verified: vi_modis_task_ids_9738bdbbd0a17312
+[tar_github_release] Restored: vi_modis_task_ids_9738bdbbd0a17312
+[tar_github_release] Downloading: vi_modis_task_ids_9f88fac294762d3f
+[tar_github_release] Downloaded and verified: vi_modis_task_ids_9f88fac294762d3f
+[tar_github_release] Restored: vi_modis_task_ids_9f88fac294762d3f
+[tar_github_release] Downloading: vi_modis_task_ids_b2dc2ad89b567ea9
+[tar_github_release] Downloaded and verified: vi_modis_task_ids_b2dc2ad89b567ea9
+[tar_github_release] Restored: vi_modis_task_ids_b2dc2ad89b567ea9
+[tar_github_release] Downloading: vi_modis_task_ids_bfc84bbbea21069e
+[tar_github_release] Downloaded and verified: vi_modis_task_ids_bfc84bbbea21069e
+[tar_github_release] Restored: vi_modis_task_ids_bfc84bbbea21069e
+[tar_github_release] Downloading: vi_viirs_netcdf_0392f11595e51e25
+[tar_github_release] Downloaded and verified: vi_viirs_netcdf_0392f11595e51e25
+[tar_github_release] Restored: vi_viirs_netcdf_0392f11595e51e25
+[tar_github_release] Downloading: vi_viirs_netcdf_0c331bb765675823
+[tar_github_release] Downloaded and verified: vi_viirs_netcdf_0c331bb765675823
+[tar_github_release] Restored: vi_viirs_netcdf_0c331bb765675823
+[tar_github_release] Downloading: vi_viirs_netcdf_17739a8ac33df351
+[tar_github_release] Downloaded and verified: vi_viirs_netcdf_17739a8ac33df351
+[tar_github_release] Restored: vi_viirs_netcdf_17739a8ac33df351
+[tar_github_release] Downloading: vi_viirs_netcdf_554943e2078a771d
+[tar_github_release] Downloaded and verified: vi_viirs_netcdf_554943e2078a771d
+[tar_github_release] Restored: vi_viirs_netcdf_554943e2078a771d
+[tar_github_release] Downloading: vi_viirs_netcdf_5e0d88f9576e87b3
+[tar_github_release] Downloaded and verified: vi_viirs_netcdf_5e0d88f9576e87b3
+[tar_github_release] Restored: vi_viirs_netcdf_5e0d88f9576e87b3
+[tar_github_release] Downloading: vi_viirs_netcdf_a441fb16bfb9bb00
+[tar_github_release] Downloaded and verified: vi_viirs_netcdf_a441fb16bfb9bb00
+[tar_github_release] Restored: vi_viirs_netcdf_a441fb16bfb9bb00
+[tar_github_release] Downloading: vi_viirs_netcdf_bb0aa74713fbeb03
+[tar_github_release] Downloaded and verified: vi_viirs_netcdf_bb0aa74713fbeb03
+[tar_github_release] Restored: vi_viirs_netcdf_bb0aa74713fbeb03
+[tar_github_release] Downloading: vi_viirs_netcdf_e3ba6d25cab795d2
+[tar_github_release] Downloaded and verified: vi_viirs_netcdf_e3ba6d25cab795d2
+[tar_github_release] Restored: vi_viirs_netcdf_e3ba6d25cab795d2
+[tar_github_release] Downloading: vi_viirs_netcdf_fa03fe4d6f832685
+[tar_github_release] Downloaded and verified: vi_viirs_netcdf_fa03fe4d6f832685
+[tar_github_release] Restored: vi_viirs_netcdf_fa03fe4d6f832685
+[tar_github_release] Downloading: vi_viirs_netcdf_fcbca10305c36ae3
+[tar_github_release] Downloaded and verified: vi_viirs_netcdf_fcbca10305c36ae3
+[tar_github_release] Restored: vi_viirs_netcdf_fcbca10305c36ae3
+[tar_github_release] Downloading: vi_viirs_pending
+[tar_github_release] Downloaded and verified: vi_viirs_pending
+[tar_github_release] Restored: vi_viirs_pending
+[tar_github_release] Downloading: vi_viirs_task_ids_0a5ee069099803de
+[tar_github_release] Downloaded and verified: vi_viirs_task_ids_0a5ee069099803de
+[tar_github_release] Restored: vi_viirs_task_ids_0a5ee069099803de
+[tar_github_release] Downloading: vi_viirs_task_ids_20f54e59ac45ea80
+[tar_github_release] Downloaded and verified: vi_viirs_task_ids_20f54e59ac45ea80
+[tar_github_release] Restored: vi_viirs_task_ids_20f54e59ac45ea80
+[tar_github_release] Downloading: vi_viirs_task_ids_4d7e6d2f3320f19f
+[tar_github_release] Downloaded and verified: vi_viirs_task_ids_4d7e6d2f3320f19f
+[tar_github_release] Restored: vi_viirs_task_ids_4d7e6d2f3320f19f
+[tar_github_release] Downloading: vi_viirs_task_ids_669db9d82995be61
+[tar_github_release] Downloaded and verified: vi_viirs_task_ids_669db9d82995be61
+[tar_github_release] Restored: vi_viirs_task_ids_669db9d82995be61
+[tar_github_release] Downloading: vi_viirs_task_ids_af1cdc451258be33
+[tar_github_release] Downloaded and verified: vi_viirs_task_ids_af1cdc451258be33
+[tar_github_release] Restored: vi_viirs_task_ids_af1cdc451258be33
+[tar_github_release] Downloading: vi_viirs_task_ids_db24568f0c0df332
+[tar_github_release] Downloaded and verified: vi_viirs_task_ids_db24568f0c0df332
+[tar_github_release] Restored: vi_viirs_task_ids_db24568f0c0df332
+[tar_github_release] Downloading: vi_viirs_task_ids_db6354ad579d2608
+[tar_github_release] Downloaded and verified: vi_viirs_task_ids_db6354ad579d2608
+[tar_github_release] Restored: vi_viirs_task_ids_db6354ad579d2608
+[tar_github_release] Downloading: vi_viirs_task_ids_ea69fb8491d45eee
+[tar_github_release] Downloaded and verified: vi_viirs_task_ids_ea69fb8491d45eee
+[tar_github_release] Restored: vi_viirs_task_ids_ea69fb8491d45eee
+[tar_github_release] Downloading: vi_viirs_task_ids_ec9be7672a062a69
+[tar_github_release] Downloaded and verified: vi_viirs_task_ids_ec9be7672a062a69
+[tar_github_release] Restored: vi_viirs_task_ids_ec9be7672a062a69
+[tar_github_release] Downloading: vi_viirs_task_ids_f174549abce49198
+[tar_github_release] Downloaded and verified: vi_viirs_task_ids_f174549abce49198
+[tar_github_release] Restored: vi_viirs_task_ids_f174549abce49198
+[tar_github_release] Download complete
+Skipping static file (cue=never target): CHELSA_bio01_1981-2010_V.2.1.nc
+Skipping static file (cue=never target): CHELSA_bio02_1981-2010_V.2.1.nc
+Skipping static file (cue=never target): CHELSA_bio03_1981-2010_V.2.1.nc
+Skipping static file (cue=never target): CHELSA_bio04_1981-2010_V.2.1.nc
+Skipping static file (cue=never target): CHELSA_bio05_1981-2010_V.2.1.nc
+Skipping static file (cue=never target): CHELSA_bio06_1981-2010_V.2.1.nc
+Skipping static file (cue=never target): CHELSA_bio07_1981-2010_V.2.1.nc
+Skipping static file (cue=never target): CHELSA_bio08_1981-2010_V.2.1.nc
+Skipping static file (cue=never target): CHELSA_bio09_1981-2010_V.2.1.nc
+Skipping static file (cue=never target): CHELSA_bio10_1981-2010_V.2.1.nc
+Skipping static file (cue=never target): CHELSA_bio11_1981-2010_V.2.1.nc
+Skipping static file (cue=never target): CHELSA_bio12_1981-2010_V.2.1.nc
+Skipping static file (cue=never target): CHELSA_bio13_1981-2010_V.2.1.nc
+Skipping static file (cue=never target): CHELSA_bio14_1981-2010_V.2.1.nc
+Skipping static file (cue=never target): CHELSA_bio15_1981-2010_V.2.1.nc
+Skipping static file (cue=never target): CHELSA_bio16_1981-2010_V.2.1.nc
+Skipping static file (cue=never target): CHELSA_bio17_1981-2010_V.2.1.nc
+Skipping static file (cue=never target): CHELSA_bio18_1981-2010_V.2.1.nc
+Skipping static file (cue=never target): CHELSA_bio19_1981-2010_V.2.1.nc
+Skipping static file (cue=never target): clouds_wilson.nc
+Downloaded static file: domain.nc (1650232 bytes)
+Downloaded static file: domain.parquet (9459659 bytes)
+Skipping static file (cue=never target): elevation_nasadem.nc
+Skipping static file (cue=never target): soil_soilgrids.nc
+Skipping static file (cue=never target): topographic_diversity.nc
+Downloaded static file: vegmap.nc (546459 bytes)
++ release_manifest dispatched
+✔ release_manifest completed [22ms, 8.00 kB]
++ burn_viirs_task_ids declared [4 branches]
++ vi_modis_task_ids declared [4 branches]
++ vi_viirs_task_ids declared [4 branches]
++ burn_modis_task_ids declared [4 branches]
++ burn_viirs_netcdf declared [4 branches]
++ vi_modis_netcdf declared [4 branches]
++ vi_viirs_netcdf declared [4 branches]
++ burn_modis_netcdf declared [4 branches]
++ burn_viirs_grid declared [4 branches]
+No VIIRS burn NCs for 202601 — writing all-NA grid
+No VIIRS burn NCs for 202602 — writing all-NA grid
+No VIIRS burn NCs for 202603 — writing all-NA grid
+No VIIRS burn NCs for 202604 — writing all-NA grid
+✔ burn_viirs_grid completed [1.8s, 43.42 MB]
++ vi_modis_grid declared [4 branches]
+No source NCs for 202601 — writing all-NA grid files
+No valid composites for Terra/MOD13A1 in 202601 — writing all-NA NC
+No valid composites for Aqua/MYD13A1 in 202601 — writing all-NA NC
+No source NCs for 202602 — writing all-NA grid files
+No valid composites for Terra/MOD13A1 in 202602 — writing all-NA NC
+No valid composites for Aqua/MYD13A1 in 202602 — writing all-NA NC
+No source NCs for 202603 — writing all-NA grid files
+No valid composites for Terra/MOD13A1 in 202603 — writing all-NA NC
+No valid composites for Aqua/MYD13A1 in 202603 — writing all-NA NC
+No source NCs for 202604 — writing all-NA grid files
+No valid composites for Terra/MOD13A1 in 202604 — writing all-NA NC
+No valid composites for Aqua/MYD13A1 in 202604 — writing all-NA NC
+✔ vi_modis_grid completed [5.7s, 173.33 MB]
++ vi_viirs_grid declared [4 branches]
+No source NCs for 202601 — writing all-NA grid files
+No valid composites for S-NPP/VNP13A1 in 202601 — writing all-NA NC
+No valid composites for NOAA-20/VJ113A1 in 202601 — writing all-NA NC
+No source NCs for 202602 — writing all-NA grid files
+No valid composites for S-NPP/VNP13A1 in 202602 — writing all-NA NC
+No valid composites for NOAA-20/VJ113A1 in 202602 — writing all-NA NC
+No source NCs for 202603 — writing all-NA grid files
+No valid composites for S-NPP/VNP13A1 in 202603 — writing all-NA NC
+No valid composites for NOAA-20/VJ113A1 in 202603 — writing all-NA NC
+No source NCs for 202604 — writing all-NA grid files
+No valid composites for S-NPP/VNP13A1 in 202604 — writing all-NA NC
+No valid composites for NOAA-20/VJ113A1 in 202604 — writing all-NA NC
+✔ vi_viirs_grid completed [4.7s, 173.33 MB]
++ burn_modis_grid declared [4 branches]
+No burn NCs for 202601 — writing all-NA grid
+No burn NCs for 202602 — writing all-NA grid
+No burn NCs for 202603 — writing all-NA grid
+No burn NCs for 202604 — writing all-NA grid
+✔ burn_modis_grid completed [825ms, 43.42 MB]
++ burn_viirs_parquet declared [4 branches]
+No burned pixels for 202601 — writing skip marker
+No burned pixels for 202602 — writing skip marker
+No burned pixels for 202603 — writing skip marker
+No burned pixels for 202604 — writing skip marker
+✔ burn_viirs_parquet completed [1.2s, 365 B]
++ upload_burn_viirs_grid dispatched
+Using existing release 'burn_dates_viirs_raster'
+All files already in release 'burn_dates_viirs_raster'
+✔ upload_burn_viirs_grid completed [477ms, 68 B]
++ static_stac dispatched
+Generated static layers STAC: 7 items in data/stac/static
+✔ static_stac completed [89ms, 3.09 kB]
++ static_geoparquet dispatched
+✖ static_geoparquet errored
+✖ errored pipeline [24.9s, 23 completed, 53 skipped]
+Warning messages:
+1: In gh_auth(x$token %||% gh_token(x$api_url)) :
+  Token contains whitespace characters
+2: In gh_auth(x$token %||% gh_token(x$api_url)) :
+  Token contains whitespace characters
+3: In gh_auth(x$token %||% gh_token(x$api_url)) :
+  Token contains whitespace characters
+4: In gh_auth(x$token %||% gh_token(x$api_url)) :
+  Token contains whitespace characters
+5: <anonymous>: ..1 may be used in an incorrect context
+ 
+6: <anonymous>: ..2 may be used in an incorrect context
+ 
+7: <anonymous>: ..1 may be used in an incorrect context
+ 
+8: <anonymous>: ..2 may be used in an incorrect context
+ 
+9: Token contains whitespace characters 
+10: 1 targets produced warnings. Run targets::tar_meta(fields = warnings, complete_only = TRUE) for the messages. 
+Error:
+! Error in tar_make():
+  could not find function "combine_static_layers_to_geoparquet"
+  See https://books.ropensci.org/targets/debugging.html
+10: (function () 
+    {
+        traceback(2)
+        quit(status = 1)
+    })()
+9: stop(fallback)
+8: signal_abort(cnd, .file)
+7: rlang::abort(message = message, class = class, call = tar_envir_base)
+6: tar_error(message = paste0(...), class = base::union(custom_error_classes(class), 
+       c("tar_condition_run", "tar_condition_targets")))
+5: tar_throw_run(message, class = class(traced_condition$condition))
+4: callr_error(traced_condition = out, fun = fun)
+3: if_any(inherits(out, "tar_condition_traced"), callr_error(traced_condition = out, 
+       fun = fun), out)
+2: callr_outer(targets_function = tar_make_inner, targets_arguments = targets_arguments, 
+       callr_function = callr_function, callr_arguments = callr_arguments, 
+       envir = envir, script = script, store = store, fun = "tar_make")
+1: targets::tar_make()
