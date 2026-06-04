@@ -243,30 +243,29 @@ vi_load_observation_dates <- function(
 }
 
 
-#' @title Rasterize most-recent-burn parquet to a domain-aligned NetCDF
+#' @title Rasterize most-recent-burn parquet to a domain-aligned SpatRaster
 #'
 #' @description Reads \code{most_recent_burn.parquet} (columns: pid, as_of_date,
 #'   last_burn_date, fire_age_days), finds the latest available \code{as_of_date},
-#'   and writes a two-variable NetCDF snapshot raster to \code{out_file}:
+#'   and returns a two-band SpatRaster snapshot for storage by
+#'   \code{geotargets::tar_terra_rast()} as a Cloud Optimized GeoTIFF:
 #'   \describe{
-#'     \item{fire_age_days}{Integer days since last fire per pixel}
-#'     \item{last_burn_date}{Integer days since 1970-01-01 of last burn per pixel}
+#'     \item{fire_age_days}{Band 1: integer days since last fire per pixel}
+#'     \item{last_burn_date}{Band 2: integer days since 1970-01-01 of last burn per pixel}
 #'   }
 #'   Pixels that never burned are written as \code{NA}.
 #'
 #' @param parquet_file Character path to \code{most_recent_burn.parquet}.
 #' @param domain_raster A \code{SpatRaster} (or file path) carrying a \code{pid}
 #'   layer used to map pixel IDs to grid cells.
-#' @param out_file Character path for the output NetCDF file.
 #' @param verbose Logical. Print progress messages?
 #'
-#' @return Character path to the written NetCDF file.
+#' @return A two-band \code{SpatRaster} (fire_age_days, last_burn_date).
 #' @export
 most_recent_burn_to_grid <- function(
     parquet_file,
     domain_raster,
-    out_file = "data/target_outputs/most_recent_burn.nc",
-    verbose  = TRUE) {
+    verbose = TRUE) {
 
   # Load domain grid (accept file path or SpatRaster)
   if (is.character(domain_raster)) {
@@ -277,49 +276,17 @@ most_recent_burn_to_grid <- function(
 
   df <- arrow::read_parquet(parquet_file)
 
-  dir.create(dirname(out_file), recursive = TRUE, showWarnings = FALSE)
-  # Write to local /tmp (avoids NFS stat-cache issue), then copy to final path.
-  # terra 1.9.27 has no append/overwrite support: write each variable to its own
-  # temp file and merge the second variable in using ncdf4::ncvar_add.
-  tmp_file  <- tempfile(fileext = ".nc")
-  tmp_file2 <- tempfile(fileext = ".nc")
-  on.exit({ unlink(tmp_file); unlink(tmp_file2) }, add = TRUE)
-
-  merge_var_into_nc <- function(src_path, var_name, dst_path, longname, units = "") {
-    nc_src <- ncdf4::nc_open(src_path)
-    nc_dst <- ncdf4::nc_open(dst_path, write = TRUE)
-    tryCatch({
-      new_var <- ncdf4::ncvar_def(
-        name     = var_name,
-        units    = units,
-        dim      = nc_dst$var[[names(nc_dst$var)[1]]]$dim,
-        longname = longname,
-        prec     = "float"
-      )
-      nc_dst <- ncdf4::ncvar_add(nc_dst, new_var)
-      ncdf4::ncvar_put(nc_dst, var_name, ncdf4::ncvar_get(nc_src, var_name))
-    }, finally = {
-      ncdf4::nc_close(nc_src)
-      ncdf4::nc_close(nc_dst)
-    })
-  }
-
   if (nrow(df) == 0L) {
-    if (verbose) message("most_recent_burn parquet is empty — writing all-NA NC")
-    empty_r <- domain_template[[1]]
-    terra::values(empty_r) <- NA_real_
-    terra::time(empty_r)   <- Sys.Date()
-    terra::writeCDF(empty_r, tmp_file,
-                    varname  = "fire_age_days",
-                    longname = "Days since last fire (snapshot)")
-    terra::writeCDF(empty_r, tmp_file2,
-                    varname  = "last_burn_date",
-                    longname = "Last burn date (days since 1970-01-01)")
-    merge_var_into_nc(tmp_file2, "last_burn_date", tmp_file,
-                      "Last burn date (days since 1970-01-01)")
-    if (!file.copy(tmp_file, out_file, overwrite = TRUE))
-      stop("Could not copy tmp NC to ", out_file)
-    return(out_file)
+    if (verbose) message("most_recent_burn parquet is empty — returning all-NA raster")
+    empty_r       <- domain_template[[1]]
+    terra::values(empty_r) <- NA_integer_
+    r_out         <- c(empty_r, empty_r)
+    names(r_out)  <- c("fire_age_days", "last_burn_date")
+    terra::metags(r_out) <- c(
+      snapshot_date = as.character(Sys.Date()),
+      source        = "most_recent_burn"
+    )
+    return(r_out)
   }
 
   # Snapshot: use the latest as_of_date only
@@ -341,28 +308,20 @@ most_recent_burn_to_grid <- function(
   fire_age_vec  <- as.integer(fire_age_map[as.character(pid_vec)])
   last_burn_vec <- as.integer(last_burn_map[as.character(pid_vec)])
 
-  # Build rasters
+  # Build 2-band raster: band 1 = fire_age_days, band 2 = last_burn_date
   fire_age_r  <- domain_template[[1]]
   last_burn_r <- domain_template[[1]]
   terra::values(fire_age_r)  <- fire_age_vec
   terra::values(last_burn_r) <- last_burn_vec
-  terra::time(fire_age_r)    <- snapshot_date
-  terra::time(last_burn_r)   <- snapshot_date
+  names(fire_age_r)  <- "fire_age_days"
+  names(last_burn_r) <- "last_burn_date"
 
-  terra::writeCDF(fire_age_r,  tmp_file,
-                  varname  = "fire_age_days",
-                  longname = "Days since last fire (snapshot)",
-                  unit     = "days")
-  terra::writeCDF(last_burn_r, tmp_file2,
-                  varname  = "last_burn_date",
-                  longname = "Last burn date (days since 1970-01-01)",
-                  unit     = "days")
-  merge_var_into_nc(tmp_file2, "last_burn_date", tmp_file,
-                    "Last burn date (days since 1970-01-01)", units = "days")
+  r_out <- c(fire_age_r, last_burn_r)
+  terra::metags(r_out) <- c(
+    snapshot_date = as.character(snapshot_date),
+    source        = "most_recent_burn"
+  )
 
-  if (!file.copy(tmp_file, out_file, overwrite = TRUE))
-    stop("Could not copy tmp NC to ", out_file)
-
-  if (verbose) message("Wrote most_recent_burn NC: ", out_file)
-  out_file
+  if (verbose) message("Built most_recent_burn raster for ", format(snapshot_date))
+  r_out
 }

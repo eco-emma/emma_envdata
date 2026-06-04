@@ -11,8 +11,8 @@
 #
 # Key differences from MODIS VI:
 #   - Layer key prefix: "500_m_16_days_" (vs MODIS "_500m_16_days_")
-#   - Sensor detection: NC global attr contains "VJ1" -> noaa20, else snpp
-#   - Output NCs: vi_viirs_YYYYMM_snpp.nc / vi_viirs_YYYYMM_noaa20.nc
+#   - Sensor detection: GeoTIFF filename contains "VJ113A1" -> noaa20, else snpp
+#   - Output TIFs: vi_viirs_snpp_YYYYMMDD.tif / vi_viirs_noaa20_YYYYMMDD.tif
 #   - Parquet variable codes: 3 = snpp, 4 = noaa20  (MODIS uses 1 = terra, 2 = aqua)
 # ============================================================================
 
@@ -139,9 +139,9 @@ submit_viirs_vi <- function(
 }
 
 
-#' @title Download VIIRS VI NetCDF files from AppEEARS
+#' @title Download VIIRS VI GeoTIFF files from AppEEARS
 #'
-#' @description Polls for AppEEARS task completion and downloads result NCs.
+#' @description Polls for AppEEARS task completion and downloads result GeoTIFFs.
 #'   Separates I/O from computation for independent parallelisation.
 #'   If the task is not found (e.g. expired after the 14-day retention window),
 #'   and domain_vector plus month_end are supplied, the task is automatically
@@ -346,7 +346,9 @@ vi_viirs_geotiff_to_grid <- function(
       sensor         = sensor_label,
       source         = "no_data"
     )
-    terra::writeRaster(r_out, out_path, filetype = "COG", overwrite = TRUE)
+    terra::writeRaster(r_out, out_path, filetype = "COG", datatype = "INT2S",
+                       gdal = c("COMPRESS=DEFLATE", "PREDICTOR=2"),
+                       overwrite = TRUE)
   }
 
   # Collect available GeoTIFF files; handle skip marker and empty/missing directory
@@ -447,7 +449,9 @@ vi_viirs_geotiff_to_grid <- function(
       date_created   = as.character(Sys.Date())
     )
     unlink(out_path)
-    terra::writeRaster(r_out, out_path, filetype = "COG", overwrite = TRUE)
+    terra::writeRaster(r_out, out_path, filetype = "COG", datatype = "INT2S",
+                       gdal = c("COMPRESS=DEFLATE", "PREDICTOR=2"),
+                       overwrite = TRUE)
     if (verbose) message("Wrote: ", basename(out_path))
   }
 
@@ -478,11 +482,21 @@ vi_viirs_geotiff_to_grid <- function(
 #'
 #' @return Character path to \code{dynamic_viirs_vi_YYYYMMDD.parquet}, or path to
 #'   a \code{vi_viirs_YYYYMMDD.skip} marker when all pixels are NA.
+#'
+#' @details
+#' Parquet schema (one row per observation):
+#' \describe{
+#'   \item{pid}{int32 — pixel ID from domain grid}
+#'   \item{date}{int32 — days since 1970-01-01, from per-pixel composite DOY}
+#'   \item{variable}{int32 — sensor code: 3 = S-NPP (VNP13A1), 4 = NOAA-20 (VJ113A1)}
+#'   \item{value}{int32 — EVI × 100 (scale factor 0.01)}
+#' }
 #' @export
 vi_viirs_geotiff_to_parquet <- function(
     tif_files,
     domain_raster,
     composite_date,
+    out_dir  = "data/target_outputs/viirs_vi/",
     verbose  = TRUE) {
 
   composite_date   <- as.Date(composite_date)

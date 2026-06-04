@@ -54,11 +54,6 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
  #   verbose = TRUE
  # )
 
-  # Static NC files are no longer written to disk — domain_grid, vegmap_grid,
-  # elevation, clouds_wilson, soilgrid, topographic_diversity are stored
-  # as COG-backed SpatRaster targets via geotargets::tar_terra_rast().
-  # restore_static_data() is no longer needed and has been removed.
-
   tar_option_set(
     #controller = if (Sys.getenv("GITHUB_ACTIONS") != "true") crew::crew_controller_local(workers = 16) else NULL,
     memory = "transient", 
@@ -147,20 +142,20 @@ list(
 
 # Domain raster with pixel IDs, remnants, and distance to remnants. This defines the model grid that is used for everything!
   geotargets::tar_terra_rast(
-    domain_grid,
+    domain.tif,
     domain_rasterize(
       domain_boundary = domain_boundary,
       remnants = remnants
     ),
     cue = tar_cue(mode = "never")  # Manual download: only run locally, never on CI
-    #   targets::tar_invalidate(domain_grid) #run this to force regeneration of domain grid (e.g. if remnant layer is updated) which will restart everything below
+    #   targets::tar_invalidate(domain.tif) #run this to force regeneration of domain grid (e.g. if remnant layer is updated) which will restart everything below
   ),
 
   # Export domain raster to GeoParquet format for easy distribution 
   tar_target(
     domain_geoparquet,
     domain_to_geoparquet(
-      domain_raster_file = domain_grid,
+      domain_raster_file = domain.tif,
       out_file = "data/target_outputs/domain.parquet",
       verbose = TRUE
     ),
@@ -170,9 +165,9 @@ list(
 
 # Rasterize the vegetation map
   geotargets::tar_terra_rast(
-    vegmap_grid,
+    vegmap.tif,
     process_vegmap(
-      domain_raster = domain_grid,
+      domain_raster = domain.tif,
       vegmap_shp    = vegmap
     ),
     cue = tar_cue(mode = "never")  # Manual download: only run locally, never on CI
@@ -191,10 +186,10 @@ list(
 
   # Cloud cover: Wilson MODCF mean annual and seasonality (EarthEnv, ~1km → 500m domain grid)
   geotargets::tar_terra_rast(
-    clouds_wilson,
+    clouds.tif,
     get_clouds_wilson(
       domain         = domain_boundary,
-      domain_raster  = domain_grid,
+      domain_raster  = domain.tif,
       temp_directory = "data/temp/appeears/clouds_wilson/",
       cleanup        = cleanup_mode,
       verbose        = TRUE
@@ -214,11 +209,11 @@ list(
   ),
 
   geotargets::tar_terra_rast(
-    elevation,
+    elevation.tif,
     download_elevation_results(
       task_id        = elevation_task_id,
       domain_vector  = domain_boundary,
-      domain_raster  = domain_grid,
+      domain_raster  = domain.tif,
       temp_directory = "data/temp/appeears/elevation_nasadem/",
       verbose        = TRUE
     ),
@@ -235,9 +230,9 @@ list(
   # Soil properties: SoilGrids v2 (ISRIC REST API)
   # Properties: SOC, clay, sand, pH, bulk density averaged over 0-30cm depth
   geotargets::tar_terra_rast(
-    soilgrid,
+    soils.tif,
     get_soilgrid(
-      domain_raster  = domain_grid,
+      domain_raster  = domain.tif,
       temp_directory = "data/temp/appeears/soilgrid/",
       cleanup        = cleanup_mode,
       verbose        = TRUE
@@ -245,33 +240,33 @@ list(
     cue = tar_cue(mode = "never")  # Static data: only run locally, never on CI
   ),
 
-  # Topographic diversity metrics derived from the NASADEM elevation (no new download needed)
+  # Topographic diversity metrics derived from the NASADEM elevation.tif
   # Metrics: slope, aspect, TRI, TPI, topographic diversity index
   geotargets::tar_terra_rast(
-    topographic_diversity,
+    geodiversity.tif,
     process_topographic_diversity(
-      elevation_file = elevation,
-      domain_raster  = domain_grid,
+      elevation_file = elevation.tif,
+      domain_raster  = domain.tif,
       focal_radius   = 1L,
       verbose        = TRUE
     ),
-    cue = tar_cue(mode = "never")  # Derived from elevation: only run locally, never on CI
+    cue = tar_cue(mode = "never")  # Derived from elevation.tif: only run locally, never on CI
   ),
 
   # Combine all static layers into a single geoparquet: one row per 500m pixel,
-  # attributes for all static covariates (remnants, elevation, climate, clouds,
+  # attributes for all static covariates (remnants, elevation.tif, climate, clouds,
   # soil, topography, vegmap). Output used for model fitting and distribution.
   tar_target(
     static_geoparquet,
     combine_static_layers_to_geoparquet(
       domain_parquet   = domain_geoparquet,
-      domain_raster  = domain_grid,
-      elevation      = elevation,
+      domain_raster  = domain.tif,
+      elevation      = elevation.tif,
       climate_files  = climate_chelsa,
-      clouds         = clouds_wilson,
-      soil           = soilgrid,
-      topo           = topographic_diversity,
-      vegmap         = vegmap_grid,
+      clouds         = clouds.tif,
+      soil           = soils.tif,
+      topo           = geodiversity.tif,
+      vegmap         = vegmap.tif,
       out_file         = "data/target_outputs/static_covariates.parquet",
       verbose          = TRUE
     ),
@@ -334,7 +329,7 @@ list(
     vi_modis_grid,
     vi_modis_geotiff_to_grid(
       geotiff_directory = vi_modis_geotiff,
-      domain_raster     = domain_grid,
+      domain_raster     = domain.tif,
       composite_date    = vi_modis_pending$composite_date,
       out_dir           = "data/target_outputs/modis_vi/",
       cleanup           = cleanup_mode,
@@ -349,7 +344,7 @@ list(
     vi_modis_parquet,
     vi_modis_geotiff_to_parquet(
       tif_files      = vi_modis_grid,
-      domain_raster  = domain_grid,
+      domain_raster  = domain.tif,
       composite_date = vi_modis_pending$composite_date,
       out_dir        = "data/target_outputs/modis_vi/",
       verbose        = TRUE
@@ -398,7 +393,7 @@ list(
     vi_viirs_grid,
     vi_viirs_geotiff_to_grid(
       geotiff_directory = vi_viirs_geotiff,
-      domain_raster     = domain_grid,
+      domain_raster     = domain.tif,
       composite_date    = vi_viirs_pending$composite_date,
       out_dir           = "data/target_outputs/viirs_vi/",
       cleanup           = cleanup_mode,
@@ -412,7 +407,7 @@ list(
     vi_viirs_parquet,
     vi_viirs_geotiff_to_parquet(
       tif_files      = vi_viirs_grid,
-      domain_raster  = domain_grid,
+      domain_raster  = domain.tif,
       composite_date = vi_viirs_pending$composite_date,
       out_dir        = "data/target_outputs/viirs_vi/",
       verbose        = TRUE
@@ -482,7 +477,7 @@ list(
     burn_modis_grid,
     burn_modis_geotiff_to_grid(
       geotiff_directory = burn_modis_geotiff,
-      domain_raster     = domain_grid,
+      domain_raster     = domain.tif,
       month_start       = burn_modis_pending$month_start,
       out_dir           = "data/target_outputs/burn_dates_modis/",
       cleanup           = cleanup_mode,
@@ -497,7 +492,7 @@ list(
     burn_modis_parquet,
     burn_date_modis_geotiff_to_parquet(
       tif_file      = burn_modis_grid,
-      domain_raster = domain_grid,
+      domain_raster = domain.tif,
       month_start   = burn_modis_pending$month_start,
       out_dir       = "data/target_outputs/burn_dates_modis",
       verbose       = TRUE
@@ -549,7 +544,7 @@ list(
     burn_viirs_grid,
     burn_viirs_geotiff_to_grid(
       geotiff_directory = burn_viirs_geotiff,
-      domain_raster     = domain_grid,
+      domain_raster     = domain.tif,
       month_start       = burn_viirs_pending$month_start,
       out_dir           = "data/target_outputs/burn_dates_viirs/",
       cleanup           = cleanup_mode,
@@ -563,7 +558,7 @@ list(
     burn_viirs_parquet,
     burn_date_viirs_geotiff_to_parquet(
       tif_file      = burn_viirs_grid,
-      domain_raster = domain_grid,
+      domain_raster = domain.tif,
       month_start   = burn_viirs_pending$month_start,
       out_dir       = "data/target_outputs/burn_dates_viirs",
       verbose       = TRUE
@@ -610,26 +605,25 @@ list(
     format = "file"
   ),
 
-  # Rasterize most_recent_burn parquet → domain-aligned NC snapshot
-  tar_target(
-    recentburn_grid,
+  # Rasterize most_recent_burn parquet → domain-aligned COG snapshot (tar_terra_rast)
+  geotargets::tar_terra_rast(
+    recentburn.tif,
     most_recent_burn_to_grid(
       parquet_file  = most_recent_burn,
-      domain_raster = domain_grid,
-      out_file      = "data/target_outputs/most_recent_burn.nc",
+      domain_raster = domain.tif,
       verbose       = TRUE
     ),
-    format = "file"
+    datatype = "INT4S"
   ),
 
-  # Unified STAC Collection for burned area (MODIS + VIIRS NC rasters + recentburn NC).
-  # Re-runs whenever any NC grid or the recentburn_grid snapshot changes.
+  # Unified STAC Collection for burned area (MODIS + VIIRS COG rasters + recentburn COG).
+  # Re-runs whenever any grid or the recentburn.tif snapshot changes.
   tar_target(
     burn_stac,
     generate_burn_stac(
       modis_nc_files         = burn_modis_grid,
       viirs_nc_files         = burn_viirs_grid,
-      recentburn_file        = recentburn_grid,
+      recentburn_file        = terra::sources(recentburn.tif)[[1]],
       stac_dir               = "data/stac/burn",
       gh_repo                = "AdamWilsonLab/emma_envdata",
       gh_release_tag_modis   = "burn_dates_modis_raster",
@@ -641,18 +635,18 @@ list(
     deployment = "main"
   ),
 
-  # Generate STAC Collection for static environmental layers (elevation, climate, soil, etc.)
+  # Generate STAC Collection for static environmental layers (elevation.tif, climate, soil, etc.)
   tar_target(
     static_stac,
     generate_static_layers_stac(
-      domain_file      = terra::sources(domain_grid)[[1]],
+      domain_file      = terra::sources(domain.tif)[[1]],
       domain_parquet   = domain_geoparquet,
-      vegmap_file      = terra::sources(vegmap_grid)[[1]],
-      elevation        = terra::sources(elevation)[[1]],
+      vegmap_file      = terra::sources(vegmap.tif)[[1]],
+      elevation        = terra::sources(elevation.tif)[[1]],
       climate_files    = climate_chelsa,
-      clouds           = terra::sources(clouds_wilson)[[1]],
-      soil             = terra::sources(soilgrid)[[1]],
-      topo             = terra::sources(topographic_diversity)[[1]],
+      clouds           = terra::sources(clouds.tif)[[1]],
+      soil             = terra::sources(soils.tif)[[1]],
+      topo             = terra::sources(geodiversity.tif)[[1]],
       stac_dir         = "data/stac/static",
       gh_repo          = "AdamWilsonLab/emma_envdata",
       gh_release_tag   = "static_data",
@@ -666,19 +660,19 @@ list(
   # All upload targets use deployment = "main" so they only run on the main branch,
   # not on every feature-branch push.
 
-  # Upload all static NetCDF files (domain, elevation, climate, clouds, soil, topography)
+  # Upload all static NetCDF files (domain, elevation.tif, climate, clouds, soil, topography)
   tar_target(
     upload_static,
     upload_to_github_release(
       files = c(
-        terra::sources(domain_grid)[[1]],
+        terra::sources(domain.tif)[[1]],
         "data/target_outputs/domain.parquet",
-        terra::sources(vegmap_grid)[[1]],
-        terra::sources(elevation)[[1]],
+        terra::sources(vegmap.tif)[[1]],
+        terra::sources(elevation.tif)[[1]],
         climate_chelsa,
-        terra::sources(clouds_wilson)[[1]],
-        terra::sources(soilgrid)[[1]],
-        terra::sources(topographic_diversity)[[1]]
+        terra::sources(clouds.tif)[[1]],
+        terra::sources(soils.tif)[[1]],
+        terra::sources(geodiversity.tif)[[1]]
       ),
       repo         = gh_repo_config$repo,
       release_tag  = "static_data",
@@ -782,11 +776,11 @@ list(
     deployment = "main"
   ),
 
-  # Upload derived fire history NC (most recent burn snapshot raster)
+  # Upload derived fire history COG (most recent burn snapshot raster)
   tar_target(
     upload_fire_history,
     upload_to_github_release(
-      files        = recentburn_grid,
+      files        = terra::sources(recentburn.tif)[[1]],
       repo         = gh_repo_config$repo,
       release_tag  = "firehistory_dynamic",
       release_name = "Fire History (most recent burn, postfire age)",
@@ -847,7 +841,7 @@ list(
 #
 # When to run:
 #   1. After first-time setup (full historical download)
-#   2. After changing the domain grid (tar_invalidate(domain_grid) was called)
+#   2. After changing the domain grid (tar_invalidate(domain.tif) was called)
 #   3. After adding a new multi-year dataset
 #
 # Usage: select this block and run it, or source() with chdir = TRUE.

@@ -35,7 +35,7 @@ submit_elevation_task <- function(
         layer = "SRTMGL3_DEM"
       )),
       output = list(
-        format = list(type = "netcdf4"),
+        format = list(type = "geotiff"),
         projection = "native"
       ),
       geo = domain_sf
@@ -60,15 +60,15 @@ submit_elevation_task <- function(
 
 #' @title Download and process NASADEM elevation from AppEEARS
 #' @description Polls for completion of AppEEARS task and downloads results,
-#' then resamples elevation to domain grid and writes to NetCDF.
+#' then resamples elevation to domain grid and writes to GeoTIFF.
 #' @author EMMA Team
 #' @param task_id Character string with AppEEARS task ID (from submit_elevation_task)
 #' @param domain_vector A SpatVector or sf polygon defining the domain boundary
 #' @param domain_raster A SpatRaster (domain.tif) defining the output grid and mask
-#' @param out_file Output NetCDF file path
+#' @param out_file Output GeoTIFF file path
 #' @param temp_directory Temporary working directory for downloads
 #' @param verbose Logical for progress messages
-#' @return Character path to output NetCDF file
+#' @return SpatRaster of elevation on the domain grid
 
 download_elevation_results <- function(
   task_id,
@@ -133,14 +133,16 @@ download_elevation_results <- function(
     verbose = verbose
   )
   
-  # Load the NetCDF file
-  nc_paths <- list.files(temp_directory, pattern = "\\.nc$", full.names = TRUE, recursive = TRUE)
-  if (length(nc_paths) == 0) {
-    stop("No NetCDF files downloaded from AppEEARS")
+  # Load the GeoTIFF file
+  tif_paths <- list.files(temp_directory, pattern = "\\.tif$", full.names = TRUE, recursive = TRUE)
+  if (length(tif_paths) == 0) {
+    stop("No GeoTIFF files downloaded from AppEEARS")
   }
 
-  if (verbose) message("Reading elevation data from: ", nc_paths[1])
-  elev_raster <- terra::rast(nc_paths[grepl(nc_paths, pattern = "SRTMGL3_NC.003_90m_aid0001.nc")])
+  dem_path <- tif_paths[grepl("SRTMGL3", tif_paths)]
+  if (length(dem_path) == 0) dem_path <- tif_paths[1]
+  if (verbose) message("Reading elevation data from: ", dem_path[1])
+  elev_raster <- terra::rast(dem_path[1])
 
   # Ensure we have a SpatRaster template (accept path or raster)
   domain_template <- if (is.character(domain_raster)) terra::rast(domain_raster) else domain_raster

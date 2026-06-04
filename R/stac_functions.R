@@ -594,7 +594,7 @@ generate_burn_dates_stac <- function(
 #'   Files named \code{burn_modis_YYYYMM.nc}; .skip markers are filtered automatically.
 #' @param viirs_nc_files Character vector of VIIRS burn NC paths from \code{burn_viirs_grid} target.
 #'   Files named \code{burn_viirs_YYYYMM.nc}; .skip markers are filtered automatically.
-#' @param recentburn_file Single file path to \code{most_recent_burn.nc} (from \code{recentburn_grid} target).
+#' @param recentburn_file Single file path to \code{most_recent_burn.tif} (from \code{terra::sources(recentburn.tif)[[1]]}).
 #' @param stac_dir Output directory for burn STAC JSON files
 #' @param gh_repo GitHub repository in format "owner/repo"
 #' @param gh_release_tag_modis GitHub release tag hosting MODIS monthly NC rasters
@@ -639,7 +639,7 @@ generate_burn_stac <- function(
       "Generating burn STAC collection: ",
       length(modis$files), " MODIS + ",
       length(viirs$files), " VIIRS monthly items",
-      if (!is.null(recentburn_file) && nzchar(recentburn_file) && grepl("\\.nc$", recentburn_file))
+      if (!is.null(recentburn_file) && nzchar(recentburn_file) && grepl("\\.tif$", recentburn_file))
         " + recentburn item" else ""
     )
   }
@@ -785,8 +785,8 @@ generate_burn_stac <- function(
   )
   all_items <- c(modis_items, viirs_items)
 
-  # ── Derived most-recent-burn NC item ──────────────────────────────────────
-  if (!is.null(recentburn_file) && nzchar(recentburn_file) && grepl("\\.nc$", recentburn_file)) {
+  # ── Derived most-recent-burn GeoTIFF item ────────────────────────────────
+  if (!is.null(recentburn_file) && nzchar(recentburn_file) && grepl("\\.tif$", recentburn_file)) {
     mrb_url <- paste0(
       "https://github.com/", gh_repo,
       "/releases/download/", gh_release_tag_derived, "/",
@@ -823,12 +823,12 @@ generate_burn_stac <- function(
       assets = list(
         recentburn = list(
           href        = mrb_url,
-          title       = "Most recent burn snapshot (NC)",
+          title       = "Most recent burn snapshot (COG)",
           description = paste(
-            "fire_age_days and last_burn_date per pixel as of the latest available date.",
-            "Domain-aligned 500m NetCDF."
+            "fire_age_days (band 1) and last_burn_date (band 2) per pixel as of the latest available date.",
+            "Domain-aligned 500m Cloud Optimized GeoTIFF."
           ),
-          type  = "application/x-netcdf",
+          type  = "image/tiff; application=geotiff; profile=cloud-optimized",
           roles = list("data")
         )
       )
@@ -861,7 +861,7 @@ generate_burn_stac <- function(
       "Generated burn STAC: ",
       length(modis_items), " MODIS + ",
       length(viirs_items), " VIIRS items",
-      if (!is.null(recentburn_file) && nzchar(recentburn_file) && grepl("\\.nc$", recentburn_file))
+      if (!is.null(recentburn_file) && nzchar(recentburn_file) && grepl("\\.tif$", recentburn_file))
         " + recentburn" else ""
     )
   }
