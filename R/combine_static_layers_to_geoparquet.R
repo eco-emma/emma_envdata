@@ -4,17 +4,17 @@
 #'   a single geoparquet file. One row per 500m domain pixel; point geometry
 #'   in the domain CRS (Albers Equal Area, South Africa).
 #' @param domain_parquet Path to domain.parquet (pid + point geometry).
-#' @param domain_nc Path to domain.nc (provides remnants + remnants_distance).
-#' @param elevation_nc Path to elevation_nasadem.nc.
-#' @param climate_nc_files Character vector of CHELSA bioclimatic NC file paths
+#' @param domain_raster Path to domain.nc (provides remnants + remnants_distance).
+#' @param elevation Path to elevation_nasadem.nc.
+#' @param climate_files Character vector of CHELSA bioclimatic NC file paths
 #'   (BIO1–BIO19; 1981–2010 climatology).
 #' @param clouds_nc Path to clouds_wilson.nc (mean annual cloudiness +
 #'   seasonality).
-#' @param soil_nc Path to soil_soilgrids.nc (SOC, clay, sand, pH, bulk density;
+#' @param soil Path to soil_soilgrids.nc (SOC, clay, sand, pH, bulk density;
 #'   0–30 cm depth-weighted means).
-#' @param topo_nc Path to topographic_diversity.nc (slope, aspect, TRI, TPI,
+#' @param topo Path to topographic_diversity.nc (slope, aspect, TRI, TPI,
 #'   topographic diversity index).
-#' @param vegmap_nc Path to vegmap.nc (vegbiome, vegbioregion, vegtype).
+#' @param vegmap Path to vegmap.nc (vegbiome, vegbioregion, vegtype).
 #' @param out_file Output geoparquet file path.
 #' @param verbose Logical; print progress messages.
 #' @return Character path to the written geoparquet file.
@@ -57,32 +57,32 @@ combine_static_layers_to_geoparquet <- function(
 
   # ── Elevation (NASADEM, resampled to 500m grid, metres a.s.l.) ────────────
   if (verbose) message("Extracting elevation ...")
-  elev_vals <- terra::rast(elevation) |> extract_vals()
+  elev_vals <- elevation |> extract_vals()
 
   # ── Climate: CHELSA BIO1–BIO19 (1981–2010 reference period) ───────────────
   # One NC file per bioclimatic variable; stacked here for a single extract pass
   if (verbose) message(
     "Extracting CHELSA climate (", length(climate_files), " variables) ..."
   )
-  climate_vals <- terra::rast(climate_files) |> extract_vals()
+  climate_vals <- terra::rast(climate_files) |> extract_vals() #need rast because of multiple files
 
   # ── Cloud cover: Wilson MODCF (mean annual cloudiness + seasonality) ───────
   if (verbose) message("Extracting cloud cover ...")
-  cloud_vals <- terra::rast(clouds) |> extract_vals()
+  cloud_vals <- clouds |> extract_vals()
 
   # ── Soil properties: SoilGrids v2 (0–30 cm depth-weighted means) ──────────
   # Properties: SOC (g/kg), clay (g/kg), sand (g/kg), pH (×10), bulk density
   if (verbose) message("Extracting soil properties ...")
-  soil_vals <- terra::rast(soil) |> extract_vals()
+  soil_vals <- soil |> extract_vals()
 
   # ── Topographic diversity (slope_deg, aspect_deg, TRI, TPI, topodiv) ───────
   # Derived from NASADEM at 500m; focal radius = 1 pixel
   if (verbose) message("Extracting topographic diversity ...")
-  topo_vals <- terra::rast(topo) |> extract_vals()
+  topo_vals <- topo |> extract_vals()
 
   # ── Vegetation map: NVM2024 (biome, bioregion, vegtype) ───────────────────
   if (verbose) message("Extracting vegetation map ...")
-  veg_vals <- (if (is.character(vegmap)) terra::rast(vegmap) else vegmap) |> extract_vals()
+  veg_vals <- vegmap |> extract_vals()
 
   # ── Assemble all covariates and write geoparquet ───────────────────────────
   n_cov <- ncol(domain_vals) + ncol(elev_vals) + ncol(climate_vals) +

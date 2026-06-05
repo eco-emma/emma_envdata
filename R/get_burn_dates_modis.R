@@ -162,7 +162,7 @@ download_burn_date_modis_geotiff <- function(
 
   # If the grid COG for this month already exists, skip re-downloading.
   # burn_modis_geotiff_to_grid() writes burn_modis_YYYYMM.tif when it completes.
-  marker_dir   <- "data/target_outputs/burn_dates_modis"
+  marker_dir   <- "data/target_outputs/burndates"
   dir.create(marker_dir, recursive = TRUE, showWarnings = FALSE)
   grid_tif_done <- file.path(marker_dir, paste0("burn_modis_", yyyymm, ".tif"))
 
@@ -300,7 +300,7 @@ burn_modis_geotiff_to_grid <- function(
   geotiff_directory,
   domain_raster,
   month_start,
-  out_dir  = "data/target_outputs/burn_dates_modis/",
+  out_dir  = "data/target_outputs/burndates/",
   cleanup  = Sys.getenv("GITHUB_ACTIONS") == "true",
   verbose  = TRUE
 ) {
@@ -438,7 +438,7 @@ burn_date_modis_geotiff_to_parquet <- function(
   tif_file,
   domain_raster,
   month_start,
-  out_dir  = "data/target_outputs/burn_dates_modis",
+  out_dir  = "data/target_outputs/burndates/",
   verbose  = TRUE
 ) {
   month_start <- as.Date(month_start)
@@ -462,7 +462,7 @@ burn_date_modis_geotiff_to_parquet <- function(
   )
 
   if (is.null(burn_r)) {
-    skip_file <- file.path(out_dir, paste0("burn_date_modis_", yyyymm, ".skip"))
+    skip_file <- file.path(out_dir, paste0("burn_modis_", yyyymm, ".skip"))
     writeLines(c(paste("Month:", yyyymm), "Reason: Could not read grid COG",
                  paste("Timestamp:", Sys.time())), skip_file)
     return(skip_file)
@@ -474,7 +474,7 @@ burn_date_modis_geotiff_to_parquet <- function(
 
   if (!any(valid)) {
     if (verbose) message("No burned pixels for ", yyyymm, " — writing skip marker")
-    skip_file <- file.path(out_dir, paste0("burn_date_modis_", yyyymm, ".skip"))
+    skip_file <- file.path(out_dir, paste0("burn_modis_", yyyymm, ".skip"))
     writeLines(c(paste("Month:", yyyymm), "Reason: No burned pixels (burn_doy = 0)",
                  paste("Timestamp:", Sys.time())), skip_file)
     return(skip_file)
@@ -489,7 +489,7 @@ burn_date_modis_geotiff_to_parquet <- function(
     qa       = 0L   # QA filtering was applied in burn_modis_geotiff_to_grid()
   )
 
-  parquet_file <- file.path(out_dir, paste0("burn_date_modis_", yyyymm, ".parquet"))
+  parquet_file <- file.path(out_dir, paste0("burn_modis_", yyyymm, ".parquet"))
   unlink(parquet_file)
   arrow::write_parquet(df, sink = parquet_file, compression = "gzip")
   if (verbose) message("Wrote ", nrow(df), " burned pixels → ", basename(parquet_file))
@@ -511,7 +511,7 @@ burn_date_modis_geotiff_to_parquet <- function(
 #' @return Data frame with columns month_start, month_end, date_str (YYYYMM).
 #' @export
 identify_missing_burn_dates_modis <- function(
-    output_dir  = "data/target_outputs/burn_dates_modis",
+    output_dir  = "data/target_outputs/burndates/",
     start_date  = "2000-11-01",   # MCD64A1 first available data
     end_date    = NULL) {
 

@@ -75,6 +75,7 @@ download_elevation_results <- function(
   domain_vector,
   domain_raster,
   temp_directory = "data/temp/appeears/elevation_nasadem/",
+  cleanup = FALSE,
   verbose = TRUE
 ) {
 
@@ -169,15 +170,20 @@ download_elevation_results <- function(
     units       = "metres"
   )
 
+  # Force all raster values into memory before deleting temp dirs.
+  # terra::project() / terra::mask() may have spilled to terra_tmp; if we
+  # delete that directory first the returned SpatRaster would be file-backed
+  # on a non-existent path, causing "raster has no values" in downstream
+  # terra::extract() calls (e.g. in combine_static_layers_to_geoparquet).
+ # elev_masked <- terra::readAll(elev_masked)
+
   # Cleanup temp downloads
+if (cleanup) {
   unlink(temp_directory, recursive = TRUE, force = TRUE)
   gc()
   unlink(terra_tmp, recursive = TRUE, force = TRUE)
+}
 
   if (verbose) message("Elevation processing complete.")
   elev_masked
 }
-
-
-
-

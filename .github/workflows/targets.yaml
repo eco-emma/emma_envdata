@@ -31,6 +31,7 @@ on:
       - main
       - master
       - dev-adam-appeears
+      - dev-adam-appeears-cog
       - dev-jiyeon
 
   # Allows you to run this workflow manually from the Actions tab
@@ -55,10 +56,10 @@ jobs:
       EARTHDATA_USER: ${{ secrets.EARTHDATA_USER }}
       ACTIONS_RUNNER_DEBUG: true
     steps:
-      - uses: actions/checkout@v2
-        with: 
-          ref: dev-adam-appeears
+      - uses: actions/checkout@v4
+        with:
           lfs: true
+          # No hard-coded ref: use the branch/tag that triggered this workflow run
       - name: Whitelist directory
         run: git config --global --add safe.directory /__w/emma_envdata/emma_envdata
       - name: Install R Package Dependencies
@@ -177,7 +178,7 @@ jobs:
       
       - name: Post failure artifact
         if: failure()
-        uses: actions/upload-artifact@main
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ runner.os }}-results
           path: .

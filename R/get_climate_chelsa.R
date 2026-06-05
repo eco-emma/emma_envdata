@@ -13,7 +13,7 @@
 
 get_climate_chelsa <- function(
     domain,
-    temp_directory = "data/temp/raw_data/climate_chelsa/",
+    temp_directory = "data/temp/chelsa/",
     out_dir = "data/target_outputs/",
     cleanup = TRUE,
     verbose = TRUE

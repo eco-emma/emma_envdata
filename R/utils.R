@@ -89,3 +89,21 @@ generate_composite_sequence <- function(start_date, end_date) {
     composite_end  = dates + 15L
   )
 }
+
+# Generate a sequence of calendar months between two dates.
+# Returns a tibble with one row per month; month_start = first day of month,
+# month_end = last day of month.
+generate_monthly_sequence <- function(start_date, end_date) {
+  start_date <- as.Date(start_date)
+  end_date   <- as.Date(end_date)
+  month_starts <- seq(
+    from = as.Date(format(start_date, "%Y-%m-01")),
+    to   = as.Date(format(end_date,   "%Y-%m-01")),
+    by   = "month"
+  )
+  month_ends <- as.Date(format(month_starts + 31L, "%Y-%m-01")) - 1L
+  tibble::tibble(
+    month_start = month_starts,
+    month_end   = month_ends
+  )
+}

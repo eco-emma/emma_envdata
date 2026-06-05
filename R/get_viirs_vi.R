@@ -503,7 +503,7 @@ vi_viirs_geotiff_to_parquet <- function(
   yyyymmdd         <- format(composite_date, "%Y%m%d")
 
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
-  parquet_file <- file.path(out_dir, paste0("dynamic_viirs_vi_", yyyymmdd, ".parquet"))
+  parquet_file <- file.path(out_dir, paste0("vi_viirs_", yyyymmdd, ".parquet"))
 
   # Load domain for pid values
   domain_template  <- if (is.character(domain_raster)) terra::rast(domain_raster) else domain_raster

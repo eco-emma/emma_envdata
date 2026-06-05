@@ -215,6 +215,7 @@ list(
       domain_vector  = domain_boundary,
       domain_raster  = domain.tif,
       temp_directory = "data/temp/appeears/elevation_nasadem/",
+      cleanup = cleanup_mode,
       verbose        = TRUE
     ),
     cue = tar_cue(mode = "never")
@@ -422,7 +423,7 @@ list(
     generate_modis_vi_stac(
       tif_files            = vi_modis_grid,
       viirs_tif_files      = vi_viirs_grid,
-      stac_dir             = "data/stac/modis_vi",
+      stac_dir             = "data/stac/vi",
       parent_catalog_path  = "data/stac",
       gh_repo              = "AdamWilsonLab/emma_envdata",
       gh_release_tag       = "vi_modis_dynamic_raster",
@@ -449,7 +450,7 @@ list(
       domain_vector  = domain_boundary,
       month_start    = burn_modis_pending$month_start,
       month_end      = burn_modis_pending$month_end,
-      out_dir        = "data/target_outputs/burn_dates_modis/",
+      out_dir        = "data/target_outputs/burndates/",
       gh_release_tag = "burn_dates_modis_raster",
       verbose        = TRUE
     ),
@@ -479,7 +480,7 @@ list(
       geotiff_directory = burn_modis_geotiff,
       domain_raster     = domain.tif,
       month_start       = burn_modis_pending$month_start,
-      out_dir           = "data/target_outputs/burn_dates_modis/",
+      out_dir           = "data/target_outputs/burndates/",
       cleanup           = cleanup_mode,
       verbose           = TRUE
     ),
@@ -494,7 +495,7 @@ list(
       tif_file      = burn_modis_grid,
       domain_raster = domain.tif,
       month_start   = burn_modis_pending$month_start,
-      out_dir       = "data/target_outputs/burn_dates_modis",
+      out_dir       = "data/target_outputs/burndates/",
       verbose       = TRUE
     ),
     pattern = map(burn_modis_grid, burn_modis_pending),
@@ -517,7 +518,7 @@ list(
       domain_vector  = domain_boundary,
       month_start    = burn_viirs_pending$month_start,
       month_end      = burn_viirs_pending$month_end,
-      out_dir        = "data/target_outputs/burn_dates_viirs/",
+      out_dir        = "data/target_outputs/burndates/",
       gh_release_tag = "burn_dates_viirs_raster",
       verbose        = TRUE
     ),
@@ -546,7 +547,7 @@ list(
       geotiff_directory = burn_viirs_geotiff,
       domain_raster     = domain.tif,
       month_start       = burn_viirs_pending$month_start,
-      out_dir           = "data/target_outputs/burn_dates_viirs/",
+      out_dir           = "data/target_outputs/burndates/",
       cleanup           = cleanup_mode,
       verbose           = TRUE
     ),
@@ -560,7 +561,7 @@ list(
       tif_file      = burn_viirs_grid,
       domain_raster = domain.tif,
       month_start   = burn_viirs_pending$month_start,
-      out_dir       = "data/target_outputs/burn_dates_viirs",
+      out_dir       = "data/target_outputs/burndates/",
       verbose       = TRUE
     ),
     pattern = map(burn_viirs_grid, burn_viirs_pending),
@@ -579,9 +580,8 @@ list(
       force(burn_modis_parquet)
       force(burn_viirs_parquet)
       merge_burn_dates(
-        modis_dir = "data/target_outputs/burn_dates_modis",
-        viirs_dir = "data/target_outputs/burn_dates_viirs",
-        verbose   = TRUE
+        burn_dir = "data/target_outputs/burndates/",
+        verbose  = TRUE
       )
     }
   ),
@@ -621,8 +621,8 @@ list(
   tar_target(
     burn_stac,
     generate_burn_stac(
-      modis_nc_files         = burn_modis_grid,
-      viirs_nc_files         = burn_viirs_grid,
+      modis_tif_files        = burn_modis_grid,
+      viirs_tif_files        = burn_viirs_grid,
       recentburn_file        = terra::sources(recentburn.tif)[[1]],
       stac_dir               = "data/stac/burn",
       gh_repo                = "AdamWilsonLab/emma_envdata",
@@ -789,20 +789,29 @@ list(
     deployment = "main"
   ),
 
-  # Generate parent STAC Catalog linking all datasets
+  # Generate parent STAC Catalog linking all datasets.
+  # force() calls create explicit targets dependencies so the catalog is never
+  # written before the collection JSONs exist.
+  # Note: deployment="main" means "run in the main R process (not a crew worker)",
+  # NOT "only run on the main git branch".
   tar_target(
     emma_stac_catalog,
-    generate_emma_stac_catalog(
-      stac_base_dir       = "data/stac",
-      dataset_collections = list(
-        modis_vi     = "data/stac/modis_vi",
-        burn         = "data/stac/burn",
-        fire_history = "data/stac/fire_history",
-        static       = "data/stac/static"
-      ),
-      gh_repo = "AdamWilsonLab/emma_envdata",
-      verbose = TRUE
-    ),
+    {
+      force(vi_stac)      # wait for vi_collection.json to be written
+      force(burn_stac)    # wait for burn_collection.json to be written
+      force(static_stac)  # wait for static_collection.json to be written
+      generate_emma_stac_catalog(
+        stac_base_dir       = "data/stac",
+        dataset_collections = list(
+          vi     = "data/stac/vi",  # key "vi" → vi_collection.json
+          burn   = "data/stac/burn",      # key "burn" → burn_collection.json
+          static = "data/stac/static"     # key "static" → static_collection.json
+          # fire_history removed: recentburn item lives inside the burn collection
+        ),
+        gh_repo = "AdamWilsonLab/emma_envdata",
+        verbose = TRUE
+      )
+    },
     format     = "file",
     deployment = "main"
   ),

@@ -41,20 +41,19 @@
 #' @return A tibble of all burn events across the full record.
 #' @export
 merge_burn_dates <- function(
-    modis_dir = "data/target_outputs/burn_dates_modis",
-    viirs_dir = "data/target_outputs/burn_dates_viirs",
-    verbose   = TRUE) {
+    burn_dir = "data/target_outputs/burndates/",
+    verbose  = TRUE) {
 
-  # Helper: read all parquets in a directory, add a source column, skip .skip files
-  read_burn_parquets <- function(dir, source_label) {
-    parquet_files <- list.files(dir, pattern = "\\.parquet$", full.names = TRUE)
+  # Helper: read parquets matching filename pattern, add source column
+  read_burn_parquets <- function(pattern, source_label) {
+    parquet_files <- list.files(burn_dir, pattern = pattern, full.names = TRUE)
 
     if (length(parquet_files) == 0) {
-      if (verbose) message("No parquet files found in ", dir)
+      if (verbose) message("No parquet files found in ", burn_dir, " matching ", pattern)
       return(tibble::tibble(pid = integer(), date = integer(), burn_doy = integer(), source = character()))
     }
 
-    if (verbose) message("Reading ", length(parquet_files), " ", source_label, " parquets from ", dir)
+    if (verbose) message("Reading ", length(parquet_files), " ", source_label, " parquets from ", burn_dir)
 
     # Use arrow::open_dataset for efficient multi-file reading without loading
     # all files into memory at once — important for 200+ monthly files
@@ -64,11 +63,11 @@ merge_burn_dates <- function(
       dplyr::mutate(source = source_label)
   }
 
-  modis_burns <- read_burn_parquets(modis_dir, "modis")
-  viirs_burns <- read_burn_parquets(viirs_dir, "viirs")
+  modis_burns <- read_burn_parquets("^burn_modis_.*\\.parquet$", "modis")
+  viirs_burns <- read_burn_parquets("^burn_viirs_.*\\.parquet$", "viirs")
 
   if (nrow(modis_burns) == 0 && nrow(viirs_burns) == 0) {
-    if (verbose) message("No burn date parquet files found in either directory — returning empty burn record")
+    if (verbose) message("No burn date parquet files found in ", burn_dir, " — returning empty burn record")
     return(tibble::tibble(pid = integer(), date = integer(), burn_doy = integer(), source = character()))
   }
 

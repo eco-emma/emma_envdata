@@ -155,7 +155,7 @@ download_burn_date_viirs_geotiff <- function(
 
   # Skip if grid COG for this month already exists.
   # burn_viirs_geotiff_to_grid() writes burn_viirs_YYYYMM.tif when it completes.
-  marker_dir   <- "data/target_outputs/burn_dates_viirs"
+  marker_dir   <- "data/target_outputs/burndates"
   dir.create(marker_dir,      recursive = TRUE, showWarnings = FALSE)
   dir.create(temp_directory,  recursive = TRUE, showWarnings = FALSE)
   grid_tif_done <- file.path(marker_dir, paste0("burn_viirs_", yyyymm, ".tif"))
@@ -283,7 +283,7 @@ burn_viirs_geotiff_to_grid <- function(
   geotiff_directory,
   domain_raster,
   month_start,
-  out_dir  = "data/target_outputs/burn_dates_viirs/",
+  out_dir  = "data/target_outputs/burndates/",
   cleanup  = Sys.getenv("GITHUB_ACTIONS") == "true",
   verbose  = TRUE
 ) {
@@ -417,7 +417,7 @@ burn_date_viirs_geotiff_to_parquet <- function(
     tif_file,
     domain_raster,
     month_start,
-    out_dir  = "data/target_outputs/burn_dates_viirs",
+    out_dir  = "data/target_outputs/burndates/",
     verbose  = TRUE) {
 
   month_start <- as.Date(month_start)
@@ -427,7 +427,7 @@ burn_date_viirs_geotiff_to_parquet <- function(
 
   # Handle skip-file path from upstream burn_viirs_grid target
   if (grepl("\\.skip$", tif_file)) {
-    skip_file <- file.path(out_dir, paste0("burn_date_viirs_", yyyymm, ".skip"))
+    skip_file <- file.path(out_dir, paste0("burn_viirs_", yyyymm, ".skip"))
     writeLines(c(paste("Month:", yyyymm), "Reason: upstream grid target skipped",
                  paste("Timestamp:", Sys.time())), skip_file)
     return(skip_file)
@@ -449,7 +449,7 @@ burn_date_viirs_geotiff_to_parquet <- function(
   )
 
   if (is.null(burn_r)) {
-    skip_file <- file.path(out_dir, paste0("burn_date_viirs_", yyyymm, ".skip"))
+    skip_file <- file.path(out_dir, paste0("burn_viirs_", yyyymm, ".skip"))
     writeLines(c(paste("Month:", yyyymm), "Reason: Could not read grid COG",
                  paste("Timestamp:", Sys.time())), skip_file)
     return(skip_file)
@@ -461,7 +461,7 @@ burn_date_viirs_geotiff_to_parquet <- function(
 
   if (!any(valid)) {
     if (verbose) message("No burned pixels for ", yyyymm, " — writing skip marker")
-    skip_file <- file.path(out_dir, paste0("burn_date_viirs_", yyyymm, ".skip"))
+    skip_file <- file.path(out_dir, paste0("burn_viirs_", yyyymm, ".skip"))
     writeLines(c(paste("Month:", yyyymm), "Reason: No burned pixels (burn_doy = 0)",
                  paste("Timestamp:", Sys.time())), skip_file)
     return(skip_file)
@@ -476,7 +476,7 @@ burn_date_viirs_geotiff_to_parquet <- function(
     qa       = 0L   # QA filtering was applied in burn_viirs_geotiff_to_grid()
   )
 
-  parquet_file <- file.path(out_dir, paste0("burn_date_viirs_", yyyymm, ".parquet"))
+  parquet_file <- file.path(out_dir, paste0("burn_viirs_", yyyymm, ".parquet"))
   unlink(parquet_file)
   arrow::write_parquet(df, sink = parquet_file, compression = "gzip")
   if (verbose) message("Wrote ", nrow(df), " burned pixels → ", basename(parquet_file))
@@ -497,7 +497,7 @@ burn_date_viirs_geotiff_to_parquet <- function(
 #' @return Data frame with columns month_start, month_end, date_str.
 #' @export
 identify_missing_burn_dates_viirs <- function(
-    output_dir  = "data/target_outputs/burn_dates_viirs",
+    output_dir  = "data/target_outputs/burndates/",
     start_date  = "2012-01-01",   # VNP64A1 first available data
     end_date    = NULL) {
 

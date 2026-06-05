@@ -161,6 +161,8 @@ generate_modis_vi_stac <- function(
     )
   )
 
+  # filename must match the key used in generate_emma_stac_catalog() dataset_collections list:
+  # key "vi"  →  expected file "vi_collection.json"
   collection_file <- file.path(stac_dir, "vi_collection.json")
   jsonlite::write_json(collection, collection_file, pretty = TRUE, auto_unbox = TRUE)
 
@@ -583,29 +585,29 @@ generate_burn_dates_stac <- function(
 }
 
 
-#' @title Generate unified burn STAC Collection (NetCDF rasters)
+#' @title Generate unified burn STAC Collection (COG GeoTIFF rasters)
 #' @description Creates a single STAC Collection combining MODIS MCD64A1 and VIIRS VNP64A1
-#'   monthly burned area NetCDF items plus a derived most-recent-burn NC item.
+#'   monthly burned area COG GeoTIFF items plus a derived most-recent-burn COG item.
 #'   Items carry a \code{source} property ("modis", "viirs", or "derived") so consumers can filter
 #'   by sensor.  VIIRS is preferred over MODIS in all downstream deduplication and
 #'   fire-history products (higher spatial resolution: 375m vs 500m).
 #'   Note temporal discontinuity: VIIRS data begin January 2012.
-#' @param modis_nc_files Character vector of MODIS burn NC paths from \code{burn_modis_grid} target.
-#'   Files named \code{burn_modis_YYYYMM.nc}; .skip markers are filtered automatically.
-#' @param viirs_nc_files Character vector of VIIRS burn NC paths from \code{burn_viirs_grid} target.
-#'   Files named \code{burn_viirs_YYYYMM.nc}; .skip markers are filtered automatically.
+#' @param modis_tif_files Character vector of MODIS burn COG TIF paths from \code{burn_modis_grid} target.
+#'   Files named \code{burn_modis_YYYYMM.tif}; .skip markers are filtered automatically.
+#' @param viirs_tif_files Character vector of VIIRS burn COG TIF paths from \code{burn_viirs_grid} target.
+#'   Files named \code{burn_viirs_YYYYMM.tif}; .skip markers are filtered automatically.
 #' @param recentburn_file Single file path to \code{most_recent_burn.tif} (from \code{terra::sources(recentburn.tif)[[1]]}).
 #' @param stac_dir Output directory for burn STAC JSON files
 #' @param gh_repo GitHub repository in format "owner/repo"
-#' @param gh_release_tag_modis GitHub release tag hosting MODIS monthly NC rasters
-#' @param gh_release_tag_viirs GitHub release tag hosting VIIRS monthly NC rasters
+#' @param gh_release_tag_modis GitHub release tag hosting MODIS monthly COG rasters
+#' @param gh_release_tag_viirs GitHub release tag hosting VIIRS monthly COG rasters
 #' @param gh_release_tag_derived GitHub release tag hosting derived fire-history products
 #' @param verbose Logical for progress messages
 #' @return Character path to the burn collection.json
 #' @keywords internal
 generate_burn_stac <- function(
-  modis_nc_files         = NULL,
-  viirs_nc_files         = NULL,
+  modis_tif_files        = NULL,
+  viirs_tif_files        = NULL,
   recentburn_file        = NULL,
   stac_dir               = "data/stac/burn",
   gh_repo                = "AdamWilsonLab/emma_envdata",
@@ -616,23 +618,23 @@ generate_burn_stac <- function(
 ) {
   dir.create(stac_dir, recursive = TRUE, showWarnings = FALSE)
 
-  # Filter to valid NC files; drop .skip markers
-  filter_nc <- function(files) {
+  # Filter to valid COG TIF files; drop .skip markers
+  filter_tif <- function(files) {
     if (is.null(files) || length(files) == 0) return(character(0))
-    files[grepl("\\.nc$", files) & !grepl("\\.skip$", files)]
+    files[grepl("\\.tif$", files, ignore.case = TRUE) & !grepl("\\.skip$", files)]
   }
-  modis_nc_files <- filter_nc(modis_nc_files)
-  viirs_nc_files <- filter_nc(viirs_nc_files)
+  modis_tif_files <- filter_tif(modis_tif_files)
+  viirs_tif_files <- filter_tif(viirs_tif_files)
 
-  # Extract YYYYMM dates from NC filenames
-  parse_nc_dates <- function(files) {
+  # Extract YYYYMM dates from TIF filenames
+  parse_tif_dates <- function(files) {
     if (length(files) == 0) return(list(files = character(0), dates = as.Date(character(0))))
     ym    <- regmatches(basename(files), regexpr("\\d{6}", basename(files)))
     dates <- as.Date(paste0(ym, "01"), format = "%Y%m%d")
     list(files = files[!is.na(dates)], dates = dates[!is.na(dates)])
   }
-  modis <- parse_nc_dates(modis_nc_files)
-  viirs <- parse_nc_dates(viirs_nc_files)
+  modis <- parse_tif_dates(modis_tif_files)
+  viirs <- parse_tif_dates(viirs_tif_files)
 
   if (verbose) {
     message(
@@ -657,18 +659,18 @@ generate_burn_stac <- function(
     stac_extensions = list("https://stac-extensions.github.io/scientific/v1.0.0/schema.json"),
     type        = "Collection",
     id          = "burn",
-    title       = "Burned Area — MODIS MCD64A1 + VIIRS VNP64A1 (NetCDF rasters)",
+    title       = "Burned Area — MODIS MCD64A1 + VIIRS VNP64A1 (COG GeoTIFF rasters)",
     description = paste(
-      "Monthly burned area NetCDF rasters for ecosystem fire-history analysis.",
+      "Monthly burned area COG GeoTIFF rasters for ecosystem fire-history analysis.",
       "Both MODIS and VIIRS are first-class sensor families: MODIS MCD64A1 (Terra,",
       "500m, 2000-present) extends the long-term record; VIIRS VNP64A1 (Suomi NPP,",
       "375m resampled to 500m, 2012-present) provides independent, finer-resolution",
       "detections from 2012 onward. Both are retained and delivered as separate",
-      "domain-aligned files. Each NC contains a burn_doy variable (day-of-year of",
+      "domain-aligned files. Each COG contains a burn_doy band (day-of-year of",
       "burn detection, QA=0 only). In the merged fire-history product, detections",
       "from both sensors are combined; where they overlap spatially, VIIRS is used",
       "in preference to MODIS given its finer spatial resolution (375m vs 500m).",
-      "Also includes most_recent_burn.nc: fire_age_days and last_burn_date per pixel."
+      "Also includes most_recent_burn.tif: fire_age_days and last_burn_date per pixel."
     ),
     license = "proprietary",
     extent = list(
@@ -708,7 +710,7 @@ generate_burn_stac <- function(
   collection_file <- file.path(stac_dir, "burn_collection.json")
   jsonlite::write_json(collection, collection_file, pretty = TRUE, auto_unbox = TRUE)
 
-  # ── Helper: build and write one monthly burn NC item ─────────────────────
+  # ── Helper: build and write one monthly burn COG item ────────────────────
   make_monthly_item <- function(nc_file, nc_date, source, gh_release_tag) {
     sensor_meta <- list(
       modis = list(platforms = list("Terra"),     instruments = list("MODIS"), gsd = 500),
@@ -756,12 +758,12 @@ generate_burn_stac <- function(
         list(rel = "parent",     href = "burn_collection.json", type = "application/json")
       ),
       assets = list(
-        burn_doy = list(
+        burn_grid = list(
           href        = gh_url,
           title       = paste0(toupper(source), " burn day-of-year — ", year_month),
-          description = paste0("burn_doy variable: day of year of burn detection (QA=0), ",
-                               smeta$platforms[[1]], " 500m domain-aligned grid"),
-          type        = "application/x-netcdf",
+          description = paste0("burn_doy band: day of year of burn detection (QA=0), ",
+                               smeta$platforms[[1]], " 500m domain-aligned COG GeoTIFF"),
+          type        = "image/tiff; application=geotiff; profile=cloud-optimized",
           roles       = list("data")
         )
       )
@@ -783,6 +785,7 @@ generate_burn_stac <- function(
     ~ make_monthly_item(..1, ..2, source = "viirs",
                         gh_release_tag = gh_release_tag_viirs)
   )
+  # Note: modis$files / viirs$files are now .tif COG paths (not .nc)
   all_items <- c(modis_items, viirs_items)
 
   # ── Derived most-recent-burn GeoTIFF item ────────────────────────────────
