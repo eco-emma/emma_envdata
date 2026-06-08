@@ -73,10 +73,8 @@ vi_modis_parquet|pattern|7364e1b7c71919f5|77be6ef12c5d128c||-1493299319||||19283
 upload_vi_modis_grid|stem|ec2ad547129d399c|7bd78a89671890c1|af7de73e5a1f302f|1246510097||t20608.7064851527s|s168b|168|qs|local|vector|||87.369||
 elevation.tif|stem|afb0f4ed1f960a11|d9d3d197f1e4f290|8ec219cc7c978632|-419018130||t20608.7647902947s|s5450760b|5450760|format_custom&read=dGVycmE6OnJhc3QocGF0aCk&write=ewogICAgZG8uY2FsbCh0ZXJyYTo6d3JpdGVSYXN0ZXIsIGMobGlzdChvYmplY3QsIGZpbGVuYW1lID0gcGF0aCwgCiAgICAgICAgZmlsZXR5cGUgPSAiQ09HIiwgb3ZlcndyaXRlID0gVFJVRSwgZ2RhbCA9IE5VTEwpLCBsaXN0KCkpKQp9&marshal=dGVycmE6OndyYXAob2JqZWN0KQ&unmarshal=dGVycmE6OnVud3JhcChvYmplY3Qp&convert=&copy=&repository=|local|list|||24.405|The 'env' backend does not support multiple keyrings, the 'keyring' argument is ignored. The 'env' backend does not support multiple keyrings, the 'keyring' argument is ignored|
 static_geoparquet|stem|223847c9414a8485|62986b2337299adc|ffdead7474f5a41f|894506766|data/target_outputs/static_covariates.parquet|t20608.7742640831s|s97180916b|97180916|file|local|vector|||34.653|[extract] transforming vector data to the CRS of the raster. This is an initial implementation of Parquet/Feather file support and geo metadata. This is tracking version 0.1.0 of the metadata (https://github.com/geopandas/geo-arrow-spec). This metadata specification may change and does not yet make stability promises.  We do not yet recommend using this in a production setting unless you are able to rewrite your Parquet/Feather files.|
-static_stac|stem|743a871ac5d062eb|d6e71e1579c3b398|5eb793c260453b4a|-944990694|data/stac/static/static_collection.json|t20608.7745119373s|s3088b|3088|file|local|vector|||0.171||
 upload_static|stem|4ae2509d5a9b3fb1|4dd75f710097a889|f5ec22b6cd3ed436|-1754906267||t20608.775041997s|s302b|302|qs|local|vector|||45.502||
 upload_vi_modis|stem|221f83fb5b37abb5|3029914a6ddb7f32|852e80e8fc7232a0|-1054129717||t20608.7779410916s|s149b|149|qs|local|vector|||85.716||
-most_recent_burn|stem|dd49f67bfd3357c4|f26f77a10c4d2dd7|e43d1ef47fe91b25|-1301345347|data/target_outputs/most_recent_burn.parquet|t20608.7779594225s|s829b|829|file|local|vector|||0.494||
 recentburn.tif|stem|0eff8fe27f3539e6|d096bece630ec5f9|740bff9304db0ef7|-69845000||t20608.7779692804s|s131233b|131233|format_custom&read=dGVycmE6OnJhc3QocGF0aCk&write=ewogICAgZG8uY2FsbCh0ZXJyYTo6d3JpdGVSYXN0ZXIsIGMobGlzdChvYmplY3QsIGZpbGVuYW1lID0gcGF0aCwgCiAgICAgICAgZmlsZXR5cGUgPSAiQ09HIiwgb3ZlcndyaXRlID0gVFJVRSwgZ2RhbCA9IE5VTEwpLCBsaXN0KAogICAgICAgIGRhdGF0eXBlID0gIklOVDRTIikpKQp9&marshal=dGVycmE6OndyYXAob2JqZWN0KQ&unmarshal=dGVycmE6OnVud3JhcChvYmplY3Qp&convert=&copy=&repository=|local|list|||0.159||
 upload_fire_history|stem|320eca80a43b8ebc|e76628ffecf508e7|f76ed97961e1a598|1068108102||t20608.7789391323s|s138b|138|qs|local|vector|||83.027||
 burn_modis_task_ids_ff16e8b0e0add254|branch|315f0a5215b5347c|09513944c183e63e|04f329653dace743|1635639075||t20608.844836259s|s89b|89|qs|local|vector|burn_modis_task_ids||0.041||
@@ -116,6 +114,10 @@ burn_viirs_parquet|pattern|38e7aed12fa58801|b87bc9017c9982dc||1744255498||||184|
 upload_burn_modis|stem|15c9d38f578ae537|1e53710ec6771cc1|b3e3889f91a4607c|743924510||t20608.8454272549s|s68b|68|qs|local|vector|||0.001||
 burn_events_merged|stem|00ff1aad39d43e32|87d97bd2ad7e4e55|7d8265b30bd87da8|861949079||t20608.8454304383s|s193b|193|qs|local|vector|||0.042||
 upload_burn_viirs_data|stem|15c9d38f578ae537|c13a203be2cba94c|8357d7c54799becd|-981860870||t20608.845433184s|s68b|68|qs|local|vector|||0||
+static_stac|stem|98ebd7ad57aede71|d6e71e1579c3b398|96764ddb165c442f|-944990694|data/stac/static/static_collection.json|t20612.6272639325s|s3090b|3090|file|local|vector|||0.177||
+burn_stac|stem|7e56ce8c4b1fd410|a6294914a386d2f2|b7b6d6b30b0180c9|-673817958|data/stac/burn/burn_collection.json|t20612.6272698859s|s3489b|3489|file|local|vector|||0.189||
+vi_stac|stem|48426915094df1db|fa11bfa6749138dc|f7c085fa00a8b68a|1856097947|data/stac/vi/vi_collection.json|t20612.6349709393s|s3386b|3386|file|local|vector|||0.182||
+emma_stac_catalog|stem|90cdc953553df77a|b0adf5cf11d341e5|2703a0483619daea|400305184|data/stac/catalog.json|t20612.6355286661s|s1323b|1323|file|local|vector|||0.04||
 viirs_start_date|object|1e465a9cdbaf7006
 ensure_appeears_auth|function|9cdf69aed0657b94
 .gh_token|function|5841a593bd23a6d4
@@ -139,7 +141,7 @@ vi_load_observation_dates|function|a5e476cd112be5b7
 process_vegmap|function|e4b723a3115d1fdc
 burn_date_viirs_geotiff_to_parquet|function|8359d63f369bc55b
 description_packages|object|af746e712afe9085
-.Random.seed|object|4c59ae43e3ce37ed
+.Random.seed|object|ba14071ce331e05a
 burn_date_modis_geotiff_to_parquet|function|ecfea0a5cd939642
 combine_static_layers_to_geoparquet|function|9c16df535dcbe437
 generate_composite_sequence|function|e21941e8bf12f843
@@ -149,21 +151,21 @@ burn_modis_geotiff_to_grid|function|449a94d6328ab864
 identify_missing_burn_dates_modis|function|4a354dda6ac6f410
 get_remnants|function|0ea8dbed85b43010
 domain_to_geoparquet|function|ea9fe4f975bf5a2e
-generate_modis_vi_stac|function|b3a0d526d9061d98
+generate_modis_vi_stac|function|b2ffde008455560a
 compute_most_recent_burn|function|9245bc0a857491b8
 .gh_release_asset_cache|object|116287f287444c70
 generate_emma_stac_catalog|function|43c8462a8d71cc1c
-generate_burn_stac|function|5e87826a64c4d017
+generate_burn_stac|function|da6d43d315f9fd5b
 get_clouds_wilson|function|f92ba7f53869419c
 get_vegmap|function|682cf163bca9a5d4
 generate_monthly_sequence|function|167144606cbab93b
 domain_define|function|31f1d70699fcfc0f
 identify_missing_burn_dates_viirs|function|843923cfca25edc9
-generate_static_layers_stac|function|3aadb95bdc98cf5b
+generate_static_layers_stac|function|4cffce74bef6686f
 process_topographic_diversity|function|b6a1a93c42a60a92
 modis_end_date|object|ed442164c79ee42a
 most_recent_burn_to_grid|function|1af44d5ea22c1ce6
-generate_burn_dates_stac|function|2363249c981a855c
+generate_burn_dates_stac|function|8c46e9cb10a81705
 vi_modis_geotiff_to_parquet|function|62301aa1d4984e8f
 make_domain_bbox|function|574958154bcd07db
 load_description_packages|function|b8d7a631f6c9b45d
@@ -186,7 +188,5 @@ download_burn_date_modis_geotiff|function|fae863559f6c8abb
 download_burn_date_viirs_geotiff|function|d7a927e1baf050a9
 download_modis_vi_geotiff|function|8cd483bf1504ff86
 download_viirs_vi_geotiff|function|059620120ac6a0f6
-vi_stac|stem|bb2ac4f08e1edd94|fa11bfa6749138dc|c8a27ecc6f56fa16|1856097947|data/stac/vi/vi_collection.json|t20609.9082052552s|s3319b|3319|file|local|vector|||0.175||
-burn_stac|stem|c8e97cecc695b7ad|a6294914a386d2f2|04378d1e9d9c2184|-673817958|data/stac/burn/burn_collection.json|t20609.9082145994s|s3662b|3662|file|local|vector|||0.191||
-emma_stac_catalog|stem|90cdc953553df77a|b0adf5cf11d341e5|943b56b1a08744a4|400305184|data/stac/catalog.json|t20609.908218363s|s1323b|1323|file|local|vector|||0.041||
-upload_stac_catalog|stem|f6b26c4b29e470b7|6d6e60c8ab6964b2|d0badd3516583713|2024368032||t20609.9087668786s|s410b|410|qs|local|vector|||47.155||
+most_recent_burn|stem|dd49f67bfd3357c4|4bd4e1fde5a1c1e3|e43d1ef47fe91b25|-1301345347|data/target_outputs/postfireage.parquet|t20612.6507371027s|s829b|829|file|local|vector|||0.51||
+upload_stac_catalog|stem|75b229dee5e045ca|ee29cb19e093897e|3238cf022cee6edb|2024368032||t20612.6512111897s|s297b|297|qs|local|vector|||40.675||

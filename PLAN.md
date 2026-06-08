@@ -30,13 +30,13 @@ Issue references map to the `ARCHITECTURE.md` sections (5.x = Design Issue, CQ-x
 # In _targets.R, near the top with gh_repo_config:
 release_tags <- list(
   static            = "static_data",
-  vi_modis_raster   = "vi_modis_dynamic_raster",
-  vi_viirs_raster   = "vi_viirs_dynamic_raster",
-  vi_modis_parquet  = "vi_modis_dynamic",
-  burn_modis_raster = "burn_dates_modis_raster",
-  burn_viirs_raster = "burn_dates_viirs_raster",
-  burn_modis_parq   = "burndate_modis_dynamic",
-  burn_viirs_parq   = "burndate_viirs_dynamic",
+  vi_modis_raster   = "vi_modis_raster",
+  vi_viirs_raster   = "vi_viirs_raster",
+  vi_modis_parquet  = "vi_modis_parquet",
+  burn_modis_raster = "burn_modis_raster",
+  burn_viirs_raster = "burn_viirs_raster",
+  burn_modis_parquet   = "burn_modis_parquet",
+  burn_viirs_parquet   = "burn_viirs_parquet",
   fire_history      = "firehistory_dynamic",
   stac              = "stac",
   cache             = "targets-cache"

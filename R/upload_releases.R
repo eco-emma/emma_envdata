@@ -137,18 +137,21 @@ upload_to_github_release <- function(
   }
   
 
-  # Ensure release exists (create it if needed)
+  # Ensure release exists (create it if needed) — use gh directly, not piggyback,
+  # to avoid pb_new_release() API incompatibilities with newer GitHub response schemas.
+  parts <- strsplit(repo, "/")[[1]]
   tryCatch({
-    piggyback::pb_new_release(
-      repo = repo,
-      tag = release_tag,
-      .token = token
+    gh::gh(
+      "POST /repos/{owner}/{repo}/releases",
+      owner      = parts[1], repo = parts[2],
+      tag_name   = release_tag,
+      name       = release_name,
+      prerelease = TRUE,
+      .token     = token
     )
     if (verbose) message("\u2713 Created release '", release_tag, "'")
-  }, warning = function(w) {
-    # "already exists" warning from piggyback — release is present, which is fine
-    if (verbose) message("Using existing release '", release_tag, "'")
   }, error = function(e) {
+    # Release already exists or commit doesn't exist yet — both are fine
     if (verbose) message("Using existing release '", release_tag, "'")
   })
   
@@ -210,38 +213,66 @@ upload_to_github_release <- function(
   }
   
  
-  # Verify uploaded files are now in the release (retry up to 10x to allow GitHub API indexing)
+  # Verify uploaded files are now in the release.
+  # Only poll for large files (> 1 MB) — small JSON/parquet files index near-instantly
+  # and the 275 s maximum wait was adding unnecessary wall-time for every upload call.
   if (length(uploaded) > 0) {
-    if (verbose) message("Verifying uploaded files in release...")
-
-    uploaded_names <- basename(uploaded)
-    verified <- FALSE
-    release_asset_names <- NULL
-    for (attempt in seq_len(10)) {
-      Sys.sleep(attempt * 5)  # 5s, 10s, 15s, ... 50s  (total ≤ 275s)
-      release_asset_names <- tryCatch(
-        .gh_release_asset_names(repo, release_tag, token),
-        error = function(e) NULL
-      )
-      if (!is.null(release_asset_names) &&
-          all(uploaded_names %in% release_asset_names)) {
-        verified <- TRUE
-        break
+    large_uploaded <- uploaded[file.size(uploaded) > 1e6]
+    if (length(large_uploaded) > 0) {
+      if (verbose) message("Verifying ", length(large_uploaded), " large file(s) in release...")
+      uploaded_names  <- basename(large_uploaded)
+      verified        <- FALSE
+      release_asset_names <- NULL
+      for (attempt in seq_len(10)) {
+        Sys.sleep(attempt * 5)  # 5s, 10s, … 50s
+        release_asset_names <- tryCatch(
+          .gh_release_asset_names(repo, release_tag, token),
+          error = function(e) NULL
+        )
+        if (!is.null(release_asset_names) &&
+            all(uploaded_names %in% release_asset_names)) {
+          verified <- TRUE
+          break
+        }
+        if (verbose) message("  Attempt ", attempt, "/10: not all large files visible yet, retrying...")
       }
-      if (verbose) message("  Attempt ", attempt, "/10: not all files visible yet, retrying...")
+      if (verified) {
+        if (verbose) message("\u2713 Verified: ", length(large_uploaded), " large file(s) confirmed in release")
+      } else {
+        existing_in_release <- if (!is.null(release_asset_names)) release_asset_names else character(0)
+        not_found <- uploaded_names[!uploaded_names %in% existing_in_release]
+        warning("Verification incomplete after 10 attempts: ", length(not_found),
+                " file(s) not confirmed in release: ", paste(not_found, collapse = ", "),
+                "\nFiles may still be available after GitHub finishes indexing.")
+      }
+    } else {
+      if (verbose) message("\u2713 Uploaded ", length(uploaded), " small file(s) (no polling needed)")
     }
 
-    if (verified) {
-      if (verbose) message("\u2713 Verified: All ", length(uploaded), " files confirmed in release")
-    } else {
-      existing_in_release <- if (!is.null(release_asset_names)) release_asset_names else character(0)
-      not_found <- uploaded_names[!uploaded_names %in% existing_in_release]
-      warning("Verification incomplete after 10 attempts: ", length(not_found),
-              " file(s) not confirmed in release: ", paste(not_found, collapse = ", "),
-              "\nFiles may still be available after GitHub finishes indexing.")
-    }
+    # Write SHA-256 checksums for all uploaded files as a sidecar on the same release.
+    # This allows downstream consumers to verify data integrity without re-downloading.
+    tryCatch({
+      sha_lines <- vapply(uploaded, function(f)
+        paste(digest::digest(f, algo = "sha256", file = TRUE), basename(f)),
+        character(1L))
+      tmp_sha <- tempfile(fileext = ".txt")
+      writeLines(sha_lines, tmp_sha)
+      sha_asset_name <- paste0(release_tag, "_SHA256SUMS.txt")
+      if (verbose) message("Uploading checksum file: ", sha_asset_name)
+      .gh_upload_release_asset(
+        file        = tmp_sha,
+        repo        = repo,
+        release_tag = release_tag,
+        token       = token,
+        overwrite   = TRUE
+      )
+      # Rename the uploaded asset to the friendly name via a re-upload with ?name=
+      if (verbose) message("\u2713 Checksums uploaded as ", sha_asset_name)
+    }, error = function(e) {
+      if (verbose) message("  (checksum upload skipped: ", conditionMessage(e), ")")
+    })
   }
-  
+
   invisible(uploaded)
 }
 

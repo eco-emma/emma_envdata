@@ -63,8 +63,9 @@ jobs:
       - name: Whitelist directory
         run: git config --global --add safe.directory /__w/emma_envdata/emma_envdata
       - name: Install R Package Dependencies
-        run: |-
-          Rscript -e "questionr::qscan(list.files(pattern='*.R',recursive=T), load = TRUE, detail = TRUE)" # this scans all scripts and installs any needed packages
+        # Use pak for fast, reliable installs from DESCRIPTION (no questionr::qscan).
+        # pak respects Remotes: fields and can install from GitHub/CRAN in one call.
+        run: Rscript -e "if (!requireNamespace('pak', quietly=TRUE)) install.packages('pak'); pak::pak()"
           
       - name: Parse _targets.R
         run: Rscript -e "parse('_targets.R')"       
@@ -123,7 +124,9 @@ jobs:
           apt-get install -y gh
           
       - name: Create review PR on failure
-        if: failure() && github.event_name == 'push'
+        # Only run on scheduled runs to avoid PR spam on every feature-branch push.
+        # Remove the @github-copilot-agent auto-fix line — keep human-review PRs only.
+        if: failure() && github.event_name == 'schedule'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -173,8 +176,7 @@ jobs:
           # Request Copilot review
           gh pr comment $BRANCH --body "@github-copilot review"
           
-          # Request Copilot coding agent to fix the issue
-          gh pr comment $BRANCH --body "@github-copilot-agent Please analyze the error log and create fixes for this targets pipeline failure"
+          # (Auto-fix agent invocation removed — human review required before any code changes)
       
       - name: Post failure artifact
         if: failure()

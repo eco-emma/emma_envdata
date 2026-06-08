@@ -1,3 +1,20 @@
+# ── Study-domain bounding box (Cape Floristic Region, EPSG:4326) ─────────────
+# Used in all collection extents and item geometries instead of the misleading
+# global bbox (-180,-90,180,90). Update if the domain definition changes.
+DOMAIN_BBOX <- c(17.0, -35.0, 33.0, -28.0)  # xmin, ymin, xmax, ymax
+
+# Helper: build a GeoJSON polygon from a bbox vector c(xmin, ymin, xmax, ymax)
+.bbox_to_polygon <- function(bb) {
+  list(
+    type = "Polygon",
+    coordinates = list(list(
+      c(bb[1], bb[2]), c(bb[3], bb[2]),
+      c(bb[3], bb[4]), c(bb[1], bb[4]),
+      c(bb[1], bb[2])
+    ))
+  )
+}
+
 #' @title Generate STAC Collection for VI dataset (MODIS + VIIRS COG GeoTIFFs)
 #' @description Creates a STAC Collection and individual Item files for VI
 #'   COG GeoTIFFs from MODIS (Terra + Aqua) and VIIRS (S-NPP + NOAA-20).
@@ -27,8 +44,8 @@ generate_modis_vi_stac <- function(
   stac_dir             = "data/stac/modis_vi",
   parent_catalog_path  = "data/stac",
   gh_repo              = "AdamWilsonLab/emma_envdata",
-  gh_release_tag       = "vi_modis_dynamic_raster",
-  gh_release_tag_viirs = "vi_viirs_dynamic_raster",
+  gh_release_tag       = "vi_modis_raster",
+  gh_release_tag_viirs = "vi_viirs_raster",
   verbose              = TRUE
 ) {
 
@@ -109,7 +126,8 @@ generate_modis_vi_stac <- function(
   collection <- list(
     stac_version    = "1.0.0",
     stac_extensions = list(
-      "https://stac-extensions.github.io/scientific/v1.0.0/schema.json"
+      "https://stac-extensions.github.io/scientific/v1.0.0/schema.json",
+      "https://stac-extensions.github.io/raster/v1.1.0/schema.json"
     ),
     type        = "Collection",
     id          = "vi",
@@ -119,7 +137,7 @@ generate_modis_vi_stac <- function(
     keywords    = c("MODIS", "VIIRS", "EVI", "vegetation", "Terra", "Aqua",
                     "S-NPP", "NOAA-20", "500m", "16-day", "COG"),
     extent = list(
-      spatial  = list(bbox = list(c(-180, -90, 180, 90))),
+      spatial  = list(bbox = list(DOMAIN_BBOX)),
       temporal = list(interval = list(c(
         paste0(format(min(all_dates), "%Y-%m-%d"), "T00:00:00Z"),
         paste0(format(max(all_dates), "%Y-%m-%d"), "T23:59:59Z")
@@ -187,15 +205,38 @@ generate_modis_vi_stac <- function(
         "/releases/download/", row$release_tag, "/",
         basename(row$file)
       )
-      assets[[row$asset_key]] <- list(
+      # Band 1: EVI/VI — separate asset so consumers can reference the VI band directly
+      assets[[paste0(row$asset_key, "_vi")]] <- list(
         href        = gh_url,
-        title       = paste0(row$asset_label, " EVI — ", ds),
+        title       = paste0(row$asset_label, " EVI (band 1) — ", ds),
         description = paste0(
-          row$asset_label, " Enhanced Vegetation Index (scaled integer) +",
-          " composite DOY, 500m domain-aligned COG GeoTIFF"
+          row$asset_label, " Enhanced Vegetation Index (scaled integer x10000,",
+          " QA-masked), band 1 of 2. 500m domain-aligned COG GeoTIFF."
         ),
-        type  = "image/tiff; application=geotiff; profile=cloud-optimized",
-        roles = list("data")
+        type           = "image/tiff; application=geotiff; profile=cloud-optimized",
+        roles          = list("data"),
+        `raster:bands` = list(list(
+          name        = "EVI",
+          description = "Enhanced Vegetation Index x10000 (QA-masked integer)",
+          data_type   = "int16",
+          nodata      = -3000
+        ))
+      )
+      # Band 2: composite DOY — separate asset for the date layer
+      assets[[paste0(row$asset_key, "_doy")]] <- list(
+        href        = gh_url,
+        title       = paste0(row$asset_label, " composite DOY (band 2) — ", ds),
+        description = paste0(
+          row$asset_label, " composite day-of-year per pixel,",
+          " band 2 of 2. 500m domain-aligned COG GeoTIFF."
+        ),
+        type           = "image/tiff; application=geotiff; profile=cloud-optimized",
+        roles          = list("data"),
+        `raster:bands` = list(list(
+          name        = "DOY",
+          description = "Composite day of year per pixel (1-366)",
+          data_type   = "int16"
+        ))
       )
     }
 
@@ -213,7 +254,8 @@ generate_modis_vi_stac <- function(
     item <- list(
       stac_version    = "1.0.0",
       stac_extensions = list(
-        "https://stac-extensions.github.io/scientific/v1.0.0/schema.json"
+        "https://stac-extensions.github.io/scientific/v1.0.0/schema.json",
+        "https://stac-extensions.github.io/raster/v1.1.0/schema.json"
       ),
       type        = "Feature",
       id          = paste0("vi_", ds),
@@ -222,13 +264,8 @@ generate_modis_vi_stac <- function(
         paste(instruments, collapse = " + "),
         ") for composite starting ", format(pd, "%Y-%m-%d")
       ),
-      geometry = list(
-        type = "Polygon",
-        coordinates = list(list(
-          c(-180, -90), c(180, -90), c(180, 90), c(-180, 90), c(-180, -90)
-        ))
-      ),
-      bbox = c(-180, -90, 180, 90),
+      geometry = .bbox_to_polygon(DOMAIN_BBOX),
+      bbox     = DOMAIN_BBOX,
       properties = list(
         `datetime`     = paste0(format(pd, "%Y-%m-%d"), "T00:00:00Z"),
         start_datetime = paste0(format(pd, "%Y-%m-%d"), "T00:00:00Z"),
@@ -480,9 +517,10 @@ generate_burn_dates_stac <- function(
     license     = "proprietary",
     extent = list(
       spatial  = list(bbox = list(list(-180, -90, 180, 90))),
+      # NA serialises as JSON null (open-ended interval); NULL would produce {}
       temporal = list(interval = list(list(
         paste0(meta$start_date, "T00:00:00Z"),
-        NULL
+        NA
       )))
     ),
     links = list(
@@ -611,8 +649,8 @@ generate_burn_stac <- function(
   recentburn_file        = NULL,
   stac_dir               = "data/stac/burn",
   gh_repo                = "AdamWilsonLab/emma_envdata",
-  gh_release_tag_modis   = "burn_dates_modis_raster",
-  gh_release_tag_viirs   = "burn_dates_viirs_raster",
+  gh_release_tag_modis   = "burn_modis_raster",
+  gh_release_tag_viirs   = "burn_viirs_raster",
   gh_release_tag_derived = "firehistory_dynamic",
   verbose                = TRUE
 ) {
@@ -674,8 +712,9 @@ generate_burn_stac <- function(
     ),
     license = "proprietary",
     extent = list(
-      spatial  = list(bbox = list(list(-180, -90, 180, 90))),
-      temporal = list(interval = list(list(temporal_start, NULL)))
+      spatial  = list(bbox = list(as.list(DOMAIN_BBOX))),
+      # NA serialises as JSON null (open-ended interval); NULL would produce {}
+      temporal = list(interval = list(list(temporal_start, NA)))
     ),
     links = list(
       list(rel = "root",    href = "catalog.json",         type = "application/json"),
@@ -735,13 +774,8 @@ generate_burn_stac <- function(
       id          = item_id,
       description = paste(toupper(source), "burned area raster for",
                           format(nc_date, "%B %Y")),
-      geometry = list(
-        type = "Polygon",
-        coordinates = list(list(
-          c(-180, -90), c(180, -90), c(180, 90), c(-180, 90), c(-180, -90)
-        ))
-      ),
-      bbox = c(-180, -90, 180, 90),
+      geometry = .bbox_to_polygon(DOMAIN_BBOX),
+      bbox     = DOMAIN_BBOX,
       properties = list(
         datetime       = paste0(format(nc_date, "%Y-%m-%d"), "T00:00:00Z"),
         start_datetime = paste0(format(nc_date, "%Y-%m-01"), "T00:00:00Z"),
@@ -804,15 +838,11 @@ generate_burn_stac <- function(
         "Contains fire_age_days (days since last fire) and last_burn_date (days since 1970-01-01)",
         "as of the latest available observation date."
       ),
-      geometry = list(
-        type = "Polygon",
-        coordinates = list(list(
-          c(-180, -90), c(180, -90), c(180, 90), c(-180, 90), c(-180, -90)
-        ))
-      ),
-      bbox = c(-180, -90, 180, 90),
+      geometry = .bbox_to_polygon(DOMAIN_BBOX),
+      bbox     = DOMAIN_BBOX,
       properties = list(
-        datetime       = NULL,
+        # NA serialises as JSON null — required by STAC spec for timeless/derived items
+        datetime       = NA,
         start_datetime = "2000-11-01T00:00:00Z",
         end_datetime   = paste0(format(Sys.Date(), "%Y-%m-%d"), "T23:59:59Z"),
         source         = "derived",
@@ -843,7 +873,11 @@ generate_burn_stac <- function(
   }
 
   # ── Append item links to collection and re-write ──────────────────────────
-  item_links <- purrr::map(all_items, function(it) {
+  # unname() is critical: targets' branched vectors carry hash-based names that
+  # propagate through purrr::pmap() → if item_links is a named list, c() will
+  # produce a named list, which jsonlite serialises as a JSON object {} instead
+  # of a JSON array []. Stripping names here ensures links is always an array.
+  item_links <- purrr::map(unname(all_items), function(it) {
     label <- if (it$source == "derived") {
       "most recent burn snapshot"
     } else {
@@ -924,18 +958,15 @@ generate_static_layers_stac <- function(
            gh_release_tag, "/", basename(f))
   }
 
-  # Timeless datetime convention for static layers
+  # Timeless datetime convention for static layers.
+  # STAC spec requires `null` (not omitted) for timeless items; use NA so that
+  # jsonlite::write_json() serialises it as JSON null rather than {} or dropping it.
   static_props <- list(
-    datetime       = NULL,
+    datetime       = NA,
     start_datetime = "1900-01-01T00:00:00Z",
     end_datetime   = paste0(format(Sys.Date(), "%Y-%m-%d"), "T23:59:59Z")
   )
-  static_geom <- list(
-    type = "Polygon",
-    coordinates = list(list(
-      c(-180, -90), c(180, -90), c(180, 90), c(-180, 90), c(-180, -90)
-    ))
-  )
+  static_geom <- .bbox_to_polygon(DOMAIN_BBOX)
   common_links <- function() list(
     list(rel = "collection", href = "static_collection.json", type = "application/json"),
     list(rel = "root",       href = "catalog.json",           type = "application/json"),
@@ -963,8 +994,9 @@ generate_static_layers_stac <- function(
     keywords = c("static", "domain", "elevation", "climate", "CHELSA", "soil",
                  "topography", "vegetation", "cloud", "NASADEM", "SoilGrids"),
     extent = list(
-      spatial  = list(bbox = list(c(-180, -90, 180, 90))),
-      temporal = list(interval = list(list("1900-01-01T00:00:00Z", NULL)))
+      spatial  = list(bbox = list(DOMAIN_BBOX)),
+      # NA serialises as JSON null (open-ended interval); NULL would produce {}
+      temporal = list(interval = list(list("1900-01-01T00:00:00Z", NA)))
     ),
     links = list(
       list(rel = "root",    href = "catalog.json",           type = "application/json"),
@@ -998,7 +1030,7 @@ generate_static_layers_stac <- function(
     stac_version = "1.0.0", type = "Feature",
     id          = "static_domain",
     description = "EMMA domain grid: pixel IDs (pid) and biome/boundary mask at 500m resolution.",
-    geometry    = static_geom, bbox = c(-180, -90, 180, 90),
+    geometry    = static_geom, bbox = DOMAIN_BBOX,
     properties  = c(static_props, list(dataset = "static", layer = "domain")),
     links       = common_links(),
     assets = list(
@@ -1020,7 +1052,7 @@ generate_static_layers_stac <- function(
     stac_version = "1.0.0", type = "Feature",
     id          = "static_vegmap",
     description = "Vegetation map classification rasterized to the 500m EMMA domain grid.",
-    geometry    = static_geom, bbox = c(-180, -90, 180, 90),
+    geometry    = static_geom, bbox = DOMAIN_BBOX,
     properties  = c(static_props, list(dataset = "static", layer = "vegmap")),
     links       = common_links(),
     assets = list(
@@ -1037,7 +1069,7 @@ generate_static_layers_stac <- function(
     stac_version = "1.0.0", type = "Feature",
     id          = "static_elevation",
     description = "NASADEM 30m digital elevation model resampled to the 500m EMMA domain grid.",
-    geometry    = static_geom, bbox = c(-180, -90, 180, 90),
+    geometry    = static_geom, bbox = DOMAIN_BBOX,
     properties  = c(static_props, list(
       dataset    = "static", layer = "elevation",
       platform   = "SRTM", instrument = "radar", gsd = 500,
@@ -1078,7 +1110,7 @@ generate_static_layers_stac <- function(
       "CHELSA v2.1 bioclimatic variables BIO1-BIO19 (1981-2010 climatological mean)",
       "downscaled to the 500m EMMA domain grid."
     ),
-    geometry   = static_geom, bbox = c(-180, -90, 180, 90),
+    geometry   = static_geom, bbox = DOMAIN_BBOX,
     properties = c(static_props, list(
       dataset           = "static", layer = "climate",
       temporal_coverage = "1981-2010",
@@ -1099,7 +1131,7 @@ generate_static_layers_stac <- function(
       "MODCF mean annual cloud frequency and intra-annual seasonality",
       "(Wilson et al. 2016 / EarthEnv), resampled to the 500m domain grid."
     ),
-    geometry   = static_geom, bbox = c(-180, -90, 180, 90),
+    geometry   = static_geom, bbox = DOMAIN_BBOX,
     properties = c(static_props, list(
       dataset = "static", layer = "clouds",
       sci_doi = "10.1371/journal.pone.0172299"
@@ -1125,7 +1157,7 @@ generate_static_layers_stac <- function(
       "SoilGrids v2 (ISRIC) soil properties averaged over 0-30 cm depth:",
       "SOC, clay, sand, pH, and bulk density. Resampled to the 500m domain grid."
     ),
-    geometry   = static_geom, bbox = c(-180, -90, 180, 90),
+    geometry   = static_geom, bbox = DOMAIN_BBOX,
     properties = c(static_props, list(
       dataset = "static", layer = "soil",
       sci_doi = "10.1371/journal.pone.0169748"
@@ -1151,7 +1183,7 @@ generate_static_layers_stac <- function(
       "Topographic diversity metrics derived from NASADEM elevation at 500m:",
       "slope, aspect, terrain ruggedness index (TRI), topographic position index (TPI)."
     ),
-    geometry   = static_geom, bbox = c(-180, -90, 180, 90),
+    geometry   = static_geom, bbox = DOMAIN_BBOX,
     properties = c(static_props, list(dataset = "static", layer = "topography", gsd = 500)),
     links      = common_links(),
     assets = list(

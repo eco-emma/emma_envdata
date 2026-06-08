@@ -29,11 +29,28 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
   dir.create("data/temp/terra", recursive = TRUE, showWarnings = FALSE)
   dir.create("data/target_outputs", recursive = TRUE, showWarnings = FALSE)
 
-  # GitHub release repository configuration - releases are used to store target objects and publish final data
+  # GitHub release repository configuration — targets-cache stores the pipeline state
   gh_repo_config <- list(
     repo = "AdamWilsonLab/emma_envdata",
     tag = "targets-cache",
     cache_dir = "_targets/cache" #this is local cache for speed
+  )
+
+  # ── Single source of truth for GitHub release tag names ──────────────────
+  # Update tag strings here only; every upload target and STAC generator reads
+  # from this list so renaming one tag cannot silently break another.
+  release_tags <- list(
+    static             = "static_data",
+    vi_modis_raster    = "vi_modis_raster",
+    vi_viirs_raster    = "vi_viirs_raster",
+    vi_modis_parquet   = "vi_modis_parquet",
+    burn_modis_raster  = "burn_modis_raster",
+    burn_viirs_raster  = "burn_viirs_raster",
+    burn_modis_parquet = "burn_modis_parquet",
+    burn_viirs_parquet = "burn_viirs_parquet",
+    fire_history       = "firehistory_dynamic",
+    stac               = "stac",
+    cache              = "targets-cache"
   )
 
   # Store config as environment variables for upload function to use
@@ -90,6 +107,7 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
   modis_start_date <- "2026-03-01"  # MODIS Terra first available data
   viirs_start_date <- "2026-03-01"  # VIIRS first available data
   burn_start_date  <- "2026-03-01"  # MCD64A1 first available data
+  
   # Lag ~14 days past month end so both 16-day MODIS composites are published
   # on AppEEARS before the month enters the pipeline (avoids partial data).
   modis_end_date   <- as.character(as.Date(format(Sys.Date() - 14, "%Y-%m-01")) - 1)
@@ -297,7 +315,7 @@ list(
         composite_date = vi_modis_pending$composite_date,
         composite_end  = vi_modis_pending$composite_end,
         out_dir        = "data/target_outputs/modis_vi/",
-        gh_release_tag = "vi_modis_dynamic_raster"
+        gh_release_tag = release_tags$vi_modis_raster
       )
     },
     pattern = map(vi_modis_pending)
@@ -370,7 +388,7 @@ list(
       composite_date = vi_viirs_pending$composite_date,
       composite_end  = vi_viirs_pending$composite_end,
       out_dir        = "data/target_outputs/viirs_vi/",
-      gh_release_tag = "vi_viirs_dynamic_raster"
+      gh_release_tag = release_tags$vi_viirs_raster
     ),
     pattern = map(vi_viirs_pending)
   ),
@@ -426,8 +444,8 @@ list(
       stac_dir             = "data/stac/vi",
       parent_catalog_path  = "data/stac",
       gh_repo              = "AdamWilsonLab/emma_envdata",
-      gh_release_tag       = "vi_modis_dynamic_raster",
-      gh_release_tag_viirs = "vi_viirs_dynamic_raster",
+      gh_release_tag       = release_tags$vi_modis_raster,
+      gh_release_tag_viirs = release_tags$vi_viirs_raster,
       verbose              = TRUE
     ),
     format     = "file",
@@ -451,7 +469,7 @@ list(
       month_start    = burn_modis_pending$month_start,
       month_end      = burn_modis_pending$month_end,
       out_dir        = "data/target_outputs/burndates/",
-      gh_release_tag = "burn_dates_modis_raster",
+      gh_release_tag = release_tags$burn_modis_raster,
       verbose        = TRUE
     ),
     pattern = map(burn_modis_pending)
@@ -519,7 +537,7 @@ list(
       month_start    = burn_viirs_pending$month_start,
       month_end      = burn_viirs_pending$month_end,
       out_dir        = "data/target_outputs/burndates/",
-      gh_release_tag = "burn_dates_viirs_raster",
+      gh_release_tag = release_tags$burn_viirs_raster,
       verbose        = TRUE
     ),
     pattern = map(burn_viirs_pending)
@@ -598,7 +616,7 @@ list(
       compute_most_recent_burn(
         burn_events = burn_events_merged,
         query_dates = vi_dates,
-        out_file    = "data/target_outputs/most_recent_burn.parquet",
+        out_file    = "data/target_outputs/postfireage.parquet",
         verbose     = TRUE
       )
     },
@@ -626,9 +644,9 @@ list(
       recentburn_file        = terra::sources(recentburn.tif)[[1]],
       stac_dir               = "data/stac/burn",
       gh_repo                = "AdamWilsonLab/emma_envdata",
-      gh_release_tag_modis   = "burn_dates_modis_raster",
-      gh_release_tag_viirs   = "burn_dates_viirs_raster",
-      gh_release_tag_derived = "firehistory_dynamic",
+      gh_release_tag_modis   = release_tags$burn_modis_raster,
+      gh_release_tag_viirs   = release_tags$burn_viirs_raster,
+      gh_release_tag_derived = release_tags$fire_history,
       verbose                = TRUE
     ),
     format     = "file",
@@ -649,7 +667,7 @@ list(
       topo             = terra::sources(geodiversity.tif)[[1]],
       stac_dir         = "data/stac/static",
       gh_repo          = "AdamWilsonLab/emma_envdata",
-      gh_release_tag   = "static_data",
+      gh_release_tag   = release_tags$static,
       verbose          = TRUE
     ),
     format     = "file",
@@ -657,8 +675,9 @@ list(
   ),
 
   ##################### GitHub Release Uploads #########################
-  # All upload targets use deployment = "main" so they only run on the main branch,
-  # not on every feature-branch push.
+  # deployment = "main" means: run in the main R process, not a distributed
+  # crew worker. It is NOT a git-branch gate. To restrict uploads to the main
+  # git branch, add: if (Sys.getenv("GITHUB_REF") != "refs/heads/main") return(invisible(NULL))
 
   # Upload all static NetCDF files (domain, elevation.tif, climate, clouds, soil, topography)
   tar_target(
@@ -675,7 +694,7 @@ list(
         terra::sources(geodiversity.tif)[[1]]
       ),
       repo         = gh_repo_config$repo,
-      release_tag  = "static_data",
+      release_tag  = release_tags$static,
       release_name = "Static Environmental Data",
       overwrite    = TRUE,
       verbose      = TRUE
@@ -691,7 +710,7 @@ list(
     upload_to_github_release(
       files        = vi_modis_parquet[!is.na(vi_modis_parquet) & !grepl("\\.skip$", vi_modis_parquet)],
       repo         = gh_repo_config$repo,
-      release_tag  = "vi_modis_dynamic",
+      release_tag  = release_tags$vi_modis_parquet,
       release_name = "Dynamic MODIS Vegetation Index",
       verbose      = TRUE
     ),
@@ -704,7 +723,7 @@ list(
     upload_to_github_release(
       files        = burn_modis_parquet[!grepl("\\.skip$", burn_modis_parquet)],
       repo         = gh_repo_config$repo,
-      release_tag  = "burndate_modis_dynamic",
+      release_tag  = release_tags$burn_modis_parquet,
       release_name = "Dynamic MODIS Burned Area (MCD64A1)",
       verbose      = TRUE
     ),
@@ -717,7 +736,7 @@ list(
     upload_to_github_release(
       files        = burn_viirs_parquet[!grepl("\\.skip$", burn_viirs_parquet)],
       repo         = gh_repo_config$repo,
-      release_tag  = "burndate_viirs_dynamic",
+      release_tag  = release_tags$burn_viirs_parquet,
       release_name = "Dynamic VIIRS Burned Area (VNP64A1)",
       verbose      = TRUE
     ),
@@ -730,7 +749,7 @@ list(
     upload_to_github_release(
       files        = vi_modis_grid[!grepl("\\.skip$", vi_modis_grid)],
       repo         = gh_repo_config$repo,
-      release_tag  = "vi_modis_dynamic_raster",
+      release_tag  = release_tags$vi_modis_raster,
       release_name = "Dynamic MODIS VI Rasters (Terra + Aqua, 16-day composites)",
       verbose      = TRUE
     ),
@@ -743,7 +762,7 @@ list(
     upload_to_github_release(
       files        = vi_viirs_grid[!grepl("\\.skip$", vi_viirs_grid)],
       repo         = gh_repo_config$repo,
-      release_tag  = "vi_viirs_dynamic_raster",
+      release_tag  = release_tags$vi_viirs_raster,
       release_name = "Dynamic VIIRS VI Rasters (S-NPP + NOAA-20, 16-day composites)",
       verbose      = TRUE
     ),
@@ -756,7 +775,7 @@ list(
     upload_to_github_release(
       files        = burn_modis_grid[!grepl("\\.skip$", burn_modis_grid)],
       repo         = gh_repo_config$repo,
-      release_tag  = "burn_dates_modis_raster",
+      release_tag  = release_tags$burn_modis_raster,
       release_name = "Dynamic MODIS Burned Area Rasters (MCD64A1)",
       verbose      = TRUE
     ),
@@ -769,7 +788,7 @@ list(
     upload_to_github_release(
       files        = burn_viirs_grid[!grepl("\\.skip$", burn_viirs_grid)],
       repo         = gh_repo_config$repo,
-      release_tag  = "burn_dates_viirs_raster",
+      release_tag  = release_tags$burn_viirs_raster,
       release_name = "Dynamic VIIRS Burned Area Rasters (VNP64A1)",
       verbose      = TRUE
     ),
@@ -782,7 +801,7 @@ list(
     upload_to_github_release(
       files        = terra::sources(recentburn.tif)[[1]],
       repo         = gh_repo_config$repo,
-      release_tag  = "firehistory_dynamic",
+      release_tag  = release_tags$fire_history,
       release_name = "Fire History (most recent burn, postfire age)",
       verbose      = TRUE
     ),
@@ -816,28 +835,64 @@ list(
     deployment = "main"
   ),
 
-  # Upload STAC catalog + all collection JSON files
+  # Upload STAC catalog + all collection JSON files.
+  # Enumerate explicitly from the STAC target return values (collection paths +
+  # individual item paths) so nothing is accidentally omitted and the post-upload
+  # count check can compare expected vs actual.
   tar_target(
     upload_stac_catalog,
     {
-      stac_files <- c(
-        file.path("data/stac", "catalog.json"),
-        list.files("data/stac", pattern = "\\.json$", full.names = TRUE, recursive = TRUE)
-      ) |> unique()
+      stac_files <- unique(c(
+        emma_stac_catalog,   # catalog.json path (from target return)
+        vi_stac,             # vi_collection.json + item JSON paths
+        burn_stac,           # burn_collection.json + item JSON paths
+        static_stac          # static_collection.json + item JSON paths
+      ))
+      stac_files <- stac_files[file.exists(stac_files)]
+
+      token <- Sys.getenv("GITHUB_TOKEN")
+      if (token == "") token <- Sys.getenv("GITHUB_PAT")
 
       upload_to_github_release(
         files        = stac_files,
         repo         = gh_repo_config$repo,
-        release_tag  = "stac",
+        release_tag  = release_tags$stac,
         release_name = "STAC Catalog — Current",
         verbose      = TRUE,
-        overwrite    = TRUE,  # always re-upload STAC JSONs — content changes with every new month
-        emma_stac_catalog,  # explicit dependency — catalog must be written first
-        vi_stac,
-        burn_stac,
-        static_stac
+        overwrite    = TRUE   # always re-upload STAC JSONs — content changes with every new month
       )
+
+      # Post-upload count check: warn if fewer assets are visible than expected
+      after_count <- tryCatch(
+        length(.gh_release_asset_names(gh_repo_config$repo, release_tags$stac, token)),
+        error = function(e) NA_integer_
+      )
+      if (!is.na(after_count) && after_count < length(stac_files)) {
+        warning(
+          "STAC upload may be incomplete: expected ", length(stac_files),
+          " files, found ", after_count, " on release '", release_tags$stac, "'."
+        )
+      } else if (verbose) {
+        message(
+          "\u2713 STAC release '", release_tags$stac, "': ",
+          after_count, " assets confirmed."
+        )
+      }
     },
+    deployment = "main"
+  ),
+
+  # Walk the local STAC catalog tree and HEAD-check every asset HREF.
+  # Issues a warning (does NOT fail) when broken links are found; writes a
+  # machine-readable JSON report to data/stac/validation_report.json.
+  tar_target(
+    validate_stac,
+    validate_stac_links(
+      catalog_json = "data/stac/catalog.json",
+      report_file  = "data/stac/validation_report.json",
+      verbose      = TRUE
+    ),
+    format     = "file",
     deployment = "main"
   ),
 
