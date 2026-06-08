@@ -24,7 +24,7 @@
     },
     {
       "rel": "child",
-      "href": "modis_vi_collection.json",
+      "href": "vi_collection.json",
       "type": "application/json",
       "title": "MODIS + VIIRS VI Rasters (Terra, Aqua, S-NPP, NOAA-20 — 16-day composites, 500m)"
     },
@@ -32,13 +32,7 @@
       "rel": "child",
       "href": "burn_collection.json",
       "type": "application/json",
-      "title": "Burned Area — MODIS MCD64A1 + VIIRS VNP64A1 (NetCDF rasters)"
-    },
-    {
-      "rel": "child",
-      "href": "fire_history_collection.json",
-      "type": "application/json",
-      "title": "Fire History — MODIS MCD64A1 + VIIRS VNP64A1 Burned Area"
+      "title": "Burned Area — MODIS MCD64A1 + VIIRS VNP64A1 (COG GeoTIFF rasters)"
     },
     {
       "rel": "child",
