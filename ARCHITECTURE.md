@@ -73,25 +73,68 @@ vi_viirs_pending (date sequence)
 | `R/get_modis_vi.R` | Task submission + idempotency check against release |
 | `R/get_viirs_vi.R` | Same for VIIRS (S-NPP + NOAA-20) |
 
-### 2.5 Burned Area Pipeline (MODIS MCD64A1 + VIIRS VNP64A1, branched)
+### 2.5 Burned Area Pipeline (MODIS MCD64A1 + VIIRS VNP64A1 + CapeNature, branched)
+
+Source priority: **CapeNature > VIIRS (375 m) > MODIS (500 m)**.
 
 ```
+capenature_fires  (manual sf, cue="never")
+    → capenature_burn_events   ← process_capenature_to_parquet()
+                                  QC-clean dates (capenature_date_fixes.csv)
+                                  rasterize with fractional cover
+                                  write capenature_burns.parquet
+
 burn_modis_pending / burn_viirs_pending (monthly date sequences)
     → burn_*_task_ids
     → burn_*_geotiff   (error="continue")
     → burn_*_grid      (domain-aligned COG, format="file")
     → burn_*_parquet   (format="file")
 
-burn_events_merged    ← merge_burn_dates()  (all monthly parquets)
-most_recent_burn      ← compute_most_recent_burn()
-recentburn.tif        ← most_recent_burn_to_grid()
+burn_events_merged    ← merge_burn_dates()
+                         • reads burn_modis_*, burn_viirs_*, capenature_burns.parquet
+                         • greedy 6-month per-pixel cluster deduplication
+                         • canonical date: CapeNature > earliest satellite
+                         • encodes date_uncertainty_days, burn_fraction, fire_source
+
+most_recent_burn      ← compute_fire_state()   [incremental, append-only]
+                         • reads/updates most_recent_burn_state.parquet
+                         • per-pixel: last_burn_date, fire_count, fire_source
+                         • right-censoring: fire_count=0 → age ≥ state_month−2000
+
+fire_age_parquets     ← compute_fire_age_for_vi()   [idempotent]
+                         • reads all vi_modis_* and vi_viirs_* parquets
+                         • joins state to each VI (pid, date, sensor)
+                         • writes fire_age_modis_*/fire_age_viirs_* parquets
+                         • right-censored pixels: fire_age_days = date−2000-01-01
+
+recentburn.tif        ← most_recent_burn_to_grid()   [snapshot at state_month]
+```
+
+**CapeNature date QC re-audit procedure:**
+`process_capenature_to_parquet()` prints `warning()` for any remaining corrupt
+records (reversed, long-span, future dates) after applying
+`data/manual_download/capenature_date_fixes.csv`. Add new rows to that CSV and
+re-run the `capenature_burn_events` target locally (`tar_make(capenature_burn_events)`).
+The CSV is tracked in version control; the full correction audit trail is in git
+history.
+
+**Consuming combined VI + fire-age data:**
+```r
+vi_ds       <- arrow::open_dataset(c("data/target_outputs/modis_vi",
+                                     "data/target_outputs/viirs_vi"))
+fire_age_ds <- arrow::open_dataset("data/target_outputs/fire_age")
+vi_with_fire <- vi_ds |>
+  dplyr::left_join(fire_age_ds, by = c("pid", "date", "sensor")) |>
+  dplyr::filter(pid == target_pid) |>
+  dplyr::collect()
 ```
 
 | File | Implements |
 |------|-----------|
 | `R/get_burn_dates_modis.R` | MODIS task submission + idempotency check |
 | `R/get_burn_dates_viirs.R` | VIIRS task submission + idempotency check |
-| `R/process_burn_dates.R` | Merging, most-recent-burn derivation, rasterisation |
+| `R/process_burn_dates.R` | `process_capenature_to_parquet()`, `merge_burn_dates()`, `compute_fire_state()`, `compute_fire_age_for_vi()`, `most_recent_burn_to_grid()` |
+| `data/manual_download/capenature_date_fixes.csv` | Manual date-correction lookup (audit trail) |
 
 ### 2.6 GitHub Release Storage
 
@@ -156,6 +199,7 @@ SoilGrids ──→  REST tiles    ──→  soils.tif             ──→  b
 | `burn_dates_modis_raster` | `upload_burn_modis_grid` | `generate_burn_stac()` |
 | `burn_dates_viirs_raster` | `upload_burn_viirs_grid` | `generate_burn_stac()` |
 | `firehistory_dynamic` | `upload_fire_history` | `generate_burn_stac()` (recentburn item) |
+| `fire_age_dynamic` | `upload_fire_age` | *(no STAC items yet — parquet only; TODO: generate_fire_age_stac())* |
 | `burndate_modis_dynamic` | `upload_burn_modis` | *(no STAC items — parquet only)* |
 | `burndate_viirs_dynamic` | `upload_burn_viirs_data` | *(no STAC items — parquet only)* |
 | `stac` | `upload_stac_catalog` | *(is the STAC release itself)* |

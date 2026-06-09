@@ -49,6 +49,7 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
     burn_modis_parquet = "burn_modis_parquet",
     burn_viirs_parquet = "burn_viirs_parquet",
     fire_history       = "firehistory_dynamic",
+    fire_age           = "fire_age_dynamic",
     stac               = "stac",
     cache              = "targets-cache"
   )
@@ -143,6 +144,23 @@ list(
     capenature_fires,
     sf::st_read("data/manual_download/All_fires_23_24_gw/All_fires_23_24_gw.shp"),
     cue = tar_cue(mode = "never")  # Manual download: only run locally, never on CI
+  ),
+
+  # ── Static: rasterize CapeNature polygons to burned-pixel parquet ────────────
+  # cue="never": manual data, only rerun locally when the shapefile is updated.
+  # Add new date corrections to data/manual_download/capenature_date_fixes.csv
+  # and re-run this target locally to apply them.
+  tar_target(
+    capenature_burn_events,
+    process_capenature_to_parquet(
+      capenature_fires = capenature_fires,
+      domain_raster    = domain.tif,
+      date_fixes_csv   = "data/manual_download/capenature_date_fixes.csv",
+      out_file         = "data/target_outputs/burndates/capenature_burns.parquet",
+      verbose          = TRUE
+    ),
+    format = "file",
+    cue    = tar_cue(mode = "never")  # Static manual data: only rerun locally
   ),
 
 # Get country boundary
@@ -590,44 +608,62 @@ list(
   # Derived fire covariates (aggregated; depend on all monthly parquets above)
   # ============================================================================
 
-  # Merge MODIS + VIIRS burn records into a single deduplicated fire event table
+  # ── Merge MODIS + VIIRS + CapeNature into deduplicated fire event table ──────
+  # 6-month per-pixel clustering collapses multi-sensor detections of the same
+  # fire. Priority: CapeNature > VIIRS > MODIS.
   tar_target(
     burn_events_merged,
     {
-      # Explicit dependencies ensure all monthly parquets are complete before merging
+      # Explicit deps ensure all monthly parquets complete before merging
       force(burn_modis_parquet)
       force(burn_viirs_parquet)
+      force(capenature_burn_events)          # CapeNature ground-truth events
       merge_burn_dates(
-        burn_dir = "data/target_outputs/burndates/",
-        verbose  = TRUE
+        burn_dir           = "data/target_outputs/burndates/",
+        capenature_parquet = capenature_burn_events,
+        verbose            = TRUE
       )
-    }
+    },
+    format = "qs"
   ),
 
-  # Compute most-recent-burn and fire age at every MODIS VI observation date
+  # ── Incremental per-pixel fire state (append-only, idempotent) ───────────────
+  # Reads the running state parquet, finds new months in burn_events_merged,
+  # and updates the state. No-op when already current.
   tar_target(
     most_recent_burn,
+    compute_fire_state(
+      burn_events = burn_events_merged,
+      state_file  = "data/target_outputs/most_recent_burn_state.parquet",
+      verbose     = TRUE
+    ),
+    format = "file"
+  ),
+
+  # ── Fire age at every VI observation date (MODIS + VIIRS) ────────────────────
+  # Joins the per-pixel fire state to each VI parquet.  Idempotent: already-
+  # written fire_age parquets are skipped on subsequent runs.
+  tar_target(
+    fire_age_parquets,
     {
-      # Query at the same dates as MODIS VI observations so fire age aligns exactly
-      vi_dates <- vi_load_observation_dates(
+      force(vi_modis_parquet)   # wait for all VI parquets
+      force(vi_viirs_parquet)
+      compute_fire_age_for_vi(
         modis_vi_dir = "data/target_outputs/modis_vi",
+        viirs_vi_dir = "data/target_outputs/viirs_vi",
+        state_file   = most_recent_burn,
+        out_dir      = "data/target_outputs/fire_age/",
         verbose      = TRUE
-      )
-      compute_most_recent_burn(
-        burn_events = burn_events_merged,
-        query_dates = vi_dates,
-        out_file    = "data/target_outputs/postfireage.parquet",
-        verbose     = TRUE
       )
     },
     format = "file"
   ),
 
-  # Rasterize most_recent_burn parquet → domain-aligned COG snapshot (tar_terra_rast)
+  # ── Snapshot raster (latest state_month only) ─────────────────────────────────
   geotargets::tar_terra_rast(
     recentburn.tif,
     most_recent_burn_to_grid(
-      parquet_file  = most_recent_burn,
+      state_file    = most_recent_burn,
       domain_raster = domain.tif,
       verbose       = TRUE
     ),
@@ -803,6 +839,19 @@ list(
       repo         = gh_repo_config$repo,
       release_tag  = release_tags$fire_history,
       release_name = "Fire History (most recent burn, postfire age)",
+      verbose      = TRUE
+    ),
+    deployment = "main"
+  ),
+
+  # Upload fire_age parquets (one per VI composite, MODIS + VIIRS)
+  tar_target(
+    upload_fire_age,
+    upload_to_github_release(
+      files        = fire_age_parquets[!grepl("\\.skip$", fire_age_parquets)],
+      repo         = gh_repo_config$repo,
+      release_tag  = release_tags$fire_age,
+      release_name = "Fire Age at VI Observation Dates",
       verbose      = TRUE
     ),
     deployment = "main"

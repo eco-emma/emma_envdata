@@ -471,7 +471,7 @@ vi_modis_geotiff_to_grid <- function(
 #' \describe{
 #'   \item{pid}{int32 \u2014 pixel ID from domain grid}
 #'   \item{date}{int32 \u2014 days since 1970-01-01, from per-pixel composite DOY}
-#'   \item{variable}{int32 \u2014 sensor code: 1 = Terra (MOD13A1), 2 = Aqua (MYD13A1)}
+#'   \item{sensor}{int32 \u2014 sensor code: 1 = Terra (MOD13A1), 2 = Aqua (MYD13A1)}
 #'   \item{value}{int32 \u2014 EVI \eqn{\times} 100 (scale factor 0.01)}
 #' }
 #' @export
@@ -519,10 +519,10 @@ vi_modis_geotiff_to_parquet <- function(
     # Convert day-of-year (1\u2013366) to days since 1970-01-01
     epoch_dates <- as.integer(year_start_epoch + as.integer(doy_v[valid]) - 1L)
     tibble::tibble(
-      pid      = as.integer(pid_vec[valid]),
-      date     = epoch_dates,
-      variable = s_id,
-      value    = as.integer(evi_v[valid])
+      pid    = as.integer(pid_vec[valid]),
+      date   = epoch_dates,
+      sensor = s_id,
+      value  = as.integer(evi_v[valid])
     )
   }
 
@@ -539,7 +539,7 @@ vi_modis_geotiff_to_parquet <- function(
     dplyr::bind_rows(compact_obs) |>
       dplyr::filter(!is.na(.data$value))
   } else {
-    tibble::tibble(pid = integer(), date = integer(), variable = integer(), value = integer())
+    tibble::tibble(pid = integer(), date = integer(), sensor = integer(), value = integer())
   }
 
   if (nrow(df) == 0L) {
