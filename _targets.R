@@ -31,7 +31,7 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
 
   # GitHub release repository configuration — targets-cache stores the pipeline state
   gh_repo_config <- list(
-    repo = "AdamWilsonLab/emma_envdata",
+    repo = "eco-emma/emma_envdata",
     tag = "targets-cache",
     cache_dir = "_targets/cache" #this is local cache for speed
   )
@@ -120,7 +120,7 @@ list(
   tar_target(
     vegmap,
     get_vegmap(
-      repo = "AdamWilsonLab/emma_envdata",
+      repo = gh_repo_config$repo,
       tag = "vegmap2024",
       file = "NVM2024final_Shapefile.zip",
       local_dir = "data/manual_download/NVM2024",
@@ -132,7 +132,7 @@ list(
   tar_target(
     remnants,
     get_remnants(
-      repo      = "AdamWilsonLab/emma_envdata",
+      repo      = gh_repo_config$repo,
       tag       = "manual-data",
       local_dir = "data/manual_download/RLE_2021_Remnants"
     ),
@@ -443,7 +443,7 @@ list(
       viirs_tif_files      = vi_viirs_grid,
       stac_dir             = "data/stac/vi",
       parent_catalog_path  = "data/stac",
-      gh_repo              = "AdamWilsonLab/emma_envdata",
+      gh_repo              = gh_repo_config$repo,
       gh_release_tag       = release_tags$vi_modis_raster,
       gh_release_tag_viirs = release_tags$vi_viirs_raster,
       verbose              = TRUE
@@ -643,7 +643,7 @@ list(
       viirs_tif_files        = burn_viirs_grid,
       recentburn_file        = terra::sources(recentburn.tif)[[1]],
       stac_dir               = "data/stac/burn",
-      gh_repo                = "AdamWilsonLab/emma_envdata",
+      gh_repo                = gh_repo_config$repo,
       gh_release_tag_modis   = release_tags$burn_modis_raster,
       gh_release_tag_viirs   = release_tags$burn_viirs_raster,
       gh_release_tag_derived = release_tags$fire_history,
@@ -666,7 +666,7 @@ list(
       soil             = terra::sources(soils.tif)[[1]],
       topo             = terra::sources(geodiversity.tif)[[1]],
       stac_dir         = "data/stac/static",
-      gh_repo          = "AdamWilsonLab/emma_envdata",
+      gh_repo          = gh_repo_config$repo,
       gh_release_tag   = release_tags$static,
       verbose          = TRUE
     ),
@@ -827,7 +827,7 @@ list(
           static = "data/stac/static"     # key "static" → static_collection.json
           # fire_history removed: recentburn item lives inside the burn collection
         ),
-        gh_repo = "AdamWilsonLab/emma_envdata",
+        gh_repo = gh_repo_config$repo,
         verbose = TRUE
       )
     },
@@ -872,7 +872,7 @@ list(
           "STAC upload may be incomplete: expected ", length(stac_files),
           " files, found ", after_count, " on release '", release_tags$stac, "'."
         )
-      } else if (verbose) {
+      } else {
         message(
           "\u2713 STAC release '", release_tags$stac, "': ",
           after_count, " assets confirmed."
@@ -914,7 +914,7 @@ list(
 if (FALSE) {
   source("R/tar_release_storage.R")
   tar_upload_github_release(
-    repo      = "AdamWilsonLab/emma_envdata",
+    repo      = gh_repo_config$repo,
     tag       = "targets-cache",
     cache_dir = "_targets/cache",
     verbose   = TRUE

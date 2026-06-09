@@ -1,0 +1,63 @@
+Here is the full release inventory cross-referenced against the current `release_tags` config in `_targets.R`:
+
+---
+
+## GitHub Release Status Table
+
+| Release tag | Created | Still referenced by current pipeline? | Notes |
+|---|---|---|---|
+| `targets-cache` | 2026-05-19 | ✅ **Active** | `release_tags$cache` — pipeline cache store |
+| `static_data` | 2025-08-02 | ✅ **Active** | `release_tags$static` — static layers upload + STAC |
+| `firehistory_dynamic` | 2025-08-02 | ✅ **Active** | `release_tags$fire_history` — recentburn COG upload + STAC |
+| `stac` | 2025-08-02 | ✅ **Active** | `release_tags$stac` — STAC JSON publication |
+| `manual-data` | 2025-08-02 | ✅ **Active** | Hard-coded in `get_remnants()` target |
+| `vegmap2024` | 2025-08-02 | ✅ **Active** | Hard-coded in `get_vegmap()` target |
+| `vi_modis_dynamic_raster` | 2025-08-02 | ⚠️ **Stale** | Old name — pipeline now uploads to `vi_modis_raster` (new, doesn't exist yet) |
+| `vi_viirs_dynamic_raster` | 2025-08-02 | ⚠️ **Stale** | Old name — pipeline now uploads to `vi_viirs_raster` (new) |
+| `burn_dates_modis_raster` | 2025-08-02 | ⚠️ **Stale** | Old name — pipeline now uploads to `burn_modis_raster` (new) |
+| `burn_dates_viirs_raster` | 2025-08-02 | ⚠️ **Stale** | Old name — pipeline now uploads to `burn_viirs_raster` (new) |
+| `vi_modis_dynamic` | 2025-08-02 | ⚠️ **Stale** | Old name for VI parquets — pipeline now uploads to `vi_modis_parquet` (new) |
+| `fire_history` | 2025-08-02 | ❌ **Orphan** | Never matched any pipeline tag (`release_tags$fire_history = "firehistory_dynamic"`) |
+| `dynamic_modis_vi` | 2025-08-02 | ❌ **Orphan** | Never in current or prior pipeline config |
+| `clean_kndvi_modis` | 2024-01-12 | ❌ **Legacy** | 2024 pipeline, no longer used |
+| `clean_ndvi_dates_viirs` | 2024-01-12 | ❌ **Legacy** | 2024 pipeline |
+| `clean_ndvi_viirs` | 2024-01-12 | ❌ **Legacy** | 2024 pipeline |
+| `clean_ndvi_dates_modis` | 2024-01-10 | ❌ **Legacy** | 2024 pipeline |
+| `clean_fire_modis` | 2024-01-10 | ❌ **Legacy** | 2024 pipeline |
+| `clean_ndvi_modis` | 2024-01-10 | ❌ **Legacy** | 2024 pipeline |
+| `processed_most_recent_burn_dates` | 2023-12-14 | ❌ **Legacy** | 2023 pipeline |
+| `v1.0` | 2022-10-04 | ❌ **Legacy** | Version tag |
+| `raw_ndvi_dates_viirs` | 2022-07-16 | ❌ **Legacy** | 2022 pipeline |
+| `raw_ndvi_viirs` | 2022-06-24 | ❌ **Legacy** | 2022 pipeline |
+| `processed_static` | 2022-03-16 | ❌ **Legacy** | 2022 pipeline |
+| `raw_static` | 2022-03-15 | ❌ **Legacy** | 2022 pipeline |
+| `processed_ndvi_relative_days_since_fire` | 2022-03-14 | ❌ **Legacy** | 2022 pipeline |
+| `processed_fire_dates` | 2022-03-14 | ❌ **Legacy** | 2022 pipeline |
+| `raw_ndvi_dates_modis` | 2022-03-08 | ❌ **Legacy** | 2022 pipeline |
+| `raw_ndvi_modis` | 2022-03-07 | ❌ **Legacy** | 2022 pipeline |
+| `raw_kndvi_modis` | 2022-03-07 | ❌ **Legacy** | 2022 pipeline |
+| `raw_fire_modis` | 2022-03-02 | ❌ **Legacy** | 2022 pipeline |
+| `current` | 2022-02-11 | ❌ **Legacy** | Very old version |
+
+---
+
+## New releases the pipeline will create on next run (don't exist yet)
+
+| New release tag | Replaces | Content |
+|---|---|---|
+| `vi_modis_raster` | `vi_modis_dynamic_raster` | MODIS VI COG GeoTIFFs (Terra + Aqua) |
+| `vi_viirs_raster` | `vi_viirs_dynamic_raster` | VIIRS VI COG GeoTIFFs (S-NPP + NOAA-20) |
+| `vi_modis_parquet` | `vi_modis_dynamic` | MODIS VI parquet files |
+| `burn_modis_raster` | `burn_dates_modis_raster` | MODIS burn area COG GeoTIFFs |
+| `burn_viirs_raster` | `burn_dates_viirs_raster` | VIIRS burn area COG GeoTIFFs |
+| `burn_modis_parquet` | *(was `burndate_modis_dynamic`, never existed)* | MODIS burn parquets |
+| `burn_viirs_parquet` | *(was `burndate_viirs_dynamic`, never existed)* | VIIRS burn parquets |
+
+---
+
+## Action required
+
+**⚠️ Important — idempotency impact:** The 5 stale releases (`vi_modis_dynamic_raster`, `vi_viirs_dynamic_raster`, `burn_dates_modis_raster`, `burn_dates_viirs_raster`, `vi_modis_dynamic`) contain real data. Because `gh_release_has_asset()` checks the new tag names, the pipeline will **not** find existing files in the old releases and will re-download/re-process them. With the current narrow `2026-03-01` start date this is fine. For a full historical backfill you'd need to either rename the GitHub releases manually or copy assets to the new tags before running.
+
+**Recommended cleanup** — delete these 24 releases (2 orphans + 22 legacy):  
+`fire_history`, `dynamic_modis_vi`, and all 20 `clean_*`, `raw_*`, `processed_*`, `v1.0`, `current` releases from 2022–2024.

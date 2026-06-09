@@ -39,20 +39,53 @@
     .token = token
   )
 
-  # Optionally delete existing asset with the same name
+  # Optionally delete existing asset with the same name.
+  # Wrap in tryCatch: if the DELETE fails (e.g., the token lacks write scope
+  # for the org, which GitHub returns as 404 rather than 403), fall back to
+  # `gh release upload --clobber` via the gh CLI which uses its own stored auth.
   if (overwrite && length(rel$assets) > 0L) {
     fname <- basename(file)
+    asset_id_to_delete <- NULL
     for (asset in rel$assets) {
       if (identical(asset$name, fname)) {
-        gh::gh(
-          "DELETE /repos/{owner}/{repo}/releases/assets/{asset_id}",
-          owner = parts[1], repo = parts[2], asset_id = asset$id,
-          .token = token
-        )
+        asset_id_to_delete <- asset$id
         break
       }
     }
-    # Re-fetch release so upload_url is still valid after asset deletion
+
+    if (!is.null(asset_id_to_delete)) {
+      delete_ok <- tryCatch({
+        gh::gh(
+          "DELETE /repos/{owner}/{repo}/releases/assets/{asset_id}",
+          owner = parts[1], repo = parts[2], asset_id = asset_id_to_delete,
+          .token = token
+        )
+        TRUE
+      }, error = function(e) {
+        # DELETE failed (token may lack write scope; GitHub returns 404 for
+        # unauthorized DELETE on public repos rather than 401/403).
+        # Fall back to gh CLI --clobber which uses its own stored credentials.
+        gh_bin <- Sys.which("gh")
+        if (nzchar(gh_bin)) {
+          exit_code <- system(
+            paste(
+              shQuote(gh_bin), "release", "upload", release_tag,
+              shQuote(normalizePath(file, mustWork = FALSE)),
+              "--repo", paste0(parts[1], "/", parts[2]),
+              "--clobber"
+            ),
+            ignore.stdout = TRUE, ignore.stderr = FALSE
+          )
+          if (exit_code == 0L) {
+            return("cli_uploaded")  # signal that gh CLI handled the upload
+          }
+        }
+        stop("DELETE failed and gh CLI fallback unavailable: ", conditionMessage(e))
+      })
+      if (identical(delete_ok, "cli_uploaded")) return(invisible(TRUE))
+    }
+
+    # Re-fetch release so upload_url is fresh after any deletion
     rel <- gh::gh(
       "GET /repos/{owner}/{repo}/releases/tags/{tag}",
       owner = parts[1], repo = parts[2], tag = release_tag,
