@@ -280,9 +280,12 @@ download_burn_date_modis_geotiff <- function(
 
 #' @title Convert MODIS burned area GeoTIFFs to a domain-aligned COG
 #' @description Processes raw AppEEARS GeoTIFF downloads for one month: reprojects
-#'   MCD64A1 Burn_Date tiles to the domain grid (EPSG:9221, 500 m), applies QA
-#'   masking (qa == 0 pixels only), mosaics spatial tiles, and writes a single
-#'   1-band COG containing a \code{burn_doy} band (burn day-of-year, 0 = unburned).
+#'   MCD64A1 Burn_Date tiles to the domain grid (EPSG:9221, 500 m), mosaics
+#'   spatial tiles, and writes a single 1-band COG containing a \code{burn_doy}
+#'   band (burn day-of-year; 0 = unburned, 1–366 = burned DOY).  QA is
+#'   intentionally not used here — \code{burn_doy > 0} is the definitive
+#'   indicator of burning; masking on \code{qa == 0} removes all burned pixels
+#'   because MCD64A1 QA = 0 means fill/unprocessed, not "good quality."
 #'   Months with no burned pixels are still written as all-NA so that
 #'   \code{find_missing_months()} treats them as complete.
 #'
@@ -346,30 +349,15 @@ burn_modis_geotiff_to_grid <- function(
     return(out_tif)
   }
 
-  # Classify each TIF as Burn_Date or QA from filename
-  # AppEEARS filename pattern: MCD64A1.061__500m_Burn_Date_YYYYMMDDTHHMMSS_aid0001.tif
+  # Select only Burn_Date TIFs (QA not used — burn_doy > 0 is the definitive
+  # indicator of burning; MCD64A1 QA=0 is fill/unprocessed, NOT "good quality")
   burn_tif_paths <- tif_paths[grepl("Burn_Date", basename(tif_paths), ignore.case = TRUE)]
-  qa_tif_paths   <- tif_paths[grepl("_QA_",      basename(tif_paths), ignore.case = TRUE)]
 
-  # Reproject each Burn_Date tile to domain; apply matching QA mask (qa == 0 only)
+  # Reproject each Burn_Date tile to the domain grid
   burn_tiles <- purrr::map(burn_tif_paths, function(burn_path) {
     tryCatch({
-      # Find matching QA file for the same date (calendar filename)
-      date_str <- regmatches(basename(burn_path),
-                             regexpr("[0-9]{8}T[0-9]{6}", basename(burn_path)))
-      qa_path  <- qa_tif_paths[grepl(date_str, basename(qa_tif_paths))]
-
       burn_r    <- terra::rast(burn_path)
       burn_proj <- terra::project(burn_r, domain_template, method = "near")
-
-      if (length(qa_path) > 0L) {
-        qa_r    <- terra::rast(qa_path[[1L]])
-        qa_proj <- terra::project(qa_r, domain_template, method = "near")
-        # QA == 0: good-quality pixel; mask out everything else
-        good_qa   <- terra::app(qa_proj, function(x) x == 0)
-        burn_proj <- terra::mask(burn_proj, good_qa, maskvalue = FALSE)
-      }
-
       domain_mask <- !is.na(domain_template[["pid"]])
       terra::mask(burn_proj, domain_mask, maskvalue = FALSE)
     }, error = function(e) {
@@ -381,7 +369,7 @@ burn_modis_geotiff_to_grid <- function(
   burn_tiles <- purrr::compact(burn_tiles)
 
   if (length(burn_tiles) == 0L) {
-    if (verbose) message("All tiles empty after QA for ", yyyymm, " — writing all-NA grid")
+    if (verbose) message("All tiles failed reprojection for ", yyyymm, " — writing all-NA grid")
     write_empty_cog()
     if (cleanup) unlink(geotiff_directory, recursive = TRUE, force = TRUE)
     return(out_tif)
@@ -406,7 +394,10 @@ burn_modis_geotiff_to_grid <- function(
   unlink(out_tif)
   terra::writeRaster(burn_mosaic, out_tif, filetype = "COG", overwrite = TRUE)
 
-  if (verbose) message("Wrote burn grid COG: ", basename(out_tif))
+  n_burned <- sum(!is.na(terra::values(burn_mosaic)[, 1]) &
+                    terra::values(burn_mosaic)[, 1] > 0L, na.rm = TRUE)
+  if (verbose) message("Wrote burn grid COG: ", basename(out_tif),
+                       " (", n_burned, " burned pixels)")
 
   if (cleanup) {
     unlink(geotiff_directory, recursive = TRUE, force = TRUE)
@@ -422,8 +413,7 @@ burn_modis_geotiff_to_grid <- function(
 #'
 #' @description Reads \code{burn_doy} band from the domain-aligned COG produced
 #'   by \code{burn_modis_geotiff_to_grid()} and writes a tidy parquet with one
-#'   row per burned pixel.  QA filtering was already applied in the grid step,
-#'   so all rows have qa = 0.
+#'   row per burned pixel (\code{burn_doy > 0}).
 #'
 #' @param tif_file     Character. Path to \code{burn_modis_YYYYMM.tif}.
 #' @param domain_raster SpatRaster or path.  Must contain a \code{pid} layer.
@@ -486,7 +476,7 @@ burn_date_modis_geotiff_to_parquet <- function(
     pid      = as.integer(pid_vec[valid]),
     date     = epoch_dates,
     burn_doy = as.integer(doy_v[valid]),
-    qa       = 0L   # QA filtering was applied in burn_modis_geotiff_to_grid()
+    qa       = 0L   # placeholder — no QA filtering applied; burn_doy > 0 is the fire indicator
   )
 
   parquet_file <- file.path(out_dir, paste0("burn_modis_", yyyymm, ".parquet"))

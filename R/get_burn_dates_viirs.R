@@ -267,7 +267,10 @@ download_burn_date_viirs_geotiff <- function(
 #' @description Identical workflow to \code{burn_modis_geotiff_to_grid()} but for
 #'   VNP64A1 (VIIRS, 375 m).  The 375 m pixels are resampled to the 500 m domain
 #'   grid (EPSG:9221) via nearest-neighbour reprojection.  Writes a single 1-band
-#'   COG containing a \code{burn_doy} band (burn day-of-year, QA = 0 pixels only).
+#'   COG containing a \code{burn_doy} band (burn day-of-year; 0 = unburned,
+#'   1–366 = burned DOY).  QA is intentionally not used — \code{burn_doy > 0}
+#'   is the definitive indicator of burning; \code{qa == 0} removes all burned
+#'   pixels because VNP64A1 QA = 0 means fill/unprocessed, not "good quality."
 #'
 #' @param geotiff_directory Character.  Path to AppEEARS temp directory or a
 #'   \code{.skip} path.
@@ -328,28 +331,15 @@ burn_viirs_geotiff_to_grid <- function(
     return(out_tif)
   }
 
-  # Classify each TIF as Burn_Date or QA from filename
-  # AppEEARS filename pattern: VNP64A1.002__375m_Burn_Date_YYYYMMDDTHHMMSS_aid0001.tif
+  # Select only Burn_Date TIFs (QA not used — burn_doy > 0 is the definitive
+  # indicator of burning; VNP64A1 QA=0 is fill/unprocessed, NOT "good quality")
   burn_tif_paths <- tif_paths[grepl("Burn_Date", basename(tif_paths), ignore.case = TRUE)]
-  qa_tif_paths   <- tif_paths[grepl("_QA_",      basename(tif_paths), ignore.case = TRUE)]
 
   # Reproject each Burn_Date tile to domain (375m → 500m EPSG:9221 via nearest-neighbour)
   burn_tiles <- purrr::map(burn_tif_paths, function(burn_path) {
     tryCatch({
-      date_str <- regmatches(basename(burn_path),
-                             regexpr("[0-9]{8}T[0-9]{6}", basename(burn_path)))
-      qa_path  <- qa_tif_paths[grepl(date_str, basename(qa_tif_paths))]
-
       burn_r    <- terra::rast(burn_path)
       burn_proj <- terra::project(burn_r, domain_template, method = "near")
-
-      if (length(qa_path) > 0L) {
-        qa_r    <- terra::rast(qa_path[[1L]])
-        qa_proj <- terra::project(qa_r, domain_template, method = "near")
-        good_qa   <- terra::app(qa_proj, function(x) x == 0)
-        burn_proj <- terra::mask(burn_proj, good_qa, maskvalue = FALSE)
-      }
-
       domain_mask <- !is.na(domain_template[["pid"]])
       terra::mask(burn_proj, domain_mask, maskvalue = FALSE)
     }, error = function(e) {
@@ -361,7 +351,7 @@ burn_viirs_geotiff_to_grid <- function(
   burn_tiles <- purrr::compact(burn_tiles)
 
   if (length(burn_tiles) == 0L) {
-    if (verbose) message("All VIIRS tiles empty after QA for ", yyyymm, " — writing all-NA grid")
+    if (verbose) message("All VIIRS tiles failed reprojection for ", yyyymm, " — writing all-NA grid")
     write_empty_cog()
     if (cleanup) unlink(geotiff_directory, recursive = TRUE, force = TRUE)
     return(out_tif)
@@ -386,7 +376,10 @@ burn_viirs_geotiff_to_grid <- function(
   unlink(out_tif)
   terra::writeRaster(burn_mosaic, out_tif, filetype = "COG", overwrite = TRUE)
 
-  if (verbose) message("Wrote VIIRS burn grid COG: ", basename(out_tif))
+  n_burned <- sum(!is.na(terra::values(burn_mosaic)[, 1]) &
+                    terra::values(burn_mosaic)[, 1] > 0L, na.rm = TRUE)
+  if (verbose) message("Wrote VIIRS burn grid COG: ", basename(out_tif),
+                       " (", n_burned, " burned pixels)")
 
   if (cleanup) {
     unlink(geotiff_directory, recursive = TRUE, force = TRUE)
@@ -401,8 +394,8 @@ burn_viirs_geotiff_to_grid <- function(
 #' @title Convert VIIRS burned area COG to parquet
 #'
 #' @description Reads \code{burn_doy} band from the domain-aligned COG produced
-#'   by \code{burn_viirs_geotiff_to_grid()} and writes a tidy parquet.  QA
-#'   filtering was applied in the grid step, so all rows have qa = 0.
+#'   by \code{burn_viirs_geotiff_to_grid()} and writes a tidy parquet with one
+#'   row per burned pixel (\code{burn_doy > 0}).
 #'
 #' @param tif_file     Character. Path to \code{burn_viirs_YYYYMM.tif}.
 #' @param domain_raster SpatRaster or path.  Must contain a \code{pid} layer.
@@ -473,7 +466,7 @@ burn_date_viirs_geotiff_to_parquet <- function(
     pid      = as.integer(pid_vec[valid]),
     date     = epoch_dates,
     burn_doy = as.integer(doy_v[valid]),
-    qa       = 0L   # QA filtering was applied in burn_viirs_geotiff_to_grid()
+    qa       = 0L   # placeholder — no QA filtering applied; burn_doy > 0 is the fire indicator
   )
 
   parquet_file <- file.path(out_dir, paste0("burn_viirs_", yyyymm, ".parquet"))

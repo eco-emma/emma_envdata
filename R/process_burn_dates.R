@@ -905,7 +905,18 @@ compute_fire_age_for_vi <- function(
         NULL
       }
     )
-    if (is.null(vi_df)) next
+    if (is.null(vi_df)) {
+      # Write .skip marker — consistent with upstream pipeline convention.
+      # Handles legacy YYYYMM-named parquets (old pipeline schema) or other
+      # unreadable files; prevents targets from erroring on missing output paths.
+      skip_file <- paste0(out_file, ".skip")
+      writeLines(c(paste("VI file:", basename(vi_file)),
+                   "Reason: Could not read parquet (wrong format or schema)",
+                   paste("Timestamp:", Sys.time())),
+                 skip_file)
+      todo_out[j] <- skip_file
+      next
+    }
 
     # Require pid, date, sensor columns
     req_cols <- c("pid", "date", "sensor")
@@ -915,6 +926,17 @@ compute_fire_age_for_vi <- function(
         basename(vi_file), " missing columns: ",
         paste(missing_cols, collapse = ", "), " — skipping"
       )
+      # Write .skip marker so targets does not error on missing output files.
+      # Likely cause: legacy VI parquet from an older pipeline schema (YYYYMM
+      # filenames) that lacks the pid/date/sensor columns expected by this function.
+      skip_file <- paste0(out_file, ".skip")
+      writeLines(c(paste("VI file:", basename(vi_file)),
+                   paste("Reason: Missing required columns:",
+                         paste(missing_cols, collapse = ", ")),
+                   paste("Available columns:", paste(names(vi_df), collapse = ", ")),
+                   paste("Timestamp:", Sys.time())),
+                 skip_file)
+      todo_out[j] <- skip_file
       next
     }
 
@@ -983,6 +1005,9 @@ compute_fire_age_for_vi <- function(
     }
   }
 
+  # Merge updated todo paths (possibly .skip) back into the full output vector
+  # so every returned path points to a file that actually exists on disk.
+  out_names[todo] <- todo_out
   out_names
 }
 
