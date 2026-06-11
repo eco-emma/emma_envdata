@@ -110,8 +110,7 @@ process_capenature_to_parquet <- function(
     verbose            = TRUE
 ) {
   # parameters near the top for easy auditing (per R style guide)
-  record_start_yr <- 2000L   # post-2000: satellite coverage; drop low-precision CN dates
-  today           <- Sys.Date()
+  today <- Sys.Date()
   epoch           <- as.Date("1970-01-01")
 
   # ── 1. Tidy the sf object ──────────────────────────────────────────────────
@@ -318,17 +317,6 @@ process_capenature_to_parquet <- function(
   # Drop future burn_dates
   fires_sf <- dplyr::filter(
     fires_sf, is.na(.data$burn_date) | .data$burn_date < today
-  )
-
-  # Drop post-2000 low-precision records: post-2000 satellite coverage makes
-  # month-only or year-only CapeNature dates redundant noise
-  fires_sf <- dplyr::filter(
-    fires_sf,
-    !(
-      !is.na(.data$burn_date) &
-        as.integer(format(.data$burn_date, "%Y")) >= record_start_yr &
-        is.na(.data$date_start_parsed)
-    )
   )
 
   # Drop records with no derivable burn_date
@@ -1088,6 +1076,15 @@ most_recent_burn_to_grid <- function(
 
   fire_age_vec  <- as.integer(fire_age_map[as.character(pid_vec)])
   last_burn_vec <- as.integer(last_burn_map[as.character(pid_vec)])
+
+  # Fill unburned domain pixels (valid pid but not in state) with the
+  # right-censored lower bound documented in the function description.
+  # Pixels in the state but with fire_count = 0 already carry the censored value
+  # from state_snap; pixels NEVER SEEN by the state loop (not yet burned) need the
+  # same treatment here so the raster is fully populated.
+  right_censored_age <- as.integer(snapshot_int - record_start)
+  unburned_valid     <- is.na(fire_age_vec) & !is.na(pid_vec)
+  fire_age_vec[unburned_valid] <- right_censored_age
 
   fire_age_r  <- domain_r[[1L]]
   last_burn_r <- domain_r[[1L]]

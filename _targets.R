@@ -806,6 +806,8 @@ list(
   ),
 
   # Upload MODIS burned area raster grids
+  # overwrite = TRUE: grid COGs are regenerated when the burn pipeline changes
+  # (e.g. domain update); stale same-named release assets must be replaced.
   tar_target(
     upload_burn_modis_grid,
     upload_to_github_release(
@@ -813,12 +815,14 @@ list(
       repo         = gh_repo_config$repo,
       release_tag  = release_tags$burn_modis_raster,
       release_name = "Dynamic MODIS Burned Area Rasters (MCD64A1)",
+      overwrite    = TRUE,
       verbose      = TRUE
     ),
     deployment = "main"
   ),
 
   # Upload VIIRS burned area raster grids
+  # overwrite = TRUE: same rationale as burn_modis_grid above.
   tar_target(
     upload_burn_viirs_grid,
     upload_to_github_release(
@@ -826,12 +830,14 @@ list(
       repo         = gh_repo_config$repo,
       release_tag  = release_tags$burn_viirs_raster,
       release_name = "Dynamic VIIRS Burned Area Rasters (VNP64A1)",
+      overwrite    = TRUE,
       verbose      = TRUE
     ),
     deployment = "main"
   ),
 
   # Upload derived fire history COG (most recent burn snapshot raster)
+  # overwrite = TRUE: recentburn.tif content changes every run as new months are added.
   tar_target(
     upload_fire_history,
     upload_to_github_release(
@@ -839,6 +845,7 @@ list(
       repo         = gh_repo_config$repo,
       release_tag  = release_tags$fire_history,
       release_name = "Fire History (most recent burn, postfire age)",
+      overwrite    = TRUE,
       verbose      = TRUE
     ),
     deployment = "main"
