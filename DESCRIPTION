@@ -39,7 +39,6 @@ Imports:
   devtools,
   smoothr,
   questionr,
-  qs2,
   httr2,
   geojsonsf,
   glue,

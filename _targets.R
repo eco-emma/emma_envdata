@@ -79,7 +79,7 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
     packages = description_packages,  # Use all packages from DESCRIPTION file
     repository = "local",  # Store targets locally; upload to release after tar_make() completes
     cue = tar_cue(mode = "thorough"),  # Recompute if any inputs change
-    format = "qs"  # targets uses qs2 under the hood for this format
+    format = "rds"  # rds is universally portable across R versions and platforms
   )
 
   terraOptions(tempdir = "data/temp/terra", memfrac = 0.8)
@@ -116,7 +116,7 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
 
 
 list(
-  ##################### Input Shapefiles/Vectors (sf objects stored in qs) #########################
+  ##################### Input Shapefiles/Vectors (sf objects stored as rds) #########################
   
   tar_target(
     vegmap,
@@ -624,7 +624,7 @@ list(
         verbose            = TRUE
       )
     },
-    format = "qs"
+    format = "rds"
   ),
 
   # ── Incremental per-pixel fire state (append-only, idempotent) ───────────────

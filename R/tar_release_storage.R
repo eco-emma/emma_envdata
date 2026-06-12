@@ -35,9 +35,8 @@
         TRUE
       },
       gpkg    = { sf::st_read(path, quiet = TRUE); TRUE },
-      qs      = { qs2::qread(path);             TRUE },
       rds     = { readRDS(path);               TRUE },
-      # For binary objects with no extension (targets qs/qs2 objects): verify
+      # For binary objects with no extension (targets rds objects): verify
       # the file is non-empty and does NOT look like a GitHub API error response
       # (which is a JSON object starting with '{', ASCII 0x7B).
       {
@@ -183,16 +182,16 @@ tar_download_github_release <- function(
     
     # Check if this is a legacy file-format workspace asset (has extension, e.g. "elevation.nc").
     # These were uploaded by older code from _targets/workspaces/ — they are debug environments,
-    # not actual data files. If the bare qs object also exists in the release, skip this asset.
+    # not actual data files. If the bare rds object also exists in the release, skip this asset.
     is_file_format <- grepl("\\.[^.]+$", asset_name)
     
     if (is_file_format) {
       # Extract target name by removing extension
       target_name <- sub("\\.[^.]+$", "", asset_name)
       file_ext <- sub(".*\\.", "", asset_name)
-      # Skip if the bare qs object is present — it is the authoritative copy
+      # Skip if the bare rds object is present — it is the authoritative copy
       if (any(assets$file_name == target_name)) {
-        if (verbose) message("[tar_github_release] Skipping legacy workspace asset (bare qs object present): ", asset_name)
+        if (verbose) message("[tar_github_release] Skipping legacy workspace asset (bare rds object present): ", asset_name)
         next
       }
     } else {
@@ -264,10 +263,10 @@ tar_download_github_release <- function(
         out_path <- file.path(out_dir, asset_name)
         file.copy(cached_path, out_path, overwrite = TRUE)
         
-        # Create RDS wrapper in _targets/objects/ ONLY if the qs object is not already there.
-        # The bare-name asset (e.g. "elevation") is the authoritative qs object.
+        # Create RDS wrapper in _targets/objects/ ONLY if the rds object is not already there.
+        # The bare-name asset (e.g. "elevation") is the authoritative rds object.
         # The .ext asset (e.g. "elevation.nc") is just the data file — overwriting the already-
-        # restored qs object with an RDS path causes a hash mismatch and forces re-runs.
+        # restored rds object with an RDS path causes a hash mismatch and forces re-runs.
         obj_dir <- "_targets/objects"
         dir.create(obj_dir, recursive = TRUE, showWarnings = FALSE)
         obj_path <- file.path(obj_dir, target_name)
@@ -275,7 +274,7 @@ tar_download_github_release <- function(
           saveRDS(ws_path, obj_path)
           if (verbose) message("[tar_github_release] Restored file-format target: ", target_name)
         } else {
-          if (verbose) message("[tar_github_release] Skipped RDS write (qs object already present): ", target_name)
+          if (verbose) message("[tar_github_release] Skipped RDS write (rds object already present): ", target_name)
         }
       } else {
         # Regular object file: copy to _targets/objects/
@@ -296,7 +295,7 @@ tar_download_github_release <- function(
 #' @description Upload locally stored targets to GitHub releases
 #' @param repo Repository in "owner/repo" format (default from environment or "AdamWilsonLab/emma_envdata")
 #' @param tag Release tag to store objects (default from environment or "targets-cache")
-#' @param format Serialization format: "qs", "rds", or "parquet" (default: "qs")
+#' @param format Serialization format: "rds" or "parquet" (default: "rds")
 #' @param cache_dir Cache directory (default: "_targets/cache")
 #' @param which_targets Optional vector of specific target names to upload
 #' @param verbose Logical for progress messages
@@ -305,7 +304,7 @@ tar_download_github_release <- function(
 tar_upload_github_release <- function(
   repo = NULL,
   tag = NULL,
-  format = "qs",
+  format = "rds",
   cache_dir = "_targets/cache",
   which_targets = NULL,
   verbose = TRUE
@@ -416,7 +415,7 @@ tar_upload_github_release <- function(
   # Download the remote _targets_meta (a small file) and build a name → data-hash
   # lookup. Used by the objects upload loop to skip assets whose targets hash
   # matches the last uploaded meta — a reliable content-equality check that does
-  # not depend on byte-count coincidences in qs2 serialisation.
+  # not depend on byte-count coincidences in serialisation.
   remote_meta_hashes <- tryCatch({
     meta_row <- remote_assets[remote_assets$file_name == "_targets_meta", ]
     if (nrow(meta_row) == 0) return(NULL)
@@ -455,7 +454,7 @@ tar_upload_github_release <- function(
     regular_files <- list.files("_targets/objects", full.names = TRUE, recursive = FALSE)
     regular_files <- regular_files[basename(regular_files) != "_targets_meta"]
     # Note: _targets/workspaces/ files are debug environments, not target values.
-    # format="file" targets store the path string in _targets/objects/ (qs-serialized).
+    # format="file" targets store the path string in _targets/objects/ (rds-serialized).
     # Uploading workspace files causes integrity check failures on download.
     local_files <- regular_files
     if (verbose) message("[tar_github_release] Found ", length(local_files), " local target files to upload")
@@ -484,7 +483,7 @@ tar_upload_github_release <- function(
       # Skip upload if the targets content hash matches the remote meta.
       # This is the authoritative content-equality check: same hash means the
       # object the server produced is identical to what was last uploaded,
-      # regardless of byte-count coincidences in qs2 serialisation.
+      # regardless of byte-count coincidences in serialisation.
       exists_on_github <- any(remote_assets$file_name == upload_name)
       if (exists_on_github) {
         local_hash <- meta_df$data[meta_df$name == target_name]
