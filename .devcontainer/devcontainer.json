@@ -1,0 +1,25 @@
+{
+  "name": "emma_envdata",
+  "image": "adamwilsonlab/emma:latest",
+  "workspaceFolder": "/workspace",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
+  "mounts": [
+    "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached"
+  ],
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "R",
+        "terminal.integrated.profiles.linux": {
+          "R": {
+            "path": "R",
+            "args": ["--no-save", "--no-restore"]
+          },
+          "bash": {
+            "path": "bash"
+          }
+        }
+      }
+    }
+  }
+}
