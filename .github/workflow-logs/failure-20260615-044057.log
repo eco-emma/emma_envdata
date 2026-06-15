@@ -1,0 +1,56 @@
+Starting tar_make()
+System info: sysname=Linux; release=6.17.0-1018-azure; version=#18~24.04.1-Ubuntu SMP Thu May 28 16:39:11 UTC 2026; nodename=91c649e1ddac; machine=x86_64; login=unknown; user=root; effective_user=root
+tar_source() only sources R scripts. Ignoring non-R files: R/ccr_startup.sh
+Loaded 37 packages from DESCRIPTION
++ burn_viirs_pending dispatched
+✔ burn_viirs_pending completed [5ms, 193 B]
++ vi_viirs_pending dispatched
+✔ vi_viirs_pending completed [3ms, 204 B]
++ vi_modis_pending dispatched
+✔ vi_modis_pending completed [12ms, 204 B]
++ burn_modis_pending dispatched
+✔ burn_modis_pending completed [10ms, 193 B]
++ validate_stac dispatched
+Validating STAC asset links from: data/stac/catalog.json
+STAC validation: all 0 link(s) OK.
+✔ validate_stac completed [45ms, 89 B]
++ release_manifest dispatched
+✔ release_manifest completed [21ms, 14.46 kB]
++ domain_boundary dispatched
+✖ domain_boundary errored
+✖ errored pipeline [3s, 6 completed, 4 skipped]
+Warning messages:
+1: <anonymous>: ..1 may be used in an incorrect context
+ 
+2: <anonymous>: ..2 may be used in an incorrect context
+ 
+3: <anonymous>: ..1 may be used in an incorrect context
+ 
+4: <anonymous>: ..2 may be used in an incorrect context
+ 
+5: In gzfile(file, "rb") :
+  cannot open compressed file '_targets/objects/country', probable reason 'No such file or directory'
+6: In gzfile(file, "rb") :
+  cannot open compressed file '_targets/objects/vegmap', probable reason 'No such file or directory'
+Error:
+! Error in tar_make():
+  could not load dependency vegmap of target domain_boundary. cannot open the connection
+  See https://books.ropensci.org/targets/debugging.html
+10: (function () 
+    {
+        traceback(2)
+        quit(status = 1)
+    })()
+9: stop(fallback)
+8: signal_abort(cnd, .file)
+7: rlang::abort(message = message, class = class, call = tar_envir_base)
+6: tar_error(message = paste0(...), class = base::union(custom_error_classes(class), 
+       c("tar_condition_run", "tar_condition_targets")))
+5: tar_throw_run(message, class = class(traced_condition$condition))
+4: callr_error(traced_condition = out, fun = fun)
+3: if_any(inherits(out, "tar_condition_traced"), callr_error(traced_condition = out, 
+       fun = fun), out)
+2: callr_outer(targets_function = tar_make_inner, targets_arguments = targets_arguments, 
+       callr_function = callr_function, callr_arguments = callr_arguments, 
+       envir = envir, script = script, store = store, fun = "tar_make")
+1: targets::tar_make()
