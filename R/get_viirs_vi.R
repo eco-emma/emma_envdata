@@ -347,7 +347,8 @@ vi_viirs_geotiff_to_grid <- function(
       source         = "no_data"
     )
     terra::writeRaster(r_out, out_path, filetype = "COG", datatype = "INT2S",
-                       gdal = c("COMPRESS=DEFLATE", "PREDICTOR=2"),
+                       gdal = c("COMPRESS=DEFLATE", "PREDICTOR=2", "ZLEVEL=9",
+                                "SPARSE_OK=YES"),
                        overwrite = TRUE)
   }
 
@@ -450,7 +451,8 @@ vi_viirs_geotiff_to_grid <- function(
     )
     unlink(out_path)
     terra::writeRaster(r_out, out_path, filetype = "COG", datatype = "INT2S",
-                       gdal = c("COMPRESS=DEFLATE", "PREDICTOR=2"),
+                       gdal = c("COMPRESS=DEFLATE", "PREDICTOR=2", "ZLEVEL=9",
+                                "SPARSE_OK=YES"),
                        overwrite = TRUE)
     if (verbose) message("Wrote: ", basename(out_path))
   }

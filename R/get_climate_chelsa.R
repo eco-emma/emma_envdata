@@ -116,6 +116,8 @@ get_climate_chelsa <- function(
       tmp_tif <- tempfile(tmpdir = dirname(cog_filename), fileext = ".tif")
       on.exit(unlink(tmp_tif), add = TRUE)
       terra::writeRaster(rast_i, filename = tmp_tif, filetype = "COG",
+                         gdal = c("COMPRESS=DEFLATE", "PREDICTOR=2", "ZLEVEL=9",
+                                  "SPARSE_OK=YES"),
                          overwrite = TRUE)
       unlink(cog_filename)
       if (!file.rename(tmp_tif, cog_filename)) {

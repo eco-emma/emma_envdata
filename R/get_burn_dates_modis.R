@@ -330,7 +330,10 @@ burn_modis_geotiff_to_grid <- function(
       date_created = as.character(Sys.Date())
     )
     unlink(out_tif)
-    terra::writeRaster(empty_r, out_tif, filetype = "COG", overwrite = TRUE)
+    terra::writeRaster(empty_r, out_tif, filetype = "COG", datatype = "INT2S",
+                       gdal = c("COMPRESS=DEFLATE", "PREDICTOR=2", "ZLEVEL=9",
+                                "SPARSE_OK=YES"),
+                       overwrite = TRUE)
   }
 
   # Resolve source GeoTIFFs (AppEEARS also writes CSVs and JSONs)
@@ -392,7 +395,10 @@ burn_modis_geotiff_to_grid <- function(
     date_created = as.character(Sys.Date())
   )
   unlink(out_tif)
-  terra::writeRaster(burn_mosaic, out_tif, filetype = "COG", overwrite = TRUE)
+  terra::writeRaster(burn_mosaic, out_tif, filetype = "COG", datatype = "INT2S",
+                     gdal = c("COMPRESS=DEFLATE", "PREDICTOR=2", "ZLEVEL=9",
+                              "SPARSE_OK=YES"),
+                     overwrite = TRUE)
 
   n_burned <- sum(!is.na(terra::values(burn_mosaic)[, 1]) &
                     terra::values(burn_mosaic)[, 1] > 0L, na.rm = TRUE)

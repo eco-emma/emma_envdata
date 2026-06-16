@@ -1,22 +1,40 @@
 {
   "name": "emma_envdata",
   "image": "adamwilsonlab/emma:latest",
+  "runArgs": ["--platform=linux/amd64"],
   "workspaceFolder": "/workspace",
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
+  // Mount host ~/.Rprofile into the container so R credentials (Earthdata, etc.) are available automatically
   "mounts": [
-    "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached"
+    "source=${localEnv:HOME}/.Rprofile,target=/home/rstudio/.Rprofile,type=bind,readonly"
   ],
+  // Pass Cline/VS Code API key from host shell env (~/.zshrc: export ANTHROPIC_API_KEY="sk-ant-xxxx")
+  "remoteEnv": {
+    "ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY}"
+  },
   "customizations": {
     "vscode": {
+      "extensions": [
+        "saoudrizwan.claude-dev",
+        "REditorSupport.r",
+        "RDebugger.r-debugger",
+        "quarto.quarto",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "github.vscode-github-actions",
+        "eamodio.gitlens"
+      ],
       "settings": {
         "terminal.integrated.defaultProfile.linux": "R",
         "terminal.integrated.profiles.linux": {
           "R": {
             "path": "R",
-            "args": ["--no-save", "--no-restore"]
+            "args": ["--no-save", "--no-restore"],
+            "icon": "symbol-misc"
           },
           "bash": {
-            "path": "bash"
+            "path": "/bin/bash",
+            "icon": "terminal-bash"
           }
         }
       }
