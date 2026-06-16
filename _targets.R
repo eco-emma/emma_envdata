@@ -958,12 +958,12 @@ list(
   # Renders README.qmd to README.md with comprehensive data summary dashboard.
   # Re-runs whenever key upstream targets change (via implicit dependencies in
   # the .qmd chunks that call tar_read() or read files from target outputs).
-  #tarchetypes::tar_quarto(
-  #  readme,
-  #  path = "README.qmd",
-  #  quiet = FALSE,
-  #  deployment = "main"
-  #),
+  tarchetypes::tar_quarto(
+    readme,
+    path = "README.qmd",
+    quiet = FALSE,
+    deployment = "main"
+  ),
 
 # ============================================================================
 # POST-PRIME: Upload completed targets cache to GitHub release
