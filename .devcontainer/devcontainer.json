@@ -1,7 +1,6 @@
 {
   "name": "emma_envdata",
   "image": "adamwilsonlab/emma:latest",
-  "runArgs": ["--platform=linux/amd64"],
   "workspaceFolder": "/workspace",
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
   // Mount host ~/.Rprofile into the container so R credentials (Earthdata, etc.) are available automatically
@@ -25,7 +24,7 @@
         "eamodio.gitlens"
       ],
       "settings": {
-        "terminal.integrated.defaultProfile.linux": "R",
+        "terminal.integrated.defaultProfile.linux": "bash",
         "terminal.integrated.profiles.linux": {
           "R": {
             "path": "R",

@@ -45,7 +45,10 @@ Imports:
   stringr,
   gh,
   httr,
-  memoise
+  memoise,
+  htmlwidgets,
+  patchwork,
+  webshot2
 Suggests:
   rgee,
   reticulate,

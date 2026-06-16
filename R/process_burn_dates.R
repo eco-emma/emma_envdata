@@ -665,7 +665,7 @@ compute_fire_state <- function(
     return(state_file)
   }
 
-  # ── Find new months since last state update ────────────────────────────────
+  # ── Find months to process ─────────────────────────────────────────────────
   # Convert burn event dates to month-start integers
   burn_event_dates <- as.Date(burn_events$date, origin = "1970-01-01")
   burn_month_starts <- as.integer(
@@ -673,9 +673,41 @@ compute_fire_state <- function(
   )
 
   all_month_starts <- sort(unique(burn_month_starts))
-  new_months <- all_month_starts[all_month_starts > last_state_month]
+  
+  # Check if burn_events contains sources not present in current state
+  # (e.g., CapeNature added retrospectively after satellite-only state exists)
+  sources_in_events <- unique(burn_events$fire_source)
+  sources_in_state  <- if (nrow(state) > 0L) {
+    unique(state$fire_source[!is.na(state$fire_source)])
+  } else {
+    character(0)
+  }
+  new_sources <- setdiff(sources_in_events, sources_in_state)
+  
+  if (length(new_sources) > 0L) {
+    if (verbose) {
+      message(
+        "New fire source(s) detected: ", paste(new_sources, collapse = ", "),
+        " — rebuilding state from scratch to incorporate historical events"
+      )
+    }
+    # Reset state to empty so all months get reprocessed
+    state <- tibble::tibble(
+      pid                   = integer(0),
+      state_month           = integer(0),
+      last_burn_date        = integer(0),
+      fire_count            = integer(0),
+      fire_source           = character(0),
+      date_uncertainty_days = integer(0),
+      burn_fraction         = double(0)
+    )
+    months_to_process <- all_month_starts
+  } else {
+    # No new sources — incremental update (only months > last_state_month)
+    months_to_process <- all_month_starts[all_month_starts > last_state_month]
+  }
 
-  if (length(new_months) == 0L) {
+  if (length(months_to_process) == 0L) {
     if (verbose) message("State is up-to-date — no new months to process")
     dir.create(dirname(state_file), recursive = TRUE, showWarnings = FALSE)
     arrow::write_parquet(state, state_file)
@@ -684,14 +716,14 @@ compute_fire_state <- function(
 
   if (verbose) {
     message(
-      "Processing ", length(new_months), " new months into fire state ..."
+      "Processing ", length(months_to_process), " month(s) into fire state ..."
     )
   }
 
   # ── Stateful for loop: chronological carry-forward ─────────────────────────
   # A for loop is appropriate here — this is explicitly stateful carry-forward
   # (R style guide exception to the prefer-purrr::map rule).
-  for (month_start in new_months) {
+  for (month_start in months_to_process) {
     # Advance one calendar month: add 32 days then snap to first of that month
     next_month <- as.integer(
       as.Date(
