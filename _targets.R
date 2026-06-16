@@ -14,6 +14,12 @@ message("Starting tar_make()")
     message(paste("Set working directory to:", getwd()))  
   }
 
+
+proj_db <- "/usr/share/proj"
+if (dir.exists(proj_db) ){#&& Sys.getenv("PROJ_LIB") == "") {
+  Sys.setenv(PROJ_LIB = proj_db)
+}
+
 library(targets)
 # tar_make()
 # tar_glimpse()
@@ -105,9 +111,9 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
 #  burn_start_date  <- "2000-11-01"  # MCD64A1 first available data
 #  modis_end_date   <- as.character(Sys.Date())
 
-  modis_start_date <- "2026-03-01"  # MODIS Terra first available data
-  viirs_start_date <- "2026-03-01"  # VIIRS first available data
-  burn_start_date  <- "2026-03-01"  # MCD64A1 first available data
+  modis_start_date <- "2026-01-01"  # MODIS Terra first available data
+  viirs_start_date <- "2026-01-01"  # VIIRS first available data
+  burn_start_date  <- "2026-01-01"  # MCD64A1 first available data
   
   # Lag ~14 days past month end so both 16-day MODIS composites are published
   # on AppEEARS before the month enters the pipeline (avoids partial data).
@@ -958,12 +964,12 @@ list(
   # Renders README.qmd to README.md with comprehensive data summary dashboard.
   # Re-runs whenever key upstream targets change (via implicit dependencies in
   # the .qmd chunks that call tar_read() or read files from target outputs).
-  tarchetypes::tar_quarto(
-    readme,
-    path = "README.qmd",
-    quiet = FALSE,
-    deployment = "main"
-  ),
+  #tarchetypes::tar_quarto(
+  #  readme,
+  #  path = "README.qmd",
+  #  quiet = FALSE,
+  #  deployment = "main"
+ # ),
 
 # ============================================================================
 # POST-PRIME: Upload completed targets cache to GitHub release
