@@ -367,13 +367,27 @@ process_capenature_to_parquet <- function(
     )
   }
 
+  # One-cell buffer (in domain CRS units) used to ensure edge pixels are
+  # captured when cropping to the fire bounding box.
+  cell_buf <- max(terra::res(domain_r))
+
   result_list <- vector("list", nrow(fires_sf))
   for (i in seq_len(nrow(fires_sf))) {
+    message(paste(i, "of", nrow(fires_sf))) #status update
+
+    # Crop domain raster to this fire's bounding box + one-cell buffer so that
+    # terra::rasterize() only has to work on a small spatial subset rather than
+    # the full domain grid — the dominant cost in the original implementation.
+    fire_ext    <- terra::ext(fires_vect[i, ])
+    fire_ext    <- terra::extend(fire_ext, cell_buf)
+    domain_crop <- terra::crop(domain_r, fire_ext)
+    pid_crop    <- terra::values(domain_crop[["pid"]])[, 1]
+
     result_list[[i]] <- tryCatch(
       .rasterize_one_fire(
         poly_vect             = fires_vect[i, ],
-        domain_r              = domain_r,
-        pid_vec               = pid_vec,
+        domain_r              = domain_crop,
+        pid_vec               = pid_crop,
         burn_date_int         = as.integer(fires_sf$burn_date[i] - epoch),
         date_uncertainty_days = as.integer(fires_sf$date_uncertainty_days[i])
       ),
