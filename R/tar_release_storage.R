@@ -182,19 +182,28 @@ tar_download_github_release <- function(
     
     # Check if this is a legacy file-format workspace asset (has extension, e.g. "elevation.nc").
     # These were uploaded by older code from _targets/workspaces/ — they are debug environments,
-    # not actual data files. If the bare rds object also exists in the release, skip this asset.
-    is_file_format <- grepl("\\.[^.]+$", asset_name)
-    
-    if (is_file_format) {
-      # Extract target name by removing extension
-      target_name <- sub("\\.[^.]+$", "", asset_name)
-      file_ext <- sub(".*\\.", "", asset_name)
-      # Skip if the bare rds object is present — it is the authoritative copy
-      if (any(assets$file_name == target_name)) {
+    # not actual data files. If BOTH a .ext asset AND a bare-name rds object exist, the .ext
+    # asset is the legacy workspace copy — skip it.
+    #
+    # IMPORTANT: geotargets::tar_terra_rast() targets have the extension as part of their
+    # actual target name (e.g. domain.tif, clouds.tif). These have NO bare-name counterpart
+    # and must be treated as regular objects, placed directly at _targets/objects/{name}.tif.
+    has_extension <- grepl("\\.[^.]+$", asset_name)
+
+    if (has_extension) {
+      bare_name <- sub("\\.[^.]+$", "", asset_name)
+      if (any(assets$file_name == bare_name)) {
+        # Both .ext and bare-name assets exist → legacy workspace asset, skip it
         if (verbose) message("[tar_github_release] Skipping legacy workspace asset (bare rds object present): ", asset_name)
         next
       }
+      # No bare-name counterpart → extension is part of the target name (geotargets style).
+      # Treat as a regular object: copy directly to _targets/objects/{asset_name}.
+      is_file_format <- FALSE
+      target_name <- asset_name
+      file_ext <- NULL
     } else {
+      is_file_format <- FALSE
       target_name <- asset_name
       file_ext <- NULL
     }
