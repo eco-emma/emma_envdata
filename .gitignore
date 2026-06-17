@@ -86,6 +86,7 @@ firemodel_predict
 img/*_files
 img/*.html
 img/network*
+img/*.png
 
 # OS files
 .DS_Store

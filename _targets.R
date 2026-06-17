@@ -52,7 +52,8 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
     fire_history       = "firehistory_dynamic",
     fire_age           = "fire_age_dynamic",
     stac               = "stac",
-    cache              = "targets-cache"
+    cache              = "targets-cache",
+    readme_assets      = "readme-assets"
   )
 
   # Store config as environment variables for upload function to use
@@ -957,12 +958,43 @@ list(
   # README Generation (Quarto Dashboard)
   # ============================================================================
   # Renders README.qmd to README.md with comprehensive data summary dashboard.
-  # Re-runs whenever key upstream targets change (via implicit dependencies in
-  # the .qmd chunks that call tar_read() or read files from target outputs).
+  # tar_load() calls inside the .qmd ensure this runs after all upstream targets.
   tarchetypes::tar_quarto(
     readme,
     path = "README.qmd",
     quiet = FALSE,
+    deployment = "main"
+  ),
+
+  # ============================================================================
+  # Upload README figure PNGs to GitHub release (readme-assets)
+  # ============================================================================
+  # Runs after the readme target renders all figures to data/target_outputs/readme_img/.
+  # Uploads PNGs to the "readme-assets" release so README.md can reference them
+  # via stable URLs without committing binary files to the repository.
+  tar_target(
+    upload_readme_assets,
+    {
+      force(readme)  # ensure readme renders (and generates PNGs) before uploading
+      png_files <- list.files(
+        "data/target_outputs/readme_img",
+        pattern = "\\.png$",
+        full.names = TRUE
+      )
+      if (length(png_files) > 0) {
+        upload_to_github_release(
+          files        = png_files,
+          repo         = gh_repo_config$repo,
+          release_tag  = release_tags$readme_assets,
+          release_name = "README Figure Assets",
+          overwrite    = TRUE,
+          verbose      = TRUE
+        )
+      } else {
+        message("No PNG files found in readme_img dir; skipping upload.")
+        character(0)
+      }
+    },
     deployment = "main"
   ),
 

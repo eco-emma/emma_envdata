@@ -23,14 +23,23 @@ library(htmlwidgets)
 library(viridis)
 library(patchwork)
 
+# Load upstream targets to ensure readme runs last
+tar_load(c(validate_stac, domain_geoparquet, release_manifest))
+
 # Set options
+readme_img_dir <- "data/target_outputs/readme_img"
+dir.create(readme_img_dir, recursive = TRUE, showWarnings = FALSE)
+
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  fig.path = "img/",
+  fig.path = paste0(readme_img_dir, "/"),
   dev = "png",
   dpi = 150
 )
+
+# GitHub release base URL for README figures
+readme_assets_url <- "https://github.com/eco-emma/emma_envdata/releases/download/readme-assets"
 ```
 
 ![](img/EMMA Logo_RE_3.jpg)
@@ -43,22 +52,25 @@ This repository processes environmental data for the [EMMA project](https://emma
 
 ```{r pipeline-network, fig.width=12, fig.height=8}
 # Generate and save pipeline network visualization
+network_html <- file.path(readme_img_dir, "network.html")
+network_png  <- file.path(readme_img_dir, "network.png")
+
 tar_visnetwork(
   targets_only = TRUE,
   label = c("time", "size", "branches")
 ) %>%
-  htmlwidgets::saveWidget(file = "img/network.html", selfcontained = TRUE)
+  htmlwidgets::saveWidget(file = network_html, selfcontained = TRUE)
 
 # Take screenshot (requires Chromium; skip gracefully if unavailable)
 if (requireNamespace("webshot2", quietly = TRUE)) {
   tryCatch(
-    webshot2::webshot("img/network.html", "img/network.png", vwidth = 1200, vheight = 800),
+    webshot2::webshot(network_html, network_png, vwidth = 1200, vheight = 800),
     error = function(e) message("webshot2 screenshot skipped: ", conditionMessage(e))
   )
 }
 ```
 
-![Pipeline Network](img/network.png)
+![Pipeline Network](`r paste0(readme_assets_url, "/network.png")`)
 
 ## Pipeline Health
 
@@ -149,7 +161,7 @@ kable(inventory,
 
 ## Temporal Coverage
 
-```{r temporal-coverage, fig.width=10, fig.height=4}
+```{r temporal-coverage, fig.width=10, fig.height=4, include=FALSE}
 # Build temporal coverage data
 temporal_data <- tribble(
   ~Dataset, ~Start, ~End,
@@ -182,6 +194,8 @@ ggplot(temporal_data, aes(y = Dataset)) +
   )
 ```
 
+![](`r paste0(readme_assets_url, "/temporal-coverage-1.png")`)
+
 ## Domain Statistics
 
 ```{r domain-stats}
@@ -208,7 +222,9 @@ if (file.exists(domain_parquet)) {
 
 ### Most Recent Enhanced Vegetation Index (EVI)
 
-```{r evi-map, fig.width=10, fig.height=6}
+![](`r paste0(readme_assets_url, "/evi-map-1.png")`)
+
+```{r evi-map, fig.width=10, fig.height=6, include=FALSE}
 # Get most recent VI from STAC
 vi_items <- list.files("data/stac/vi", pattern = "^vi_\\d{8}\\.json$", full.names = TRUE)
 if (length(vi_items) > 0) {
@@ -255,7 +271,9 @@ if (length(vi_items) > 0) {
 
 ### Time Since Fire
 
-```{r fire-age-map, fig.width=10, fig.height=6}
+![](`r paste0(readme_assets_url, "/fire-age-map-1.png")`)
+
+```{r fire-age-map, fig.width=10, fig.height=6, include=FALSE}
 # Get recentburn COG from STAC
 recentburn_json <- read_stac("data/stac/burn/burn_recentburn.json")
 
@@ -300,9 +318,13 @@ if (!is.null(recentburn_json)) {
 
 ### Static Environmental Covariates
 
+![](`r paste0(readme_assets_url, "/elevation-map-1.png")`) ![](`r paste0(readme_assets_url, "/temp-map-1.png")`) ![](`r paste0(readme_assets_url, "/precip-map-1.png")`)
+
+![](`r paste0(readme_assets_url, "/soil-map-1.png")`) ![](`r paste0(readme_assets_url, "/clouds-map-1.png")`) ![](`r paste0(readme_assets_url, "/topo-map-1.png")`)
+
 ::: {layout-ncol=3}
 
-```{r elevation-map, fig.width=4, fig.height=4}
+```{r elevation-map, fig.width=4, fig.height=4, include=FALSE}
 # Read elevation COG
 elev_json <- read_stac("data/stac/static/static_elevation.json")
 if (!is.null(elev_json)) {
@@ -330,7 +352,7 @@ if (!is.null(elev_json)) {
 }
 ```
 
-```{r temp-map, fig.width=4, fig.height=4}
+```{r temp-map, fig.width=4, fig.height=4, include=FALSE}
 # Read BIO1 (mean annual temperature) from climate COG
 bio1_url <- "https://github.com/eco-emma/emma_envdata/releases/download/static_data/CHELSA_bio01_1981-2010_V.2.1.tif"
 bio1_rast <- rast(paste0("/vsicurl/", bio1_url))
@@ -358,7 +380,7 @@ ggplot(bio1_df, aes(x = x, y = y, fill = temp)) +
   )
 ```
 
-```{r precip-map, fig.width=4, fig.height=4}
+```{r precip-map, fig.width=4, fig.height=4, include=FALSE}
 # Read BIO12 (annual precipitation)
 bio12_url <- "https://github.com/eco-emma/emma_envdata/releases/download/static_data/CHELSA_bio12_1981-2010_V.2.1.tif"
 bio12_rast <- rast(paste0("/vsicurl/", bio12_url))
@@ -384,7 +406,7 @@ ggplot(bio12_df, aes(x = x, y = y, fill = precip)) +
   )
 ```
 
-```{r soil-map, fig.width=4, fig.height=4}
+```{r soil-map, fig.width=4, fig.height=4, include=FALSE}
 # Read soil COG (first layer = SOC)
 soil_json <- read_stac("data/stac/static/static_soil.json")
 if (!is.null(soil_json)) {
@@ -413,7 +435,7 @@ if (!is.null(soil_json)) {
 }
 ```
 
-```{r clouds-map, fig.width=4, fig.height=4}
+```{r clouds-map, fig.width=4, fig.height=4, include=FALSE}
 # Read clouds COG
 clouds_json <- read_stac("data/stac/static/static_clouds.json")
 if (!is.null(clouds_json)) {
@@ -442,7 +464,7 @@ if (!is.null(clouds_json)) {
 }
 ```
 
-```{r topo-map, fig.width=4, fig.height=4}
+```{r topo-map, fig.width=4, fig.height=4, include=FALSE}
 # Read topographic diversity COG
 topo_json <- read_stac("data/stac/static/static_topography.json")
 if (!is.null(topo_json)) {
