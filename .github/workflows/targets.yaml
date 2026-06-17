@@ -30,8 +30,7 @@ on:
     branches:
       - main
       - master
-      - dev-adam-appeears
-      - dev-adam-appeears-cog
+      - dev-adam
       - dev-jiyeon
 
   # Allows you to run this workflow manually from the Actions tab
@@ -86,7 +85,7 @@ jobs:
           Rscript -e "
             source('R/tar_release_storage.R')
             tar_upload_github_release(
-              repo      = 'AdamWilsonLab/emma_envdata',
+              repo      = 'eco-emma/emma_envdata',
               tag       = 'targets-cache',
               cache_dir = '_targets/cache',
               verbose   = TRUE

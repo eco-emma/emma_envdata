@@ -65,13 +65,15 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
 
   # Download cached targets from GitHub release before tar_option_set() so the
   # restored store is visible before any cue or format options are applied.
-  source('R/tar_release_storage.R')
- # tar_download_github_release(
- #   repo = gh_repo_config$repo,
- #   tag = gh_repo_config$tag,
- #   cache_dir = gh_repo_config$cache_dir,
- #   verbose = TRUE
- # )
+ if (Sys.getenv("GITHUB_ACTIONS") == "true") {
+    source('R/tar_release_storage.R')
+    tar_download_github_release(
+      repo = gh_repo_config$repo,
+      tag = gh_repo_config$tag,
+      cache_dir = gh_repo_config$cache_dir,
+      verbose = TRUE
+    )
+ }
 
   tar_option_set(
     #controller = if (Sys.getenv("GITHUB_ACTIONS") != "true") crew::crew_controller_local(workers = 16) else NULL,
