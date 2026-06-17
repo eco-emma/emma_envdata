@@ -15,11 +15,6 @@ message("Starting tar_make()")
   }
 
 
-proj_db <- "/usr/share/proj"
-if (dir.exists(proj_db) ){#&& Sys.getenv("PROJ_LIB") == "") {
-  Sys.setenv(PROJ_LIB = proj_db)
-}
-
 library(targets)
 # tar_make()
 # tar_glimpse()
@@ -121,9 +116,7 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
 
 
 
-list(
-  ##################### Input Shapefiles/Vectors (sf objects stored as rds) #########################
-  
+list(  
   tar_target(
     vegmap,
     get_vegmap(
@@ -964,12 +957,12 @@ list(
   # Renders README.qmd to README.md with comprehensive data summary dashboard.
   # Re-runs whenever key upstream targets change (via implicit dependencies in
   # the .qmd chunks that call tar_read() or read files from target outputs).
-  #tarchetypes::tar_quarto(
-  #  readme,
-  #  path = "README.qmd",
-  #  quiet = FALSE,
-  #  deployment = "main"
- # ),
+  tarchetypes::tar_quarto(
+    readme,
+    path = "README.qmd",
+    quiet = FALSE,
+    deployment = "main"
+  ),
 
 # ============================================================================
 # POST-PRIME: Upload completed targets cache to GitHub release

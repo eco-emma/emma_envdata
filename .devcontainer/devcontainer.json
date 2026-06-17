@@ -1,6 +1,8 @@
 {
   "name": "emma_envdata",
   "image": "adamwilsonlab/emma:latest",
+  "memory": "24gb"
+  "remoteUser": "rstudio",
   "workspaceFolder": "/workspace",
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
   // Mount host ~/.Rprofile into the container so R credentials (Earthdata, etc.) are available automatically

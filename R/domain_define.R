@@ -31,10 +31,52 @@ country= country %>%
     st_as_sf() %>%
     mutate(domain=1)
 
-  # reproject to EPSG:9221 (Albers SA Grid, WGS84) — official South African equal-area grid;
-  # 500 m resolution preserved (metres-based CRS)
+  # Reproject to the canonical project CRS (Albers Equal Area, matching AVIRIS-NG NetCDF).
+  # Using explicit WKT instead of st_crs(9221) to avoid PROJ database dependency.
+  # Parameters match BioSCape EPSG:9221 (Hartebeesthoek94 / ZAF BSU Albers 25E):
+  #   lat_0=-30, lon_0=25, std parallels -22/-38, FE=1400000, FN=1300000, WGS84 ellipsoid.
+  project_crs <- 'PROJCRS["unnamed",
+    BASEGEOGCRS["Ellipse Based",
+        DATUM["Ellipse Based",
+            ELLIPSOID["Unnamed",6378137,298.257223562997,
+                LENGTHUNIT["metre",1,
+                    ID["EPSG",9001]]]],
+        PRIMEM["Greenwich",0,
+            ANGLEUNIT["degree",0.0174532925199433,
+                ID["EPSG",9122]]]],
+    CONVERSION["unnamed",
+        METHOD["Albers Equal Area",
+            ID["EPSG",9822]],
+        PARAMETER["Latitude of false origin",-30,
+            ANGLEUNIT["degree",0.0174532925199433],
+            ID["EPSG",8821]],
+        PARAMETER["Longitude of false origin",25,
+            ANGLEUNIT["degree",0.0174532925199433],
+            ID["EPSG",8822]],
+        PARAMETER["Latitude of 1st standard parallel",-22,
+            ANGLEUNIT["degree",0.0174532925199433],
+            ID["EPSG",8823]],
+        PARAMETER["Latitude of 2nd standard parallel",-38,
+            ANGLEUNIT["degree",0.0174532925199433],
+            ID["EPSG",8824]],
+        PARAMETER["Easting at false origin",1400000,
+            LENGTHUNIT["metre",1],
+            ID["EPSG",8826]],
+        PARAMETER["Northing at false origin",1300000,
+            LENGTHUNIT["metre",1],
+            ID["EPSG",8827]]],
+    CS[Cartesian,2],
+        AXIS["easting",east,
+            ORDER[1],
+            LENGTHUNIT["metre",1,
+                ID["EPSG",9001]]],
+        AXIS["northing",north,
+            ORDER[2],
+            LENGTHUNIT["metre",1,
+                ID["EPSG",9001]]]]'
+
   domain <- domain |>
-    st_transform(crs = st_crs(9221))
+    st_transform(crs = project_crs)
 
   return(domain)
 

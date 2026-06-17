@@ -1,5 +1,6 @@
 ---
 format: gfm
+prefer-html: true
 execute:
   echo: false
   warning: false
@@ -48,9 +49,12 @@ tar_visnetwork(
 ) %>%
   htmlwidgets::saveWidget(file = "img/network.html", selfcontained = TRUE)
 
-# Take screenshot
+# Take screenshot (requires Chromium; skip gracefully if unavailable)
 if (requireNamespace("webshot2", quietly = TRUE)) {
-  webshot2::webshot("img/network.html", "img/network.png", vwidth = 1200, vheight = 800)
+  tryCatch(
+    webshot2::webshot("img/network.html", "img/network.png", vwidth = 1200, vheight = 800),
+    error = function(e) message("webshot2 screenshot skipped: ", conditionMessage(e))
+  )
 }
 ```
 
@@ -174,7 +178,7 @@ ggplot(temporal_data, aes(y = Dataset)) +
   theme_minimal(base_size = 12) +
   theme(
     panel.grid.minor = element_blank(),
-    plot.title = element_font(face = "bold")
+    plot.title = element_text(face = "bold")
   )
 ```
 
@@ -521,7 +525,7 @@ if (file.exists(validation_file)) {
     "Total Links Checked", validation$summary$total_links,
     "Valid Links", validation$summary$valid_links,
     "Broken Links", validation$summary$broken_links,
-    "Validation Status", if(validation$summary$broken_links == 0) "✅ PASS" else "❌ FAIL"
+    "Validation Status", if(isTRUE(validation$summary$broken_links == 0)) "✅ PASS" else "❌ FAIL"
   )
   
   kable(validation_summary, col.names = c("", "")) %>%
