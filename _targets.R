@@ -50,8 +50,7 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
     burn_viirs_raster  = "burn_viirs_raster",
     burn_modis_parquet = "burn_modis_parquet",
     burn_viirs_parquet = "burn_viirs_parquet",
-    fire_history       = "firehistory_dynamic",
-    fire_age           = "fire_age_dynamic",
+    fireage            = "fireage",
     stac               = "stac",
     cache              = "targets-cache",
     readme_assets      = "readme-assets"
@@ -470,14 +469,17 @@ list(
   tar_target(
     vi_stac,
     generate_modis_vi_stac(
-      tif_files            = vi_modis_grid,
-      viirs_tif_files      = vi_viirs_grid,
-      stac_dir             = "data/stac/vi",
-      parent_catalog_path  = "data/stac",
-      gh_repo              = gh_repo_config$repo,
-      gh_release_tag       = release_tags$vi_modis_raster,
-      gh_release_tag_viirs = release_tags$vi_viirs_raster,
-      verbose              = TRUE
+      tif_files                       = vi_modis_grid,
+      viirs_tif_files                 = vi_viirs_grid,
+      stac_dir                        = "data/stac/vi",
+      parent_catalog_path             = "data/stac",
+      gh_repo                         = gh_repo_config$repo,
+      gh_release_tag                  = release_tags$vi_modis_raster,
+      gh_release_tag_viirs            = release_tags$vi_viirs_raster,
+      gh_release_tag_vi_modis_parquet = release_tags$vi_modis_parquet,
+      gh_release_tag_vi_viirs_parquet = release_tags$vi_viirs_parquet,
+      gh_release_tag_fireage          = release_tags$fireage,
+      verbose                         = TRUE
     ),
     format     = "file",
     deployment = "main"
@@ -655,17 +657,17 @@ list(
 
   # ── Fire age at every VI observation date (MODIS + VIIRS) ────────────────────
   # Joins the per-pixel fire state to each VI parquet.  Idempotent: already-
-  # written fire_age parquets are skipped on subsequent runs.
+  # written fireage parquets are skipped on subsequent runs.
   tar_target(
-    fire_age_parquets,
+    fireage_parquets,
     {
       force(vi_modis_parquet)   # wait for all VI parquets
       force(vi_viirs_parquet)
-      compute_fire_age_for_vi(
+      compute_fireage_for_vi(
         modis_vi_dir = "data/target_outputs/modis_vi",
         viirs_vi_dir = "data/target_outputs/viirs_vi",
         state_file   = most_recent_burn,
-        out_dir      = "data/target_outputs/fire_age/",
+        out_dir      = "data/target_outputs/fireage/",
         verbose      = TRUE
       )
     },
@@ -674,7 +676,7 @@ list(
 
   # ── Snapshot raster (latest state_month only) ─────────────────────────────────
   geotargets::tar_terra_rast(
-    recentburn.tif,
+    fireage_current.tif,
     most_recent_burn_to_grid(
       state_file    = most_recent_burn,
       domain_raster = domain.tif,
@@ -683,20 +685,22 @@ list(
     datatype = "INT4S"
   ),
 
-  # Unified STAC Collection for burned area (MODIS + VIIRS COG rasters + recentburn COG).
-  # Re-runs whenever any grid or the recentburn.tif snapshot changes.
+  # Unified STAC Collection for burned area (MODIS + VIIRS COG rasters + fireage_current COG).
+  # Re-runs whenever any grid or the fireage_current.tif snapshot changes.
   tar_target(
     burn_stac,
     generate_burn_stac(
-      modis_tif_files        = burn_modis_grid,
-      viirs_tif_files        = burn_viirs_grid,
-      recentburn_file        = terra::sources(recentburn.tif)[[1]],
-      stac_dir               = "data/stac/burn",
-      gh_repo                = gh_repo_config$repo,
-      gh_release_tag_modis   = release_tags$burn_modis_raster,
-      gh_release_tag_viirs   = release_tags$burn_viirs_raster,
-      gh_release_tag_derived = release_tags$fire_history,
-      verbose                = TRUE
+      modis_tif_files              = burn_modis_grid,
+      viirs_tif_files              = burn_viirs_grid,
+      recentburn_file              = terra::sources(fireage_current.tif)[[1]],
+      stac_dir                     = "data/stac/burn",
+      gh_repo                      = gh_repo_config$repo,
+      gh_release_tag_modis         = release_tags$burn_modis_raster,
+      gh_release_tag_viirs         = release_tags$burn_viirs_raster,
+      gh_release_tag_derived       = release_tags$fireage,
+      gh_release_tag_modis_parquet = release_tags$burn_modis_parquet,
+      gh_release_tag_viirs_parquet = release_tags$burn_viirs_parquet,
+      verbose                      = TRUE
     ),
     format     = "file",
     deployment = "main"
@@ -706,18 +710,19 @@ list(
   tar_target(
     static_stac,
     generate_static_layers_stac(
-      domain_file      = terra::sources(domain.tif)[[1]],
-      domain_parquet   = domain_geoparquet,
-      vegmap_file      = terra::sources(vegmap.tif)[[1]],
-      elevation        = terra::sources(elevation.tif)[[1]],
-      climate_files    = climate_chelsa,
-      clouds           = terra::sources(clouds.tif)[[1]],
-      soil             = terra::sources(soils.tif)[[1]],
-      topo             = terra::sources(geodiversity.tif)[[1]],
-      stac_dir         = "data/stac/static",
-      gh_repo          = gh_repo_config$repo,
-      gh_release_tag   = release_tags$static,
-      verbose          = TRUE
+      domain_file               = terra::sources(domain.tif)[[1]],
+      domain_parquet            = domain_geoparquet,
+      vegmap_file               = terra::sources(vegmap.tif)[[1]],
+      elevation                 = terra::sources(elevation.tif)[[1]],
+      climate_files             = climate_chelsa,
+      clouds                    = terra::sources(clouds.tif)[[1]],
+      soil                      = terra::sources(soils.tif)[[1]],
+      topo                      = terra::sources(geodiversity.tif)[[1]],
+      stac_dir                  = "data/stac/static",
+      gh_repo                   = gh_repo_config$repo,
+      gh_release_tag            = release_tags$static,
+      static_covariates_parquet = static_geoparquet,
+      verbose                   = TRUE
     ),
     format     = "file",
     deployment = "main"
@@ -735,6 +740,7 @@ list(
       files = c(
         terra::sources(domain.tif)[[1]],
         "data/target_outputs/domain.parquet",
+        "data/target_outputs/static_covariates.parquet",
         terra::sources(vegmap.tif)[[1]],
         terra::sources(elevation.tif)[[1]],
         climate_chelsa,
@@ -849,29 +855,19 @@ list(
     deployment = "main"
   ),
 
-  # Upload derived fire history COG (most recent burn snapshot raster)
-  # overwrite = TRUE: recentburn.tif content changes every run as new months are added.
+  # Upload fireage COG snapshot + fireage parquets (one per VI composite, MODIS + VIIRS)
+  # overwrite = TRUE: fireage_current.tif content changes every run as new months are added.
   tar_target(
-    upload_fire_history,
+    upload_fireage,
     upload_to_github_release(
-      files        = terra::sources(recentburn.tif)[[1]],
+      files        = c(
+        terra::sources(fireage_current.tif)[[1]],
+        fireage_parquets[!grepl("\\.skip$", fireage_parquets)]
+      ),
       repo         = gh_repo_config$repo,
-      release_tag  = release_tags$fire_history,
-      release_name = "Fire History (most recent burn, postfire age)",
+      release_tag  = release_tags$fireage,
+      release_name = "Fire Age (snapshot raster + per-VI-date parquets)",
       overwrite    = TRUE,
-      verbose      = TRUE
-    ),
-    deployment = "main"
-  ),
-
-  # Upload fire_age parquets (one per VI composite, MODIS + VIIRS)
-  tar_target(
-    upload_fire_age,
-    upload_to_github_release(
-      files        = fire_age_parquets[!grepl("\\.skip$", fire_age_parquets)],
-      repo         = gh_repo_config$repo,
-      release_tag  = release_tags$fire_age,
-      release_name = "Fire Age at VI Observation Dates",
       verbose      = TRUE
     ),
     deployment = "main"

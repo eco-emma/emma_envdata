@@ -12,7 +12,7 @@
 #                                       pixel parquet with fractional cover
 #   merge_burn_dates()               — merge 3 sources; 6-month cluster dedup
 #   compute_fire_state()             — incremental per-pixel running state file
-#   compute_fire_age_for_vi()        — join state to VI parquets → fire_age_*.parquet
+#   compute_fireage_for_vi()         — join state to VI parquets → fireage_*.parquet
 #   most_recent_burn_to_grid()       — snapshot raster from state file
 # ============================================================================
 
@@ -867,11 +867,11 @@ compute_fire_state <- function(
 #' @return Character vector of output parquet file paths (including previously
 #'   existing files that were skipped).
 #' @export
-compute_fire_age_for_vi <- function(
+compute_fireage_for_vi <- function(
     modis_vi_dir = "data/target_outputs/modis_vi",
     viirs_vi_dir = "data/target_outputs/viirs_vi",
     state_file,
-    out_dir      = "data/target_outputs/fire_age/",
+    out_dir      = "data/target_outputs/fireage/",
     verbose      = TRUE
 ) {
   record_start <- as.integer(as.Date("2000-01-01") - as.Date("1970-01-01"))
@@ -892,8 +892,8 @@ compute_fire_age_for_vi <- function(
     return(character(0))
   }
 
-  # Derive output parquet names: vi_modis_* → fire_age_modis_*, etc.
-  out_names <- file.path(out_dir, sub("^vi_", "fire_age_", basename(all_vi_files)))
+  # Derive output parquet names: vi_modis_* → fireage_modis_*, etc.
+  out_names <- file.path(out_dir, sub("^vi_", "fireage_", basename(all_vi_files)))
 
   # Idempotency: skip files already written (same pattern as burn pipeline)
   todo <- !file.exists(out_names)

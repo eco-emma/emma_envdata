@@ -3,6 +3,14 @@
 # global bbox (-180,-90,180,90). Update if the domain definition changes.
 DOMAIN_BBOX <- c(17.0, -35.0, 33.0, -28.0)  # xmin, ymin, xmax, ymax
 
+# Sensor ID lookup — used in emma:sensor_id parquet asset metadata
+EMMA_SENSOR_IDS <- c(
+  modis_terra  = 1L,
+  modis_aqua   = 2L,
+  viirs_snpp   = 3L,
+  viirs_noaa20 = 4L
+)
+
 # Helper: build a GeoJSON polygon from a bbox vector c(xmin, ymin, xmax, ymax)
 .bbox_to_polygon <- function(bb) {
   list(
@@ -40,13 +48,16 @@ DOMAIN_BBOX <- c(17.0, -35.0, 33.0, -28.0)  # xmin, ymin, xmax, ymax
 #' @keywords internal
 generate_modis_vi_stac <- function(
   tif_files,
-  viirs_tif_files      = NULL,
-  stac_dir             = "data/stac/modis_vi",
-  parent_catalog_path  = "data/stac",
-  gh_repo              = "AdamWilsonLab/emma_envdata",
-  gh_release_tag       = "vi_modis_raster",
-  gh_release_tag_viirs = "vi_viirs_raster",
-  verbose              = TRUE
+  viirs_tif_files                = NULL,
+  stac_dir                       = "data/stac/vi",
+  parent_catalog_path            = "data/stac",
+  gh_repo                        = "eco-emma/emma_envdata",
+  gh_release_tag                 = "vi_modis_raster",
+  gh_release_tag_viirs           = "vi_viirs_raster",
+  gh_release_tag_vi_modis_parquet = "vi_modis_parquet",
+  gh_release_tag_vi_viirs_parquet = "vi_viirs_parquet",
+  gh_release_tag_fireage         = "fireage",
+  verbose                        = TRUE
 ) {
 
   dir.create(stac_dir, recursive = TRUE, showWarnings = FALSE)
@@ -267,13 +278,16 @@ generate_modis_vi_stac <- function(
       geometry = .bbox_to_polygon(DOMAIN_BBOX),
       bbox     = DOMAIN_BBOX,
       properties = list(
-        `datetime`     = paste0(format(pd, "%Y-%m-%d"), "T00:00:00Z"),
-        start_datetime = paste0(format(pd, "%Y-%m-%d"), "T00:00:00Z"),
-        end_datetime   = paste0(format(end_d, "%Y-%m-%d"), "T23:59:59Z"),
-        platforms      = as.list(platforms),
-        instruments    = as.list(instruments),
-        gsd            = 500,
-        dataset        = "vi"
+        `datetime`            = paste0(format(pd, "%Y-%m-%d"), "T00:00:00Z"),
+        start_datetime        = paste0(format(pd, "%Y-%m-%d"), "T00:00:00Z"),
+        end_datetime          = paste0(format(end_d, "%Y-%m-%d"), "T23:59:59Z"),
+        platforms             = as.list(platforms),
+        instruments           = as.list(instruments),
+        gsd                   = 500,
+        dataset               = "vi",
+        `emma:product`        = "vi",
+        `emma:schema_version` = "1.0",
+        `emma:pid_grid`       = "domain_500m"
       ),
       links = list(
         list(rel = "collection", href = "vi_collection.json", type = "application/json"),
@@ -323,18 +337,25 @@ generate_emma_stac_catalog <- function(
   dataset_collections = list(
     modis_vi = "data/stac/modis_vi"
   ),
-  gh_repo = "AdamWilsonLab/emma_envdata",
+  gh_repo = "eco-emma/emma_envdata",
   verbose = TRUE
 ) {
-  
+
   dir.create(stac_base_dir, recursive = TRUE, showWarnings = FALSE)
-  
+
   # Create parent STAC Catalog
   catalog <- list(
     stac_version = "1.0.0",
     type = "Catalog",
     id = "emma",
-    description = "EMMA Environmental Data Catalog - A curated collection of environmental datasets for the Eastern Mediterranean and Maghreb region.",
+    description = paste(
+      "EMMA Environmental Data Catalog — Environmental datasets for the Cape Floristic Region, South Africa.",
+      "Includes vegetation index (EVI) rasters and Parquet tables (MODIS + VIIRS, 16-day composites),",
+      "burned area rasters and Parquet tables (MODIS MCD64A1 + VIIRS VNP64A1, monthly),",
+      "fire age Parquet tables (per VI composite date), and static environmental layers",
+      "(domain grid, vegetation map, elevation, climate, clouds, soil, topography, combined covariates).",
+      "All dynamic datasets are domain-aligned to the 500m EMMA grid (pid column)."
+    ),
     links = list(
       list(
         rel = "root",
@@ -644,15 +665,17 @@ generate_burn_dates_stac <- function(
 #' @return Character path to the burn collection.json
 #' @keywords internal
 generate_burn_stac <- function(
-  modis_tif_files        = NULL,
-  viirs_tif_files        = NULL,
-  recentburn_file        = NULL,
-  stac_dir               = "data/stac/burn",
-  gh_repo                = "AdamWilsonLab/emma_envdata",
-  gh_release_tag_modis   = "burn_modis_raster",
-  gh_release_tag_viirs   = "burn_viirs_raster",
-  gh_release_tag_derived = "firehistory_dynamic",
-  verbose                = TRUE
+  modis_tif_files             = NULL,
+  viirs_tif_files             = NULL,
+  recentburn_file             = NULL,
+  stac_dir                    = "data/stac/burn",
+  gh_repo                     = "eco-emma/emma_envdata",
+  gh_release_tag_modis        = "burn_modis_raster",
+  gh_release_tag_viirs        = "burn_viirs_raster",
+  gh_release_tag_derived      = "fireage",
+  gh_release_tag_modis_parquet = "burn_modis_parquet",
+  gh_release_tag_viirs_parquet = "burn_viirs_parquet",
+  verbose                     = TRUE
 ) {
   dir.create(stac_dir, recursive = TRUE, showWarnings = FALSE)
 
@@ -710,7 +733,7 @@ generate_burn_stac <- function(
       "in preference to MODIS given its finer spatial resolution (375m vs 500m).",
       "Also includes most_recent_burn.tif: fire_age_days and last_burn_date per pixel."
     ),
-    license = "proprietary",
+    license = "CC-BY-4.0",
     extent = list(
       spatial  = list(bbox = list(as.list(DOMAIN_BBOX))),
       # NA serialises as JSON null (open-ended interval); NULL would produce {}
@@ -777,14 +800,17 @@ generate_burn_stac <- function(
       geometry = .bbox_to_polygon(DOMAIN_BBOX),
       bbox     = DOMAIN_BBOX,
       properties = list(
-        datetime       = paste0(format(nc_date, "%Y-%m-%d"), "T00:00:00Z"),
-        start_datetime = paste0(format(nc_date, "%Y-%m-01"), "T00:00:00Z"),
-        end_datetime   = paste0(format(month_end, "%Y-%m-%d"), "T23:59:59Z"),
-        platforms      = smeta$platforms,
-        instruments    = smeta$instruments,
-        gsd            = smeta$gsd,
-        source         = source,
-        dataset        = "burn"
+        datetime              = paste0(format(nc_date, "%Y-%m-%d"), "T00:00:00Z"),
+        start_datetime        = paste0(format(nc_date, "%Y-%m-01"), "T00:00:00Z"),
+        end_datetime          = paste0(format(month_end, "%Y-%m-%d"), "T23:59:59Z"),
+        platforms             = smeta$platforms,
+        instruments           = smeta$instruments,
+        gsd                   = smeta$gsd,
+        source                = source,
+        dataset               = "burn",
+        `emma:product`        = "burn",
+        `emma:schema_version` = "1.0",
+        `emma:pid_grid`       = "domain_500m"
       ),
       links = list(
         list(rel = "collection", href = "burn_collection.json", type = "application/json"),
@@ -946,8 +972,9 @@ generate_static_layers_stac <- function(
     soil,
     topo,
     stac_dir         = "data/stac/static",
-    gh_repo          = "AdamWilsonLab/emma_envdata",
+    gh_repo          = "eco-emma/emma_envdata",
     gh_release_tag   = "static_data",
+    static_covariates_parquet = NULL,
     verbose          = TRUE) {
 
   dir.create(stac_dir, recursive = TRUE, showWarnings = FALSE)
@@ -1194,6 +1221,51 @@ generate_static_layers_stac <- function(
       )
     )
   ), "static_topography")
+
+  # ── 8. Static covariates parquet (optional) ───────────────────────────────
+  # Read column names dynamically from the parquet schema (no data loaded)
+  if (!is.null(static_covariates_parquet) &&
+      nzchar(static_covariates_parquet) &&
+      file.exists(static_covariates_parquet)) {
+    cov_cols <- tryCatch({
+      schema <- arrow::read_parquet(
+        static_covariates_parquet,
+        col_select = character(0)
+      )
+      names(schema)
+    }, error = function(e) character(0))
+
+    write_item(list(
+      stac_version = "1.0.0", type = "Feature",
+      id          = "static_covariates",
+      description = paste(
+        "All static environmental covariates joined on pid.",
+        "One row per 500m domain pixel. Columns include domain grid attributes,",
+        "vegetation class, elevation, CHELSA bioclimatic variables, cloud frequency,",
+        "SoilGrids soil properties, and topographic diversity metrics."
+      ),
+      geometry   = static_geom, bbox = DOMAIN_BBOX,
+      properties = c(static_props, list(
+        dataset = "static", layer = "covariates",
+        `emma:product`        = "static",
+        `emma:schema_version` = "1.0",
+        `emma:pid_grid`       = "domain_500m"
+      )),
+      links = common_links(),
+      assets = list(
+        static_covariates = list(
+          href        = gh_url(static_covariates_parquet),
+          title       = "Combined Static Covariates (Parquet)",
+          description = "All static environmental covariates joined on pid. One row per 500m domain pixel.",
+          type        = "application/vnd.apache.parquet",
+          roles       = list("data"),
+          `emma:schema_version` = "1.0",
+          `emma:pid_grid`       = "domain_500m",
+          `emma:columns`        = if (length(cov_cols) > 0) as.list(cov_cols) else list("pid")
+        )
+      )
+    ), "static_covariates")
+  }
 
   # ── Append item links to collection and re-write ──────────────────────────
   item_links <- purrr::map(items_written, function(it) {
