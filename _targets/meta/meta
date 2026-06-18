@@ -179,7 +179,6 @@ vi_modis_task_ids_fffee3945d872d38|branch|e799969cd76e7547|a5c5142bc16069ef|bf9a
 vi_modis_task_ids_d48f3b7379ce22ff|branch|78a04f3318cbba4a|a5c5142bc16069ef|bf9ad3ac05e09178|2005600053||t20621.87227504s|s67b|67|rds|local|vector|vi_modis_task_ids||0.001||
 readme|stem|e91b6818166c21dc|f5da82dff199dee2|cbc0222c4f8f5bee|980901812|README_files*README.md*README.qmd|t20621.8728186146s|s106794b|106794|file|local|vector|||46.848||
 upload_readme_assets|stem|6fa4b6145efc59bc|3f0f55728b3d0139|0823d731654baaa1|327721465||t20621.8729099431s|s174b|174|rds|local|vector|||7.458||
-upload_static|stem|a8ef880db34d9062|0a3738d91ab3dd70|20c40ea6fa1668ef|-1754906267||t20621.873615348s|s266b|266|rds|local|vector|||60.74||
 static_stac|stem|7caa0d977e3283a7|0c89fc5d8342b2be|3821f0bcb029d7ca|-944990694|data/stac/static/static_collection.json|t20621.8736213729s|s3088b|3088|file|local|vector|||0.073||
 upload_burn_modis_grid|stem|af288929271f21eb|a8edac1c08a20fa3|31c9151ec4e3f48f|854492527||t20621.8736893026s|s114b|114|rds|local|vector|||5.739||
 upload_vi_viirs_grid|stem|d24d95a79d975eb3|8cc8fc930e2ddfe0|8bdfcdca96ba990e|-406476186||t20621.8736991272s|s45b|45|rds|local|vector|||0.645||
@@ -193,6 +192,7 @@ upload_fire_history|stem|5fb849a4e2624384|050185d2e550d83b|0467a70956215df6|1068
 burn_stac|stem|a7635e8c003253d1|140f6146f7e5ad16|72b5695a94b471da|-673817958|data/stac/burn/burn_collection.json|t20621.8738454496s|s4393b|4393|file|local|vector|||0.24||
 upload_fire_age|stem|bdc353fe801ec35b|60c0524996b07a00|3eac103a7eb075f3|570125514||t20621.8746165017s|s144b|144|rds|local|vector|||66.39||
 upload_stac_catalog|stem|ea95d97d277d3ba7|acafe193f291dbd1|d46e3779536b0d37|2024368032||t20621.8746850493s|s43b|43|rds|local|vector|||5.678||
+upload_static|stem|a8ef880db34d9062|0a3738d91ab3dd70|20c40ea6fa1668ef|-1754906267||t20621.8997922318s|s266b|266|rds|local|vector|||76.762||
 viirs_start_date|object|f1911cd6006b2c3d
 ensure_appeears_auth|function|9cdf69aed0657b94
 .assign_fire_clusters|function|f665360e8d7a287c
@@ -219,7 +219,7 @@ DOMAIN_BBOX|object|2fccdd7f6cf6c52b
 process_vegmap|function|e4b723a3115d1fdc
 burn_date_viirs_geotiff_to_parquet|function|8359d63f369bc55b
 description_packages|object|afce9efaf7766e02
-.Random.seed|object|630677d286da3c74
+.Random.seed|object|c4dde7a7afcc4e0f
 burn_date_modis_geotiff_to_parquet|function|ecfea0a5cd939642
 combine_static_layers_to_geoparquet|function|9c16df535dcbe437
 generate_composite_sequence|function|e21941e8bf12f843
@@ -255,7 +255,7 @@ vi_modis_geotiff_to_grid|function|de598e240a2c9524
 vi_viirs_geotiff_to_grid|function|f544ba3a0c3ba80c
 process_capenature_to_parquet|function|a2913bc6bfa2db9c
 get_soilgrid|function|023756098331eee4
-tar_download_github_release|function|000c27a9f813ecce
+tar_download_github_release|function|6e5ecc57aae7230c
 get_climate_chelsa|function|cfb838268e3df9c7
 generate_modis_vi_stac|function|c4336d35f1635d33
 generate_burn_stac|function|1afaa9d5240e2ec0

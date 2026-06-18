@@ -34,7 +34,7 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
   gh_repo_config <- list(
     repo = "eco-emma/emma_envdata",
     tag = "targets-cache",
-    cache_dir = "_targets/cache" #this is local cache for speed
+    cache_dir = "_targets/user/cache" #this is local cache for speed
   )
 
   # ── Single source of truth for GitHub release tag names ──────────────────
@@ -45,6 +45,7 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
     vi_modis_raster    = "vi_modis_raster",
     vi_viirs_raster    = "vi_viirs_raster",
     vi_modis_parquet   = "vi_modis_parquet",
+    vi_viirs_parquet   = "vi_viirs_parquet",
     burn_modis_raster  = "burn_modis_raster",
     burn_viirs_raster  = "burn_viirs_raster",
     burn_modis_parquet = "burn_modis_parquet",
@@ -1018,7 +1019,7 @@ if (FALSE) {
   tar_upload_github_release(
     repo      = gh_repo_config$repo,
     tag       = "targets-cache",
-    cache_dir = "_targets/cache",
+    cache_dir = "_targets/user/cache",
     verbose   = TRUE
   )
 }

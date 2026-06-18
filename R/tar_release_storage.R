@@ -63,7 +63,7 @@
 tar_download_github_release <- function(
   repo = NULL,
   tag = NULL,
-  cache_dir = "_targets/cache",
+  cache_dir = "_targets/user/cache",
   which_targets = NULL,
   verbose = TRUE
 ) {
@@ -178,17 +178,20 @@ tar_download_github_release <- function(
   
   # Download each asset
   for (i in seq_len(nrow(assets))) {
-    asset_name <- assets$file_name[i]
-    
-    
-    local_path <- file.path(objects_dir, target_name)
+    asset_name  <- assets$file_name[i]
+    target_name <- asset_name   # bare name used for _targets/objects/ path
+    local_path  <- file.path(objects_dir, target_name)
     cached_path <- file.path(cache_dir, asset_name)
+    # All assets in the release are regular _targets/objects/ files (no file-format
+    # workspace handling needed on download — format="file" targets store their
+    # path string as an RDS in _targets/objects/ just like any other target).
+    is_file_format <- FALSE
 
     # NOTE: no early-exit based on whether the object already exists locally.
     # A previous CI run may have left objects with different branch hashes than
     # the server release; keeping those would make the meta (always from the
     # server release) inconsistent with the objects and force re-runs.
-    # The _targets/cache/ check below avoids redundant GitHub downloads.
+    # The _targets/user/cache/ check below avoids redundant GitHub downloads.
 
     # Download to cache if not already there, with retry + integrity check
     if (!file.exists(cached_path) || !.check_file_integrity(cached_path)) {
