@@ -12,24 +12,24 @@ domain_define <- function(vegmap, country){
   biomes = c("Fynbos")#,"Succulent Karoo")#,"Albany Thicket")
 
 
-   vegmap_union=vegmap %>%
-    janitor::clean_names() %>%
-    filter(t_biome %in%  biomes ) %>% #filter to list above
+   vegmap_union = vegmap |>
+    janitor::clean_names() |>
+    dplyr::filter(t_biome %in%  biomes ) |> #filter to list above
     st_union()   # union all polygons into one multipolygon, dissolving internal boundaries
   
-vegmap_buffer = vegmap_union %>%
-  st_simplify(dTolerance=500) %>%
-  st_buffer(50000) %>%
-  smoothr::smooth(method="ksmooth",smoothness=120) #%>%
+vegmap_buffer = vegmap_union |>
+  st_simplify(dTolerance=500) |>
+  st_buffer(50000) |>
+  smoothr::smooth(method="ksmooth",smoothness=120) #|>
 
-country= country %>%
+country= country |>
   st_transform(crs=st_crs(vegmap_buffer)) 
   
   domain <-
-    vegmap_buffer %>%
-    st_intersection(st_transform(country,crs=st_crs(vegmap_union))) %>%  #only keep land areas of buffer - no ocean
-    st_as_sf() %>%
-    mutate(domain=1)
+    vegmap_buffer |>
+    st_intersection(st_transform(country,crs=st_crs(vegmap_union))) |>  #only keep land areas of buffer - no ocean
+    st_as_sf() |>
+    dplyr::mutate(domain=1)
 
   # Reproject to the canonical project CRS (Albers Equal Area, matching AVIRIS-NG NetCDF).
   # Using explicit WKT instead of st_crs(9221) to avoid PROJ database dependency.
@@ -76,7 +76,11 @@ country= country %>%
                 ID["EPSG",9001]]]]'
 
   domain <- domain |>
-    st_transform(crs = project_crs)
+    st_transform(crs = project_crs) |>
+    st_simplify(dTolerance = 100, preserveTopology = TRUE) |>
+    st_buffer(0) |>
+    st_make_valid() |> 
+    terra::vect() # convert to SpatVector for faster processing and compatibility with terra functions and tar_terra_vect()
 
   return(domain)
 

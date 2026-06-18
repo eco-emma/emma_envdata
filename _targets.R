@@ -90,7 +90,7 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
   terraOptions(tempdir = "data/temp/terra", memfrac = 0.8)
 
   # All SpatRaster targets use COG-backed GeoTIFF storage via geotargets
-  geotargets::geotargets_option_set(gdal_raster_driver = "COG")
+  geotargets::geotargets_option_set(gdal_raster_driver = "COG", gdal_vector_driver = "GPKG")
 
   # Set cleanup behavior based on execution environment
   # In GitHub Actions, we want to clean up temp files to avoid filling up disk space.  Locally, we may want to keep them for debugging or inspection.
@@ -110,9 +110,9 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
 #  burn_start_date  <- "2000-11-01"  # MCD64A1 first available data
 #  modis_end_date   <- as.character(Sys.Date())
 
-  modis_start_date <- "2026-01-01"  # MODIS Terra first available data
-  viirs_start_date <- "2026-01-01"  # VIIRS first available data
-  burn_start_date  <- "2026-01-01"  # MCD64A1 first available data
+  modis_start_date <- "2026-03-01"  # MODIS Terra first available data
+  viirs_start_date <- "2026-03-01"  # VIIRS first available data
+  burn_start_date  <- "2026-03-01"  # MCD64A1 first available data
   
   # Lag ~14 days past month end so both 16-day MODIS composites are published
   # on AppEEARS before the month enters the pipeline (avoids partial data).
@@ -174,16 +174,17 @@ list(
   ),
 
   # Create domain file based on country boundary and vegmap
-  tar_target( 
-    domain_boundary,
+  geotargets::tar_terra_vect(
+    domain_boundary.gpkg,
     domain_define(vegmap = vegmap, country = country),
+    cue = tar_cue(mode = "never")  # Manual update: this affects all RS downloads to be careful if modified!
   ),
 
 # Domain raster with pixel IDs, remnants, and distance to remnants. This defines the model grid that is used for everything!
   geotargets::tar_terra_rast(
     domain.tif,
     domain_rasterize(
-      domain_boundary = domain_boundary,
+      domain_boundary = domain_boundary.gpkg,
       remnants = remnants
     ),
     cue = tar_cue(mode = "never")  # Manual download: only run locally, never on CI
@@ -216,7 +217,7 @@ list(
     tar_target( 
       climate_chelsa,
       get_climate_chelsa(
-        domain = domain_boundary,
+        domain = domain_boundary.gpkg,
         cleanup = cleanup_mode,
         verbose = TRUE),
     cue = tar_cue(mode = "never"),  # Manual download: only run locally, never on CI
@@ -227,7 +228,7 @@ list(
   geotargets::tar_terra_rast(
     clouds.tif,
     get_clouds_wilson(
-      domain         = domain_boundary,
+      domain         = domain_boundary.gpkg,
       domain_raster  = domain.tif,
       temp_directory = "data/temp/appeears/clouds_wilson/",
       cleanup        = cleanup_mode,
@@ -237,13 +238,22 @@ list(
   ),
 
   ##################### AppEEARS Static Data Processing #########################
-  # Sequential targets for AppEEARS elevation: submit task, then poll for results
-  # Allows independent timeouts and retries for long-running API calls
+  # Two-target elevation pipeline:
+  #   1. elevation_task_id — checks for existing data and returns a sentinel or
+  #      submits a new AppEEARS task.
+  #      Sentinels:
+  #        "cached"      → elevation.tif already in _targets/objects (skip all)
+  #        "cached_temp" → raw AppEEARS GeoTIFFs in data/temp/appeears/elevation_nasadem/
+  #                        (skip download, reprocess only)
+  #        <task_id>     → new AppEEARS task submitted; poll + download + process
+  #   2. elevation.tif — processes/downloads based on the sentinel/task ID above.
   tar_target(
     elevation_task_id,
     submit_elevation_task(
-      domain_vector = domain_boundary,
-      verbose = TRUE
+      domain_vector  = domain_boundary.gpkg,
+      targets_store  = "_targets/objects",
+      temp_directory = "data/temp/appeears/elevation_nasadem/",
+      verbose        = TRUE
     )
   ),
 
@@ -251,10 +261,10 @@ list(
     elevation.tif,
     download_elevation_results(
       task_id        = elevation_task_id,
-      domain_vector  = domain_boundary,
+      domain_vector  = domain_boundary.gpkg,
       domain_raster  = domain.tif,
       temp_directory = "data/temp/appeears/elevation_nasadem/",
-      cleanup = cleanup_mode,
+      cleanup        = cleanup_mode,
       verbose        = TRUE
     ),
     cue = tar_cue(mode = "never")
@@ -332,7 +342,7 @@ list(
     {
       # Within this branch, vi_modis_pending is auto-sliced to one row
       submit_modis_vi(
-        domain_vector  = domain_boundary,
+        domain_vector  = domain_boundary.gpkg,
         composite_date = vi_modis_pending$composite_date,
         composite_end  = vi_modis_pending$composite_end,
         out_dir        = "data/target_outputs/modis_vi/",
@@ -353,7 +363,7 @@ list(
         task_id        = vi_modis_task_ids,
         composite_date = vi_modis_pending$composite_date,
         composite_end  = vi_modis_pending$composite_end,
-        domain_vector  = domain_boundary,
+        domain_vector  = domain_boundary.gpkg,
         temp_directory = "data/temp/appeears/modis_vi/",
         cleanup        = cleanup_mode,
         verbose        = TRUE
@@ -405,7 +415,7 @@ list(
   tar_target(
     vi_viirs_task_ids,
     submit_viirs_vi(
-      domain_vector  = domain_boundary,
+      domain_vector  = domain_boundary.gpkg,
       composite_date = vi_viirs_pending$composite_date,
       composite_end  = vi_viirs_pending$composite_end,
       out_dir        = "data/target_outputs/viirs_vi/",
@@ -420,7 +430,7 @@ list(
       task_id        = vi_viirs_task_ids,
       composite_date = vi_viirs_pending$composite_date,
       composite_end  = vi_viirs_pending$composite_end,
-      domain_vector  = domain_boundary,
+      domain_vector  = domain_boundary.gpkg,
       temp_directory = "data/temp/appeears/viirs_vi/",
       cleanup        = cleanup_mode,
       verbose        = TRUE
@@ -486,7 +496,7 @@ list(
   tar_target(
     burn_modis_task_ids,
     submit_burn_date_modis_task(
-      domain_vector  = domain_boundary,
+      domain_vector  = domain_boundary.gpkg,
       month_start    = burn_modis_pending$month_start,
       month_end      = burn_modis_pending$month_end,
       out_dir        = "data/target_outputs/burndates/",
@@ -503,7 +513,7 @@ list(
       task_id        = burn_modis_task_ids,
       month_start    = burn_modis_pending$month_start,
       month_end      = burn_modis_pending$month_end,
-      domain_vector  = domain_boundary,
+      domain_vector  = domain_boundary.gpkg,
       temp_directory = "data/temp/appeears/burn_dates_modis/",
       cleanup        = cleanup_mode,
       verbose        = TRUE
@@ -554,7 +564,7 @@ list(
   tar_target(
     burn_viirs_task_ids,
     submit_burn_date_viirs_task(
-      domain_vector  = domain_boundary,
+      domain_vector  = domain_boundary.gpkg,
       month_start    = burn_viirs_pending$month_start,
       month_end      = burn_viirs_pending$month_end,
       out_dir        = "data/target_outputs/burndates/",
@@ -570,7 +580,7 @@ list(
       task_id        = burn_viirs_task_ids,
       month_start    = burn_viirs_pending$month_start,
       month_end      = burn_viirs_pending$month_end,
-      domain_vector  = domain_boundary,
+      domain_vector  = domain_boundary.gpkg,
       temp_directory = "data/temp/appeears/burn_dates_viirs/",
       cleanup        = cleanup_mode,
       verbose        = TRUE
