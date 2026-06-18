@@ -14,7 +14,7 @@
 domain_rasterize <- function(domain_boundary, remnants, dx = 500, dy = 500) {
   # Generate raster template and rasterize domain with terra (touches = TRUE)
   # Use ext()+res= form for compatibility with older terra versions (<1.7-39)
-  bb <- sf::st_bbox(sf::st_transform(domain_boundary, crs = terra::crs(terra::vect(domain_boundary))))
+  bb <- sf::st_bbox(sf::st_transform(st_as_sf(domain_boundary), crs = terra::crs(terra::vect(domain_boundary))))
 
   # Snap bounding box to align with the 5 m BioSCape AVIRIS-NG pixel grid.
   # The NetCDF pixel edges fall at positions where coord %% 5 == 2.5
