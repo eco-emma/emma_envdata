@@ -88,7 +88,7 @@ img/*.html
 img/network*
 img/*.png
 .quarto
-
+README_files/*
 # OS files
 .DS_Store
 
