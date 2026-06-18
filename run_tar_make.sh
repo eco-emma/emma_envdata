@@ -102,6 +102,7 @@ apptainer run \
     --bind "${APPTAINER_CACHEDIR}/tmp:/tmp" \
     --bind "${APPTAINER_CACHEDIR}/run:/run" \
     --env-file "${APPTAINER_ENV_FILE}" \
+    --env TMPDIR=/tmp \
     "${SIF_PATH}/${SIF_FILE}" \
     Rscript -e "
       setwd('${WORK_DIR}')
