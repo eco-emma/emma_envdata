@@ -240,39 +240,49 @@ if (length(vi_items) > 0) {
   # Get Terra EVI COG URL
   evi_url <- latest_vi$assets$modis_terra_vi$href
   
-  # Read COG (using /vsicurl/ for remote access)
-  evi_rast <- rast(paste0("/vsicurl/", evi_url))
+  # Read COG (using /vsicurl/ for remote access).
+  # Wrapped in tryCatch: if the release asset is not yet available,
+  # skip the plot gracefully rather than halting the render.
+  evi_rast <- tryCatch(
+    rast(paste0("/vsicurl/", evi_url)),
+    error = function(e) {
+      message("Could not load EVI raster (", evi_url, "): ", e$message)
+      NULL
+    }
+  )
   
-  # Convert to data frame for plotting
-  evi_df <- as.data.frame(evi_rast, xy = TRUE, na.rm = TRUE)
-  names(evi_df)[3] <- "EVI"
-  
-  # Scale EVI (stored as integer x10000)
-  evi_df <- evi_df %>%
-    mutate(EVI = EVI / 10000)
-  
-  # Plot
-  ggplot(evi_df, aes(x = x, y = y, fill = EVI)) +
-    geom_raster() +
-    scale_fill_viridis_c(option = "viridis", name = "EVI", 
-                         limits = c(0, 1), na.value = "transparent") +
-    coord_equal() +
-    labs(
-      title = paste("Enhanced Vegetation Index -", latest_vi$properties$datetime),
-      subtitle = "MODIS Terra (MOD13A1.061) 16-day composite",
-      x = "Longitude",
-      y = "Latitude"
-    ) +
-    theme_dark(base_size = 14) +
-    theme(
-      panel.background = element_rect(fill = "#1a1a1a"),
-      plot.background = element_rect(fill = "#1a1a1a"),
-      text = element_text(color = "white"),
-      axis.text = element_text(color = "gray80"),
-      panel.grid = element_line(color = "gray30"),
-      legend.background = element_rect(fill = "#1a1a1a"),
-      legend.key = element_rect(fill = "#1a1a1a")
-    )
+  if (!is.null(evi_rast)) {
+    # Convert to data frame for plotting
+    evi_df <- as.data.frame(evi_rast, xy = TRUE, na.rm = TRUE)
+    names(evi_df)[3] <- "EVI"
+    
+    # Scale EVI (stored as integer x10000)
+    evi_df <- evi_df %>%
+      mutate(EVI = EVI / 10000)
+    
+    # Plot
+    ggplot(evi_df, aes(x = x, y = y, fill = EVI)) +
+      geom_raster() +
+      scale_fill_viridis_c(option = "viridis", name = "EVI", 
+                           limits = c(0, 1), na.value = "transparent") +
+      coord_equal() +
+      labs(
+        title = paste("Enhanced Vegetation Index -", latest_vi$properties$datetime),
+        subtitle = "MODIS Terra (MOD13A1.061) 16-day composite",
+        x = "Longitude",
+        y = "Latitude"
+      ) +
+      theme_dark(base_size = 14) +
+      theme(
+        panel.background = element_rect(fill = "#1a1a1a"),
+        plot.background = element_rect(fill = "#1a1a1a"),
+        text = element_text(color = "white"),
+        axis.text = element_text(color = "gray80"),
+        panel.grid = element_line(color = "gray30"),
+        legend.background = element_rect(fill = "#1a1a1a"),
+        legend.key = element_rect(fill = "#1a1a1a")
+      )
+  }
 }
 ```
 
@@ -287,9 +297,18 @@ recentburn_json <- read_stac("data/stac/burn/burn_recentburn.json")
 if (!is.null(recentburn_json)) {
   fire_url <- recentburn_json$assets$recentburn$href
   
-  # Read COG (band 1 = fire_age_days)
-  fire_rast <- rast(paste0("/vsicurl/", fire_url))[[1]]
-  
+  # Read COG (band 1 = fire_age_days).
+  # Wrapped in tryCatch: skip gracefully if the release asset is not yet available.
+  fire_rast <- tryCatch(
+    rast(paste0("/vsicurl/", fire_url))[[1]],
+    error = function(e) {
+      message("Could not load fire-age raster (", fire_url, "): ", e$message)
+      NULL
+    }
+  )
+}
+
+if (!is.null(recentburn_json) && !is.null(fire_rast)) {
   # Convert to data frame
   fire_df <- as.data.frame(fire_rast, xy = TRUE, na.rm = TRUE)
   names(fire_df)[3] <- "fire_age_days"
