@@ -2,7 +2,7 @@
   "stac_version": "1.0.0",
   "type": "Catalog",
   "id": "emma",
-  "description": "EMMA Environmental Data Catalog - A curated collection of environmental datasets for the Eastern Mediterranean and Maghreb region.",
+  "description": "EMMA Environmental Data Catalog — Environmental datasets for the Cape Floristic Region, South Africa. Includes vegetation index (EVI) rasters and Parquet tables (MODIS + VIIRS, 16-day composites), burned area rasters and Parquet tables (MODIS MCD64A1 + VIIRS VNP64A1, monthly), fire age Parquet tables (per VI composite date), and static environmental layers (domain grid, vegetation map, elevation, climate, clouds, soil, topography, combined covariates). All dynamic datasets are domain-aligned to the 500m EMMA grid (pid column).",
   "links": [
     {
       "rel": "root",
