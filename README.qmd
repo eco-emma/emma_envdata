@@ -23,8 +23,15 @@ library(htmlwidgets)
 library(viridis)
 library(patchwork)
 
-# Load upstream targets to ensure readme runs last
-tar_load(c(validate_stac, domain_geoparquet, release_manifest))
+# Load upstream targets to ensure readme runs after all uploads complete.
+# The raster-map chunks read GitHub release URLs via /vsicurl/, so the
+# upload targets must finish before this document renders.
+tar_load(c(
+  validate_stac, domain_geoparquet, release_manifest,
+  upload_vi_modis_grid, upload_vi_viirs_grid,
+  upload_burn_modis_grid, upload_burn_viirs_grid,
+  upload_fireage, upload_static
+))
 
 # Set options
 readme_img_dir <- "data/target_outputs/readme_img"
