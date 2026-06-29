@@ -1,0 +1,59 @@
+Starting tar_make()
+System info: sysname=Linux; release=6.17.0-1018-azure; version=#18~24.04.1-Ubuntu SMP Thu May 28 16:39:11 UTC 2026; nodename=3ecdd3e63c23; machine=x86_64; login=unknown; user=root; effective_user=root
+tar_source() only sources R scripts. Ignoring non-R files: R/ccr_startup.sh
+Loaded 40 packages from DESCRIPTION
+⠙ 1 items, page 1 | 5ms
+[tar_github_release] Found 1 assets on GitHub release
+[tar_github_release] No targets meta in release (first run?)
+[tar_github_release] Downloading: domain.tif
+[tar_github_release] Downloaded and verified: domain.tif
+[tar_github_release] Restored: domain.tif
+[tar_github_release] Download complete
++ vi_modis_pending dispatched
+✔ vi_modis_pending completed [2ms, 204 B]
++ release_manifest dispatched
+✔ release_manifest completed [21ms, 14.31 kB]
++ burn_viirs_pending dispatched
+✔ burn_viirs_pending completed [3ms, 193 B]
++ burn_modis_pending dispatched
+✔ burn_modis_pending completed [10ms, 193 B]
++ vi_viirs_pending dispatched
+✔ vi_viirs_pending completed [12ms, 204 B]
++ validate_stac dispatched
+Validating STAC asset links from: data/stac/catalog.json
+STAC validation: all 0 link(s) OK.
+✔ validate_stac completed [47ms, 89 B]
++ elevation_task_id dispatched
+✖ elevation_task_id errored
+✖ errored pipeline [2.8s, 6 completed, 6 skipped]
+Warning messages:
+1: <anonymous>: ..1 may be used in an incorrect context
+ 
+2: <anonymous>: ..2 may be used in an incorrect context
+ 
+3: <anonymous>: ..1 may be used in an incorrect context
+ 
+4: <anonymous>: ..2 may be used in an incorrect context
+ 
+Error:
+! Error in tar_make():
+  could not load dependency domain_boundary.gpkg of target elevation_task_id. [vect] file does not exist: _targets/objects/domain_boundary.gpkg
+  See https://books.ropensci.org/targets/debugging.html
+10: (function () 
+    {
+        traceback(2)
+        quit(status = 1)
+    })()
+9: stop(fallback)
+8: signal_abort(cnd, .file)
+7: rlang::abort(message = message, class = class, call = tar_envir_base)
+6: tar_error(message = paste0(...), class = base::union(custom_error_classes(class), 
+       c("tar_condition_run", "tar_condition_targets")))
+5: tar_throw_run(message, class = class(traced_condition$condition))
+4: callr_error(traced_condition = out, fun = fun)
+3: if_any(inherits(out, "tar_condition_traced"), callr_error(traced_condition = out, 
+       fun = fun), out)
+2: callr_outer(targets_function = tar_make_inner, targets_arguments = targets_arguments, 
+       callr_function = callr_function, callr_arguments = callr_arguments, 
+       envir = envir, script = script, store = store, fun = "tar_make")
+1: targets::tar_make()
