@@ -448,7 +448,7 @@ generate_burn_dates_stac <- function(
     parquet_dir        = NULL,
     stac_dir,
     parent_catalog_path = "data/stac",
-    gh_repo            = "AdamWilsonLab/emma_envdata",
+    gh_repo            = "eco-emma/emma_envdata",
     gh_release_tag,
     source             = c("modis", "viirs"),
     verbose            = TRUE) {

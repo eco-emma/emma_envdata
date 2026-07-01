@@ -53,7 +53,7 @@
 
 #' Download targets from GitHub Release
 #' @description Download locally stored targets from GitHub releases (useful for GitHub Actions)
-#' @param repo Repository in "owner/repo" format (default from environment or "AdamWilsonLab/emma_envdata")
+#' @param repo Repository in "owner/repo" format (default from environment or "eco-emma/emma_envdata")
 #' @param tag Release tag to store objects (default from environment or "targets-cache")
 #' @param cache_dir Cache directory (default: "_targets/cache")
 #' @param which_targets Optional vector of specific target names to download
@@ -68,7 +68,7 @@ tar_download_github_release <- function(
   verbose = TRUE
 ) {
   # Use environment variables as fallback, but allow explicit parameters
-  repo <- repo %||% Sys.getenv("TAR_GH_RELEASE_REPO") %||% "AdamWilsonLab/emma_envdata"
+  repo <- repo %||% Sys.getenv("TAR_GH_RELEASE_REPO") %||% "eco-emma/emma_envdata"
   tag <- tag %||% Sys.getenv("TAR_GH_RELEASE_TAG") %||% "targets-cache"
   cache_dir <- cache_dir %||% Sys.getenv("TAR_GH_RELEASE_CACHE_DIR") %||% "_targets/cache"
   objects_dir <- "_targets/objects"
@@ -278,7 +278,7 @@ tar_download_github_release <- function(
 
 #' Upload targets to GitHub Release after tar_make() completes
 #' @description Upload locally stored targets to GitHub releases
-#' @param repo Repository in "owner/repo" format (default from environment or "AdamWilsonLab/emma_envdata")
+#' @param repo Repository in "owner/repo" format (default from environment or "eco-emma/emma_envdata")
 #' @param tag Release tag to store objects (default from environment or "targets-cache")
 #' @param format Serialization format: "rds" or "parquet" (default: "rds")
 #' @param cache_dir Cache directory (default: "_targets/cache")
@@ -295,7 +295,7 @@ tar_upload_github_release <- function(
   verbose = TRUE
 ) {
   # Use environment variables as fallback, but allow explicit parameters
-  repo <- repo %||% Sys.getenv("TAR_GH_RELEASE_REPO") %||% "AdamWilsonLab/emma_envdata"
+  repo <- repo %||% Sys.getenv("TAR_GH_RELEASE_REPO") %||% "eco-emma/emma_envdata"
   tag <- tag %||% Sys.getenv("TAR_GH_RELEASE_TAG") %||% "targets-cache"
   cache_dir <- cache_dir %||% Sys.getenv("TAR_GH_RELEASE_CACHE_DIR") %||% "_targets/cache"
 

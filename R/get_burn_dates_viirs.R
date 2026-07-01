@@ -51,7 +51,7 @@ submit_burn_date_viirs_task <- function(
 
   # Check GitHub release (authoritative — works on CI where disk is empty)
   if (!is.null(gh_release_tag)) {
-    repo <- Sys.getenv("TAR_GH_RELEASE_REPO", unset = "AdamWilsonLab/emma_envdata")
+    repo <- Sys.getenv("TAR_GH_RELEASE_REPO", unset = "eco-emma/emma_envdata")
     if (gh_release_has_asset(repo, gh_release_tag, paste0("burn_viirs_", yyyymm, ".tif"), verbose = verbose)) {
       if (verbose) message("Month ", yyyymm, " already on GitHub release '", gh_release_tag, "' — skipping AppEEARS submission")
       return(paste0("cached:", yyyymm))
@@ -137,6 +137,7 @@ download_burn_date_viirs_geotiff <- function(
     domain_vector  = NULL,
     month_end      = NULL,
     temp_directory = "data/temp/appeears/burn_dates_viirs/",
+    gh_release_tag = NULL,
     cleanup        = Sys.getenv("GITHUB_ACTIONS") == "true",
     verbose        = TRUE) {
 
@@ -153,7 +154,7 @@ download_burn_date_viirs_geotiff <- function(
   month_start <- as.Date(month_start)
   yyyymm      <- format(month_start, "%Y%m")
 
-  # Skip if grid COG for this month already exists.
+  # Skip if grid COG for this month already exists on local disk.
   # burn_viirs_geotiff_to_grid() writes burn_viirs_YYYYMM.tif when it completes.
   marker_dir   <- "data/target_outputs/burndates"
   dir.create(marker_dir,      recursive = TRUE, showWarnings = FALSE)
@@ -163,6 +164,20 @@ download_burn_date_viirs_geotiff <- function(
   if (file.exists(grid_tif_done)) {
     if (verbose) message("VIIRS grid COG found for ", yyyymm, " — skipping download")
     return(temp_directory)
+  }
+
+  # Skip if grid COG already exists on GitHub release (CI: disk is empty but
+  # release has the processed output from a previous server run).
+  if (!is.null(gh_release_tag)) {
+    repo <- Sys.getenv("TAR_GH_RELEASE_REPO", unset = "eco-emma/emma_envdata")
+    if (gh_release_has_asset(repo, gh_release_tag,
+                             paste0("burn_viirs_", yyyymm, ".tif"),
+                             verbose = verbose)) {
+      if (verbose) message("VIIRS grid COG for ", yyyymm,
+                           " already on GitHub release '", gh_release_tag,
+                           "' — skipping AppEEARS download")
+      return(temp_directory)
+    }
   }
 
   # Each branch gets its own month-specific subdirectory to prevent race

@@ -364,6 +364,7 @@ list(
         composite_end  = vi_modis_pending$composite_end,
         domain_vector  = domain_boundary.gpkg,
         temp_directory = "data/temp/appeears/modis_vi/",
+        gh_release_tag = release_tags$vi_modis_raster,
         cleanup        = cleanup_mode,
         verbose        = TRUE
       )
@@ -431,6 +432,7 @@ list(
       composite_end  = vi_viirs_pending$composite_end,
       domain_vector  = domain_boundary.gpkg,
       temp_directory = "data/temp/appeears/viirs_vi/",
+      gh_release_tag = release_tags$vi_viirs_raster,
       cleanup        = cleanup_mode,
       verbose        = TRUE
     ),
@@ -517,6 +519,7 @@ list(
       month_end      = burn_modis_pending$month_end,
       domain_vector  = domain_boundary.gpkg,
       temp_directory = "data/temp/appeears/burn_dates_modis/",
+      gh_release_tag = release_tags$burn_modis_raster,
       cleanup        = cleanup_mode,
       verbose        = TRUE
     ),
@@ -584,6 +587,7 @@ list(
       month_end      = burn_viirs_pending$month_end,
       domain_vector  = domain_boundary.gpkg,
       temp_directory = "data/temp/appeears/burn_dates_viirs/",
+      gh_release_tag = release_tags$burn_viirs_raster,
       cleanup        = cleanup_mode,
       verbose        = TRUE
     ),

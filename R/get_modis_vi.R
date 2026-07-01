@@ -30,7 +30,7 @@ submit_modis_vi <- function(
 
   # Check GitHub release (authoritative — works on CI where disk is empty)
   if (!is.null(gh_release_tag)) {
-    repo <- Sys.getenv("TAR_GH_RELEASE_REPO", unset = "AdamWilsonLab/emma_envdata")
+    repo <- Sys.getenv("TAR_GH_RELEASE_REPO", unset = "eco-emma/emma_envdata")
     if (gh_release_has_asset(repo, gh_release_tag, paste0("vi_modis_terra_", yyyymmdd, ".tif"), verbose = verbose)) {
       if (verbose) message("Composite ", yyyymmdd, " already on GitHub release '", gh_release_tag, "' — skipping AppEEARS submission")
       return(paste0("cached:", yyyymmdd))
@@ -149,6 +149,7 @@ download_modis_vi_geotiff <- function(
     composite_end  = NULL,
     domain_vector  = NULL,
     temp_directory = "data/temp/appeears/modis_vi/",
+    gh_release_tag = NULL,
     cleanup        = Sys.getenv("GITHUB_ACTIONS") == "true",
     verbose        = TRUE) {
 
@@ -176,6 +177,21 @@ download_modis_vi_geotiff <- function(
                          " \u2014 skipping AppEEARS download")
     dir.create(temp_directory, recursive = TRUE, showWarnings = FALSE)
     return(temp_directory)
+  }
+
+  # Skip if grid COG already exists on GitHub release (CI: disk is empty but
+  # release has the processed output from a previous server run).
+  if (!is.null(gh_release_tag)) {
+    repo <- Sys.getenv("TAR_GH_RELEASE_REPO", unset = "eco-emma/emma_envdata")
+    if (gh_release_has_asset(repo, gh_release_tag,
+                             paste0("vi_modis_terra_", yyyymmdd, ".tif"),
+                             verbose = verbose)) {
+      if (verbose) message("MODIS VI grid COG for ", yyyymmdd,
+                           " already on GitHub release '", gh_release_tag,
+                           "' \u2014 skipping AppEEARS download")
+      dir.create(temp_directory, recursive = TRUE, showWarnings = FALSE)
+      return(temp_directory)
+    }
   }
 
   # Per-branch subdir to avoid race conditions under parallel tar_make_future()
