@@ -403,7 +403,7 @@ tar_upload_github_release <- function(
   # not depend on byte-count coincidences in serialisation.
   remote_meta_hashes <- tryCatch({
     meta_row <- remote_assets[remote_assets$file_name == "_targets_meta", ]
-    if (nrow(meta_row) == 0) return(NULL)
+    if (nrow(meta_row) == 0) NULL  # no remote meta yet — will upload all objects
 
     temp_store    <- tempfile(pattern = "tar_upload_meta_")
     temp_meta_dir <- file.path(temp_store, "meta")
