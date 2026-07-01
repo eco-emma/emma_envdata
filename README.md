@@ -54,9 +54,8 @@ Network](https://github.com/eco-emma/emma_envdata/releases/download/readme-asset
 
 | Status     | Count | Percent (%) |
 |:-----------|------:|------------:|
-| errored    |     1 |         0.5 |
-| never run  |    94 |        47.5 |
-| up-to-date |   103 |        52.0 |
+| never run  |    94 |          47 |
+| up-to-date |   106 |          53 |
 
 Pipeline Target Status Summary {.table .table-striped .table-hover
 quarto-postprocess="true"
@@ -64,7 +63,7 @@ style="margin-left: auto; margin-right: auto;"}
 
 [![Build
 Status](https://github.com/eco-emma/emma_envdata/workflows/targets/badge.svg)](https://github.com/eco-emma/emma_envdata/actions)
-**Last pipeline run:** 2026-06-19 05:36:55.815952
+**Last pipeline run:** 2026-07-01 18:29:00.681965
 
 ## Data Inventory
 
@@ -74,7 +73,7 @@ Status](https://github.com/eco-emma/emma_envdata/workflows/targets/badge.svg)](h
 | VIIRS VI (S-NPP + NOAA-20) | VNP13A1 + VJ113A1 | Dynamic | COG GeoTIFF + Parquet | vi_viirs_raster | 5 | 2026-05-16T23:59:59Z |
 | MODIS Burned Area | MCD64A1 | Dynamic | COG GeoTIFF + Parquet | burn_modis_raster | 5 | NULL |
 | VIIRS Burned Area | VNP64A1 | Dynamic | COG GeoTIFF + Parquet | burn_viirs_raster | 5 | NULL |
-| Fire History (derived) | Multi-sensor merge | Dynamic | COG GeoTIFF | firehistory_dynamic | 1 | 2026-06-19 |
+| Fire History (derived) | Multi-sensor merge | Dynamic | COG GeoTIFF | firehistory_dynamic | 1 | 2026-07-01 |
 | Domain Grid | NVM2024 + RLE2021 | Static | COG GeoTIFF + Parquet | static_data | 1 | 2026-06-18 13:46:26.474895 |
 | Vegetation Map | NVM2024 | Static | COG GeoTIFF | static_data | 1 | 2026-06-18 13:53:11.417559 |
 | Elevation | NASADEM | Static | COG GeoTIFF | static_data | 1 | 2026-06-18 13:56:29.827807 |
