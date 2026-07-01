@@ -580,6 +580,7 @@ gh_release_has_asset <- function(repo, release_tag, asset_name, verbose = FALSE)
     owner_repo <- strsplit(repo, "/")[[1]]
     asset_names <- tryCatch({
       if (verbose) message("[gh_release_has_asset] Fetching asset list for release: ", release_tag)
+      # Step 1: get release metadata (id, etc.)
       rel <- gh::gh(
         "GET /repos/{owner}/{repo}/releases/tags/{tag}",
         owner  = owner_repo[1],
@@ -587,7 +588,19 @@ gh_release_has_asset <- function(repo, release_tag, asset_name, verbose = FALSE)
         tag    = release_tag,
         .token = token
       )
-      vapply(rel[["assets"]], `[[`, character(1), "name")
+      # Step 2: fetch ALL assets via the paginated assets endpoint.
+      # The releases-by-tag endpoint embeds only the first 30 assets in its
+      # JSON response; releases with >30 files (e.g. burn_viirs_raster) would
+      # silently miss older months, causing unnecessary AppEEARS re-submissions.
+      asset_list <- gh::gh(
+        "GET /repos/{owner}/{repo}/releases/{release_id}/assets",
+        owner      = owner_repo[1],
+        repo       = owner_repo[2],
+        release_id = rel$id,
+        .limit     = Inf,
+        .token     = token
+      )
+      vapply(asset_list, `[[`, character(1), "name")
     }, error = function(e) {
       # Release doesn't exist yet — treat as empty
       character(0)

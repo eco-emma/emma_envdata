@@ -19,6 +19,9 @@
 #SBATCH --mail-user=adamw@buffalo.edu
 #SBATCH --mail-type=END,FAIL
 
+
+# This script is to run targets::tar_make() on the cluster using Apptainer to provide a consistent environment.
+  
 # =============================================================================
 # Paths — edit WORK_DIR if the project moves
 # =============================================================================
