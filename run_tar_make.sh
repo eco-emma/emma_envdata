@@ -11,8 +11,7 @@
 #SBATCH --job-name=emma_tar_make
 #SBATCH --nodes=1
 #SBATCH --ntasks=16
-#SBATCH --mem=250G
-#SBATCH -C INTEL
+#SBATCH --mem=100G
 #SBATCH --time=24:00:00
 #SBATCH --output=logs/slurm-%j.log
 #SBATCH --error=logs/slurm-%j.log
