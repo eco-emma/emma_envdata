@@ -106,7 +106,7 @@ printf 'EARTHDATA_PASSWORD=%s\n'  "${EARTHDATA_PASSWORD}"  >> "${APPTAINER_ENV_F
 #    --bind "${APPTAINER_CACHEDIR}/run:/run" \
 apptainer run \
     --bind "${PROJECT_FOLDER}:${PROJECT_FOLDER}" \
-    --bind "${APPTAINER_TMPDIR}/tmp:/tmp" \
+    --bind "${APPTAINER_TMPDIR}:/tmp" \
     --env-file "${APPTAINER_ENV_FILE}" \
     --env TMPDIR=/tmp \
     "${SIF_PATH}/${SIF_FILE}" \
@@ -127,10 +127,10 @@ echo "Uploading targets cache to GitHub release..."                 | tee -a "${
 echo "Started  : $(date)"                                           | tee -a "${LOG}"
 echo "============================================================" | tee -a "${LOG}"
 
+#    --bind "${APPTAINER_CACHEDIR}/run:/run" \
 apptainer run \
     --bind "${PROJECT_FOLDER}:${PROJECT_FOLDER}" \
-    --bind "${APPTAINER_CACHEDIR}/tmp:/tmp" \
-    --bind "${APPTAINER_CACHEDIR}/run:/run" \
+    --bind "${APPTAINER_CACHEDIR}:/tmp" \
     --env-file "${APPTAINER_ENV_FILE}" \
     "${SIF_PATH}/${SIF_FILE}" \
     Rscript -e "
