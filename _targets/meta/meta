@@ -326,14 +326,14 @@ combine_static_layers_to_geoparquet|function|9c16df535dcbe437
 .check_file_integrity|function|ba21cbb8bd2e9d4d
 burn_start_date|object|8b951bc3b958931a
 ensure_appeears_auth|function|9cdf69aed0657b94
-sys_info|object|05728276411786ed
+sys_info|object|316dc3c49920259c
 .assign_fire_clusters|function|f665360e8d7a287c
 viirs_start_date|object|8b951bc3b958931a
 DOMAIN_BBOX|object|2fccdd7f6cf6c52b
 burn_modis_geotiff_to_grid|function|82a2763e1121e787
 description_packages|object|afce9efaf7766e02
 .gh_release_asset_names|function|55a7f76afd47b32a
-.Random.seed|object|779e6b057581918c
+.Random.seed|object|4bc7aceeae5870fc
 compute_fire_state|function|e95d647fac59e6e3
 EMMA_SENSOR_IDS|object|d85eb1c2cb894b3c
 domain_to_geoparquet|function|ea9fe4f975bf5a2e
@@ -365,7 +365,7 @@ burn_date_modis_geotiff_to_parquet|function|ecfea0a5cd939642
 generate_composite_sequence|function|e21941e8bf12f843
 cleanup_mode|object|cc6a331fb3c0077c
 generate_release_manifest|function|06cb632438afe63e
-domain_define|function|f36872d52e6131f5
+domain_define|function|f15facd45ca40ec1
 release_tags|object|42a598aafbdca9da
 get_climate_chelsa|function|cfb838268e3df9c7
 restore_static_data|function|0eb5a416b6950d72
@@ -391,5 +391,5 @@ download_burn_date_viirs_geotiff|function|5198e7df70a37acc
 download_viirs_vi_geotiff|function|cf593ae4dd0acad3
 download_modis_vi_geotiff|function|f9e2d43e173818fa
 download_burn_date_modis_geotiff|function|96881afeecd26bf8
-vi_modis_geotiff_9a3b222e2ac9b6bd|branch||5c6d4f2ed9699563|215be8e66fcf0c5d|1446132010||t20636.5372959055s||0|rds|local|vector|vi_modis_geotiff||887.707|The 'env' backend does not support multiple keyrings, the 'keyring' argument is ignored. The 'env' backend does not support multiple keyrings, the 'keyring' argument is ignored|Task acbdcff9-d48d-4ce3-bcb8-8e144a120d0a polling timed out after 15 minutes
+vi_modis_geotiff_9a3b222e2ac9b6bd|branch||5c6d4f2ed9699563|215be8e66fcf0c5d|1446132010||t20636.5372959055s||0|rds|local|vector|vi_modis_geotiff||0.228||Couldn't resolve host name [appeears.earthdatacloud.nasa.gov]: Could not resolve host: appeears.earthdatacloud.nasa.gov
 vi_modis_grid_c01bfb3ea74b66c6|branch||aca1a18cb33000ce|c5bbbe8756ba792b|-728358457||t20635.8595005568s||0|file|local|vector|vi_modis_grid||0.005||could not load dependency vi_modis_geotiff_9a3b222e2ac9b6bd of target vi_modis_grid_c01bfb3ea74b66c6. invalid 'description' argument
