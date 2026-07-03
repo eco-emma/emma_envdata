@@ -32,6 +32,10 @@ export APPTAINER_TMPDIR="${APPTAINER_CACHEDIR}/tmp"
 SIF_PATH="${PROJECT_FOLDER}/users/${USER}/apptainer"
 SIF_FILE="AdamWilsonLab-emma_docker-latest.sif"
 
+
+export APPTAINER_LOCALCACHEDIR="${APPTAINER_CACHEDIR}/localcache"
+export SINGULARITY_LOCALCACHEDIR="${APPTAINER_LOCALCACHEDIR}"
+
 # Singularity legacy variable names (CCR still uses singularity under the hood)
 #export SINGULARITY_CACHEDIR="${APPTAINER_CACHEDIR}"
 #export SINGULARITY_TMPDIR="${APPTAINER_TMPDIR}"
@@ -101,8 +105,8 @@ printf 'EARTHDATA_PASSWORD=%s\n'  "${EARTHDATA_PASSWORD}"  >> "${APPTAINER_ENV_F
 
 apptainer run \
     --bind "${PROJECT_FOLDER}:${PROJECT_FOLDER}" \
-    --bind "${APPTAINER_CACHEDIR}/tmp:/tmp" \
-    --bind "${APPTAINER_CACHEDIR}/run:/run" \
+    --bind "${APPTAINER_TMPDIR}/tmp:/tmp" \
+#    --bind "${APPTAINER_CACHEDIR}/run:/run" \
     --env-file "${APPTAINER_ENV_FILE}" \
     --env TMPDIR=/tmp \
     "${SIF_PATH}/${SIF_FILE}" \
