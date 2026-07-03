@@ -103,10 +103,10 @@ printf 'GITHUB_PAT=%s\n'          "${GITHUB_PAT}"          >> "${APPTAINER_ENV_F
 printf 'EARTHDATA_USER=%s\n'      "${EARTHDATA_USER}"      >> "${APPTAINER_ENV_FILE}"
 printf 'EARTHDATA_PASSWORD=%s\n'  "${EARTHDATA_PASSWORD}"  >> "${APPTAINER_ENV_FILE}"
 
+#    --bind "${APPTAINER_CACHEDIR}/run:/run" \
 apptainer run \
     --bind "${PROJECT_FOLDER}:${PROJECT_FOLDER}" \
     --bind "${APPTAINER_TMPDIR}/tmp:/tmp" \
-#    --bind "${APPTAINER_CACHEDIR}/run:/run" \
     --env-file "${APPTAINER_ENV_FILE}" \
     --env TMPDIR=/tmp \
     "${SIF_PATH}/${SIF_FILE}" \
