@@ -72,16 +72,33 @@ submit_elevation_task <- function(
 
   # Submit task
   if (verbose) message("Submitting AppEEARS elevation task...")
-  task <- appeears::rs_request(
-    request = req,
-    user = Sys.getenv("EARTHDATA_USER"),
-    transfer = FALSE,
-    verbose = verbose
+  task <- tryCatch(
+    appeears::rs_request(
+      request  = req,
+      user     = Sys.getenv("EARTHDATA_USER"),
+      transfer = FALSE,
+      verbose  = verbose
+    ),
+    error = function(e) {
+      msg <- conditionMessage(e)
+      if (grepl("exceeded.*maximum.*requests|too many requests",
+                msg, ignore.case = TRUE)) {
+        # Rate limit hit — stop() so the target is marked errored and
+        # can be retried on the next tar_make().
+        stop(
+          "AppEEARS daily request limit reached for elevation task. ",
+          "Re-run the pipeline tomorrow to retry.\n",
+          "Original error: ", msg,
+          call. = FALSE
+        )
+      }
+      stop(e)  # re-throw non-rate-limit errors unchanged
+    }
   )
-  
+
   task_id <- task$get_task_id()
   if (verbose) message("Task submitted with ID: ", task_id)
-  
+
   task_id
 }
 

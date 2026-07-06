@@ -103,11 +103,29 @@ submit_burn_date_modis_task <- function(
   )
 
   # Submit and return task ID
-  task <- appeears::rs_request(
-    request  = req,
-    user     = Sys.getenv("EARTHDATA_USER"),
-    transfer = FALSE,
-    verbose  = verbose
+  task <- tryCatch(
+    appeears::rs_request(
+      request  = req,
+      user     = Sys.getenv("EARTHDATA_USER"),
+      transfer = FALSE,
+      verbose  = verbose
+    ),
+    error = function(e) {
+      msg <- conditionMessage(e)
+      if (grepl("exceeded.*maximum.*requests|too many requests",
+                msg, ignore.case = TRUE)) {
+        # Rate limit hit — stop() so this branch is marked errored with
+        # error = "continue", allowing the rest of the pipeline to proceed.
+        # On the next tar_make() the errored branches will re-submit.
+        stop(
+          "AppEEARS daily request limit reached for MODIS burn date ",
+          yyyymm, ". Re-run the pipeline tomorrow to retry.\n",
+          "Original error: ", msg,
+          call. = FALSE
+        )
+      }
+      stop(e)  # re-throw non-rate-limit errors unchanged
+    }
   )
 
   task_id <- task$get_task_id()
