@@ -114,15 +114,17 @@ submit_burn_date_modis_task <- function(
       msg <- conditionMessage(e)
       if (grepl("exceeded.*maximum.*requests|too many requests",
                 msg, ignore.case = TRUE)) {
-        # Rate limit hit — stop() so this branch is marked errored with
-        # error = "continue", allowing the rest of the pipeline to proceed.
-        # On the next tar_make() the errored branches will re-submit.
-        stop(
+        # Rate limit hit — return a sentinel so this branch is cached as
+        # "rate_limited" and the pipeline continues.  The download target
+        # detects the sentinel and skips with a warning.  Run
+        # tar_invalidate(matches("task_ids")) when the limit resets to retry.
+        warning(
           "AppEEARS daily request limit reached for MODIS burn date ",
-          yyyymm, ". Re-run the pipeline tomorrow to retry.\n",
-          "Original error: ", msg,
+          yyyymm, ". Re-run tar_invalidate(matches('task_ids')) ",
+          "tomorrow to retry.",
           call. = FALSE
         )
+        return(paste0("rate_limited:", yyyymm))
       }
       stop(e)  # re-throw non-rate-limit errors unchanged
     }
@@ -173,6 +175,27 @@ download_burn_date_modis_geotiff <- function(
     if (verbose) message("Sentinel task_id for ", yyyymm_sentinel, " — skipping AppEEARS download")
     dir.create(temp_directory, recursive = TRUE, showWarnings = FALSE)
     return(temp_directory)
+  }
+
+  # Sentinel: AppEEARS rate limit was hit during submission — write a skip marker
+  # so downstream targets degrade gracefully. Run
+  # tar_invalidate(matches("task_ids")) when the daily limit resets to retry.
+  if (startsWith(task_id, "rate_limited:")) {
+    yyyymm_rl <- sub("^rate_limited:", "", task_id)
+    warning("Rate-limited sentinel for MODIS burn date ", yyyymm_rl,
+            " — no task was submitted. ",
+            "Run tar_invalidate(matches('task_ids')) tomorrow to retry.",
+            call. = FALSE)
+    marker_dir_rl <- "data/target_outputs/burndates"
+    dir.create(marker_dir_rl, recursive = TRUE, showWarnings = FALSE)
+    skip_file <- file.path(marker_dir_rl, paste0("burn_modis_", yyyymm_rl, ".skip"))
+    writeLines(
+      c(paste("Month:", yyyymm_rl),
+        "Reason: AppEEARS daily request limit reached during submission",
+        paste("Timestamp:", Sys.time())),
+      con = skip_file
+    )
+    return(skip_file)
   }
 
   ensure_appeears_auth()

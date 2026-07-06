@@ -83,14 +83,15 @@ submit_elevation_task <- function(
       msg <- conditionMessage(e)
       if (grepl("exceeded.*maximum.*requests|too many requests",
                 msg, ignore.case = TRUE)) {
-        # Rate limit hit — stop() so the target is marked errored and
-        # can be retried on the next tar_make().
-        stop(
+        # Rate limit hit — return a sentinel so the target is cached and
+        # the pipeline continues.  Run tar_invalidate(elevation_task_id)
+        # when the limit resets to retry.
+        warning(
           "AppEEARS daily request limit reached for elevation task. ",
-          "Re-run the pipeline tomorrow to retry.\n",
-          "Original error: ", msg,
+          "Re-run tar_invalidate(elevation_task_id) tomorrow to retry.",
           call. = FALSE
         )
+        return("rate_limited:elevation")
       }
       stop(e)  # re-throw non-rate-limit errors unchanged
     }
@@ -138,6 +139,16 @@ download_elevation_results <- function(
   if (identical(task_id, "cached")) {
     if (verbose) message("Sentinel 'cached' \u2014 elevation.tif already in targets store, skipping")
     return(invisible(NULL))
+  }
+
+  # Sentinel: AppEEARS rate limit was hit during submission — cannot proceed.
+  # Run tar_invalidate(elevation_task_id) when the daily limit resets to retry.
+  if (identical(task_id, "rate_limited:elevation")) {
+    stop(
+      "AppEEARS daily request limit was reached when submitting the elevation task. ",
+      "Run tar_invalidate(elevation_task_id) tomorrow to retry.",
+      call. = FALSE
+    )
   }
 
   # Clean terra temp

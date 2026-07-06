@@ -117,15 +117,17 @@ submit_modis_vi <- function(
       msg <- conditionMessage(e)
       if (grepl("exceeded.*maximum.*requests|too many requests",
                 msg, ignore.case = TRUE)) {
-        # Rate limit hit — stop() so this branch is marked errored with
-        # error = "continue", allowing the rest of the pipeline to proceed.
-        # On the next tar_make() the errored branches will re-submit.
-        stop(
+        # Rate limit hit — return a sentinel so this branch is cached as
+        # "rate_limited" and the pipeline continues.  The download target
+        # detects the sentinel and skips with a warning.  Run
+        # tar_invalidate(matches("task_ids")) when the limit resets to retry.
+        warning(
           "AppEEARS daily request limit reached for MODIS VI composite ",
-          yyyymmdd, ". Re-run the pipeline tomorrow to retry.\n",
-          "Original error: ", msg,
+          yyyymmdd, ". Re-run tar_invalidate(matches('task_ids')) ",
+          "tomorrow to retry.",
           call. = FALSE
         )
+        return(paste0("rate_limited:", yyyymmdd))
       }
       stop(e)  # re-throw non-rate-limit errors unchanged
     }
@@ -179,6 +181,27 @@ download_modis_vi_geotiff <- function(
                          " \u2014 skipping AppEEARS download")
     dir.create(temp_directory, recursive = TRUE, showWarnings = FALSE)
     return(temp_directory)
+  }
+
+  # Sentinel: AppEEARS rate limit was hit during submission — write a skip marker
+  # so downstream targets degrade gracefully. Run
+  # tar_invalidate(matches("task_ids")) when the daily limit resets to retry.
+  if (startsWith(task_id, "rate_limited:")) {
+    yyyymmdd_rl <- sub("^rate_limited:", "", task_id)
+    warning("Rate-limited sentinel for MODIS VI composite ", yyyymmdd_rl,
+            " \u2014 no task was submitted. ",
+            "Run tar_invalidate(matches('task_ids')) tomorrow to retry.",
+            call. = FALSE)
+    cache_dir_rl <- "data/target_outputs/modis_vi"
+    dir.create(cache_dir_rl, recursive = TRUE, showWarnings = FALSE)
+    skip_file <- file.path(cache_dir_rl, paste0("vi_modis_", yyyymmdd_rl, ".skip"))
+    writeLines(
+      c(paste("Composite:", yyyymmdd_rl),
+        "Reason: AppEEARS daily request limit reached during submission",
+        paste("Timestamp:", Sys.time())),
+      con = skip_file
+    )
+    return(skip_file)
   }
 
   ensure_appeears_auth()

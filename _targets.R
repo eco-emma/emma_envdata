@@ -348,8 +348,7 @@ list(
         gh_release_tag = release_tags$vi_modis_raster
       )
     },
-    pattern = map(vi_modis_pending),
-    error   = "continue"  # rate-limited branches retry on next tar_make()
+    pattern = map(vi_modis_pending)
   ),
 
   # Download GeoTIFF files from AppEEARS (I/O only).
@@ -422,8 +421,7 @@ list(
       out_dir        = "data/target_outputs/viirs_vi/",
       gh_release_tag = release_tags$vi_viirs_raster
     ),
-    pattern = map(vi_viirs_pending),
-    error   = "continue"  # rate-limited branches retry on next tar_make()
+    pattern = map(vi_viirs_pending)
   ),
 
   tar_target(
@@ -509,8 +507,7 @@ list(
       gh_release_tag = release_tags$burn_modis_raster,
       verbose        = TRUE
     ),
-    pattern = map(burn_modis_pending),
-    error   = "continue"  # rate-limited branches retry on next tar_make()
+    pattern = map(burn_modis_pending)
   ),
 
   # Download GeoTIFF results from AppEEARS (I/O only)
@@ -579,8 +576,7 @@ list(
       gh_release_tag = release_tags$burn_viirs_raster,
       verbose        = TRUE
     ),
-    pattern = map(burn_viirs_pending),
-    error   = "continue"  # rate-limited branches retry on next tar_make()
+    pattern = map(burn_viirs_pending)
   ),
 
   tar_target(
