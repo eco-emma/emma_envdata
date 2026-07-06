@@ -17,26 +17,26 @@ GeoParquet tables via GitHub Releases with full STAC catalog support.
 ## Pipeline Workflow
 
     #> Starting tar_make()
-    #> System info: sysname=Linux; release=6.8.0-117-generic; version=#117-Ubuntu SMP PREEMPT_DYNAMIC Tue May  5 19:26:24 UTC 2026; nodename=cpn-c08-13.core.ccr.buffalo.edu; machine=x86_64; login=unknown; user=adamw; effective_user=adamw
+    #> System info: sysname=Linux; release=6.8.0-124-generic; version=#124-Ubuntu SMP PREEMPT_DYNAMIC Tue May 26 13:00:45 UTC 2026; nodename=cpn-c08-13.core.ccr.buffalo.edu; machine=x86_64; login=unknown; user=adamw; effective_user=adamw
     #> Set working directory to: /projects/academic/adamw/projects/emma/emma_envdata
     #> tar_source() only sources R scripts. Ignoring non-R files: R/ccr_startup.sh
     #> Loaded 40 packages from DESCRIPTION
-    #> + burn_viirs_task_ids declared [3 branches]
-    #> + vi_modis_task_ids declared [5 branches]
-    #> + burn_modis_task_ids declared [3 branches]
-    #> + vi_viirs_task_ids declared [5 branches]
-    #> + burn_viirs_geotiff declared [3 branches]
-    #> + vi_modis_geotiff declared [5 branches]
-    #> + burn_modis_geotiff declared [3 branches]
-    #> + vi_viirs_geotiff declared [5 branches]
-    #> + burn_viirs_grid declared [3 branches]
-    #> + vi_modis_grid declared [5 branches]
-    #> + burn_modis_grid declared [3 branches]
-    #> + vi_viirs_grid declared [5 branches]
-    #> + burn_viirs_parquet declared [3 branches]
-    #> + vi_modis_parquet declared [5 branches]
-    #> + burn_modis_parquet declared [3 branches]
-    #> + vi_viirs_parquet declared [5 branches]
+    #> + burn_viirs_task_ids declared [17 branches]
+    #> + vi_modis_task_ids declared [32 branches]
+    #> + burn_modis_task_ids declared [17 branches]
+    #> + vi_viirs_task_ids declared [32 branches]
+    #> + burn_viirs_geotiff declared [17 branches]
+    #> + vi_modis_geotiff declared [32 branches]
+    #> + burn_modis_geotiff declared [17 branches]
+    #> + vi_viirs_geotiff declared [32 branches]
+    #> + burn_viirs_grid declared [17 branches]
+    #> + vi_modis_grid declared [32 branches]
+    #> + burn_modis_grid declared [17 branches]
+    #> + vi_viirs_grid declared [32 branches]
+    #> + burn_viirs_parquet declared [17 branches]
+    #> + vi_modis_parquet declared [32 branches]
+    #> + burn_modis_parquet declared [17 branches]
+    #> + vi_viirs_parquet declared [32 branches]
     #> Warning messages:
     #> 1: <anonymous>: ..1 may be used in an incorrect context
     #>  
@@ -54,8 +54,8 @@ Network](https://github.com/eco-emma/emma_envdata/releases/download/readme-asset
 
 | Status     | Count | Percent (%) |
 |:-----------|------:|------------:|
-| never run  |    94 |          47 |
-| up-to-date |   106 |          53 |
+| never run  |    94 |        17.8 |
+| up-to-date |   434 |        82.2 |
 
 Pipeline Target Status Summary {.table .table-striped .table-hover
 quarto-postprocess="true"
@@ -63,17 +63,17 @@ style="margin-left: auto; margin-right: auto;"}
 
 [![Build
 Status](https://github.com/eco-emma/emma_envdata/workflows/targets/badge.svg)](https://github.com/eco-emma/emma_envdata/actions)
-**Last pipeline run:** 2026-07-01 18:29:00.681965
+**Last pipeline run:** 2026-07-05 01:28:54.226868
 
 ## Data Inventory
 
 | Dataset | Source | Type | Format | Release Tag | Time Steps | Date Updated |
 |:---|:---|:---|:---|:---|---:|:---|
-| MODIS VI (Terra + Aqua) | MOD13A1 + MYD13A1 | Dynamic | COG GeoTIFF + Parquet | vi_modis_raster | 5 | 2026-05-16T23:59:59Z |
-| VIIRS VI (S-NPP + NOAA-20) | VNP13A1 + VJ113A1 | Dynamic | COG GeoTIFF + Parquet | vi_viirs_raster | 5 | 2026-05-16T23:59:59Z |
-| MODIS Burned Area | MCD64A1 | Dynamic | COG GeoTIFF + Parquet | burn_modis_raster | 5 | NULL |
-| VIIRS Burned Area | VNP64A1 | Dynamic | COG GeoTIFF + Parquet | burn_viirs_raster | 5 | NULL |
-| Fire History (derived) | Multi-sensor merge | Dynamic | COG GeoTIFF | firehistory_dynamic | 1 | 2026-07-01 |
+| MODIS VI (Terra + Aqua) | MOD13A1 + MYD13A1 | Dynamic | COG GeoTIFF + Parquet | vi_modis_raster | 32 | 2026-05-16T23:59:59Z |
+| VIIRS VI (S-NPP + NOAA-20) | VNP13A1 + VJ113A1 | Dynamic | COG GeoTIFF + Parquet | vi_viirs_raster | 32 | 2026-05-16T23:59:59Z |
+| MODIS Burned Area | MCD64A1 | Dynamic | COG GeoTIFF + Parquet | burn_modis_raster | 17 | NULL |
+| VIIRS Burned Area | VNP64A1 | Dynamic | COG GeoTIFF + Parquet | burn_viirs_raster | 17 | NULL |
+| Fire History (derived) | Multi-sensor merge | Dynamic | COG GeoTIFF | firehistory_dynamic | 1 | 2026-07-05 |
 | Domain Grid | NVM2024 + RLE2021 | Static | COG GeoTIFF + Parquet | static_data | 1 | 2026-06-18 13:46:26.474895 |
 | Vegetation Map | NVM2024 | Static | COG GeoTIFF | static_data | 1 | 2026-06-18 13:53:11.417559 |
 | Elevation | NASADEM | Static | COG GeoTIFF | static_data | 1 | 2026-06-18 13:56:29.827807 |
@@ -180,10 +180,10 @@ df <- arrow::read_parquet(parquet_url)
 | Release Tag | Description | Asset Count |
 |:---|:---|:---|
 | static_data | Static environmental layers | 8+ |
-| vi_modis_raster | MODIS VI rasters | data/stac/vi/vi_20260313.json composites × 2 sensors, data/stac/vi/vi_20260329.json composites × 2 sensors, data/stac/vi/vi_20260414.json composites × 2 sensors, data/stac/vi/vi_20260430.json composites × 2 sensors, data/stac/vi/vi_20260516.json composites × 2 sensors |
-| vi_viirs_raster | VIIRS VI rasters | data/stac/vi/vi_20260313.json composites × 2 sensors, data/stac/vi/vi_20260329.json composites × 2 sensors, data/stac/vi/vi_20260414.json composites × 2 sensors, data/stac/vi/vi_20260430.json composites × 2 sensors, data/stac/vi/vi_20260516.json composites × 2 sensors |
-| burn_modis_raster | MODIS burned area rasters | 5 months |
-| burn_viirs_raster | VIIRS burned area rasters | 5 months |
+| vi_modis_raster | MODIS VI rasters | data/stac/vi/vi_20250105.json composites × 2 sensors, data/stac/vi/vi_20250121.json composites × 2 sensors, data/stac/vi/vi_20250206.json composites × 2 sensors, data/stac/vi/vi_20250222.json composites × 2 sensors, data/stac/vi/vi_20250310.json composites × 2 sensors, data/stac/vi/vi_20250326.json composites × 2 sensors, data/stac/vi/vi_20250411.json composites × 2 sensors, data/stac/vi/vi_20250427.json composites × 2 sensors, data/stac/vi/vi_20250513.json composites × 2 sensors, data/stac/vi/vi_20250529.json composites × 2 sensors, data/stac/vi/vi_20250614.json composites × 2 sensors, data/stac/vi/vi_20250630.json composites × 2 sensors, data/stac/vi/vi_20250716.json composites × 2 sensors, data/stac/vi/vi_20250801.json composites × 2 sensors, data/stac/vi/vi_20250817.json composites × 2 sensors, data/stac/vi/vi_20250902.json composites × 2 sensors, data/stac/vi/vi_20250918.json composites × 2 sensors, data/stac/vi/vi_20251004.json composites × 2 sensors, data/stac/vi/vi_20251020.json composites × 2 sensors, data/stac/vi/vi_20251105.json composites × 2 sensors, data/stac/vi/vi_20251121.json composites × 2 sensors, data/stac/vi/vi_20251207.json composites × 2 sensors, data/stac/vi/vi_20251223.json composites × 2 sensors, data/stac/vi/vi_20260108.json composites × 2 sensors, data/stac/vi/vi_20260124.json composites × 2 sensors, data/stac/vi/vi_20260209.json composites × 2 sensors, data/stac/vi/vi_20260225.json composites × 2 sensors, data/stac/vi/vi_20260313.json composites × 2 sensors, data/stac/vi/vi_20260329.json composites × 2 sensors, data/stac/vi/vi_20260414.json composites × 2 sensors, data/stac/vi/vi_20260430.json composites × 2 sensors, data/stac/vi/vi_20260516.json composites × 2 sensors |
+| vi_viirs_raster | VIIRS VI rasters | data/stac/vi/vi_20250105.json composites × 2 sensors, data/stac/vi/vi_20250121.json composites × 2 sensors, data/stac/vi/vi_20250206.json composites × 2 sensors, data/stac/vi/vi_20250222.json composites × 2 sensors, data/stac/vi/vi_20250310.json composites × 2 sensors, data/stac/vi/vi_20250326.json composites × 2 sensors, data/stac/vi/vi_20250411.json composites × 2 sensors, data/stac/vi/vi_20250427.json composites × 2 sensors, data/stac/vi/vi_20250513.json composites × 2 sensors, data/stac/vi/vi_20250529.json composites × 2 sensors, data/stac/vi/vi_20250614.json composites × 2 sensors, data/stac/vi/vi_20250630.json composites × 2 sensors, data/stac/vi/vi_20250716.json composites × 2 sensors, data/stac/vi/vi_20250801.json composites × 2 sensors, data/stac/vi/vi_20250817.json composites × 2 sensors, data/stac/vi/vi_20250902.json composites × 2 sensors, data/stac/vi/vi_20250918.json composites × 2 sensors, data/stac/vi/vi_20251004.json composites × 2 sensors, data/stac/vi/vi_20251020.json composites × 2 sensors, data/stac/vi/vi_20251105.json composites × 2 sensors, data/stac/vi/vi_20251121.json composites × 2 sensors, data/stac/vi/vi_20251207.json composites × 2 sensors, data/stac/vi/vi_20251223.json composites × 2 sensors, data/stac/vi/vi_20260108.json composites × 2 sensors, data/stac/vi/vi_20260124.json composites × 2 sensors, data/stac/vi/vi_20260209.json composites × 2 sensors, data/stac/vi/vi_20260225.json composites × 2 sensors, data/stac/vi/vi_20260313.json composites × 2 sensors, data/stac/vi/vi_20260329.json composites × 2 sensors, data/stac/vi/vi_20260414.json composites × 2 sensors, data/stac/vi/vi_20260430.json composites × 2 sensors, data/stac/vi/vi_20260516.json composites × 2 sensors |
+| burn_modis_raster | MODIS burned area rasters | 17 months |
+| burn_viirs_raster | VIIRS burned area rasters | 17 months |
 | firehistory_dynamic | Fire history snapshot | 1 |
 | stac | STAC catalog + items | 50+ |
 

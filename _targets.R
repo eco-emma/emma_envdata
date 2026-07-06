@@ -109,9 +109,9 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
 #  burn_start_date  <- "2000-11-01"  # MCD64A1 first available data
 #  modis_end_date   <- as.character(Sys.Date())
 
-  modis_start_date <- "2025-01-01"  # MODIS Terra first available data
-  viirs_start_date <- "2025-01-01"  # VIIRS first available data
-  burn_start_date  <- "2025-01-01"  # MCD64A1 first available data
+  modis_start_date <- "2000-01-01"  # MODIS Terra first available data
+  viirs_start_date <- "2012-01-01"  # VIIRS first available data
+  burn_start_date  <- "2000-01-01"  # MCD64A1 first available data
   
   # Lag ~14 days past month end so both 16-day MODIS composites are published
   # on AppEEARS before the month enters the pipeline (avoids partial data).
