@@ -127,6 +127,10 @@ submit_burn_date_viirs_task <- function(
     }
   )
 
+  # tryCatch returns the rate_limited sentinel as a plain string;
+  # $get_task_id() would fail on a character vector — return early.
+  if (is.character(task)) return(task)
+
   task_id <- task$get_task_id()
   if (verbose) message("VIIRS burn date task submitted: ", task_id)
   task_id
