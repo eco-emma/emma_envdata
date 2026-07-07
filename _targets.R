@@ -246,6 +246,10 @@ list(
   #                        (skip download, reprocess only)
   #        <task_id>     → new AppEEARS task submitted; poll + download + process
   #   2. elevation.tif — processes/downloads based on the sentinel/task ID above.
+  # elevation_task_id: submit an AppEEARS elevation task (or return a sentinel
+  # signalling that data are already cached).  error="continue" lets the rest
+  # of the pipeline proceed if the AppEEARS daily request limit is hit; the
+  # errored target is retried automatically on the next tar_make().
   tar_target(
     elevation_task_id,
     submit_elevation_task(
@@ -253,7 +257,8 @@ list(
       targets_store  = "_targets/objects",
       temp_directory = "data/temp/appeears/elevation_nasadem/",
       verbose        = TRUE
-    )
+    ),
+    error = "continue"
   ),
 
   geotargets::tar_terra_rast(
@@ -335,7 +340,11 @@ list(
     generate_composite_sequence(start_date = modis_start_date, end_date = modis_end_date)
   ),
 
-  # Dynamically submit 16-day composite AppEEARS tasks
+  # Dynamically submit 16-day composite AppEEARS tasks.
+  # error="continue": if AppEEARS returns "rate limit exceeded" for a branch,
+  # that branch stop()s and is marked errored; the rest of the pipeline
+  # proceeds, and errored branches are retried automatically on the next
+  # tar_make() (targets retries errored branches by default in thorough mode).
   tar_target(
     vi_modis_task_ids,
     {
@@ -348,7 +357,8 @@ list(
         gh_release_tag = release_tags$vi_modis_raster
       )
     },
-    pattern = map(vi_modis_pending)
+    pattern = map(vi_modis_pending),
+    error   = "continue"
   ),
 
   # Download GeoTIFF files from AppEEARS (I/O only).
@@ -421,7 +431,8 @@ list(
       out_dir        = "data/target_outputs/viirs_vi/",
       gh_release_tag = release_tags$vi_viirs_raster
     ),
-    pattern = map(vi_viirs_pending)
+    pattern = map(vi_viirs_pending),
+    error   = "continue"  # rate-limit errors retry on next tar_make()
   ),
 
   tar_target(
@@ -507,7 +518,8 @@ list(
       gh_release_tag = release_tags$burn_modis_raster,
       verbose        = TRUE
     ),
-    pattern = map(burn_modis_pending)
+    pattern = map(burn_modis_pending),
+    error   = "continue"  # rate-limit errors retry on next tar_make()
   ),
 
   # Download GeoTIFF results from AppEEARS (I/O only)
@@ -576,7 +588,8 @@ list(
       gh_release_tag = release_tags$burn_viirs_raster,
       verbose        = TRUE
     ),
-    pattern = map(burn_viirs_pending)
+    pattern = map(burn_viirs_pending),
+    error   = "continue"  # rate-limit errors retry on next tar_make()
   ),
 
   tar_target(

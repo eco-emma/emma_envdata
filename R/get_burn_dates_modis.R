@@ -114,25 +114,19 @@ submit_burn_date_modis_task <- function(
       msg <- conditionMessage(e)
       if (grepl("exceeded.*maximum.*requests|too many requests",
                 msg, ignore.case = TRUE)) {
-        # Rate limit hit — return a sentinel so this branch is cached as
-        # "rate_limited" and the pipeline continues.  The download target
-        # detects the sentinel and skips with a warning.  Run
-        # tar_invalidate(matches("task_ids")) when the limit resets to retry.
-        warning(
-          "AppEEARS daily request limit reached for MODIS burn date ",
-          yyyymm, ". Re-run tar_invalidate(matches('task_ids')) ",
-          "tomorrow to retry.",
+        # Rate limit hit — stop() so this branch is marked errored with
+        # error = "continue", allowing the rest of the pipeline to proceed.
+        # On the next tar_make() the errored branches will re-submit
+        # automatically (targets retries errored branches by default).
+        stop(
+          "AppEEARS daily request limit reached for MODIS burn date ", yyyymm,
+          " — branch marked errored, will retry on the next tar_make().",
           call. = FALSE
         )
-        return(paste0("rate_limited:", yyyymm))
       }
       stop(e)  # re-throw non-rate-limit errors unchanged
     }
   )
-
-  # tryCatch returns the rate_limited sentinel as a plain string;
-  # $get_task_id() would fail on a character vector — return early.
-  if (is.character(task)) return(task)
 
   task_id <- task$get_task_id()
   if (verbose) message("MODIS burn date task submitted: ", task_id)
@@ -181,25 +175,18 @@ download_burn_date_modis_geotiff <- function(
     return(temp_directory)
   }
 
-  # Sentinel: AppEEARS rate limit was hit during submission — write a skip marker
-  # so downstream targets degrade gracefully. Run
-  # tar_invalidate(matches("task_ids")) when the daily limit resets to retry.
+  # Legacy sentinel from earlier pipeline versions where submit_*() returned
+  # "rate_limited:YYYYMM" instead of stop()-ing.  Treat as a hard error so
+  # that once the corresponding task_ids branch is invalidated (see
+  # recover_rate_limited.R) this branch also re-runs on the next tar_make().
   if (startsWith(task_id, "rate_limited:")) {
     yyyymm_rl <- sub("^rate_limited:", "", task_id)
-    warning("Rate-limited sentinel for MODIS burn date ", yyyymm_rl,
-            " — no task was submitted. ",
-            "Run tar_invalidate(matches('task_ids')) tomorrow to retry.",
-            call. = FALSE)
-    marker_dir_rl <- "data/target_outputs/burndates"
-    dir.create(marker_dir_rl, recursive = TRUE, showWarnings = FALSE)
-    skip_file <- file.path(marker_dir_rl, paste0("burn_modis_", yyyymm_rl, ".skip"))
-    writeLines(
-      c(paste("Month:", yyyymm_rl),
-        "Reason: AppEEARS daily request limit reached during submission",
-        paste("Timestamp:", Sys.time())),
-      con = skip_file
+    stop(
+      "Legacy rate_limited sentinel for MODIS burn date ", yyyymm_rl,
+      " — no AppEEARS task was submitted for this branch. ",
+      "Run recover_rate_limited.R to clear stuck branches, then tar_make().",
+      call. = FALSE
     )
-    return(skip_file)
   }
 
   ensure_appeears_auth()
@@ -405,6 +392,16 @@ burn_modis_geotiff_to_grid <- function(
   }
 
   if (length(tif_paths) == 0L) {
+    # Guard: if the output COG already exists on disk (e.g. from a previous
+    # successful download that was later cleaned up), do NOT overwrite it with
+    # an all-NA placeholder.  This protects real data when submit_*() returns
+    # a "cached:" sentinel and the temp dir is empty.
+    if (file.exists(out_tif)) {
+      if (verbose) message("No fresh source TIFs for ", yyyymm,
+                           " and output COG already exists — preserving ",
+                           basename(out_tif))
+      return(out_tif)
+    }
     if (verbose) message("No burn GeoTIFFs for ", yyyymm, " — writing all-NA grid")
     write_empty_cog()
     if (cleanup && !grepl("\\.skip$", geotiff_directory) && dir.exists(geotiff_directory)) {

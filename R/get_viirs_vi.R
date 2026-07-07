@@ -137,25 +137,19 @@ submit_viirs_vi <- function(
       msg <- conditionMessage(e)
       if (grepl("exceeded.*maximum.*requests|too many requests",
                 msg, ignore.case = TRUE)) {
-        # Rate limit hit — return a sentinel so this branch is cached as
-        # "rate_limited" and the pipeline continues.  The download target
-        # detects the sentinel and skips with a warning.  Run
-        # tar_invalidate(matches("task_ids")) when the limit resets to retry.
-        warning(
-          "AppEEARS daily request limit reached for VIIRS VI composite ",
-          yyyymmdd, ". Re-run tar_invalidate(matches('task_ids')) ",
-          "tomorrow to retry.",
+        # Rate limit hit — stop() so this branch is marked errored with
+        # error = "continue", allowing the rest of the pipeline to proceed.
+        # On the next tar_make() the errored branches will re-submit
+        # automatically (targets retries errored branches by default).
+        stop(
+          "AppEEARS daily request limit reached for VIIRS VI composite ", yyyymmdd,
+          " — branch marked errored, will retry on the next tar_make().",
           call. = FALSE
         )
-        return(paste0("rate_limited:", yyyymmdd))
       }
       stop(e)  # re-throw non-rate-limit errors unchanged
     }
   )
-
-  # tryCatch returns the rate_limited sentinel as a plain string;
-  # $get_task_id() would fail on a character vector — return early.
-  if (is.character(task)) return(task)
 
   task_id <- task$get_task_id()
   if (verbose) message("Task submitted with ID: ", task_id)
@@ -204,26 +198,18 @@ download_viirs_vi_geotiff <- function(
     return(temp_directory)
   }
 
-  # Sentinel: AppEEARS rate limit was hit during submission — write a skip marker
-  # so downstream targets degrade gracefully. The submit target cached
-  # "rate_limited:YYYYMMDD"; run tar_invalidate(matches("task_ids")) when the
-  # daily limit resets to force re-submission.
+  # Legacy sentinel from earlier pipeline versions where submit_*() returned
+  # "rate_limited:YYYYMMDD" instead of stop()-ing.  Treat as a hard error so
+  # that once the corresponding task_ids branch is invalidated (see
+  # recover_rate_limited.R) this branch also re-runs on the next tar_make().
   if (startsWith(task_id, "rate_limited:")) {
     yyyymmdd_rl <- sub("^rate_limited:", "", task_id)
-    warning("Rate-limited sentinel for VIIRS VI composite ", yyyymmdd_rl,
-            " \u2014 no task was submitted. ",
-            "Run tar_invalidate(matches('task_ids')) tomorrow to retry.",
-            call. = FALSE)
-    cache_dir_rl <- "data/target_outputs/viirs_vi"
-    dir.create(cache_dir_rl, recursive = TRUE, showWarnings = FALSE)
-    skip_file <- file.path(cache_dir_rl, paste0("vi_viirs_", yyyymmdd_rl, ".skip"))
-    writeLines(
-      c(paste("Composite:", yyyymmdd_rl),
-        "Reason: AppEEARS daily request limit reached during submission",
-        paste("Timestamp:", Sys.time())),
-      con = skip_file
+    stop(
+      "Legacy rate_limited sentinel for VIIRS VI composite ", yyyymmdd_rl,
+      " — no AppEEARS task was submitted for this branch. ",
+      "Run recover_rate_limited.R to clear stuck branches, then tar_make().",
+      call. = FALSE
     )
-    return(skip_file)
   }
 
   ensure_appeears_auth()
@@ -422,6 +408,15 @@ vi_viirs_geotiff_to_grid <- function(
   }
 
   if (length(tif_paths) == 0L) {
+    # Guard: if BOTH sensor COGs already exist on disk (e.g. from a previous
+    # successful download that was later cleaned up), do NOT overwrite them
+    # with all-NA placeholders.  This protects real data when submit_*() returns
+    # a "cached:" sentinel and the temp dir is empty.
+    if (file.exists(out_snpp) && file.exists(out_noaa20)) {
+      if (verbose) message("No fresh source TIFs for ", yyyymmdd,
+                           " and output COGs already exist — preserving them")
+      return(c(out_snpp, out_noaa20))
+    }
     if (verbose) message("No source GeoTIFFs for ", yyyymmdd,
                          " \u2014 writing all-NA placeholder COGs")
     write_na_cog(out_snpp,   "S-NPP/VNP13A1")

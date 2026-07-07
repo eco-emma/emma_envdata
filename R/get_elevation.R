@@ -83,23 +83,19 @@ submit_elevation_task <- function(
       msg <- conditionMessage(e)
       if (grepl("exceeded.*maximum.*requests|too many requests",
                 msg, ignore.case = TRUE)) {
-        # Rate limit hit — return a sentinel so the target is cached and
-        # the pipeline continues.  Run tar_invalidate(elevation_task_id)
-        # when the limit resets to retry.
-        warning(
-          "AppEEARS daily request limit reached for elevation task. ",
-          "Re-run tar_invalidate(elevation_task_id) tomorrow to retry.",
+        # Rate limit hit — stop() so this target is marked errored with
+        # error = "continue", allowing the rest of the pipeline to proceed.
+        # On the next tar_make() the errored target will re-submit
+        # automatically (targets retries errored targets by default).
+        stop(
+          "AppEEARS daily request limit reached for elevation task ",
+          "\u2014 target marked errored, will retry on the next tar_make().",
           call. = FALSE
         )
-        return("rate_limited:elevation")
       }
       stop(e)  # re-throw non-rate-limit errors unchanged
     }
   )
-
-  # tryCatch returns the rate_limited sentinel as a plain string;
-  # $get_task_id() would fail on a character vector — return early.
-  if (is.character(task)) return(task)
 
   task_id <- task$get_task_id()
   if (verbose) message("Task submitted with ID: ", task_id)
@@ -145,12 +141,15 @@ download_elevation_results <- function(
     return(invisible(NULL))
   }
 
-  # Sentinel: AppEEARS rate limit was hit during submission — cannot proceed.
-  # Run tar_invalidate(elevation_task_id) when the daily limit resets to retry.
+  # Legacy sentinel from earlier pipeline versions where submit_elevation_task()
+  # returned "rate_limited:elevation" instead of stop()-ing.  Treat as a hard
+  # error so that once elevation_task_id is invalidated the target re-runs
+  # automatically on the next tar_make().
   if (identical(task_id, "rate_limited:elevation")) {
     stop(
-      "AppEEARS daily request limit was reached when submitting the elevation task. ",
-      "Run tar_invalidate(elevation_task_id) tomorrow to retry.",
+      "Legacy rate_limited sentinel for elevation task \u2014 no AppEEARS task ",
+      "was submitted. Run `tar_invalidate(elevation_task_id)` then tar_make() ",
+      "to retry.",
       call. = FALSE
     )
   }
