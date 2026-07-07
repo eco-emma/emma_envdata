@@ -460,15 +460,54 @@ tar_upload_github_release <- function(
     return(invisible(NULL))
   }
   
+  # Upload _targets/meta/meta FIRST so it is always current even if the object
+  # upload loop is interrupted by a rate limit or job timeout.  A second upload
+  # at the end of the loop keeps the meta consistent with the final object state.
+  meta_path <- "_targets/meta/meta"
+  .upload_meta <- function() {
+    if (!file.exists(meta_path)) return(invisible(NULL))
+    upload_name <- "_targets_meta"
+    if (verbose) message("[tar_github_release] Uploading targets meta (pre-object sync): ", meta_path)
+    if (any(remote_assets$file_name == upload_name)) {
+      tryCatch({
+        old_id <- remote_assets$id[remote_assets$file_name == upload_name]
+        gh::gh("DELETE /repos/{owner}/{repo}/releases/assets/{asset_id}",
+               owner = owner_repo[1], repo = owner_repo[2],
+               asset_id = old_id[1], .token = .token)
+        Sys.sleep(1)
+      }, error = function(e) {
+        if (verbose) message("[tar_github_release] Could not delete old meta asset: ", conditionMessage(e))
+      })
+    }
+    tryCatch({
+      r <- httr::RETRY(
+        verb  = "POST",
+        url   = upload_url_base,
+        query = list(name = upload_name),
+        httr::add_headers(Authorization = paste("token", .token)),
+        body  = httr::upload_file(meta_path),
+        times = 3,
+        terminate_on = c(400, 401, 403, 404, 422)
+      )
+      httr::stop_for_status(r)
+      if (verbose) message("[tar_github_release] Uploaded targets meta")
+    }, error = function(e) {
+      warning("[tar_github_release] Failed to upload targets meta: ", conditionMessage(e))
+    })
+  }
+  .upload_meta()
+
   # Upload each file
   for (local_file in local_files) {
     target_name <- basename(local_file)
     upload_name <- target_name
 
-      # Skip upload if the targets content hash matches the remote meta.
-      # This is the authoritative content-equality check: same hash means the
-      # object the server produced is identical to what was last uploaded,
-      # regardless of byte-count coincidences in serialisation.
+      # Skip upload if the file already exists on GitHub AND its targets content
+      # hash matches the remote meta.  This is the authoritative content-equality
+      # check: same hash means the object the server produced is identical to
+      # what was last uploaded, regardless of byte-count coincidences in
+      # serialisation.  Files NOT yet on GitHub are always uploaded so that CI
+      # can download them to restore the pipeline cache.
       exists_on_github <- any(remote_assets$file_name == upload_name)
       if (exists_on_github) {
         local_hash <- meta_df$data[meta_df$name == target_name]
@@ -516,16 +555,34 @@ tar_upload_github_release <- function(
       })
   }
   
-  # Upload _targets/meta/meta so CI can restore the pipeline state and avoid
-  # re-running targets that were already completed on the server.
-  meta_path <- "_targets/meta/meta"
+  # Re-upload _targets/meta/meta at the end so it reflects any objects that
+  # changed during this upload session (the pre-loop upload above covered the
+  # "nothing changed" fast-path; this one handles partial-update runs).
   if (file.exists(meta_path)) {
+    if (verbose) message("[tar_github_release] Uploading targets meta (post-object sync): ", meta_path)
+    # Re-fetch release assets so we have a fresh id for _targets_meta
+    # (the pre-loop upload replaced it, so the id in remote_assets is stale).
+    fresh_assets <- tryCatch(
+      gh::gh(
+        "GET /repos/{owner}/{repo}/releases/{release_id}/assets",
+        owner = owner_repo[1], repo = owner_repo[2],
+        release_id = release_gh$id, .limit = Inf, .token = .token
+      ),
+      error = function(e) list()
+    )
+    fresh_asset_df <- if (length(fresh_assets) > 0) {
+      data.frame(
+        file_name = vapply(fresh_assets, `[[`, character(1), "name"),
+        id        = vapply(fresh_assets, `[[`, numeric(1),   "id"),
+        stringsAsFactors = FALSE
+      )
+    } else {
+      data.frame(file_name = character(0), id = integer(0))
+    }
     upload_name <- "_targets_meta"
-    if (verbose) message("[tar_github_release] Uploading targets meta: ", meta_path)
-    # Delete old asset if present
-    if (any(remote_assets$file_name == upload_name)) {
+    if (any(fresh_asset_df$file_name == upload_name)) {
       tryCatch({
-        old_id <- remote_assets$id[remote_assets$file_name == upload_name]
+        old_id <- fresh_asset_df$id[fresh_asset_df$file_name == upload_name]
         gh::gh("DELETE /repos/{owner}/{repo}/releases/assets/{asset_id}",
                owner = owner_repo[1], repo = owner_repo[2],
                asset_id = old_id[1], .token = .token)
