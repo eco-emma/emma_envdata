@@ -25,7 +25,7 @@ logs/*
 _targets/objects/
 _targets/user/
 _targets/workspaces/
-_targets/meta/p*
+_targets/meta/*
 
 # Data directories
 data/temp/

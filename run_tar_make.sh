@@ -121,31 +121,40 @@ EXIT_CODE=${PIPESTATUS[0]}
 # =============================================================================
 # Upload targets cache to GitHub release (runs even on partial tar_make failure
 # so that completed targets are cached for the next run)
+# Set SKIP_GH_UPLOAD=true to skip this step (e.g. when rate-limited):
+#   SKIP_GH_UPLOAD=true sbatch --cluster=faculty run_tar_make.sh
 # =============================================================================
-echo "============================================================" | tee -a "${LOG}"
-echo "Uploading targets cache to GitHub release..."                 | tee -a "${LOG}"
-echo "Started  : $(date)"                                           | tee -a "${LOG}"
-echo "============================================================" | tee -a "${LOG}"
+if [[ "${SKIP_GH_UPLOAD}" == "true" ]]; then
+  echo "============================================================" | tee -a "${LOG}"
+  echo "SKIP_GH_UPLOAD=true — skipping GitHub cache upload"          | tee -a "${LOG}"
+  echo "============================================================" | tee -a "${LOG}"
+  UPLOAD_EXIT_CODE=0
+else
+  echo "============================================================" | tee -a "${LOG}"
+  echo "Uploading targets cache to GitHub release..."                 | tee -a "${LOG}"
+  echo "Started  : $(date)"                                           | tee -a "${LOG}"
+  echo "============================================================" | tee -a "${LOG}"
 
-#    --bind "${APPTAINER_CACHEDIR}/run:/run" \
-apptainer run \
-    --bind "${PROJECT_FOLDER}:${PROJECT_FOLDER}" \
-    --bind "${APPTAINER_CACHEDIR}:/tmp" \
-    --env-file "${APPTAINER_ENV_FILE}" \
-    "${SIF_PATH}/${SIF_FILE}" \
-    Rscript -e "
-      setwd('${WORK_DIR}')
-      library(targets)
-      source('R/tar_release_storage.R')
-      tar_upload_github_release(
-        repo      = 'AdamWilsonLab/emma_envdata',
-        tag       = 'targets-cache',
-        cache_dir = '_targets/cache',
-        verbose   = TRUE
-      )
-    " 2>&1 | tee -a "${LOG}"
+  #    --bind "${APPTAINER_CACHEDIR}/run:/run" \
+  apptainer run \
+      --bind "${PROJECT_FOLDER}:${PROJECT_FOLDER}" \
+      --bind "${APPTAINER_CACHEDIR}:/tmp" \
+      --env-file "${APPTAINER_ENV_FILE}" \
+      "${SIF_PATH}/${SIF_FILE}" \
+      Rscript -e "
+        setwd('${WORK_DIR}')
+        library(targets)
+        source('R/tar_release_storage.R')
+        tar_upload_github_release(
+          repo      = 'eco-emma/emma_envdata',
+          tag       = 'targets-cache',
+          cache_dir = '_targets/cache',
+          verbose   = TRUE
+        )
+      " 2>&1 | tee -a "${LOG}"
 
-UPLOAD_EXIT_CODE=${PIPESTATUS[0]}
+  UPLOAD_EXIT_CODE=${PIPESTATUS[0]}
+fi
 
 # =============================================================================
 # Finish
