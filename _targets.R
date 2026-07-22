@@ -392,6 +392,7 @@ list(
       domain_raster     = domain.tif,
       composite_date    = vi_modis_pending$composite_date,
       out_dir           = "data/target_outputs/modis_vi/",
+      gh_release_tag    = release_tags$vi_modis_raster,
       cleanup           = cleanup_mode,
       verbose           = TRUE
     ),
@@ -458,6 +459,7 @@ list(
       domain_raster     = domain.tif,
       composite_date    = vi_viirs_pending$composite_date,
       out_dir           = "data/target_outputs/viirs_vi/",
+      gh_release_tag    = release_tags$vi_viirs_raster,
       cleanup           = cleanup_mode,
       verbose           = TRUE
     ),

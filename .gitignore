@@ -21,11 +21,13 @@ logs/*
 # RStudio files
 .Rproj.user/
 
-# Targets workflow - track meta/meta for pipeline state
+# Targets workflow — all of _targets/ is managed by the pipeline.
+# Objects and meta are cached in the GitHub release, not in git.
 _targets/objects/
 _targets/user/
 _targets/workspaces/
-_targets/meta/*
+_targets/meta/
+_targets/cache/
 
 # Data directories
 data/temp/

@@ -360,9 +360,10 @@ vi_viirs_geotiff_to_grid <- function(
     geotiff_directory,
     domain_raster,
     composite_date,
-    out_dir  = "data/target_outputs/viirs_vi/",
-    cleanup  = Sys.getenv("GITHUB_ACTIONS") == "true",
-    verbose  = TRUE) {
+    out_dir        = "data/target_outputs/viirs_vi/",
+    gh_release_tag = NULL,
+    cleanup        = Sys.getenv("GITHUB_ACTIONS") == "true",
+    verbose        = TRUE) {
 
   composite_date <- as.Date(composite_date)
   yyyymmdd       <- format(composite_date, "%Y%m%d")
@@ -408,15 +409,35 @@ vi_viirs_geotiff_to_grid <- function(
   }
 
   if (length(tif_paths) == 0L) {
-    # Guard: if BOTH sensor COGs already exist on disk (e.g. from a previous
-    # successful download that was later cleaned up), do NOT overwrite them
-    # with all-NA placeholders.  This protects real data when submit_*() returns
-    # a "cached:" sentinel and the temp dir is empty.
+    # Guard 1: COGs already on disk (server re-run after cleanup) — preserve them.
     if (file.exists(out_snpp) && file.exists(out_noaa20)) {
       if (verbose) message("No fresh source TIFs for ", yyyymmdd,
                            " and output COGs already exist — preserving them")
       return(c(out_snpp, out_noaa20))
     }
+
+    # Guard 2: COGs on GitHub release but not yet on disk (CI runner after
+    # targets cache restore).  Download them so the format = "file" target is
+    # satisfied and NA placeholders are never written — which would corrupt the
+    # release when upload_vi_viirs_grid subsequently re-uploads them.
+    if (!is.null(gh_release_tag)) {
+      repo <- Sys.getenv("TAR_GH_RELEASE_REPO", unset = "eco-emma/emma_envdata")
+      snpp_on_gh   <- gh_release_has_asset(repo, gh_release_tag,
+                                           basename(out_snpp),   verbose = verbose)
+      noaa20_on_gh <- gh_release_has_asset(repo, gh_release_tag,
+                                           basename(out_noaa20), verbose = verbose)
+      if (snpp_on_gh && noaa20_on_gh) {
+        if (verbose) message("VIIRS VI COGs for ", yyyymmdd,
+                             " already on GitHub release '", gh_release_tag,
+                             "' \u2014 downloading to disk")
+        gh_release_download_asset(repo, gh_release_tag, basename(out_snpp),
+                                  out_snpp, verbose = verbose)
+        gh_release_download_asset(repo, gh_release_tag, basename(out_noaa20),
+                                  out_noaa20, verbose = verbose)
+        return(c(out_snpp, out_noaa20))
+      }
+    }
+
     if (verbose) message("No source GeoTIFFs for ", yyyymmdd,
                          " \u2014 writing all-NA placeholder COGs")
     write_na_cog(out_snpp,   "S-NPP/VNP13A1")

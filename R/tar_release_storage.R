@@ -603,6 +603,9 @@ tar_upload_github_release <- function(
 
 # Session-level cache so repeated calls within one tar_make() worker don't
 # repeat the API call for the same release tag.
+# Cache format: named character vector where names = asset file names,
+# values = asset IDs (as character).  This lets gh_release_download_asset()
+# look up IDs without a second API call.
 .gh_release_asset_cache <- new.env(parent = emptyenv())
 
 #' Check whether a named asset exists on a GitHub release
@@ -618,7 +621,9 @@ gh_release_has_asset <- function(repo, release_tag, asset_name, verbose = FALSE)
   if (!exists(release_tag, envir = .gh_release_asset_cache, inherits = FALSE)) {
     token      <- .gh_token()
     owner_repo <- strsplit(repo, "/")[[1]]
-    asset_names <- tryCatch({
+    # Named character vector: names = asset file names, values = asset IDs.
+    # Stored as character to avoid integer overflow on large release IDs.
+    asset_lookup <- tryCatch({
       if (verbose) message("[gh_release_has_asset] Fetching asset list for release: ", release_tag)
       # Step 1: get release metadata (id, etc.)
       rel <- gh::gh(
@@ -640,12 +645,65 @@ gh_release_has_asset <- function(repo, release_tag, asset_name, verbose = FALSE)
         .limit     = Inf,
         .token     = token
       )
-      vapply(asset_list, `[[`, character(1), "name")
+      nms <- vapply(asset_list, `[[`, character(1), "name")
+      ids <- vapply(asset_list, function(a) as.character(a[["id"]]), character(1))
+      setNames(ids, nms)
     }, error = function(e) {
       # Release doesn't exist yet — treat as empty
-      character(0)
+      setNames(character(0), character(0))
     })
-    assign(release_tag, asset_names, envir = .gh_release_asset_cache)
+    assign(release_tag, asset_lookup, envir = .gh_release_asset_cache)
   }
-  asset_name %in% get(release_tag, envir = .gh_release_asset_cache, inherits = FALSE)
+  asset_name %in% names(
+    get(release_tag, envir = .gh_release_asset_cache, inherits = FALSE)
+  )
+}
+
+
+#' Download a single asset from a GitHub release
+#'
+#' Uses the session-level asset cache populated by \code{gh_release_has_asset()}
+#' so no extra API call is needed to resolve the asset ID.
+#'
+#' @param repo         "owner/repo" string.
+#' @param release_tag  Release tag string.
+#' @param asset_name   File name of the asset to download.
+#' @param dest_path    Local file path to write the downloaded content to.
+#' @param verbose      Print progress messages.
+#' @return \code{dest_path} invisibly.
+#' @export
+gh_release_download_asset <- function(repo, release_tag, asset_name,
+                                      dest_path, verbose = FALSE) {
+  # Populate cache (also confirms asset exists — errors if not found)
+  if (!gh_release_has_asset(repo, release_tag, asset_name, verbose = verbose)) {
+    stop("Asset '", asset_name, "' not found in GitHub release '", release_tag, "'")
+  }
+
+  cached   <- get(release_tag, envir = .gh_release_asset_cache, inherits = FALSE)
+  asset_id <- cached[[asset_name]]   # name → id
+
+  token      <- .gh_token()
+  owner_repo <- strsplit(repo, "/")[[1]]
+
+  if (verbose) message("[gh_release_download_asset] Downloading ", asset_name,
+                       " from release '", release_tag, "'")
+
+  dir.create(dirname(dest_path), recursive = TRUE, showWarnings = FALSE)
+
+  r <- httr::RETRY(
+    verb  = "GET",
+    url   = sprintf("https://api.github.com/repos/%s/%s/releases/assets/%s",
+                    owner_repo[1], owner_repo[2], asset_id),
+    httr::add_headers(
+      Authorization = paste("token", token),
+      Accept        = "application/octet-stream"
+    ),
+    httr::write_disk(dest_path, overwrite = TRUE),
+    times        = 3,
+    terminate_on = c(401, 403, 404)
+  )
+  httr::stop_for_status(r)
+
+  if (verbose) message("[gh_release_download_asset] Saved to: ", dest_path)
+  invisible(dest_path)
 }
