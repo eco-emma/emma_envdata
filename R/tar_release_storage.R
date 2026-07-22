@@ -511,8 +511,14 @@ tar_upload_github_release <- function(
     exists_rows <- remote_assets_all[remote_assets_all$file_name == upload_name, ]
     exists_on_github <- nrow(exists_rows) > 0
 
-    # Skip if the object is already on the correct shard with matching hash
-    if (exists_on_github && exists_rows$shard[1] == s) {
+    # Skip if the object exists ANYWHERE across the shards with a matching hash.
+    # Deliberately NOT checking which shard the object is currently on: this
+    # lets n_shards be increased later (e.g. 4 → 6) without forcing a full
+    # re-upload of all unchanged objects.  Objects migrate to their assigned
+    # shard naturally the next time their content changes (i.e. tar_make
+    # rebuilds them), at which point the old asset is deleted and a new one
+    # is uploaded to the correct shard.
+    if (exists_on_github) {
       local_hash <- meta_df$data[meta_df$name == target_name]
       if (!is.null(remote_meta_hashes) &&
           length(local_hash) == 1L && !is.na(local_hash) &&
