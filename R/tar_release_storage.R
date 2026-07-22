@@ -13,6 +13,24 @@
 }
 
 # ---------------------------------------------------------------------------
+# Internal helper: deterministic shard assignment (1..n_shards) for a target
+# object name.  GitHub limits releases to ~1,000 assets; sharding spreads
+# objects across n_shards releases named "{base_tag}-1" … "{base_tag}-N".
+#
+# Assignment uses the last two hex characters of the name (all branch-target
+# names end in a 16-char hex hash) giving a stable, roughly-uniform split.
+# Names without a hex suffix fall back to a char-sum of the first 8 chars.
+# ---------------------------------------------------------------------------
+.target_shard <- function(name, n_shards) {
+  suffix <- substr(name, nchar(name) - 1L, nchar(name))
+  val    <- suppressWarnings(strtoi(suffix, 16L))
+  if (is.na(val) || !is.finite(val)) {
+    val <- sum(utf8ToInt(substr(name, 1L, min(8L, nchar(name)))))
+  }
+  (as.integer(val) %% as.integer(n_shards)) + 1L
+}
+
+# ---------------------------------------------------------------------------
 # Internal helper: verify a downloaded file can actually be opened.
 # Returns TRUE if the file passes its format-specific integrity check,
 # FALSE on any read error. Used by tar_download_github_release() to avoid
@@ -51,102 +69,138 @@
   }, error = function(e) FALSE)
 }
 
-#' Download targets from GitHub Release
-#' @description Download locally stored targets from GitHub releases (useful for GitHub Actions)
-#' @param repo Repository in "owner/repo" format (default from environment or "eco-emma/emma_envdata")
-#' @param tag Release tag to store objects (default from environment or "targets-cache")
-#' @param cache_dir Cache directory (default: "_targets/cache")
-#' @param which_targets Optional vector of specific target names to download
-#' @param verbose Logical for progress messages
-#' @details Call this at the start of tar_make() in update mode to download targets
+# ---------------------------------------------------------------------------
+# Internal helper: fetch all assets from a single release by ID.
+# Returns a data.frame(file_name, id, size) or an empty frame on error.
+# ---------------------------------------------------------------------------
+.fetch_release_assets <- function(owner, repo, release_id, token) {
+  al <- tryCatch(
+    gh::gh(
+      "GET /repos/{owner}/{repo}/releases/{release_id}/assets",
+      owner = owner, repo = repo,
+      release_id = release_id, .limit = Inf, .token = token
+    ),
+    error = function(e) list()
+  )
+  if (length(al) == 0) {
+    return(data.frame(file_name = character(0), id = integer(0),
+                      size = integer(0), stringsAsFactors = FALSE))
+  }
+  data.frame(
+    file_name = vapply(al, `[[`, character(1), "name"),
+    id        = vapply(al, `[[`, numeric(1),   "id"),
+    size      = vapply(al, `[[`, numeric(1),   "size"),
+    stringsAsFactors = FALSE
+  )
+}
+
+# ---------------------------------------------------------------------------
+# Internal helper: ensure a GitHub release exists (create if absent).
+# Returns the release object from the API.
+# ---------------------------------------------------------------------------
+.ensure_release <- function(owner, repo, tag, existing_tags, token, verbose) {
+  if (!tag %in% existing_tags) {
+    if (verbose) message("[tar_github_release] Creating shard release: ", tag)
+    gh::gh(
+      "POST /repos/{owner}/{repo}/releases",
+      owner      = owner, repo = repo,
+      tag_name   = tag,
+      name       = tag,
+      prerelease = TRUE,
+      .token     = token
+    )
+    Sys.sleep(3)  # let GitHub propagate before first upload
+  }
+  gh::gh(
+    "GET /repos/{owner}/{repo}/releases/tags/{tag}",
+    owner = owner, repo = repo, tag = tag,
+    .token = token
+  )
+}
+
+#' Download targets from GitHub Release (sharded)
+#'
+#' Downloads the targets-cache from up to \code{n_shards} GitHub releases
+#' named \code{{tag}-1} … \code{{tag}-n_shards}.  Used on GitHub Actions to
+#' restore the pipeline state before \code{tar_make()}.
+#'
+#' @param repo       Repository in "owner/repo" format.
+#' @param tag        Base release tag (objects live in "{tag}-1", "{tag}-2", …).
+#' @param n_shards   Number of shard releases to search (default 4).
+#' @param cache_dir  Local cache directory (default "_targets/user/cache").
+#' @param which_targets Optional vector of specific target names to download.
+#' @param verbose    Print progress messages.
 #' @export
 tar_download_github_release <- function(
-  repo = NULL,
-  tag = NULL,
-  cache_dir = "_targets/user/cache",
+  repo          = NULL,
+  tag           = NULL,
+  n_shards      = 4L,
+  cache_dir     = "_targets/user/cache",
   which_targets = NULL,
-  verbose = TRUE
+  verbose       = TRUE
 ) {
-  # Use environment variables as fallback, but allow explicit parameters
-  repo <- repo %||% Sys.getenv("TAR_GH_RELEASE_REPO") %||% "eco-emma/emma_envdata"
-  tag <- tag %||% Sys.getenv("TAR_GH_RELEASE_TAG") %||% "targets-cache"
+  repo      <- repo      %||% Sys.getenv("TAR_GH_RELEASE_REPO") %||% "eco-emma/emma_envdata"
+  tag       <- tag       %||% Sys.getenv("TAR_GH_RELEASE_TAG")  %||% "targets-cache"
   cache_dir <- cache_dir %||% Sys.getenv("TAR_GH_RELEASE_CACHE_DIR") %||% "_targets/cache"
   objects_dir <- "_targets/objects"
 
   if (!nzchar(repo) || !nzchar(tag)) {
-    stop("GitHub release configuration not set. Provide repo and tag parameters or set environment variables.")
+    stop("GitHub release configuration not set.")
   }
 
-  # Resolve token once and pass explicitly to all API calls.
-  # Use .gh_token() rather than gh::gh_token() directly to bypass gh package
-  # format validation, which rejects ghs_ GitHub Actions service tokens.
-  .token <- .gh_token()
+  .token     <- .gh_token()
   owner_repo <- strsplit(repo, "/")[[1]]
+  owner      <- owner_repo[1]; repo_name <- owner_repo[2]
 
-  dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
+  dir.create(cache_dir,   recursive = TRUE, showWarnings = FALSE)
   dir.create(objects_dir, recursive = TRUE, showWarnings = FALSE)
 
-  # Fetch release and full asset list via direct gh::gh() calls.
-  # piggyback::pb_list() / pb_download() call gh::gh_token() internally and
-  # have been observed to fail silently (returning empty results) even when
-  # the token is valid — direct API calls are more reliable.
-  release_gh <- tryCatch(
-    gh::gh(
-      "GET /repos/{owner}/{repo}/releases/tags/{tag}",
-      owner = owner_repo[1], repo = owner_repo[2], tag = tag,
-      .token = .token
-    ),
-    error = function(e) NULL
-  )
-
-  if (is.null(release_gh)) {
-    if (verbose) message("[tar_github_release] Release '", tag, "' not found, skipping download")
-    return(invisible(NULL))
-  }
-
-  asset_list <- tryCatch(
-    gh::gh(
-      "GET /repos/{owner}/{repo}/releases/{release_id}/assets",
-      owner = owner_repo[1], repo = owner_repo[2],
-      release_id = release_gh$id, .limit = Inf, .token = .token
-    ),
-    error = function(e) list()
-  )
-
-  assets <- if (length(asset_list) > 0) {
-    data.frame(
-      file_name = vapply(asset_list, `[[`, character(1), "name"),
-      id        = vapply(asset_list, `[[`, numeric(1),   "id"),
-      size      = vapply(asset_list, `[[`, numeric(1),   "size"),
-      stringsAsFactors = FALSE
-    )
-  } else {
-    data.frame(file_name = character(0), id = integer(0), size = integer(0))
-  }
-
-  if (verbose) message("[tar_github_release] Found ", nrow(assets), " assets on GitHub release")
-
-  # Helper: download a single asset by ID to a local path using httr (no piggyback).
+  # Helper: download a single release asset by numeric ID.
   .download_asset <- function(asset_id, dest_path) {
     r <- httr::RETRY(
       verb  = "GET",
       url   = sprintf("https://api.github.com/repos/%s/%s/releases/assets/%s",
-                      owner_repo[1], owner_repo[2], asset_id),
-      httr::add_headers(Authorization  = paste("token", .token),
-                        Accept         = "application/octet-stream"),
+                      owner, repo_name, asset_id),
+      httr::add_headers(Authorization = paste("token", .token),
+                        Accept        = "application/octet-stream"),
       httr::write_disk(dest_path, overwrite = TRUE),
-      times = 3,
+      times        = 3,
       terminate_on = c(401, 403, 404)
     )
     httr::stop_for_status(r)
     invisible(dest_path)
   }
 
-  # Always restore _targets/meta/meta from the release so that the meta and
-  # objects are consistent with each other (both from the same server run).
+  # ── Collect assets from all shard releases ─────────────────────────────────
+  shard_tags <- paste0(tag, "-", seq_len(n_shards))
+  all_assets <- data.frame(file_name = character(0), id = integer(0),
+                           size = integer(0), stringsAsFactors = FALSE)
+
+  for (stag in shard_tags) {
+    rel <- tryCatch(
+      gh::gh("GET /repos/{owner}/{repo}/releases/tags/{tag}",
+             owner = owner, repo = repo_name, tag = stag, .token = .token),
+      error = function(e) NULL
+    )
+    if (is.null(rel)) {
+      if (verbose) message("[tar_github_release] Shard release not found (skipping): ", stag)
+      next
+    }
+    df <- .fetch_release_assets(owner, repo_name, rel$id, .token)
+    if (nrow(df) > 0) {
+      all_assets <- rbind(all_assets, df)
+      if (verbose) message("[tar_github_release] Shard ", stag, ": ",
+                           nrow(df), " assets")
+    }
+  }
+
+  if (verbose) message("[tar_github_release] Total assets across all shards: ",
+                       nrow(all_assets))
+
+  # ── Restore _targets/meta/meta ─────────────────────────────────────────────
   meta_dest   <- "_targets/meta/meta"
   meta_cached <- file.path(cache_dir, "_targets_meta")
-  meta_row    <- assets[assets$file_name == "_targets_meta", ]
+  meta_row    <- all_assets[all_assets$file_name == "_targets_meta", ]
   if (nrow(meta_row) > 0) {
     tryCatch({
       .download_asset(meta_row$id[1], meta_cached)
@@ -156,338 +210,267 @@ tar_download_github_release <- function(
         if (verbose) message("[tar_github_release] Restored targets meta")
       }
     }, error = function(e) {
-      if (verbose) message("[tar_github_release] Failed to download targets meta: ", conditionMessage(e))
+      if (verbose) message("[tar_github_release] Failed to download targets meta: ",
+                           conditionMessage(e))
     })
   } else {
-    if (verbose) message("[tar_github_release] No targets meta in release (first run?)")
+    if (verbose) message("[tar_github_release] No targets meta found in any shard (first run?)")
   }
 
-  # Exclude _targets_meta from the per-object download loop
-  assets <- assets[assets$file_name != "_targets_meta", ]
-  
-  # Filter assets if specific targets requested
+  # Exclude _targets_meta from the object download loop
+  assets <- all_assets[all_assets$file_name != "_targets_meta", ]
+
   if (!is.null(which_targets)) {
     assets <- assets[assets$file_name %in% which_targets |
-                       sapply(assets$file_name, function(n) any(startsWith(n, which_targets))), ]
+                       vapply(assets$file_name,
+                              function(n) any(startsWith(n, which_targets)),
+                              logical(1)), ]
   }
-  
-  if (is.null(assets) || nrow(assets) == 0) {
+
+  if (nrow(assets) == 0) {
     if (verbose) message("[tar_github_release] No assets to download")
     return(invisible(NULL))
   }
-  
-  # Download each asset
+
+  # ── Download each object ───────────────────────────────────────────────────
   for (i in seq_len(nrow(assets))) {
     asset_name  <- assets$file_name[i]
-    target_name <- asset_name   # bare name used for _targets/objects/ path
-    local_path  <- file.path(objects_dir, target_name)
     cached_path <- file.path(cache_dir, asset_name)
-    # All assets in the release are regular _targets/objects/ files (no file-format
-    # workspace handling needed on download — format="file" targets store their
-    # path string as an RDS in _targets/objects/ just like any other target).
-    is_file_format <- FALSE
+    obj_path    <- file.path(objects_dir, asset_name)
 
-    # NOTE: no early-exit based on whether the object already exists locally.
-    # A previous CI run may have left objects with different branch hashes than
-    # the server release; keeping those would make the meta (always from the
-    # server release) inconsistent with the objects and force re-runs.
-    # The _targets/user/cache/ check below avoids redundant GitHub downloads.
-
-    # Download to cache if not already there, with retry + integrity check
+    # Download to cache if missing or corrupt
     if (!file.exists(cached_path) || !.check_file_integrity(cached_path)) {
       if (file.exists(cached_path)) {
-        if (verbose) message("[tar_github_release] Cached file failed integrity check, re-downloading: ", asset_name)
+        if (verbose) message("[tar_github_release] Re-downloading (corrupt cache): ", asset_name)
         file.remove(cached_path)
       } else {
         if (verbose) message("[tar_github_release] Downloading: ", asset_name)
       }
-      max_attempts <- 5
-      for (attempt in 1:max_attempts) {
-        asset_row <- assets[assets$file_name == asset_name, ]
-        tryCatch({
-          .download_asset(asset_row$id[1], cached_path)
-        }, error = function(e) {
-          if (verbose) message("[tar_github_release] Download attempt ", attempt, " error: ", conditionMessage(e))
-        })
-        # Validate the file — retry if corrupt or missing
-        if (.check_file_integrity(cached_path)) {
-          if (verbose) message("[tar_github_release] Downloaded and verified: ", asset_name)
-          break
-        } else {
-          if (attempt < max_attempts) {
-            if (verbose) message("[tar_github_release] Integrity check failed (attempt ", attempt, "), retrying...")
-            if (file.exists(cached_path)) file.remove(cached_path)
-            Sys.sleep(2)
-          } else {
-            warning("[tar_github_release] Failed to download valid file after ", max_attempts, " attempts: ", asset_name)
+      for (attempt in seq_len(5L)) {
+        tryCatch(
+          .download_asset(assets$id[i], cached_path),
+          error = function(e) {
+            if (verbose) message("[tar_github_release] Attempt ", attempt,
+                                 " error: ", conditionMessage(e))
           }
+        )
+        if (.check_file_integrity(cached_path)) {
+          if (verbose) message("[tar_github_release] Verified: ", asset_name)
+          break
+        }
+        if (attempt < 5L) {
+          if (verbose) message("[tar_github_release] Integrity failed (attempt ",
+                               attempt, "), retrying...")
+          if (file.exists(cached_path)) file.remove(cached_path)
+          Sys.sleep(2)
+        } else {
+          warning("[tar_github_release] Failed to download valid file after 5 attempts: ",
+                  asset_name)
         }
       }
     } else {
       if (verbose) message("[tar_github_release] Already cached: ", asset_name)
     }
-    
-    # Copy from cache to appropriate target location — only if the cached file
-    # passed integrity validation (guards against GitHub API error JSON responses
-    # that were saved when the release asset was missing or auth failed).
+
+    # Copy verified file to _targets/objects/
     if (file.exists(cached_path) && .check_file_integrity(cached_path)) {
-      if (is_file_format) {
-        # For file-format targets: 
-        # 1. Copy actual file to _targets/workspaces/ (where targets expects it)
-        # 2. Copy to data/target_outputs/ (for user access)
-        # 3. Create RDS wrapper in _targets/objects/ pointing to workspaces location
-        
-        ws_dir <- "_targets/workspaces"
-        dir.create(ws_dir, recursive = TRUE, showWarnings = FALSE)
-        ws_path <- file.path(ws_dir, asset_name)
-        file.copy(cached_path, ws_path, overwrite = TRUE)
-        
-        # Also copy to data/target_outputs/ for user access
-        out_dir <- "data/target_outputs"
-        dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
-        out_path <- file.path(out_dir, asset_name)
-        file.copy(cached_path, out_path, overwrite = TRUE)
-        
-        # Create RDS wrapper in _targets/objects/ ONLY if the rds object is not already there.
-        # The bare-name asset (e.g. "elevation") is the authoritative rds object.
-        # The .ext asset (e.g. "elevation.nc") is just the data file — overwriting the already-
-        # restored rds object with an RDS path causes a hash mismatch and forces re-runs.
-        obj_dir <- "_targets/objects"
-        dir.create(obj_dir, recursive = TRUE, showWarnings = FALSE)
-        obj_path <- file.path(obj_dir, target_name)
-        if (!file.exists(obj_path)) {
-          saveRDS(ws_path, obj_path)
-          if (verbose) message("[tar_github_release] Restored file-format target: ", target_name)
-        } else {
-          if (verbose) message("[tar_github_release] Skipped RDS write (rds object already present): ", target_name)
-        }
-      } else {
-        # Regular object file: copy to _targets/objects/
-        obj_dir <- "_targets/objects"
-        dir.create(obj_dir, recursive = TRUE, showWarnings = FALSE)
-        obj_path <- file.path(obj_dir, target_name)
-        file.copy(cached_path, obj_path, overwrite = TRUE)
-        if (verbose) message("[tar_github_release] Restored: ", target_name)
-      }
+      dir.create(objects_dir, recursive = TRUE, showWarnings = FALSE)
+      file.copy(cached_path, obj_path, overwrite = TRUE)
+      if (verbose) message("[tar_github_release] Restored: ", asset_name)
     }
   }
-  
+
   if (verbose) message("[tar_github_release] Download complete")
   invisible(NULL)
 }
 
-#' Upload targets to GitHub Release after tar_make() completes
-#' @description Upload locally stored targets to GitHub releases
-#' @param repo Repository in "owner/repo" format (default from environment or "eco-emma/emma_envdata")
-#' @param tag Release tag to store objects (default from environment or "targets-cache")
-#' @param format Serialization format: "rds" or "parquet" (default: "rds")
-#' @param cache_dir Cache directory (default: "_targets/cache")
-#' @param which_targets Optional vector of specific target names to upload
-#' @param verbose Logical for progress messages
-#' @details Call this after tar_make() to upload all targets
+
+#' Upload targets cache to sharded GitHub Releases
+#'
+#' Uploads \code{_targets/objects/} to \code{n_shards} GitHub releases named
+#' \code{{tag}-1} … \code{{tag}-n_shards}, keeping each release under GitHub's
+#' ~1,000-asset limit.  Object-to-shard assignment is deterministic (based on
+#' the last two hex characters of the object name) so the same object always
+#' goes to the same shard.  \code{_targets_meta} lives on shard 1 only.
+#'
+#' @param repo      Repository in "owner/repo" format.
+#' @param tag       Base tag; shard releases are named "{tag}-1", "{tag}-2", …
+#' @param n_shards  Number of shard releases (default 4, handles ~3 600 objects).
+#' @param cache_dir Local cache directory (unused during upload; kept for API
+#'   symmetry with \code{tar_download_github_release}).
+#' @param which_targets Optional vector of specific target names to upload.
+#' @param verbose   Print progress messages.
 #' @export
 tar_upload_github_release <- function(
-  repo = NULL,
-  tag = NULL,
-  format = "rds",
-  cache_dir = "_targets/cache",
+  repo          = NULL,
+  tag           = NULL,
+  n_shards      = 4L,
+  format        = "rds",   # kept for API compat; not used
+  cache_dir     = "_targets/cache",
   which_targets = NULL,
-  verbose = TRUE
+  verbose       = TRUE
 ) {
-  # Use environment variables as fallback, but allow explicit parameters
-  repo <- repo %||% Sys.getenv("TAR_GH_RELEASE_REPO") %||% "eco-emma/emma_envdata"
-  tag <- tag %||% Sys.getenv("TAR_GH_RELEASE_TAG") %||% "targets-cache"
+  repo      <- repo      %||% Sys.getenv("TAR_GH_RELEASE_REPO") %||% "eco-emma/emma_envdata"
+  tag       <- tag       %||% Sys.getenv("TAR_GH_RELEASE_TAG")  %||% "targets-cache"
   cache_dir <- cache_dir %||% Sys.getenv("TAR_GH_RELEASE_CACHE_DIR") %||% "_targets/cache"
 
   if (!nzchar(repo) || !nzchar(tag)) {
-    stop("GitHub release configuration not set. Provide repo and tag parameters or set environment variables.")
+    stop("GitHub release configuration not set.")
   }
 
-  # Resolve token and repo parts early — needed for all gh::gh() calls below.
-  # Use .gh_token() to bypass gh package format validation for ghs_ tokens.
   .token     <- .gh_token()
   owner_repo <- strsplit(repo, "/")[[1]]
+  owner      <- owner_repo[1]; repo_name <- owner_repo[2]
 
-  # Ensure release exists.
-  # Use gh::gh() directly (not piggyback) so we can pass .token explicitly;
-  # piggyback::pb_releases() and pb_new_release() call gh::gh_token() internally
-  # regardless of the .token parameter, which fails with ghs_ service tokens.
-  existing_releases <- tryCatch({
-    rels <- gh::gh(
-      "GET /repos/{owner}/{repo}/releases",
-      owner = owner_repo[1], repo = owner_repo[2],
-      .limit = Inf, .token = .token
-    )
-    data.frame(tag_name = vapply(rels, `[[`, character(1), "tag_name"),
-               stringsAsFactors = FALSE)
-  }, error = function(e) data.frame(tag_name = character(0)))
+  # ── Enumerate existing releases ────────────────────────────────────────────
+  existing_tags <- tryCatch({
+    rels <- gh::gh("GET /repos/{owner}/{repo}/releases",
+                   owner = owner, repo = repo_name,
+                   .limit = Inf, .token = .token)
+    vapply(rels, `[[`, character(1), "tag_name")
+  }, error = function(e) character(0))
 
-  if (!tag %in% existing_releases$tag_name) {
-    if (verbose) message("[tar_github_release] Creating release: ", tag)
-    gh::gh(
-      "POST /repos/{owner}/{repo}/releases",
-      owner      = owner_repo[1], repo = owner_repo[2],
-      tag_name   = tag,
-      name       = tag,
-      prerelease = TRUE,
-      .token     = .token
+  # ── Ensure all shard releases exist and fetch their metadata ───────────────
+  shard_tags     <- paste0(tag, "-", seq_len(n_shards))
+  shard_releases <- vector("list", n_shards)  # release objects
+  shard_urls     <- character(n_shards)        # upload URLs
+  shard_assets   <- vector("list", n_shards)  # data.frames of remote assets
+
+  for (s in seq_len(n_shards)) {
+    stag <- shard_tags[s]
+    rel  <- tryCatch(
+      .ensure_release(owner, repo_name, stag, existing_tags, .token, verbose),
+      error = function(e) {
+        stop("[tar_github_release] Cannot access shard release '", stag,
+             "': ", conditionMessage(e))
+      }
     )
-    Sys.sleep(3)  # let GitHub propagate before first upload
+    shard_releases[[s]] <- rel
+    shard_urls[s]       <- sub("\\{.*", "", rel$upload_url)
+    shard_assets[[s]]   <- .fetch_release_assets(owner, repo_name, rel$id, .token)
+    if (verbose) message("[tar_github_release] Shard ", stag, ": ",
+                         nrow(shard_assets[[s]]), " existing assets")
   }
 
-  # Get metadata to find file-format target paths
-  meta_df <- tryCatch({
-    tar_meta()
-  }, error = function(e) {
-    if (verbose) message("[tar_github_release] Could not read targets metadata")
-    data.frame(name = character(0), format = character(0), path = list())
-  })
+  # Merged remote asset table (with shard column for upload routing)
+  remote_assets_all <- do.call(rbind, lapply(seq_len(n_shards), function(s) {
+    df <- shard_assets[[s]]
+    if (nrow(df) == 0) return(data.frame(file_name = character(0), id = integer(0),
+                                         size = integer(0), shard = integer(0),
+                                         stringsAsFactors = FALSE))
+    df$shard <- s
+    df
+  }))
 
-  # Fetch the release and its assets directly via gh (no caching layer).
-  # This avoids piggyback memoisation issues entirely after release creation.
-  release_gh <- tryCatch(
-    gh::gh(
-      "GET /repos/{owner}/{repo}/releases/tags/{tag}",
-      owner = owner_repo[1], repo = owner_repo[2], tag = tag,
-      .token = .token
-    ),
-    error = function(e) stop("[tar_github_release] Release '", tag, "' not accessible: ", conditionMessage(e))
-  )
-  upload_url_base <- sub("\\{.*", "", release_gh$upload_url)
-
-  asset_list <- tryCatch(
-    gh::gh(
-      "GET /repos/{owner}/{repo}/releases/{release_id}/assets",
-      owner = owner_repo[1], repo = owner_repo[2],
-      release_id = release_gh$id, .limit = Inf, .token = .token
-    ),
-    error = function(e) list()
-  )
-  remote_assets <- if (length(asset_list) > 0) {
-    data.frame(
-      file_name = vapply(asset_list, `[[`, character(1), "name"),
-      id        = vapply(asset_list, `[[`, numeric(1),   "id"),
-      size      = vapply(asset_list, `[[`, numeric(1),   "size"),
-      stringsAsFactors = FALSE
-    )
-  } else {
-    data.frame(file_name = character(0), id = integer(0), size = integer(0))
-  }
-
-  # One-time cleanup: delete any legacy workspace assets ({name}.{ext}) whose bare
-  # name also exists as an asset. These were uploaded by older code from
-  # _targets/workspaces/ and are debug environments, not real data files.
-  legacy_mask <- grepl("\\.[^.]+$", remote_assets$file_name) &
-    remote_assets$file_name != "_targets_meta"
+  # ── One-time cleanup of legacy workspace assets ────────────────────────────
+  # Delete any {name}.{ext} assets whose bare name also exists — these are
+  # leftover workspace debug files from older code, not real target values.
+  legacy_mask <- grepl("\\.[^.]+$", remote_assets_all$file_name) &
+    remote_assets_all$file_name != "_targets_meta"
   if (any(legacy_mask)) {
-    legacy_assets <- remote_assets[legacy_mask, ]
-    bare_names    <- sub("\\.[^.]+$", "", legacy_assets$file_name)
-    has_bare      <- bare_names %in% remote_assets$file_name
+    legacy_df  <- remote_assets_all[legacy_mask, ]
+    bare_names <- sub("\\.[^.]+$", "", legacy_df$file_name)
+    has_bare   <- bare_names %in% remote_assets_all$file_name
     for (i in which(has_bare)) {
-      if (verbose) message("[tar_github_release] Deleting legacy workspace asset: ", legacy_assets$file_name[i])
+      s <- legacy_df$shard[i]
+      if (verbose) message("[tar_github_release] Deleting legacy asset: ",
+                           legacy_df$file_name[i])
       tryCatch(
         gh::gh("DELETE /repos/{owner}/{repo}/releases/assets/{asset_id}",
-               owner = owner_repo[1], repo = owner_repo[2],
-               asset_id = legacy_assets$id[i], .token = .token),
-        error = function(e) {
-          if (verbose) message("[tar_github_release] Could not delete legacy asset: ", conditionMessage(e))
-        })
+               owner = owner, repo = repo_name,
+               asset_id = legacy_df$id[i], .token = .token),
+        error = function(e) NULL
+      )
       Sys.sleep(0.5)
     }
-    remote_assets <- remote_assets[!(remote_assets$file_name %in% legacy_assets$file_name[has_bare]), , drop = FALSE]
+    remote_assets_all <- remote_assets_all[
+      !remote_assets_all$file_name %in% legacy_df$file_name[has_bare], , drop = FALSE]
   }
 
-  # Download the remote _targets_meta (a small file) and build a name → data-hash
-  # lookup. Used by the objects upload loop to skip assets whose targets hash
-  # matches the last uploaded meta — a reliable content-equality check that does
-  # not depend on byte-count coincidences in serialisation.
-  remote_meta_hashes <- tryCatch({
-    meta_row <- remote_assets[remote_assets$file_name == "_targets_meta", ]
-    if (nrow(meta_row) == 0) NULL  # no remote meta yet — will upload all objects
+  # ── Load local targets metadata (for hash comparison) ─────────────────────
+  meta_df <- tryCatch(
+    targets::tar_meta(),
+    error = function(e) {
+      if (verbose) message("[tar_github_release] Could not read targets metadata")
+      data.frame(name = character(0), data = character(0), stringsAsFactors = FALSE)
+    }
+  )
 
-    temp_store    <- tempfile(pattern = "tar_upload_meta_")
-    temp_meta_dir <- file.path(temp_store, "meta")
-    dir.create(temp_meta_dir, recursive = TRUE, showWarnings = FALSE)
-    temp_meta_path <- file.path(temp_meta_dir, "meta")
+  # ── Download _targets_meta from shard 1 for content-hash comparison ────────
+  # We can skip uploading any object whose data-hash in the local meta matches
+  # the remote meta — a reliable idempotency check that survives re-runs.
+  remote_meta_hashes <- tryCatch({
+    meta_row <- shard_assets[[1]][shard_assets[[1]]$file_name == "_targets_meta", ]
+    if (nrow(meta_row) == 0) return(NULL)
+
+    tmp_store    <- tempfile(pattern = "tar_upload_meta_")
+    tmp_meta_dir <- file.path(tmp_store, "meta")
+    dir.create(tmp_meta_dir, recursive = TRUE, showWarnings = FALSE)
+    tmp_meta_path <- file.path(tmp_meta_dir, "meta")
 
     r <- httr::GET(
       sprintf("https://api.github.com/repos/%s/%s/releases/assets/%s",
-              owner_repo[1], owner_repo[2], meta_row$id[1]),
+              owner, repo_name, meta_row$id[1]),
       httr::add_headers(Authorization = paste("token", .token),
                         Accept = "application/octet-stream"),
-      httr::write_disk(temp_meta_path, overwrite = TRUE)
+      httr::write_disk(tmp_meta_path, overwrite = TRUE)
     )
     httr::stop_for_status(r)
 
-    remote_df <- targets::tar_meta(store = temp_store)
-    unlink(temp_store, recursive = TRUE)
+    remote_df <- targets::tar_meta(store = tmp_store)
+    unlink(tmp_store, recursive = TRUE)
     if (verbose) message("[tar_github_release] Fetched remote meta (",
                          nrow(remote_df), " targets) for hash comparison")
     setNames(remote_df$data, remote_df$name)
   }, error = function(e) {
-    if (verbose) message("[tar_github_release] Could not fetch remote meta for hash comparison ",
+    if (verbose) message("[tar_github_release] Could not fetch remote meta ",
                          "(will upload all objects): ", conditionMessage(e))
     NULL
   })
 
-  # Get list of local target files
+  # ── Collect local files to upload ─────────────────────────────────────────
   if (is.null(which_targets)) {
-    # Get all targets from _targets/objects/ (regular objects).
-    # Exclude _targets_meta — it is a cached copy from the last download and is
-    # uploaded separately (and authoritatively) from _targets/meta/meta at the
-    # end of this function. Uploading it here too causes a GitHub 422 conflict.
-    regular_files <- list.files("_targets/objects", full.names = TRUE, recursive = FALSE)
-    regular_files <- regular_files[basename(regular_files) != "_targets_meta"]
-    # Note: _targets/workspaces/ files are debug environments, not target values.
-    # format="file" targets store the path string in _targets/objects/ (rds-serialized).
-    # Uploading workspace files causes integrity check failures on download.
-    local_files <- regular_files
-    if (verbose) message("[tar_github_release] Found ", length(local_files), " local target files to upload")
+    local_files <- list.files("_targets/objects", full.names = TRUE, recursive = FALSE)
+    local_files <- local_files[basename(local_files) != "_targets_meta"]
+    if (verbose) message("[tar_github_release] Found ", length(local_files),
+                         " local target files to upload across ", n_shards, " shards")
   } else {
-    # Find specific targets in _targets/objects/ only
-    regular_files <- character(0)
-    for (target in which_targets) {
-      obj_file <- file.path("_targets/objects", target)
-      if (file.exists(obj_file)) {
-        regular_files <- c(regular_files, obj_file)
-      }
-    }
-    local_files <- regular_files
+    local_files <- file.path("_targets/objects", which_targets)
+    local_files <- local_files[file.exists(local_files)]
   }
-  
+
   if (length(local_files) == 0) {
     message("[tar_github_release] No targets to upload")
     return(invisible(NULL))
   }
-  
-  # Upload _targets/meta/meta FIRST so it is always current even if the object
-  # upload loop is interrupted by a rate limit or job timeout.  A second upload
-  # at the end of the loop keeps the meta consistent with the final object state.
+
+  # ── Helper: upload / replace _targets_meta on shard 1 ─────────────────────
   meta_path <- "_targets/meta/meta"
-  .upload_meta <- function() {
+  .upload_meta <- function(label = "") {
     if (!file.exists(meta_path)) return(invisible(NULL))
     upload_name <- "_targets_meta"
-    if (verbose) message("[tar_github_release] Uploading targets meta (pre-object sync): ", meta_path)
-    if (any(remote_assets$file_name == upload_name)) {
+    if (verbose) message("[tar_github_release] Uploading targets meta",
+                         if (nzchar(label)) paste0(" (", label, ")") else "",
+                         ": ", meta_path)
+    # Re-fetch shard-1 assets so the ID is always current
+    fresh <- .fetch_release_assets(owner, repo_name,
+                                   shard_releases[[1]]$id, .token)
+    if (any(fresh$file_name == upload_name)) {
       tryCatch({
-        old_id <- remote_assets$id[remote_assets$file_name == upload_name]
         gh::gh("DELETE /repos/{owner}/{repo}/releases/assets/{asset_id}",
-               owner = owner_repo[1], repo = owner_repo[2],
-               asset_id = old_id[1], .token = .token)
+               owner = owner, repo = repo_name,
+               asset_id = fresh$id[fresh$file_name == upload_name][1],
+               .token = .token)
         Sys.sleep(1)
-      }, error = function(e) {
-        if (verbose) message("[tar_github_release] Could not delete old meta asset: ", conditionMessage(e))
-      })
+      }, error = function(e) NULL)
     }
     tryCatch({
       r <- httr::RETRY(
-        verb  = "POST",
-        url   = upload_url_base,
+        verb  = "POST", url = shard_urls[1],
         query = list(name = upload_name),
         httr::add_headers(Authorization = paste("token", .token)),
         body  = httr::upload_file(meta_path),
-        times = 3,
-        terminate_on = c(400, 401, 403, 404, 422)
+        times = 3, terminate_on = c(400, 401, 403, 404, 422)
       )
       httr::stop_for_status(r)
       if (verbose) message("[tar_github_release] Uploaded targets meta")
@@ -495,124 +478,111 @@ tar_upload_github_release <- function(
       warning("[tar_github_release] Failed to upload targets meta: ", conditionMessage(e))
     })
   }
-  .upload_meta()
 
-  # Upload each file
+  # Pre-loop meta upload: ensures meta is always current even if the object
+  # loop is interrupted by a timeout or rate limit.
+  .upload_meta("pre-object sync")
+
+  # ── Rate-limit constants ───────────────────────────────────────────────────
+  # GitHub secondary rate limit: ≤ 80 content-creating calls/minute.
+  # 1 s between calls → ≤ 60/min, safely under the limit.
+  upload_sleep_s   <- 1.0
+  ratelimit_wait_s <- 60L
+  n_failed         <- 0L
+
+  # ── Upload loop ────────────────────────────────────────────────────────────
   for (local_file in local_files) {
     target_name <- basename(local_file)
     upload_name <- target_name
 
-      # Skip upload if the file already exists on GitHub AND its targets content
-      # hash matches the remote meta.  This is the authoritative content-equality
-      # check: same hash means the object the server produced is identical to
-      # what was last uploaded, regardless of byte-count coincidences in
-      # serialisation.  Files NOT yet on GitHub are always uploaded so that CI
-      # can download them to restore the pipeline cache.
-      exists_on_github <- any(remote_assets$file_name == upload_name)
-      if (exists_on_github) {
-        local_hash <- meta_df$data[meta_df$name == target_name]
-        if (!is.null(remote_meta_hashes) &&
-            length(local_hash) == 1 && !is.na(local_hash) &&
-            target_name %in% names(remote_meta_hashes) &&
-            identical(local_hash, remote_meta_hashes[[target_name]])) {
-          if (verbose) message("[tar_github_release] Skipping (hash unchanged): ", upload_name)
-          next
-        }
+    # Assign deterministic shard
+    s           <- .target_shard(target_name, n_shards)
+    upload_url  <- shard_urls[s]
+
+    # Check existence across ALL shards (an object might be on the wrong shard
+    # from a previous run with a different n_shards value).
+    exists_rows <- remote_assets_all[remote_assets_all$file_name == upload_name, ]
+    exists_on_github <- nrow(exists_rows) > 0
+
+    # Skip if the object is already on the correct shard with matching hash
+    if (exists_on_github && exists_rows$shard[1] == s) {
+      local_hash <- meta_df$data[meta_df$name == target_name]
+      if (!is.null(remote_meta_hashes) &&
+          length(local_hash) == 1L && !is.na(local_hash) &&
+          target_name %in% names(remote_meta_hashes) &&
+          identical(local_hash, remote_meta_hashes[[target_name]])) {
+        if (verbose) message("[tar_github_release] Skipping (hash unchanged): ", upload_name)
+        next
       }
+    }
 
-      if (verbose) message("[tar_github_release] Uploading object: ", target_name)
+    if (verbose) message("[tar_github_release] Uploading object (shard ", s, "): ", target_name)
 
-      # Delete existing asset if present
-      if (exists_on_github) {
-        if (verbose) message("[tar_github_release] Deleting old asset: ", upload_name)
+    # Delete existing asset — handle the case where it may be on a different shard
+    if (exists_on_github) {
+      for (row_i in seq_len(nrow(exists_rows))) {
+        old_shard <- exists_rows$shard[row_i]
+        old_id    <- exists_rows$id[row_i]
         tryCatch({
-          old_id <- remote_assets$id[remote_assets$file_name == upload_name]
           gh::gh("DELETE /repos/{owner}/{repo}/releases/assets/{asset_id}",
-                 owner = owner_repo[1], repo = owner_repo[2],
-                 asset_id = old_id[1], .token = .token)
-          Sys.sleep(1)
-        }, error = function(e) {
-          if (verbose) message("[tar_github_release] Could not delete old asset: ", conditionMessage(e))
-        })
+                 owner = owner, repo = repo_name,
+                 asset_id = old_id, .token = .token)
+          Sys.sleep(upload_sleep_s)
+        }, error = function(e) NULL)
       }
+    }
 
-      # Upload directly via httr (bypasses all piggyback caching)
-      tryCatch({
-        r <- httr::RETRY(
-          verb = "POST",
-          url  = upload_url_base,
-          query = list(name = upload_name),
-          httr::add_headers(Authorization = paste("token", .token)),
-          body = httr::upload_file(local_file),
-          times = 3,
-          terminate_on = c(400, 401, 403, 404, 422)
-        )
-        httr::stop_for_status(r)
-        if (verbose) message("[tar_github_release] Uploaded: ", upload_name)
-        Sys.sleep(0.5)
-      }, error = function(e) {
-        warning("[tar_github_release] Failed to upload ", upload_name, ": ", conditionMessage(e))
-      })
-  }
-  
-  # Re-upload _targets/meta/meta at the end so it reflects any objects that
-  # changed during this upload session (the pre-loop upload above covered the
-  # "nothing changed" fast-path; this one handles partial-update runs).
-  if (file.exists(meta_path)) {
-    if (verbose) message("[tar_github_release] Uploading targets meta (post-object sync): ", meta_path)
-    # Re-fetch release assets so we have a fresh id for _targets_meta
-    # (the pre-loop upload replaced it, so the id in remote_assets is stale).
-    fresh_assets <- tryCatch(
-      gh::gh(
-        "GET /repos/{owner}/{repo}/releases/{release_id}/assets",
-        owner = owner_repo[1], repo = owner_repo[2],
-        release_id = release_gh$id, .limit = Inf, .token = .token
-      ),
-      error = function(e) list()
-    )
-    fresh_asset_df <- if (length(fresh_assets) > 0) {
-      data.frame(
-        file_name = vapply(fresh_assets, `[[`, character(1), "name"),
-        id        = vapply(fresh_assets, `[[`, numeric(1),   "id"),
-        stringsAsFactors = FALSE
-      )
-    } else {
-      data.frame(file_name = character(0), id = integer(0))
-    }
-    upload_name <- "_targets_meta"
-    if (any(fresh_asset_df$file_name == upload_name)) {
-      tryCatch({
-        old_id <- fresh_asset_df$id[fresh_asset_df$file_name == upload_name]
-        gh::gh("DELETE /repos/{owner}/{repo}/releases/assets/{asset_id}",
-               owner = owner_repo[1], repo = owner_repo[2],
-               asset_id = old_id[1], .token = .token)
-        Sys.sleep(1)
-      }, error = function(e) {
-        if (verbose) message("[tar_github_release] Could not delete old meta asset: ", conditionMessage(e))
-      })
-    }
-    tryCatch({
+    # Upload to the assigned shard
+    upload_ok <- tryCatch({
       r <- httr::RETRY(
-        verb  = "POST",
-        url   = upload_url_base,
+        verb  = "POST", url = upload_url,
         query = list(name = upload_name),
         httr::add_headers(Authorization = paste("token", .token)),
-        body  = httr::upload_file(meta_path),
-        times = 3,
-        terminate_on = c(400, 401, 403, 404, 422)
+        body  = httr::upload_file(local_file),
+        times = 3, terminate_on = c(400, 401, 403, 404, 422)
       )
-      httr::stop_for_status(r)
-      if (verbose) message("[tar_github_release] Uploaded targets meta")
+      status <- httr::status_code(r)
+      if (status == 429 ||
+          (status == 403 &&
+           grepl("secondary rate limit",
+                 tryCatch(httr::content(r, "text", encoding = "UTF-8"),
+                          error = function(e) ""),
+                 ignore.case = TRUE))) {
+        message("[tar_github_release] Secondary rate limit — sleeping ",
+                ratelimit_wait_s, "s")
+        Sys.sleep(ratelimit_wait_s)
+        n_failed <<- n_failed + 1L
+        warning("[tar_github_release] Rate-limited on ", upload_name,
+                " — will retry on next run")
+        FALSE
+      } else {
+        httr::stop_for_status(r)
+        if (verbose) message("[tar_github_release] Uploaded: ", upload_name)
+        TRUE
+      }
     }, error = function(e) {
-      warning("[tar_github_release] Failed to upload targets meta: ", conditionMessage(e))
+      n_failed <<- n_failed + 1L
+      warning("[tar_github_release] Failed to upload ", upload_name, ": ",
+              conditionMessage(e))
+      FALSE
     })
-  } else {
-    if (verbose) message("[tar_github_release] No targets meta file found, skipping")
+
+    # Always sleep to stay under the secondary rate limit
+    Sys.sleep(upload_sleep_s)
   }
+
+  if (n_failed > 0L) {
+    warning("[tar_github_release] ", n_failed,
+            " object(s) failed to upload — they will be retried on the next run.")
+  }
+
+  # Post-loop meta upload: reflects final object state after the upload session.
+  .upload_meta("post-object sync")
 
   if (verbose) message("[tar_github_release] Upload complete")
   invisible(NULL)
 }
+
 
 # ============================================================================
 # GitHub release asset presence check (used by idempotent submit functions)
@@ -666,4 +636,3 @@ gh_release_has_asset <- function(repo, release_tag, asset_name, verbose = FALSE)
   }
   asset_name %in% get(release_tag, envir = .gh_release_asset_cache, inherits = FALSE)
 }
-

@@ -42,7 +42,8 @@ knitr::opts_chunk$set(
   comment = "#>",
   fig.path = paste0(readme_img_dir, "/"),
   dev = "png",
-  dpi = 150
+  dpi = 150,
+  echo=F
 )
 
 # GitHub release base URL for README figures
@@ -165,43 +166,6 @@ kable(inventory,
   column_spec(1, bold = TRUE) %>%
   row_spec(which(inventory$Type == "Dynamic"), background = "#f0f8ff")
 ```
-
-## Temporal Coverage
-
-```{r temporal-coverage, fig.width=10, fig.height=4, include=FALSE}
-# Build temporal coverage data
-temporal_data <- tribble(
-  ~Dataset, ~Start, ~End,
-  "MODIS VI", "2026-03-01", "2026-05-31",
-  "VIIRS VI", "2026-03-01", "2026-05-31",
-  "MODIS Burn", "2026-03-01", "2026-05-31",
-  "VIIRS Burn", "2026-03-01", "2026-05-31"
-) %>%
-  mutate(
-    Start = as.Date(Start),
-    End = as.Date(End)
-  )
-
-# Create gantt-style plot
-ggplot(temporal_data, aes(y = Dataset)) +
-  geom_segment(aes(x = Start, xend = End, yend = Dataset), 
-               size = 8, color = "#4575b4") +
-  geom_point(aes(x = Start), size = 3, color = "#313695") +
-  geom_point(aes(x = End), size = 3, color = "#313695") +
-  scale_x_date(date_labels = "%Y-%m", date_breaks = "1 month") +
-  labs(
-    title = "Temporal Coverage of Dynamic Datasets",
-    x = "Date",
-    y = NULL
-  ) +
-  theme_minimal(base_size = 12) +
-  theme(
-    panel.grid.minor = element_blank(),
-    plot.title = element_text(face = "bold")
-  )
-```
-
-![](`r paste0(readme_assets_url, "/temporal-coverage-1.png")`)
 
 ## Domain Statistics
 
@@ -581,25 +545,6 @@ if (file.exists(validation_file)) {
 }
 ```
 
-## GitHub Release Assets
-
-```{r release-assets}
-# Get release asset counts (read from manifest or tar_meta)
-release_summary <- tribble(
-  ~`Release Tag`, ~Description, ~`Asset Count`,
-  "static_data", "Static environmental layers", "8+",
-  "vi_modis_raster", "MODIS VI rasters", paste(vi_items, "composites × 2 sensors"),
-  "vi_viirs_raster", "VIIRS VI rasters", paste(vi_items, "composites × 2 sensors"),
-  "burn_modis_raster", "MODIS burned area rasters", paste(burn_modis_items, "months"),
-  "burn_viirs_raster", "VIIRS burned area rasters", paste(burn_viirs_items, "months"),
-  "firehistory_dynamic", "Fire history snapshot", "1",
-  "stac", "STAC catalog + items", "50+"
-)
-
-kable(release_summary, 
-      caption = "GitHub Release Summary") %>%
-  kable_styling(bootstrap_options = c("striped", "hover"))
-```
 
 ## Data Notes
 
