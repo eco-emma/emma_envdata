@@ -399,29 +399,36 @@ tar_upload_github_release <- function(
   # ── Download _targets_meta from shard 1 for content-hash comparison ────────
   # We can skip uploading any object whose data-hash in the local meta matches
   # the remote meta — a reliable idempotency check that survives re-runs.
+  # NOTE: do NOT use return() inside tryCatch({}) — it exits the enclosing
+  # function, not just the tryCatch block.  Use if/else branching instead.
   remote_meta_hashes <- tryCatch({
     meta_row <- shard_assets[[1]][shard_assets[[1]]$file_name == "_targets_meta", ]
-    if (nrow(meta_row) == 0) return(NULL)
+    if (nrow(meta_row) == 0) {
+      # No remote meta yet (first run) — upload everything
+      if (verbose) message("[tar_github_release] No remote meta on shard 1 ",
+                           "(first run — all objects will be uploaded)")
+      NULL
+    } else {
+      tmp_store    <- tempfile(pattern = "tar_upload_meta_")
+      tmp_meta_dir <- file.path(tmp_store, "meta")
+      dir.create(tmp_meta_dir, recursive = TRUE, showWarnings = FALSE)
+      tmp_meta_path <- file.path(tmp_meta_dir, "meta")
 
-    tmp_store    <- tempfile(pattern = "tar_upload_meta_")
-    tmp_meta_dir <- file.path(tmp_store, "meta")
-    dir.create(tmp_meta_dir, recursive = TRUE, showWarnings = FALSE)
-    tmp_meta_path <- file.path(tmp_meta_dir, "meta")
+      r <- httr::GET(
+        sprintf("https://api.github.com/repos/%s/%s/releases/assets/%s",
+                owner, repo_name, meta_row$id[1]),
+        httr::add_headers(Authorization = paste("token", .token),
+                          Accept = "application/octet-stream"),
+        httr::write_disk(tmp_meta_path, overwrite = TRUE)
+      )
+      httr::stop_for_status(r)
 
-    r <- httr::GET(
-      sprintf("https://api.github.com/repos/%s/%s/releases/assets/%s",
-              owner, repo_name, meta_row$id[1]),
-      httr::add_headers(Authorization = paste("token", .token),
-                        Accept = "application/octet-stream"),
-      httr::write_disk(tmp_meta_path, overwrite = TRUE)
-    )
-    httr::stop_for_status(r)
-
-    remote_df <- targets::tar_meta(store = tmp_store)
-    unlink(tmp_store, recursive = TRUE)
-    if (verbose) message("[tar_github_release] Fetched remote meta (",
-                         nrow(remote_df), " targets) for hash comparison")
-    setNames(remote_df$data, remote_df$name)
+      remote_df <- targets::tar_meta(store = tmp_store)
+      unlink(tmp_store, recursive = TRUE)
+      if (verbose) message("[tar_github_release] Fetched remote meta (",
+                           nrow(remote_df), " targets) for hash comparison")
+      setNames(remote_df$data, remote_df$name)
+    }
   }, error = function(e) {
     if (verbose) message("[tar_github_release] Could not fetch remote meta ",
                          "(will upload all objects): ", conditionMessage(e))
