@@ -228,8 +228,9 @@ download_viirs_vi_geotiff <- function(
   snpp_tif_done <- file.path(cache_dir, paste0("vi_viirs_snpp_", yyyymmdd, ".tif"))
   if (file.exists(snpp_tif_done)) {
     if (verbose) message("Grid COG found for ", yyyymmdd, " \u2014 skipping AppEEARS download")
-    dir.create(temp_directory, recursive = TRUE, showWarnings = FALSE)
-    return(temp_directory)
+    per_date_dir2 <- file.path(temp_directory, yyyymmdd)
+    dir.create(per_date_dir2, recursive = TRUE, showWarnings = FALSE)
+    return(per_date_dir2)
   }
 
   # Skip if grid COG already exists on GitHub release (CI: disk is empty but
@@ -242,8 +243,9 @@ download_viirs_vi_geotiff <- function(
       if (verbose) message("VIIRS VI grid COG for ", yyyymmdd,
                            " already on GitHub release '", gh_release_tag,
                            "' \u2014 skipping AppEEARS download")
-      dir.create(temp_directory, recursive = TRUE, showWarnings = FALSE)
-      return(temp_directory)
+      per_date_dir2 <- file.path(temp_directory, yyyymmdd)
+      dir.create(per_date_dir2, recursive = TRUE, showWarnings = FALSE)
+      return(per_date_dir2)
     }
   }
 

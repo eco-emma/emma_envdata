@@ -396,8 +396,10 @@ list(
       cleanup           = cleanup_mode,
       verbose           = TRUE
     ),
-    pattern = map(vi_modis_geotiff, vi_modis_pending),
-    format  = "file"
+    pattern = map(vi_modis_geotiff, vi_modis_pending)
+    # format = "rds" (default): stored object is the path string, not the file
+    # content hash. This lets CI skip branches whose paths are in the restored
+    # targets cache without needing the actual COG files on disk.
   ),
 
   # Convert sensor grid COGs to parquet (one parquet per composite)
@@ -410,8 +412,8 @@ list(
       out_dir        = "data/target_outputs/modis_vi/",
       verbose        = TRUE
     ),
-    pattern = map(vi_modis_grid, vi_modis_pending),
-    format  = "file"
+    pattern = map(vi_modis_grid, vi_modis_pending)
+    # format = "rds" (default): same rationale as vi_modis_grid above.
   ),
 
   # ============================================================================
@@ -463,8 +465,8 @@ list(
       cleanup           = cleanup_mode,
       verbose           = TRUE
     ),
-    pattern = map(vi_viirs_geotiff, vi_viirs_pending),
-    format  = "file"
+    pattern = map(vi_viirs_geotiff, vi_viirs_pending)
+    # format = "rds" (default): same rationale as vi_modis_grid.
   ),
 
   tar_target(
@@ -476,8 +478,8 @@ list(
       out_dir        = "data/target_outputs/viirs_vi/",
       verbose        = TRUE
     ),
-    pattern = map(vi_viirs_grid, vi_viirs_pending),
-    format  = "file"
+    pattern = map(vi_viirs_grid, vi_viirs_pending)
+    # format = "rds" (default): same rationale as vi_modis_grid.
   ),
 
   # Generate unified STAC Collection for all VI sensors (MODIS + VIIRS)
@@ -552,8 +554,8 @@ list(
       cleanup           = cleanup_mode,
       verbose           = TRUE
     ),
-    pattern = map(burn_modis_geotiff, burn_modis_pending),
-    format  = "file"
+    pattern = map(burn_modis_geotiff, burn_modis_pending)
+    # format = "rds" (default): same rationale as vi_modis_grid.
   ),
 
   # Convert grid COG to parquet
@@ -566,8 +568,8 @@ list(
       out_dir       = "data/target_outputs/burndates/",
       verbose       = TRUE
     ),
-    pattern = map(burn_modis_grid, burn_modis_pending),
-    format  = "file"
+    pattern = map(burn_modis_grid, burn_modis_pending)
+    # format = "rds" (default): same rationale as vi_modis_grid.
   ),
 
   # ============================================================================
@@ -621,8 +623,8 @@ list(
       cleanup           = cleanup_mode,
       verbose           = TRUE
     ),
-    pattern = map(burn_viirs_geotiff, burn_viirs_pending),
-    format  = "file"
+    pattern = map(burn_viirs_geotiff, burn_viirs_pending)
+    # format = "rds" (default): same rationale as vi_modis_grid.
   ),
 
   tar_target(
@@ -634,8 +636,8 @@ list(
       out_dir       = "data/target_outputs/burndates/",
       verbose       = TRUE
     ),
-    pattern = map(burn_viirs_grid, burn_viirs_pending),
-    format  = "file"
+    pattern = map(burn_viirs_grid, burn_viirs_pending)
+    # format = "rds" (default): same rationale as vi_modis_grid.
   ),
 
   # ============================================================================
@@ -670,8 +672,8 @@ list(
       burn_events = burn_events_merged,
       state_file  = "data/target_outputs/most_recent_burn_state.parquet",
       verbose     = TRUE
-    ),
-    format = "file"
+    )
+    # format = "rds" (default): state parquet path stored as RDS; CI skips without the file on disk.
   ),
 
   # ── Fire age at every VI observation date (MODIS + VIIRS) ────────────────────
@@ -689,8 +691,8 @@ list(
         out_dir      = "data/target_outputs/fireage/",
         verbose      = TRUE
       )
-    },
-    format = "file"
+    }
+    # format = "rds" (default): fireage parquet paths stored as RDS; CI skips without files on disk.
   ),
 
   # ── Snapshot raster (latest state_month only) ─────────────────────────────────

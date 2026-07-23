@@ -171,8 +171,11 @@ download_burn_date_modis_geotiff <- function(
   if (startsWith(task_id, "cached:")) {
     yyyymm_sentinel <- sub("^cached:", "", task_id)
     if (verbose) message("Sentinel task_id for ", yyyymm_sentinel, " — skipping AppEEARS download")
-    dir.create(temp_directory, recursive = TRUE, showWarnings = FALSE)
-    return(temp_directory)
+    # Use per-month subdir (not base dir) so grid function finds 0 TIFs and
+    # preserves the existing COG rather than re-scanning the base directory.
+    cached_subdir <- file.path(temp_directory, yyyymm_sentinel)
+    dir.create(cached_subdir, recursive = TRUE, showWarnings = FALSE)
+    return(cached_subdir)
   }
 
   # Legacy sentinel from earlier pipeline versions where submit_*() returned
@@ -201,8 +204,9 @@ download_burn_date_modis_geotiff <- function(
 
   if (file.exists(grid_tif_done)) {
     if (verbose) message("Grid COG found for ", yyyymm, " — skipping AppEEARS download")
-    dir.create(temp_directory, recursive = TRUE, showWarnings = FALSE)
-    return(temp_directory)
+    per_month_dir <- file.path(temp_directory, yyyymm)
+    dir.create(per_month_dir, recursive = TRUE, showWarnings = FALSE)
+    return(per_month_dir)
   }
 
   # Skip if grid COG already exists on GitHub release (CI: disk is empty but
@@ -215,8 +219,9 @@ download_burn_date_modis_geotiff <- function(
       if (verbose) message("MODIS grid COG for ", yyyymm,
                            " already on GitHub release '", gh_release_tag,
                            "' — skipping AppEEARS download")
-      dir.create(temp_directory, recursive = TRUE, showWarnings = FALSE)
-      return(temp_directory)
+      per_month_dir <- file.path(temp_directory, yyyymm)
+      dir.create(per_month_dir, recursive = TRUE, showWarnings = FALSE)
+      return(per_month_dir)
     }
   }
 
