@@ -172,13 +172,18 @@ download_modis_vi_geotiff <- function(
     verbose        = TRUE) {
 
   # Sentinel task_id means submit_modis_vi() found the composite already complete —
-  # skip all AppEEARS polling and return the temp directory path directly.
+  # skip all AppEEARS polling and return the per-date subdirectory directly.
+  # Must match the per-date subdir used by the non-cached path so that
+  # vi_modis_geotiff_to_grid() scans an empty/nonexistent dir (0 TIFs) and
+  # falls through to its "COGs already on disk" guard — rather than receiving
+  # the base temp dir and recursively finding all raw TIFs from other composites.
   if (startsWith(task_id, "cached:")) {
     yyyymmdd_sentinel <- sub("^cached:", "", task_id)
     if (verbose) message("Sentinel task_id for ", yyyymmdd_sentinel,
                          " \u2014 skipping AppEEARS download")
-    dir.create(temp_directory, recursive = TRUE, showWarnings = FALSE)
-    return(temp_directory)
+    per_date_dir <- file.path(temp_directory, yyyymmdd_sentinel)
+    dir.create(per_date_dir, recursive = TRUE, showWarnings = FALSE)
+    return(per_date_dir)
   }
 
   # Legacy sentinel from earlier pipeline versions where submit_*() returned
