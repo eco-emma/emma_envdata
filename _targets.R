@@ -337,7 +337,18 @@ list(
   # only change when a new complete month is added by modis_end_date advancing.
   tar_target(
     vi_modis_pending,
-    generate_composite_sequence(start_date = modis_start_date, end_date = modis_end_date)
+    {
+      composites <- generate_composite_sequence(
+        start_date = modis_start_date,
+        end_date   = modis_end_date
+      )
+      filter_pending_composites(
+        composites     = composites,
+        gh_release_tag = release_tags$vi_modis_raster,
+        prefixes       = c("vi_modis_terra_", "vi_modis_aqua_"),
+        verbose        = TRUE
+      )
+    }
   ),
 
   # Dynamically submit 16-day composite AppEEARS tasks.
@@ -420,7 +431,18 @@ list(
 
   tar_target(
     vi_viirs_pending,
-    generate_composite_sequence(start_date = viirs_start_date, end_date = modis_end_date)
+    {
+      composites <- generate_composite_sequence(
+        start_date = viirs_start_date,
+        end_date   = modis_end_date
+      )
+      filter_pending_composites(
+        composites     = composites,
+        gh_release_tag = release_tags$vi_viirs_raster,
+        prefixes       = c("vi_viirs_snpp_", "vi_viirs_noaa20_"),
+        verbose        = TRUE
+      )
+    }
   ),
 
   tar_target(
