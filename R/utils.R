@@ -90,6 +90,38 @@ generate_composite_sequence <- function(start_date, end_date) {
   )
 }
 
+# Keep only composite windows missing one or more expected COG assets on a
+# GitHub release tag. This avoids reprocessing historical composites that are
+# already complete in release storage.
+filter_pending_composites <- function(composites, gh_release_tag, prefixes,
+                                      repo = Sys.getenv(
+                                        "TAR_GH_RELEASE_REPO",
+                                        unset = "eco-emma/emma_envdata"
+                                      ),
+                                      verbose = TRUE) {
+  if (!nrow(composites)) return(composites)
+
+  yyyymmdd <- format(as.Date(composites$composite_date), "%Y%m%d")
+  missing_release_assets <- purrr::map_lgl(yyyymmdd, function(date_key) {
+    expected_assets <- paste0(prefixes, date_key, ".tif")
+    !all(purrr::map_lgl(expected_assets, function(asset_name) {
+      gh_release_has_asset(repo, gh_release_tag, asset_name, verbose = FALSE)
+    }))
+  })
+
+  pending <- composites[missing_release_assets, , drop = FALSE]
+
+  if (verbose) {
+    message(
+      "Composite windows for release '", gh_release_tag, "': ",
+      nrow(composites) - nrow(pending), " already complete, ",
+      nrow(pending), " pending"
+    )
+  }
+
+  pending
+}
+
 # Generate a sequence of calendar months between two dates.
 # Returns a tibble with one row per month; month_start = first day of month,
 # month_end = last day of month.
