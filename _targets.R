@@ -97,6 +97,7 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
   if (interactive()) {
     message("Cleanup mode: ", if (cleanup_mode) "ENABLED (GitHub Actions)" else "DISABLED (Local server)")
   }
+  vegmap_raster_path <- "data/target_outputs/vegmap.tif"
 
 # Ensure things are clean
 #  unlink(file.path("data/temp/"), recursive = TRUE, force = TRUE)
@@ -337,7 +338,18 @@ list(
   # only change when a new complete month is added by modis_end_date advancing.
   tar_target(
     vi_modis_pending,
-    generate_composite_sequence(start_date = modis_start_date, end_date = modis_end_date)
+    {
+      composites <- generate_composite_sequence(
+        start_date = modis_start_date,
+        end_date   = modis_end_date
+      )
+      filter_pending_composites(
+        composites     = composites,
+        gh_release_tag = release_tags$vi_modis_raster,
+        prefixes       = c("vi_modis_terra_", "vi_modis_aqua_"),
+        verbose        = TRUE
+      )
+    }
   ),
 
   # Dynamically submit 16-day composite AppEEARS tasks.
@@ -422,7 +434,18 @@ list(
 
   tar_target(
     vi_viirs_pending,
-    generate_composite_sequence(start_date = viirs_start_date, end_date = modis_end_date)
+    {
+      composites <- generate_composite_sequence(
+        start_date = viirs_start_date,
+        end_date   = modis_end_date
+      )
+      filter_pending_composites(
+        composites     = composites,
+        gh_release_tag = release_tags$vi_viirs_raster,
+        prefixes       = c("vi_viirs_snpp_", "vi_viirs_noaa20_"),
+        verbose        = TRUE
+      )
+    }
   ),
 
   tar_target(
@@ -733,7 +756,7 @@ list(
     generate_static_layers_stac(
       domain_file               = terra::sources(domain.tif)[[1]],
       domain_parquet            = domain_geoparquet,
-      vegmap_file               = terra::sources(vegmap.tif)[[1]],
+      vegmap_file               = vegmap_raster_path,
       elevation                 = terra::sources(elevation.tif)[[1]],
       climate_files             = climate_chelsa,
       clouds                    = terra::sources(clouds.tif)[[1]],
@@ -762,7 +785,7 @@ list(
         terra::sources(domain.tif)[[1]],
         "data/target_outputs/domain.parquet",
         "data/target_outputs/static_covariates.parquet",
-        terra::sources(vegmap.tif)[[1]],
+        vegmap_raster_path,
         terra::sources(elevation.tif)[[1]],
         climate_chelsa,
         terra::sources(clouds.tif)[[1]],

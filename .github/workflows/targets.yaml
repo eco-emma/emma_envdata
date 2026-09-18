@@ -126,6 +126,7 @@ jobs:
         # Only run on scheduled runs to avoid PR spam on every feature-branch push.
         # Remove the @github-copilot-agent auto-fix line — keep human-review PRs only.
         if: failure() && github.event_name == 'schedule'
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

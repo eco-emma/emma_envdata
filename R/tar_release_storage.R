@@ -699,8 +699,10 @@ gh_release_download_asset <- function(repo, release_tag, asset_name,
       Accept        = "application/octet-stream"
     ),
     httr::write_disk(dest_path, overwrite = TRUE),
-    times        = 3,
-    terminate_on = c(401, 403, 404)
+    times        = 5,
+    terminate_on = c(401, 404),
+    pause_base   = 10,
+    pause_cap    = 120
   )
   httr::stop_for_status(r)
 

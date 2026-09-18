@@ -19,6 +19,45 @@
   }, error = function(e) character(0))
 }
 
+#' @title Fetch remote SHA-256 checksums for a release's assets
+#' @description Downloads and parses the "{release_tag}_SHA256SUMS.txt" sidecar
+#'   written by \code{upload_to_github_release()} so callers can compare local
+#'   file content against what's already on the release, instead of assuming
+#'   "overwrite" means "reupload everything".
+#' @param repo Repository in format "owner/repo"
+#' @param release_tag Release tag string
+#' @param token GitHub token
+#' @return Named character vector of SHA-256 hashes keyed by asset basename,
+#'   or character(0) if the sidecar is missing or unreadable.
+#' @keywords internal
+.gh_release_remote_checksums <- function(repo, release_tag, token) {
+  parts <- strsplit(repo, "/")[[1]]
+  sha_asset_name <- paste0(release_tag, "_SHA256SUMS.txt")
+  tryCatch({
+    rel <- gh::gh(
+      "GET /repos/{owner}/{repo}/releases/tags/{tag}",
+      owner = parts[1], repo = parts[2], tag = release_tag,
+      .token = token
+    )
+    asset <- Filter(function(a) identical(a$name, sha_asset_name), rel$assets)
+    if (length(asset) == 0L) return(character(0))
+    resp <- httr::GET(
+      url = asset[[1]]$url,
+      httr::add_headers(Authorization = paste("token", token),
+                        Accept = "application/octet-stream"),
+      httr::timeout(60)
+    )
+    if (httr::status_code(resp) != 200L) return(character(0))
+    lines <- strsplit(httr::content(resp, as = "text", encoding = "UTF-8"), "\n")[[1]]
+    lines <- trimws(lines[nzchar(trimws(lines))])
+    if (length(lines) == 0L) return(character(0))
+    fields <- strsplit(lines, "\\s+")
+    hashes <- vapply(fields, `[[`, character(1L), 1L)
+    fnames <- vapply(fields, function(x) x[length(x)], character(1L))
+    stats::setNames(hashes, fnames)
+  }, error = function(e) character(0))
+}
+
 #' @title Upload a single file to a GitHub release via the REST API
 #' @description Posts a file to a release upload URL using httr, bypassing
 #'   piggyback which has known column-selection errors against newer GitHub
@@ -94,13 +133,28 @@
   }
 
   upload_url <- sub("\\{\\?name,label\\}", "", rel$upload_url)
-  resp <- httr::POST(
+  # httr::RETRY + explicit secondary-rate-limit backoff mirrors the pattern in
+  # R/tar_release_storage.R so a burst of uploads doesn't exhaust the
+  # installation token's REST rate limit.
+  resp <- httr::RETRY(
+    verb  = "POST",
     url   = paste0(upload_url, "?name=", utils::URLencode(basename(file), reserved = TRUE)),
     httr::add_headers(Authorization = paste("token", token),
                       `Content-Type` = "application/octet-stream"),
     body    = httr::upload_file(file),
-    httr::timeout(600)
+    httr::timeout(600),
+    times = 3, terminate_on = c(400, 401, 404, 422)
   )
+  status <- httr::status_code(resp)
+  if (status == 429L ||
+      (status == 403L &&
+       grepl("rate limit",
+             tryCatch(httr::content(resp, "text", encoding = "UTF-8"), error = function(e) ""),
+             ignore.case = TRUE))) {
+    message("  Secondary rate limit hit — sleeping 60s before continuing")
+    Sys.sleep(60L)
+    stop("Rate-limited uploading ", basename(file), " — will retry on next run")
+  }
   httr::stop_for_status(resp)
   invisible(TRUE)
 }
@@ -203,9 +257,20 @@ upload_to_github_release <- function(
   # Deduplicate files (branched targets may return same path from multiple branches)
   files <- files[!duplicated(basename(files))]
 
-  # Filter to files that don't already exist (unless overwrite = TRUE)
+  # Filter to files that don't already exist (unless overwrite = TRUE).
+  # When overwrite = TRUE, only reupload files whose content actually changed
+  # (compared against the release's SHA256SUMS.txt sidecar) rather than
+  # blindly deleting+reposting every historical file on every run — this was
+  # the main driver of installation-level API rate-limit errors.
   if (overwrite) {
-    files_to_upload <- files
+    remote_hashes <- .gh_release_remote_checksums(repo, release_tag, token)
+    local_hashes  <- vapply(files, function(f) digest::digest(f, algo = "sha256", file = TRUE),
+                            character(1L))
+    names(local_hashes) <- basename(files)
+    needs_upload <- vapply(names(local_hashes), function(nm) {
+      is.na(remote_hashes[nm]) || !identical(unname(remote_hashes[nm]), unname(local_hashes[nm]))
+    }, logical(1L))
+    files_to_upload <- files[needs_upload]
   } else {
     files_to_upload <- files[basename(files) %not_in% existing_names]
   }
