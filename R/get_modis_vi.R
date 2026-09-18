@@ -295,12 +295,20 @@ download_modis_vi_geotiff <- function(
   }
 
   if (verbose) message("Downloading files for task: ", task_id)
-  appeears::rs_transfer(
-    task_id = task_id,
-    user    = Sys.getenv("EARTHDATA_USER"),
-    path    = temp_directory,
-    verbose = verbose
-  )
+  # Transfer failures (network/API) must not be mistaken for "task completed
+  # with zero results" — that would permanently write a skip marker for a
+  # composite that actually has real data.  Fail loudly so error="continue"
+  # retries this branch on the next run instead.
+  tryCatch({
+    appeears::rs_transfer(
+      task_id = task_id,
+      user    = Sys.getenv("EARTHDATA_USER"),
+      path    = temp_directory,
+      verbose = verbose
+    )
+  }, error = function(e) {
+    stop("rs_transfer() failed for task ", task_id, " (", yyyymmdd, "): ", conditionMessage(e))
+  })
 
   tif_paths <- list.files(temp_directory, pattern = "\\.tif$",
                           full.names = TRUE, recursive = TRUE)

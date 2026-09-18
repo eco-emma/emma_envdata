@@ -298,12 +298,20 @@ download_burn_date_modis_geotiff <- function(
 
   # Download completed files
   if (verbose) message("Downloading burn date files for task: ", task_id)
-  appeears::rs_transfer(
-    task_id = task_id,
-    user    = Sys.getenv("EARTHDATA_USER"),
-    path    = temp_directory,
-    verbose = verbose
-  )
+  # Transfer failures (network/API) must not be mistaken for "task completed
+  # with zero results" — that would permanently write an all-NA grid for a
+  # month that actually has real burn data.  Fail loudly so error="continue"
+  # retries this branch on the next run instead.
+  tryCatch({
+    appeears::rs_transfer(
+      task_id = task_id,
+      user    = Sys.getenv("EARTHDATA_USER"),
+      path    = temp_directory,
+      verbose = verbose
+    )
+  }, error = function(e) {
+    stop("rs_transfer() failed for task ", task_id, " (", yyyymm, "): ", conditionMessage(e))
+  })
 
   # Verify at least one GeoTIFF was returned (AppEEARS also writes a CSV and JSON)
   tif_paths <- list.files(temp_directory, pattern = "\\.tif$", full.names = TRUE, recursive = TRUE)
