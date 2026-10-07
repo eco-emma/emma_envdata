@@ -41,10 +41,14 @@ EMMA_SENSOR_IDS <- c(
 #' @param stac_dir Output directory for this collection's STAC JSON files.
 #' @param parent_catalog_path Path to parent catalog directory (for link context).
 #' @param gh_repo GitHub repository in format "owner/repo".
-#' @param gh_release_tag GitHub release tag for MODIS COG raster files.
+#' @param gh_release_tag_modis_terra GitHub release tag for MODIS Terra COGs.
+#' @param gh_release_tag_modis_aqua GitHub release tag for MODIS Aqua COGs.
 #' @param gh_release_tag_viirs GitHub release tag for VIIRS COG raster files.
+#' @param gh_stac_release_tag GitHub release tag hosting this collection.
+#' @param gh_stac_item_release_prefix Prefix for decade-partitioned item tags.
+#' @param gh_root_stac_release_tag GitHub release tag hosting catalog.json.
 #' @param verbose Logical for progress messages.
-#' @return Character path to the collection JSON file.
+#' @return Character vector: collection JSON path followed by every item JSON path.
 #' @keywords internal
 generate_modis_vi_stac <- function(
   tif_files,
@@ -52,8 +56,12 @@ generate_modis_vi_stac <- function(
   stac_dir                       = "data/stac/vi",
   parent_catalog_path            = "data/stac",
   gh_repo                        = "eco-emma/emma_envdata",
-  gh_release_tag                 = "vi_modis_raster",
+  gh_release_tag_modis_terra     = "vi_modis_terra_raster",
+  gh_release_tag_modis_aqua      = "vi_modis_aqua_raster",
   gh_release_tag_viirs           = "vi_viirs_raster",
+  gh_stac_release_tag            = "stac-vi",
+  gh_stac_item_release_prefix    = "stac-vi",
+  gh_root_stac_release_tag       = "stac",
   gh_release_tag_vi_modis_parquet = "vi_modis_parquet",
   gh_release_tag_vi_viirs_parquet = "vi_viirs_parquet",
   gh_release_tag_fireage         = "fireage",
@@ -81,7 +89,7 @@ generate_modis_vi_stac <- function(
   # Parse filenames into a unified asset table.
   # Naming convention: vi_{modis|viirs}_{sensor_token}_YYYYMMDD.tif
   # sensor_token is one of: terra, aqua, snpp, noaa20
-  parse_tif_assets <- function(files, family, release_tag) {
+  parse_tif_assets <- function(files, family, release_tags) {
     bn         <- basename(files)
     date_str   <- regmatches(bn, regexpr("\\d{8}", bn))
     sensor_tok <- sub(
@@ -101,15 +109,45 @@ generate_modis_vi_stac <- function(
       # e.g. "modis_terra" or "viirs_snpp" — the asset key in the STAC item
       asset_key   = paste0(family, "_", sensor_tok),
       asset_label = asset_labels[sensor_tok],
-      release_tag = release_tag
+      release_tag = unname(release_tags[sensor_tok])
     )
   }
 
   all_assets <- dplyr::bind_rows(
-    parse_tif_assets(tif_files, "modis", gh_release_tag),
-    if (has_viirs) parse_tif_assets(viirs_tif_files, "viirs", gh_release_tag_viirs)
+    parse_tif_assets(
+      tif_files,
+      "modis",
+      c(
+        terra = gh_release_tag_modis_terra,
+        aqua = gh_release_tag_modis_aqua
+      )
+    ),
+    if (has_viirs) {
+      parse_tif_assets(
+        viirs_tif_files,
+        "viirs",
+        c(snpp = gh_release_tag_viirs, noaa20 = gh_release_tag_viirs)
+      )
+    }
     else NULL
   )
+
+  if (anyNA(all_assets$release_tag)) {
+    stop("Missing GitHub release tag for one or more VI sensors.")
+  }
+
+  root_url <- paste0(
+    "https://github.com/", gh_repo, "/releases/download/",
+    gh_root_stac_release_tag, "/catalog.json"
+  )
+  collection_url <- paste0(
+    "https://github.com/", gh_repo, "/releases/download/",
+    gh_stac_release_tag, "/vi_collection.json"
+  )
+  item_release_tag <- function(date_string) {
+    decade <- paste0(substr(date_string, 1L, 3L), "0s")
+    paste0(gh_stac_item_release_prefix, "-", decade)
+  }
 
   # All unique composite dates sorted chronologically
   all_dates_str <- sort(unique(all_assets$date_str))
@@ -155,8 +193,9 @@ generate_modis_vi_stac <- function(
       )))
     ),
     links = list(
-      list(rel = "root",    href = "catalog.json",           type = "application/json"),
-      list(rel = "parent",  href = "catalog.json",           type = "application/json"),
+      list(rel = "root",    href = root_url,       type = "application/json"),
+      list(rel = "parent",  href = root_url,       type = "application/json"),
+      list(rel = "self",    href = collection_url, type = "application/json"),
       list(rel = "license", href = "https://creativecommons.org/licenses/by/4.0/",
            type = "text/html"),
       list(rel = "about",   href = "https://lpdaac.usgs.gov/products/mod13a1v061/",
@@ -290,9 +329,9 @@ generate_modis_vi_stac <- function(
         `emma:pid_grid`       = "domain_500m"
       ),
       links = list(
-        list(rel = "collection", href = "vi_collection.json", type = "application/json"),
-        list(rel = "root",       href = "catalog.json",       type = "application/json"),
-        list(rel = "parent",     href = "vi_collection.json", type = "application/json")
+        list(rel = "collection", href = collection_url, type = "application/json"),
+        list(rel = "root",       href = root_url,       type = "application/json"),
+        list(rel = "parent",     href = collection_url, type = "application/json")
       ),
       assets = assets
     )
@@ -302,7 +341,10 @@ generate_modis_vi_stac <- function(
 
     collection$links[[length(collection$links) + 1]] <- list(
       rel   = "item",
-      href  = paste0("vi_", ds, ".json"),
+      href  = paste0(
+        "https://github.com/", gh_repo, "/releases/download/",
+        item_release_tag(ds), "/vi_", ds, ".json"
+      ),
       type  = "application/json",
       title = paste0(
         "VI ", format(pd, "%Y-%m-%d"),
@@ -318,7 +360,10 @@ generate_modis_vi_stac <- function(
     paste(sort(unique(all_assets$asset_key)), collapse = ", "), ")"
   )
 
-  collection_file
+  # Return collection + every item JSON so format="file" targets track (and
+  # downstream upload steps actually receive) all items, not just the collection.
+  item_files <- file.path(stac_dir, paste0("vi_", all_dates_str, ".json"))
+  c(collection_file, item_files)
 }
 
 
@@ -337,6 +382,10 @@ generate_emma_stac_catalog <- function(
   dataset_collections = list(
     modis_vi = "data/stac/modis_vi"
   ),
+  dataset_release_tags = c(
+    modis_vi = "stac-vi"
+  ),
+  root_release_tag = "stac",
   gh_repo = "eco-emma/emma_envdata",
   verbose = TRUE
 ) {
@@ -359,7 +408,10 @@ generate_emma_stac_catalog <- function(
     links = list(
       list(
         rel = "root",
-        href = "catalog.json",
+        href = paste0(
+          "https://github.com/", gh_repo, "/releases/download/",
+          root_release_tag, "/catalog.json"
+        ),
         type = "application/json",
         title = "EMMA Catalog"
       ),
@@ -386,8 +438,15 @@ generate_emma_stac_catalog <- function(
     collection_file <- file.path(collection_path, paste0(dataset_name, "_collection.json"))
     
     if (file.exists(collection_file)) {
-      # Flat href — GitHub releases store all JSON files without subdirectories
-      rel_path <- paste0(dataset_name, "_collection.json")
+      release_tag <- unname(dataset_release_tags[dataset_name])
+      if (is.na(release_tag)) {
+        warning("No STAC release tag configured for collection: ", dataset_name)
+        next
+      }
+      rel_path <- paste0(
+        "https://github.com/", gh_repo, "/releases/download/",
+        release_tag, "/", dataset_name, "_collection.json"
+      )
 
       # Read collection title dynamically from the JSON file when available
       collection_title <- tryCatch({
@@ -662,7 +721,7 @@ generate_burn_dates_stac <- function(
 #' @param gh_release_tag_viirs GitHub release tag hosting VIIRS monthly COG rasters
 #' @param gh_release_tag_derived GitHub release tag hosting derived fire-history products
 #' @param verbose Logical for progress messages
-#' @return Character path to the burn collection.json
+#' @return Character vector: burn collection.json path followed by every item JSON path.
 #' @keywords internal
 generate_burn_stac <- function(
   modis_tif_files             = NULL,
@@ -675,9 +734,20 @@ generate_burn_stac <- function(
   gh_release_tag_derived      = "fireage",
   gh_release_tag_modis_parquet = "burn_modis_parquet",
   gh_release_tag_viirs_parquet = "burn_viirs_parquet",
+  gh_stac_release_tag         = "stac-burn",
+  gh_root_stac_release_tag    = "stac",
   verbose                     = TRUE
 ) {
   dir.create(stac_dir, recursive = TRUE, showWarnings = FALSE)
+
+  root_url <- paste0(
+    "https://github.com/", gh_repo, "/releases/download/",
+    gh_root_stac_release_tag, "/catalog.json"
+  )
+  collection_url <- paste0(
+    "https://github.com/", gh_repo, "/releases/download/",
+    gh_stac_release_tag, "/burn_collection.json"
+  )
 
   # Filter to valid COG TIF files; drop .skip markers
   filter_tif <- function(files) {
@@ -740,8 +810,9 @@ generate_burn_stac <- function(
       temporal = list(interval = list(list(temporal_start, NA)))
     ),
     links = list(
-      list(rel = "root",    href = "catalog.json",         type = "application/json"),
-      list(rel = "self",    href = "burn_collection.json", type = "application/json"),
+      list(rel = "root",    href = root_url,       type = "application/json"),
+      list(rel = "parent",  href = root_url,       type = "application/json"),
+      list(rel = "self",    href = collection_url, type = "application/json"),
       list(rel = "license", href = "https://creativecommons.org/licenses/by/4.0/",
            type = "text/html"),
       list(rel = "about",   href = "https://lpdaac.usgs.gov/products/mcd64a1v061/",
@@ -813,9 +884,9 @@ generate_burn_stac <- function(
         `emma:pid_grid`       = "domain_500m"
       ),
       links = list(
-        list(rel = "collection", href = "burn_collection.json", type = "application/json"),
-        list(rel = "root",       href = "catalog.json",         type = "application/json"),
-        list(rel = "parent",     href = "burn_collection.json", type = "application/json")
+        list(rel = "collection", href = collection_url, type = "application/json"),
+        list(rel = "root",       href = root_url,       type = "application/json"),
+        list(rel = "parent",     href = collection_url, type = "application/json")
       ),
       assets = list(
         burn_grid = list(
@@ -875,9 +946,9 @@ generate_burn_stac <- function(
         dataset        = "burn"
       ),
       links = list(
-        list(rel = "collection", href = "burn_collection.json", type = "application/json"),
-        list(rel = "root",       href = "catalog.json",         type = "application/json"),
-        list(rel = "parent",     href = "burn_collection.json", type = "application/json")
+        list(rel = "collection", href = collection_url, type = "application/json"),
+        list(rel = "root",       href = root_url,       type = "application/json"),
+        list(rel = "parent",     href = collection_url, type = "application/json")
       ),
       assets = list(
         recentburn = list(
@@ -929,7 +1000,10 @@ generate_burn_stac <- function(
     )
   }
 
-  collection_file
+  # Return collection + every item JSON so format="file" targets track (and
+  # downstream upload steps actually receive) all items, not just the collection.
+  item_files <- vapply(unname(all_items), function(it) it$file, character(1L))
+  c(collection_file, item_files)
 }
 
 
@@ -960,7 +1034,7 @@ generate_burn_stac <- function(
 #' @param gh_release_tag  GitHub release tag hosting the static NC files.
 #' @param verbose         Logical. Print progress messages?
 #'
-#' @return Character path to \code{static_collection.json}.
+#' @return Character vector: \code{static_collection.json} path followed by every item JSON path.
 #' @keywords internal
 generate_static_layers_stac <- function(
     domain_file      = "data/target_outputs/domain.tif",
@@ -974,6 +1048,8 @@ generate_static_layers_stac <- function(
     stac_dir         = "data/stac/static",
     gh_repo          = "eco-emma/emma_envdata",
     gh_release_tag   = "static_data",
+    gh_stac_release_tag = "stac-static",
+    gh_root_stac_release_tag = "stac",
     static_covariates_parquet = NULL,
     verbose          = TRUE) {
 
@@ -985,6 +1061,15 @@ generate_static_layers_stac <- function(
            gh_release_tag, "/", basename(f))
   }
 
+  root_url <- paste0(
+    "https://github.com/", gh_repo, "/releases/download/",
+    gh_root_stac_release_tag, "/catalog.json"
+  )
+  collection_url <- paste0(
+    "https://github.com/", gh_repo, "/releases/download/",
+    gh_stac_release_tag, "/static_collection.json"
+  )
+
   # Timeless datetime convention for static layers.
   # STAC spec requires `null` (not omitted) for timeless items; use NA so that
   # jsonlite::write_json() serialises it as JSON null rather than {} or dropping it.
@@ -995,9 +1080,9 @@ generate_static_layers_stac <- function(
   )
   static_geom <- .bbox_to_polygon(DOMAIN_BBOX)
   common_links <- function() list(
-    list(rel = "collection", href = "static_collection.json", type = "application/json"),
-    list(rel = "root",       href = "catalog.json",           type = "application/json"),
-    list(rel = "parent",     href = "static_collection.json", type = "application/json")
+    list(rel = "collection", href = collection_url, type = "application/json"),
+    list(rel = "root",       href = root_url,       type = "application/json"),
+    list(rel = "parent",     href = collection_url, type = "application/json")
   )
 
   # ── Collection ───────────────────────────────────────────────────────────
@@ -1026,8 +1111,9 @@ generate_static_layers_stac <- function(
       temporal = list(interval = list(list("1900-01-01T00:00:00Z", NA)))
     ),
     links = list(
-      list(rel = "root",    href = "catalog.json",           type = "application/json"),
-      list(rel = "parent",  href = "catalog.json",           type = "application/json"),
+      list(rel = "root",    href = root_url,       type = "application/json"),
+      list(rel = "parent",  href = root_url,       type = "application/json"),
+      list(rel = "self",    href = collection_url, type = "application/json"),
       list(rel = "license", href = "https://creativecommons.org/licenses/by/4.0/",
            type = "text/html")
     ),
@@ -1126,7 +1212,7 @@ generate_static_layers_stac <- function(
       title       = paste0("CHELSA ", toupper(bio_key), " (1981-2010)"),
       description = paste0("CHELSA bioclimatic variable ", toupper(bio_key),
                            " (1981-2010 mean), 500m domain-aligned grid."),
-      type        = "application/x-netcdf",
+      type        = "image/tiff; application=geotiff; profile=cloud-optimized",
       roles       = list("data")
     )
   }
@@ -1276,6 +1362,9 @@ generate_static_layers_stac <- function(
 
   if (verbose) message("Generated static layers STAC: ", length(items_written), " items in ", stac_dir)
 
-  collection_file
+  # Return collection + every item JSON so format="file" targets track (and
+  # downstream upload steps actually receive) all items, not just the collection.
+  item_files <- vapply(items_written, function(it) it$file, character(1L))
+  c(collection_file, item_files)
 }
 

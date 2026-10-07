@@ -127,8 +127,10 @@ audit_burn_na_grids <- function(
 #' @param local_dir Directory containing vi_*_<sensor>_YYYYMMDD.tif grid COGs;
 #'   defaults to "data/target_outputs/modis_vi" or "data/target_outputs/viirs_vi"
 #' @param repo GitHub "owner/repo"
-#' @param release_tag Release tag holding the grid COGs; defaults to
-#'   "<dataset>_raster" (e.g. "vi_modis_raster")
+#' @param release_tag Release tag holding the grid COGs. For VIIRS this is
+#'   "vi_viirs_raster". MODIS Terra and Aqua are deleted from
+#'   "vi_modis_terra_raster" and "vi_modis_aqua_raster" regardless of this
+#'   argument.
 #' @param valid_start Character "YYYY-MM-DD"; composites before this are skipped
 #' @param min_age_days Skip composites newer than this many days old
 #' @param dry_run If TRUE (default), only reports findings; deletes nothing
@@ -188,11 +190,19 @@ audit_vi_na_grids <- function(
   }
 
   token <- .audit_github_token()
-  for (f in flagged$file) {
+  for (i in seq_len(nrow(flagged))) {
+    f <- flagged$file[i]
+    tag <- if (dataset == "vi_modis" && identical(flagged$sensor[i], "terra")) {
+      "vi_modis_terra_raster"
+    } else if (dataset == "vi_modis" && identical(flagged$sensor[i], "aqua")) {
+      "vi_modis_aqua_raster"
+    } else {
+      release_tag
+    }
     unlink(f)
     message("Deleted local placeholder: ", f)
-    if (.gh_delete_release_asset_by_name(repo, release_tag, basename(f), token)) {
-      message("Deleted release asset: ", basename(f))
+    if (.gh_delete_release_asset_by_name(repo, tag, basename(f), token)) {
+      message("Deleted release asset: ", basename(f), " from ", tag)
     }
   }
   message("Run targets::tar_make() to resubmit AppEEARS tasks for: ",

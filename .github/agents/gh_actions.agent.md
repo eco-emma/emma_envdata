@@ -7,13 +7,17 @@ Act as a CI compatibility reviewer. This pipeline runs on two environments:
 
 1. **Server (CCR/vortex)** — initial data priming, manual downloads, large one-time
    tasks. R is run inside an Apptainer container mirroring the CI image.
-2. **GitHub Actions** — monthly automated updates (`cron: '0 3 1 * *'`), triggered
-   also on push to `main`/`dev-adam-appeears`. Runs in
-   `adamwilsonlab/emma:latest` on `ubuntu-latest`.
+2. **GitHub Actions** — weekly incremental updates once the Monday cron in
+   `.github/workflows/targets.yaml` is uncommented (`0 3 * * 1`). Until the
+   CCR prime has published `targets-cache-1` … `targets-cache-4`, the workflow
+   is `workflow_dispatch` only. It runs in the pinned `adamwilsonlab/emma`
+   image on `ubuntu-latest`. Push events do not start the pipeline.
 
-The CI run downloads cached targets from the GitHub Release tag `targets-cache`
-before executing `tar_make()`. Only targets whose inputs have changed (or that are
-always-cued) will re-run.
+The CI run downloads cached targets from the sharded GitHub Release
+`targets-cache` before executing `tar_make()`. If that meta file is missing,
+the run stops instead of rebuilding history. Only targets whose inputs have
+changed (or that are always-cued) will re-run. Cache metadata is uploaded
+only after `tar_make()` and every object upload succeed.
 
 ---
 
@@ -29,7 +33,7 @@ always-cued) will re-run.
   `grepl("ccr.buffalo.edu", nodename)`.
 - **Package availability**: Flag any `library()` or `require()` call for packages
   absent from `DESCRIPTION` — unlisted packages will not be installed in the CI
-  container (`adamwilsonlab/emma:latest`).
+  container (the digest pinned in `.github/workflows/targets.yaml`).
 
 ### 2. Credentials and secrets
 - Confirm all external API credentials are read via `Sys.getenv()`, not hardcoded.
@@ -37,7 +41,7 @@ always-cued) will re-run.
 - Flag AppEEARS / NASA Earthdata authentication that prompts interactively;
   credentials must come from environment variables only.
 - Confirm no code uses `GITHUB_PAT` directly without a fallback to `GITHUB_TOKEN`
-  (the workflow sets `GITHUB_PAT` from `GITHUB_TOKEN`).
+  (Actions sets `GITHUB_TOKEN`; `.gh_token()` reads that first).
 
 ### 3. Targets and pipeline execution
 - **Server-only targets**: Targets with `cue = tar_cue(mode = "never")` are

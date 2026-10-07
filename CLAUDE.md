@@ -28,4 +28,5 @@ Monitoring and Modelling for Africa) project. Key files:
 - `_targets.R` — pipeline definition
 - `R/` — all pipeline functions
 - `R/tar_release_storage.R` — GitHub Release cache mechanism
-- `ARCHITECTURE.md` — system design overview
+- `.github/workflows/targets.yaml` — Actions workflow (manual until the CCR prime is published)
+- `old/ARCHITECTURE.md` — archived design notes; the pipeline in `_targets.R` is current

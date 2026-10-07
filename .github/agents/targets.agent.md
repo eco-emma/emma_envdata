@@ -16,12 +16,14 @@ https://books.ropensci.org/targets/
 
 ## Pipeline context
 
-- **Storage**: `repository = "local"`, `format = "qs"` by default. Objects go to
-  `_targets/objects/`; file-format targets (`format = "file"`) return file paths.
-- **Cache round-trip**: before `tar_make()`, `tar_download_github_release()` pulls
-  cached objects from the `targets-cache` GitHub Release into `_targets/objects/`
-  and `_targets/cache/`. After a full server run, `tar_upload_github_release()` is
-  run manually to push the cache back.
+- **Storage**: `repository = "local"`, `format = "rds"` by default. Objects go to
+  `_targets/objects/`. The GitHub Actions restore uses `cache_dir = "_targets/user/cache"`.
+- **Cache round-trip**: on GitHub Actions, `tar_download_github_release()` pulls
+  cached objects from the sharded `targets-cache-1` … `targets-cache-4` releases
+  into `_targets/objects/` before `tar_make()`. A missing `_targets/meta/meta`
+  stops the Actions run. After a full server run, `tar_upload_github_release()`
+  pushes objects first and uploads `_targets_meta` only if every object upload
+  succeeded. The workflow step runs only when `tar_make()` succeeded.
 - **Dynamic branching**: several targets use `pattern = map(...)`. Branched targets
   are auto-aggregated when passed to a downstream target without `pattern =`.
 - **Deployment guard**: upload targets use `deployment = "main"` so they only run

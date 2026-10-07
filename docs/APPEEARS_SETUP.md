@@ -70,19 +70,22 @@ rs_products()
 
 ### Output Format
 
-AppEEARS NetCDF downloads are intermediate files only. Each monthly NetCDF is converted to a
-gzip-compressed Parquet file (`.parquet`) and the NetCDF is deleted on GitHub Actions to save
-disk space. Final outputs are Parquet files stored in GitHub Releases.
+AppEEARS downloads are intermediate files. Each composite or month is written as a
+COG GeoTIFF and, where the pipeline builds one, a Parquet table. Both are uploaded
+to GitHub Releases. The targets object store is separate: shards `targets-cache-1`
+through `targets-cache-4`.
 
 ### Release Tags
 
-- `data_modis_vi_current` — MODIS EVI time series (monthly parquets)
-- `data_burn_dates_modis_current` — MODIS burned area (monthly parquets)
-- `data_burn_dates_viirs_current` — VIIRS burned area (monthly parquets)
-- `data_fire_covariates_current` — Derived fire metrics (most recent burn, fire age)
-- `data_static_current` — Static environmental layers (elevation, climate, clouds, soil, topography)
-- `data_stac_current` — STAC catalog JSON for dataset discovery
-- `objects_current` — Internal targets cache (workflow artifacts)
+Tag names live in `release_tags` in `_targets.R`. The current product tags are
+`static_data`, `vi_modis_terra_raster`, `vi_modis_aqua_raster`, `vi_viirs_raster`,
+`vi_modis_parquet`, `vi_viirs_parquet`, `burn_modis_raster`, `burn_viirs_raster`,
+`burn_modis_parquet`, `burn_viirs_parquet`, `fireage`, `stac`, `stac-vi`,
+`stac-burn`, `stac-static`, and `readme-assets`. MODIS VI Terra and Aqua are
+separate releases. Input files that the pipeline downloads, and that a release
+reset must keep, are `vegmap2024` and `manual-data`.
+
+VIIRS burned area is AppEEARS product `VNP64A1.002`.
 
 ## Troubleshooting
 

@@ -165,8 +165,23 @@ tar_download_github_release <- function(
                         Accept        = "application/octet-stream"),
       httr::write_disk(dest_path, overwrite = TRUE),
       times        = 3,
-      terminate_on = c(401, 403, 404)
+      terminate_on = c(401, 404),
+      pause_base   = 10,
+      pause_cap    = 120
     )
+    status <- httr::status_code(r)
+    if (status == 429 || status == 403) {
+      body <- tryCatch(
+        paste(readLines(dest_path, warn = FALSE, n = 30L), collapse = "\n"),
+        error = function(e) ""
+      )
+      if (status == 429 || grepl("rate limit", body, ignore.case = TRUE)) {
+        if (file.exists(dest_path)) file.remove(dest_path)
+        message("[tar_github_release] Rate limit downloading asset ", asset_id,
+                " — sleeping 60s")
+        Sys.sleep(60)
+      }
+    }
     httr::stop_for_status(r)
     invisible(dest_path)
   }
@@ -200,7 +215,11 @@ tar_download_github_release <- function(
   # ── Restore _targets/meta/meta ─────────────────────────────────────────────
   meta_dest   <- "_targets/meta/meta"
   meta_cached <- file.path(cache_dir, "_targets_meta")
-  meta_row    <- all_assets[all_assets$file_name == "_targets_meta", ]
+  meta_row <- all_assets[all_assets$file_name == "_targets_meta", ]
+  if (nrow(meta_row) == 0) {
+    # Staging name left behind when the final rename-style upload failed.
+    meta_row <- all_assets[all_assets$file_name == "_targets_meta_next", ]
+  }
   if (nrow(meta_row) > 0) {
     tryCatch({
       .download_asset(meta_row$id[1], meta_cached)
@@ -218,7 +237,7 @@ tar_download_github_release <- function(
   }
 
   # Exclude _targets_meta from the object download loop
-  assets <- all_assets[all_assets$file_name != "_targets_meta", ]
+  assets <- all_assets[!all_assets$file_name %in% c("_targets_meta", "_targets_meta_next"), ]
 
   if (!is.null(which_targets)) {
     assets <- assets[assets$file_name %in% which_targets |
@@ -291,7 +310,9 @@ tar_download_github_release <- function(
 #' \code{{tag}-1} … \code{{tag}-n_shards}, keeping each release under GitHub's
 #' ~1,000-asset limit.  Object-to-shard assignment is deterministic (based on
 #' the last two hex characters of the object name) so the same object always
-#' goes to the same shard.  \code{_targets_meta} lives on shard 1 only.
+#' goes to the same shard.  \code{_targets_meta} is uploaded to shard 1 only
+#' after every object upload in this call has succeeded. A partial upload
+#' leaves the previous meta in place.
 #'
 #' @param repo      Repository in "owner/repo" format.
 #' @param tag       Base tag; shard releases are named "{tag}-1", "{tag}-2", …
@@ -404,6 +425,9 @@ tar_upload_github_release <- function(
   remote_meta_hashes <- tryCatch({
     meta_row <- shard_assets[[1]][shard_assets[[1]]$file_name == "_targets_meta", ]
     if (nrow(meta_row) == 0) {
+      meta_row <- shard_assets[[1]][shard_assets[[1]]$file_name == "_targets_meta_next", ]
+    }
+    if (nrow(meta_row) == 0) {
       # No remote meta yet (first run) — upload everything
       if (verbose) message("[tar_github_release] No remote meta on shard 1 ",
                            "(first run — all objects will be uploaded)")
@@ -454,41 +478,62 @@ tar_upload_github_release <- function(
   # ── Helper: upload / replace _targets_meta on shard 1 ─────────────────────
   meta_path <- "_targets/meta/meta"
   .upload_meta <- function(label = "") {
-    if (!file.exists(meta_path)) return(invisible(NULL))
-    upload_name <- "_targets_meta"
+    if (!file.exists(meta_path)) return(FALSE)
     if (verbose) message("[tar_github_release] Uploading targets meta",
                          if (nzchar(label)) paste0(" (", label, ")") else "",
                          ": ", meta_path)
-    # Re-fetch shard-1 assets so the ID is always current
-    fresh <- .fetch_release_assets(owner, repo_name,
-                                   shard_releases[[1]]$id, .token)
-    if (any(fresh$file_name == upload_name)) {
-      tryCatch({
-        gh::gh("DELETE /repos/{owner}/{repo}/releases/assets/{asset_id}",
-               owner = owner, repo = repo_name,
-               asset_id = fresh$id[fresh$file_name == upload_name][1],
-               .token = .token)
-        Sys.sleep(1)
-      }, error = function(e) NULL)
+
+    .delete_named <- function(asset_name) {
+      fresh <- .fetch_release_assets(owner, repo_name,
+                                     shard_releases[[1]]$id, .token)
+      hit <- fresh$file_name == asset_name
+      if (!any(hit)) return(invisible(TRUE))
+      gh::gh("DELETE /repos/{owner}/{repo}/releases/assets/{asset_id}",
+             owner = owner, repo = repo_name,
+             asset_id = fresh$id[hit][1], .token = .token)
+      Sys.sleep(1)
+      invisible(TRUE)
     }
-    tryCatch({
+
+    .post_named <- function(asset_name) {
       r <- httr::RETRY(
         verb  = "POST", url = shard_urls[1],
-        query = list(name = upload_name),
+        query = list(name = asset_name),
         httr::add_headers(Authorization = paste("token", .token)),
         body  = httr::upload_file(meta_path),
-        times = 3, terminate_on = c(400, 401, 403, 404, 422)
+        times = 3, terminate_on = c(400, 401, 404, 422)
       )
+      status <- httr::status_code(r)
+      if (status == 429 ||
+          (status == 403 &&
+           grepl("rate limit",
+                 tryCatch(httr::content(r, "text", encoding = "UTF-8"),
+                          error = function(e) ""),
+                 ignore.case = TRUE))) {
+        message("[tar_github_release] Rate limit uploading targets meta — sleeping 60s")
+        Sys.sleep(60)
+        stop("Rate limited uploading ", asset_name, call. = FALSE)
+      }
       httr::stop_for_status(r)
+      invisible(TRUE)
+    }
+
+    # Stage under _targets_meta_next before replacing the live asset. A failed
+    # final upload leaves the staged copy, which the downloader accepts.
+    tryCatch({
+      .delete_named("_targets_meta_next")
+      .post_named("_targets_meta_next")
+      .delete_named("_targets_meta")
+      .post_named("_targets_meta")
+      .delete_named("_targets_meta_next")
       if (verbose) message("[tar_github_release] Uploaded targets meta")
+      TRUE
     }, error = function(e) {
-      warning("[tar_github_release] Failed to upload targets meta: ", conditionMessage(e))
+      warning("[tar_github_release] Failed to upload targets meta: ",
+              conditionMessage(e))
+      FALSE
     })
   }
-
-  # Pre-loop meta upload: ensures meta is always current even if the object
-  # loop is interrupted by a timeout or rate limit.
-  .upload_meta("pre-object sync")
 
   # ── Rate-limit constants ───────────────────────────────────────────────────
   # GitHub secondary rate limit: ≤ 80 content-creating calls/minute.
@@ -585,12 +630,24 @@ tar_upload_github_release <- function(
   }
 
   if (n_failed > 0L) {
-    warning("[tar_github_release] ", n_failed,
-            " object(s) failed to upload — they will be retried on the next run.")
+    stop(
+      "[tar_github_release] ", n_failed,
+      " object(s) failed to upload. Targets meta was not updated, ",
+      "so the previous cache remains in place.",
+      call. = FALSE
+    )
   }
-
-  # Post-loop meta upload: reflects final object state after the upload session.
-  .upload_meta("post-object sync")
+  if (!file.exists(meta_path)) {
+    stop("[tar_github_release] No ", meta_path, " to upload.", call. = FALSE)
+  }
+  meta_ok <- .upload_meta("post-object sync")
+  if (!isTRUE(meta_ok)) {
+    stop(
+      "[tar_github_release] Objects uploaded but _targets_meta upload failed. ",
+      "The previous meta was left in place.",
+      call. = FALSE
+    )
+  }
 
   if (verbose) message("[tar_github_release] Upload complete")
   invisible(NULL)

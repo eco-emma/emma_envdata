@@ -1,3 +1,24 @@
+# Terra and Aqua COGs are published on separate releases so each stays under
+# GitHub's ~1,000-asset cap. gh_release_tag_terra / gh_release_tag_aqua name
+# those releases. A single gh_release_tag is the fallback for both sensors.
+.modis_vi_release_tags <- function(gh_release_tag,
+                                   gh_release_tag_terra,
+                                   gh_release_tag_aqua) {
+  list(
+    terra = if (!is.null(gh_release_tag_terra)) gh_release_tag_terra else gh_release_tag,
+    aqua  = if (!is.null(gh_release_tag_aqua)) gh_release_tag_aqua else gh_release_tag
+  )
+}
+
+.modis_vi_both_on_release <- function(yyyymmdd, tags, verbose = TRUE) {
+  if (is.null(tags$terra) || is.null(tags$aqua)) return(FALSE)
+  repo <- Sys.getenv("TAR_GH_RELEASE_REPO", unset = "eco-emma/emma_envdata")
+  terra_name <- paste0("vi_modis_terra_", yyyymmdd, ".tif")
+  aqua_name  <- paste0("vi_modis_aqua_", yyyymmdd, ".tif")
+  gh_release_has_asset(repo, tags$terra, terra_name, verbose = verbose) &&
+    gh_release_has_asset(repo, tags$aqua, aqua_name, verbose = verbose)
+}
+
 #' @title Submit monthly MODIS VI request via AppEEARS
 #' @description Submits an AppEEARS area request for MOD13A1.061 and MYD13A1.061
 #' EVI, and QA (500m resolution, 16-day composite) for a monthly period.
@@ -12,9 +33,11 @@ submit_modis_vi <- function(
   domain_vector,
   composite_date,
   composite_end,
-  out_dir        = NULL,
-  gh_release_tag = NULL,
-  verbose        = TRUE
+  out_dir               = NULL,
+  gh_release_tag        = NULL,
+  gh_release_tag_terra  = NULL,
+  gh_release_tag_aqua   = NULL,
+  verbose               = TRUE
 ) {
 
   yyyymmdd <- format(as.Date(composite_date), "%Y%m%d")
@@ -22,19 +45,23 @@ submit_modis_vi <- function(
   # Check local disk (fast — works on server after a completed run)
   if (!is.null(out_dir)) {
     terra_tif <- file.path(out_dir, paste0("vi_modis_terra_", yyyymmdd, ".tif"))
-    if (file.exists(terra_tif)) {
-      if (verbose) message("Grid COG on disk for ", yyyymmdd, " — skipping AppEEARS submission")
+    aqua_tif  <- file.path(out_dir, paste0("vi_modis_aqua_", yyyymmdd, ".tif"))
+    if (file.exists(terra_tif) && file.exists(aqua_tif)) {
+      if (verbose) message("Grid COGs on disk for ", yyyymmdd, " — skipping AppEEARS submission")
       return(paste0("cached:", yyyymmdd))
     }
   }
 
-  # Check GitHub release (authoritative — works on CI where disk is empty)
-  if (!is.null(gh_release_tag)) {
-    repo <- Sys.getenv("TAR_GH_RELEASE_REPO", unset = "eco-emma/emma_envdata")
-    if (gh_release_has_asset(repo, gh_release_tag, paste0("vi_modis_terra_", yyyymmdd, ".tif"), verbose = verbose)) {
-      if (verbose) message("Composite ", yyyymmdd, " already on GitHub release '", gh_release_tag, "' — skipping AppEEARS submission")
-      return(paste0("cached:", yyyymmdd))
-    }
+  # Check GitHub releases (authoritative — works on CI where disk is empty).
+  # Both sensors must be present. Terra lives on vi_modis_terra_raster and
+  # Aqua on vi_modis_aqua_raster; checking one combined tag misses both and
+  # the grid step then writes all-NA placeholders.
+  tags <- .modis_vi_release_tags(gh_release_tag, gh_release_tag_terra, gh_release_tag_aqua)
+  if (.modis_vi_both_on_release(yyyymmdd, tags, verbose = verbose)) {
+    if (verbose) message("Composite ", yyyymmdd,
+                         " already on GitHub releases '", tags$terra,
+                         "' and '", tags$aqua, "' — skipping AppEEARS submission")
+    return(paste0("cached:", yyyymmdd))
   }
 
   ensure_appeears_auth()
@@ -166,10 +193,12 @@ download_modis_vi_geotiff <- function(
     composite_date,
     composite_end  = NULL,
     domain_vector  = NULL,
-    temp_directory = "data/temp/appeears/modis_vi/",
-    gh_release_tag = NULL,
-    cleanup        = Sys.getenv("GITHUB_ACTIONS") == "true",
-    verbose        = TRUE) {
+    temp_directory        = "data/temp/appeears/modis_vi/",
+    gh_release_tag        = NULL,
+    gh_release_tag_terra  = NULL,
+    gh_release_tag_aqua   = NULL,
+    cleanup               = Sys.getenv("GITHUB_ACTIONS") == "true",
+    verbose               = TRUE) {
 
   # Sentinel task_id means submit_modis_vi() found the composite already complete —
   # skip all AppEEARS polling and return the per-date subdirectory directly.
@@ -209,7 +238,8 @@ download_modis_vi_geotiff <- function(
 
   # Early-exit: Terra COG written by vi_modis_geotiff_to_grid() signals completion
   terra_tif_done <- file.path(cache_dir, paste0("vi_modis_terra_", yyyymmdd, ".tif"))
-  if (file.exists(terra_tif_done)) {
+  aqua_tif_done  <- file.path(cache_dir, paste0("vi_modis_aqua_", yyyymmdd, ".tif"))
+  if (file.exists(terra_tif_done) && file.exists(aqua_tif_done)) {
     if (verbose) message("Grid COG found for ", yyyymmdd,
                          " \u2014 skipping AppEEARS download")
     per_date_dir2 <- file.path(temp_directory, yyyymmdd)
@@ -217,20 +247,16 @@ download_modis_vi_geotiff <- function(
     return(per_date_dir2)
   }
 
-  # Skip if grid COG already exists on GitHub release (CI: disk is empty but
-  # release has the processed output from a previous server run).
-  if (!is.null(gh_release_tag)) {
-    repo <- Sys.getenv("TAR_GH_RELEASE_REPO", unset = "eco-emma/emma_envdata")
-    if (gh_release_has_asset(repo, gh_release_tag,
-                             paste0("vi_modis_terra_", yyyymmdd, ".tif"),
-                             verbose = verbose)) {
-      if (verbose) message("MODIS VI grid COG for ", yyyymmdd,
-                           " already on GitHub release '", gh_release_tag,
-                           "' \u2014 skipping AppEEARS download")
-      per_date_dir2 <- file.path(temp_directory, yyyymmdd)
-      dir.create(per_date_dir2, recursive = TRUE, showWarnings = FALSE)
-      return(per_date_dir2)
-    }
+  # Skip if both sensor COGs already exist on their GitHub releases
+  # (CI: disk is empty but a previous server run published the grids).
+  tags <- .modis_vi_release_tags(gh_release_tag, gh_release_tag_terra, gh_release_tag_aqua)
+  if (.modis_vi_both_on_release(yyyymmdd, tags, verbose = verbose)) {
+    if (verbose) message("MODIS VI grid COGs for ", yyyymmdd,
+                         " already on GitHub releases '", tags$terra,
+                         "' and '", tags$aqua, "' \u2014 skipping AppEEARS download")
+    per_date_dir2 <- file.path(temp_directory, yyyymmdd)
+    dir.create(per_date_dir2, recursive = TRUE, showWarnings = FALSE)
+    return(per_date_dir2)
   }
 
   # Per-branch subdir to avoid race conditions under parallel tar_make_future()
@@ -263,10 +289,14 @@ download_modis_vi_geotiff <- function(
                   " not found (likely expired) \u2014 re-submitting for ", yyyymmdd)
         }
         task_id <- submit_modis_vi(
-          domain_vector  = domain_vector,
-          composite_date = composite_date,
-          composite_end  = as.Date(composite_end),
-          verbose        = verbose
+          domain_vector         = domain_vector,
+          composite_date        = composite_date,
+          composite_end         = as.Date(composite_end),
+          out_dir               = "data/target_outputs/modis_vi/",
+          gh_release_tag        = gh_release_tag,
+          gh_release_tag_terra  = gh_release_tag_terra,
+          gh_release_tag_aqua   = gh_release_tag_aqua,
+          verbose               = verbose
         )
         retry_count <- 0L
         next
@@ -358,10 +388,12 @@ vi_modis_geotiff_to_grid <- function(
     geotiff_directory,
     domain_raster,
     composite_date,
-    out_dir        = "data/target_outputs/modis_vi/",
-    gh_release_tag = NULL,
-    cleanup        = Sys.getenv("GITHUB_ACTIONS") == "true",
-    verbose        = TRUE) {
+    out_dir               = "data/target_outputs/modis_vi/",
+    gh_release_tag        = NULL,
+    gh_release_tag_terra  = NULL,
+    gh_release_tag_aqua   = NULL,
+    cleanup               = Sys.getenv("GITHUB_ACTIONS") == "true",
+    verbose               = TRUE) {
 
   composite_date <- as.Date(composite_date)
   yyyymmdd       <- format(composite_date, "%Y%m%d")
@@ -414,32 +446,36 @@ vi_modis_geotiff_to_grid <- function(
       return(c(out_terra, out_aqua))
     }
 
-    # Guard 2: COGs on GitHub release but not yet on disk (CI runner after
-    # targets cache restore).  Download them so the format = "file" target is
-    # satisfied and NA placeholders are never written — which would corrupt the
-    # release when upload_vi_modis_grid subsequently re-uploads them.
-    if (!is.null(gh_release_tag)) {
+    # Guard 2: COGs on the sensor releases but not yet on disk (CI runner
+    # after targets cache restore). Download each sensor from the release
+    # the upload targets write (terra and aqua are separate tags). NA
+    # placeholders are written only for a sensor that is absent both on disk
+    # and on its release.
+    tags <- .modis_vi_release_tags(gh_release_tag, gh_release_tag_terra, gh_release_tag_aqua)
+    if (!is.null(tags$terra) && !is.null(tags$aqua)) {
       repo <- Sys.getenv("TAR_GH_RELEASE_REPO", unset = "eco-emma/emma_envdata")
-      terra_on_gh <- gh_release_has_asset(repo, gh_release_tag,
-                                          basename(out_terra), verbose = verbose)
-      aqua_on_gh  <- gh_release_has_asset(repo, gh_release_tag,
-                                          basename(out_aqua),  verbose = verbose)
-      if (terra_on_gh && aqua_on_gh) {
+      terra_name <- basename(out_terra)
+      aqua_name  <- basename(out_aqua)
+      terra_on_gh <- gh_release_has_asset(repo, tags$terra, terra_name, verbose = verbose)
+      aqua_on_gh  <- gh_release_has_asset(repo, tags$aqua, aqua_name, verbose = verbose)
+      if (terra_on_gh) {
+        gh_release_download_asset(repo, tags$terra, terra_name, out_terra, verbose = verbose)
+      }
+      if (aqua_on_gh) {
+        gh_release_download_asset(repo, tags$aqua, aqua_name, out_aqua, verbose = verbose)
+      }
+      if (file.exists(out_terra) && file.exists(out_aqua)) {
         if (verbose) message("MODIS VI COGs for ", yyyymmdd,
-                             " already on GitHub release '", gh_release_tag,
-                             "' \u2014 downloading to disk")
-        gh_release_download_asset(repo, gh_release_tag, basename(out_terra),
-                                  out_terra, verbose = verbose)
-        gh_release_download_asset(repo, gh_release_tag, basename(out_aqua),
-                                  out_aqua, verbose = verbose)
+                             " restored from GitHub releases '", tags$terra,
+                             "' and '", tags$aqua, "'")
         return(c(out_terra, out_aqua))
       }
     }
 
     if (verbose) message("No source GeoTIFFs for ", yyyymmdd,
-                         " \u2014 writing all-NA placeholder COGs")
-    write_na_cog(out_terra, "Terra/MOD13A1")
-    write_na_cog(out_aqua,  "Aqua/MYD13A1")
+                         " \u2014 writing all-NA placeholder COGs for missing sensors")
+    if (!file.exists(out_terra)) write_na_cog(out_terra, "Terra/MOD13A1")
+    if (!file.exists(out_aqua))  write_na_cog(out_aqua,  "Aqua/MYD13A1")
     if (cleanup && !grepl("\\.skip$", geotiff_directory) && dir.exists(geotiff_directory)) {
       unlink(geotiff_directory, recursive = TRUE, force = TRUE)
     }

@@ -17,7 +17,7 @@
 #
 #   B. Release scan (--scan-releases): downloads every small raster COG
 #      asset published on the burn_modis_raster / burn_viirs_raster /
-#      vi_modis_raster / vi_viirs_raster releases, checks whether it is an
+#      vi_modis_terra_raster / vi_modis_aqua_raster / vi_viirs_raster releases, checks whether it is an
 #      all-NA placeholder, and — crucially — compares it against the
 #      corresponding LOCAL COG.  An asset is flagged as STALE only when the
 #      release version is a placeholder AND the local version contains real
@@ -157,7 +157,7 @@ artifact_specs <- list(
       paste0("vi_modis_",       k, ".skip"),
       paste0("vi_modis_",       k, ".parquet")
     ),
-    release_tag = "vi_modis_raster",
+    release_tag = c("vi_modis_terra_raster", "vi_modis_aqua_raster"),
     tif_pattern = "^vi_modis_(?:terra|aqua)_(\\d{8})\\.tif$"
   ),
   vi_viirs_task_ids = list(
@@ -486,16 +486,30 @@ release_asset_ids        <- list()   # tag -> integer()   (matching IDs)
 release_bad_tags         <- character(0)  # release tags with confirmed bad assets
 
 if (delete_release) {
-  # Group release-asset names by release tag from tar_meta scan
+  # Group release-asset names by release tag from tar_meta scan.
+  # MODIS VI splits Terra and Aqua across two releases.
   for (parent in names(stuck)) {
-    tag <- artifact_specs[[parent]]$release_tag
-    if (is.na(tag)) next
+    tags <- artifact_specs[[parent]]$release_tag
+    tags <- tags[!is.na(tags)]
+    if (length(tags) == 0L) next
     for (bs in stuck[[parent]]) {
-      # Only the ".tif" files land on the raster releases; keep parquet/skip
-      # off the raster tag list. This matches the upload_*_grid targets.
       tif_names <- basename(grep("\\.tif$", bs$files, value = TRUE))
-      release_assets_to_delete[[tag]] <- c(release_assets_to_delete[[tag]],
-                                           tif_names)
+      for (tif_name in tif_names) {
+        tag <- if (length(tags) == 1L) {
+          tags[[1L]]
+        } else if (grepl("aqua", tif_name)) {
+          aqua <- tags[grepl("aqua", tags)]
+          if (length(aqua)) aqua[[1L]] else tags[[1L]]
+        } else if (grepl("terra", tif_name)) {
+          terra <- tags[grepl("terra", tags)]
+          if (length(terra)) terra[[1L]] else tags[[1L]]
+        } else {
+          tags[[1L]]
+        }
+        release_assets_to_delete[[tag]] <- c(
+          release_assets_to_delete[[tag]], tif_name
+        )
+      }
     }
   }
   for (tag in names(release_assets_to_delete)) {
@@ -527,7 +541,8 @@ if (n_release > 0L) {
 upload_targets_for_tag <- c(
   burn_modis_raster = "upload_burn_modis_grid",
   burn_viirs_raster = "upload_burn_viirs_grid",
-  vi_modis_raster   = "upload_vi_modis_grid",
+  vi_modis_terra_raster = "upload_vi_modis_terra_grid",
+  vi_modis_aqua_raster  = "upload_vi_modis_aqua_grid",
   vi_viirs_raster   = "upload_vi_viirs_grid"
 )
 upload_targets_to_invalidate <- unname(

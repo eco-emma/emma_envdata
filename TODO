@@ -1,3 +1,10 @@
+The inventory below is out of date. Current tag names are `release_tags` in
+`_targets.R`. To publish a clean set from CCR, dry-run
+`Rscript reset_output_releases.R`, then delete with
+`CONFIRM_RESET_RELEASES=yes` and `--delete`. That keeps `vegmap2024` and
+`manual-data`. The Monday Actions cron stays commented out until that prime
+has finished.
+
 Here is the full release inventory cross-referenced against the current `release_tags` config in `_targets.R`:
 
 ---

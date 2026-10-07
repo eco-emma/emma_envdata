@@ -18,7 +18,15 @@ message("Starting tar_make()")
 library(targets)
 # tar_make()
 # tar_glimpse()
-tar_source("R")  # source all R files; unlike devtools::load_all(), tar_source() makes functions available to crew workers
+r_source_files <- list.files(
+  "R",
+  pattern = "^[^.].*\\.R$",
+  full.names = TRUE
+)
+r_source_files <- r_source_files[
+  basename(r_source_files) != "backfill_stac_release.R"
+]
+tar_source(r_source_files)
 description_packages <- load_description_packages(verbose=TRUE)  # Load all packages from DESCRIPTION and get list
 
 
@@ -42,7 +50,8 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
   # from this list so renaming one tag cannot silently break another.
   release_tags <- list(
     static             = "static_data",
-    vi_modis_raster    = "vi_modis_raster",
+    vi_modis_terra     = "vi_modis_terra_raster",
+    vi_modis_aqua      = "vi_modis_aqua_raster",
     vi_viirs_raster    = "vi_viirs_raster",
     vi_modis_parquet   = "vi_modis_parquet",
     vi_viirs_parquet   = "vi_viirs_parquet",
@@ -52,6 +61,9 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
     burn_viirs_parquet = "burn_viirs_parquet",
     fireage            = "fireage",
     stac               = "stac",
+    stac_vi            = "stac-vi",
+    stac_burn          = "stac-burn",
+    stac_static        = "stac-static",
     cache              = "targets-cache",
     readme_assets      = "readme-assets"
   )
@@ -66,6 +78,7 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
 
   # Download cached targets from GitHub release before tar_option_set() so the
   # restored store is visible before any cue or format options are applied.
+  # Actions must not rebuild history: if the sharded cache has no meta, stop.
  if (Sys.getenv("GITHUB_ACTIONS") == "true") {
     source('R/tar_release_storage.R')
     tar_download_github_release(
@@ -74,6 +87,15 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
       cache_dir = gh_repo_config$cache_dir,
       verbose = TRUE
     )
+    meta_path <- "_targets/meta/meta"
+    if (!file.exists(meta_path) || file.size(meta_path) == 0) {
+      stop(
+        "Refusing to backfill history on GitHub Actions: ",
+        "targets-cache meta was not restored. Prime on CCR with ",
+        "tar_upload_github_release(), then re-enable the weekly workflow.",
+        call. = FALSE
+      )
+    }
  }
 
   tar_option_set(
@@ -343,12 +365,20 @@ list(
         start_date = modis_start_date,
         end_date   = modis_end_date
       )
-      filter_pending_composites(
+      terra_pending <- filter_pending_composites(
         composites     = composites,
-        gh_release_tag = release_tags$vi_modis_raster,
-        prefixes       = c("vi_modis_terra_", "vi_modis_aqua_"),
+        gh_release_tag = release_tags$vi_modis_terra,
+        prefixes       = "vi_modis_terra_",
         verbose        = TRUE
       )
+      aqua_pending <- filter_pending_composites(
+        composites     = composites,
+        gh_release_tag = release_tags$vi_modis_aqua,
+        prefixes       = "vi_modis_aqua_",
+        verbose        = TRUE
+      )
+      dplyr::bind_rows(terra_pending, aqua_pending) |>
+        dplyr::distinct(composite_date, .keep_all = TRUE)
     }
   ),
 
@@ -365,8 +395,9 @@ list(
         domain_vector  = domain_boundary.gpkg,
         composite_date = vi_modis_pending$composite_date,
         composite_end  = vi_modis_pending$composite_end,
-        out_dir        = "data/target_outputs/modis_vi/",
-        gh_release_tag = release_tags$vi_modis_raster
+        out_dir               = "data/target_outputs/modis_vi/",
+        gh_release_tag_terra  = release_tags$vi_modis_terra,
+        gh_release_tag_aqua   = release_tags$vi_modis_aqua
       )
     },
     pattern = map(vi_modis_pending),
@@ -385,8 +416,9 @@ list(
         composite_date = vi_modis_pending$composite_date,
         composite_end  = vi_modis_pending$composite_end,
         domain_vector  = domain_boundary.gpkg,
-        temp_directory = "data/temp/appeears/modis_vi/",
-        gh_release_tag = release_tags$vi_modis_raster,
+        temp_directory        = "data/temp/appeears/modis_vi/",
+        gh_release_tag_terra  = release_tags$vi_modis_terra,
+        gh_release_tag_aqua   = release_tags$vi_modis_aqua,
         cleanup        = cleanup_mode,
         verbose        = TRUE
       )
@@ -403,8 +435,9 @@ list(
       geotiff_directory = vi_modis_geotiff,
       domain_raster     = domain.tif,
       composite_date    = vi_modis_pending$composite_date,
-      out_dir           = "data/target_outputs/modis_vi/",
-      gh_release_tag    = release_tags$vi_modis_raster,
+      out_dir               = "data/target_outputs/modis_vi/",
+      gh_release_tag_terra  = release_tags$vi_modis_terra,
+      gh_release_tag_aqua   = release_tags$vi_modis_aqua,
       cleanup           = cleanup_mode,
       verbose           = TRUE
     ),
@@ -514,8 +547,12 @@ list(
       stac_dir                        = "data/stac/vi",
       parent_catalog_path             = "data/stac",
       gh_repo                         = gh_repo_config$repo,
-      gh_release_tag                  = release_tags$vi_modis_raster,
+      gh_release_tag_modis_terra      = release_tags$vi_modis_terra,
+      gh_release_tag_modis_aqua       = release_tags$vi_modis_aqua,
       gh_release_tag_viirs            = release_tags$vi_viirs_raster,
+      gh_stac_release_tag             = release_tags$stac_vi,
+      gh_stac_item_release_prefix     = release_tags$stac_vi,
+      gh_root_stac_release_tag        = release_tags$stac,
       gh_release_tag_vi_modis_parquet = release_tags$vi_modis_parquet,
       gh_release_tag_vi_viirs_parquet = release_tags$vi_viirs_parquet,
       gh_release_tag_fireage          = release_tags$fireage,
@@ -744,6 +781,8 @@ list(
       gh_release_tag_derived       = release_tags$fireage,
       gh_release_tag_modis_parquet = release_tags$burn_modis_parquet,
       gh_release_tag_viirs_parquet = release_tags$burn_viirs_parquet,
+      gh_stac_release_tag          = release_tags$stac_burn,
+      gh_root_stac_release_tag     = release_tags$stac,
       verbose                      = TRUE
     ),
     format     = "file",
@@ -765,6 +804,8 @@ list(
       stac_dir                  = "data/stac/static",
       gh_repo                   = gh_repo_config$repo,
       gh_release_tag            = release_tags$static,
+      gh_stac_release_tag       = release_tags$stac_static,
+      gh_root_stac_release_tag  = release_tags$stac,
       static_covariates_parquet = static_geoparquet,
       verbose                   = TRUE
     ),
@@ -842,14 +883,30 @@ list(
     deployment = "main"
   ),
 
-  # Upload MODIS VI sensor raster grids (Terra + Aqua NC files)
+  # Separate releases keep each MODIS sensor below GitHub's 1,000-asset limit.
   tar_target(
-    upload_vi_modis_grid,
+    upload_vi_modis_terra_grid,
     upload_to_github_release(
-      files        = vi_modis_grid[!grepl("\\.skip$", vi_modis_grid)],
+      files        = vi_modis_grid[
+        grepl("vi_modis_terra_.*\\.tif$", vi_modis_grid)
+      ],
       repo         = gh_repo_config$repo,
-      release_tag  = release_tags$vi_modis_raster,
-      release_name = "Dynamic MODIS VI Rasters (Terra + Aqua, 16-day composites)",
+      release_tag  = release_tags$vi_modis_terra,
+      release_name = "Dynamic MODIS Terra VI Rasters (16-day composites)",
+      verbose      = TRUE
+    ),
+    deployment = "main"
+  ),
+
+  tar_target(
+    upload_vi_modis_aqua_grid,
+    upload_to_github_release(
+      files        = vi_modis_grid[
+        grepl("vi_modis_aqua_.*\\.tif$", vi_modis_grid)
+      ],
+      repo         = gh_repo_config$repo,
+      release_tag  = release_tags$vi_modis_aqua,
+      release_name = "Dynamic MODIS Aqua VI Rasters (16-day composites)",
       verbose      = TRUE
     ),
     deployment = "main"
@@ -936,6 +993,12 @@ list(
           static = "data/stac/static"     # key "static" → static_collection.json
           # fire_history removed: recentburn item lives inside the burn collection
         ),
+        dataset_release_tags = c(
+          vi = release_tags$stac_vi,
+          burn = release_tags$stac_burn,
+          static = release_tags$stac_static
+        ),
+        root_release_tag = release_tags$stac,
         gh_repo = gh_repo_config$repo,
         verbose = TRUE
       )
@@ -944,49 +1007,86 @@ list(
     deployment = "main"
   ),
 
-  # Upload STAC catalog + all collection JSON files.
-  # Enumerate explicitly from the STAC target return values (collection paths +
-  # individual item paths) so nothing is accidentally omitted and the post-upload
-  # count check can compare expected vs actual.
+  # Each collection is published separately to stay below GitHub's 1,000-asset
+  # limit. The root catalog contains absolute links to these releases.
+  tar_target(
+    upload_stac_vi,
+    {
+      vi_collection_file <- vi_stac[
+        basename(vi_stac) == "vi_collection.json"
+      ]
+      vi_item_files <- vi_stac[
+        grepl("^vi_[0-9]{8}\\.json$", basename(vi_stac))
+      ]
+      vi_item_years <- substr(basename(vi_item_files), 4L, 7L)
+      vi_item_decades <- paste0(substr(vi_item_years, 1L, 3L), "0s")
+
+      upload_to_github_release(
+        files = vi_collection_file,
+        repo = gh_repo_config$repo,
+        release_tag = release_tags$stac_vi,
+        release_name = "STAC - Vegetation Indices",
+        verbose = TRUE,
+        overwrite = TRUE
+      )
+
+      purrr::iwalk(
+        split(vi_item_files, vi_item_decades),
+        function(files, decade) {
+          upload_to_github_release(
+            files = files,
+            repo = gh_repo_config$repo,
+            release_tag = paste0(release_tags$stac_vi, "-", decade),
+            release_name = paste("STAC - Vegetation Indices", decade),
+            verbose = TRUE,
+            overwrite = TRUE
+          )
+        }
+      )
+    },
+    deployment = "main"
+  ),
+
+  tar_target(
+    upload_stac_burn,
+    upload_to_github_release(
+      files = burn_stac,
+      repo = gh_repo_config$repo,
+      release_tag = release_tags$stac_burn,
+      release_name = "STAC - Burned Area",
+      verbose = TRUE,
+      overwrite = TRUE
+    ),
+    deployment = "main"
+  ),
+
+  tar_target(
+    upload_stac_static,
+    upload_to_github_release(
+      files = static_stac,
+      repo = gh_repo_config$repo,
+      release_tag = release_tags$stac_static,
+      release_name = "STAC - Static Environmental Layers",
+      verbose = TRUE,
+      overwrite = TRUE
+    ),
+    deployment = "main"
+  ),
+
   tar_target(
     upload_stac_catalog,
     {
-      stac_files <- unique(c(
-        emma_stac_catalog,   # catalog.json path (from target return)
-        vi_stac,             # vi_collection.json + item JSON paths
-        burn_stac,           # burn_collection.json + item JSON paths
-        static_stac          # static_collection.json + item JSON paths
-      ))
-      stac_files <- stac_files[file.exists(stac_files)]
-
-      token <- Sys.getenv("GITHUB_TOKEN")
-      if (token == "") token <- Sys.getenv("GITHUB_PAT")
-
+      force(upload_stac_vi)
+      force(upload_stac_burn)
+      force(upload_stac_static)
       upload_to_github_release(
-        files        = stac_files,
-        repo         = gh_repo_config$repo,
-        release_tag  = release_tags$stac,
-        release_name = "STAC Catalog — Current",
-        verbose      = TRUE,
-        overwrite    = TRUE   # always re-upload STAC JSONs — content changes with every new month
+        files = emma_stac_catalog,
+        repo = gh_repo_config$repo,
+        release_tag = release_tags$stac,
+        release_name = "STAC Catalog - Current",
+        verbose = TRUE,
+        overwrite = TRUE
       )
-
-      # Post-upload count check: warn if fewer assets are visible than expected
-      after_count <- tryCatch(
-        length(.gh_release_asset_names(gh_repo_config$repo, release_tags$stac, token)),
-        error = function(e) NA_integer_
-      )
-      if (!is.na(after_count) && after_count < length(stac_files)) {
-        warning(
-          "STAC upload may be incomplete: expected ", length(stac_files),
-          " files, found ", after_count, " on release '", release_tags$stac, "'."
-        )
-      } else {
-        message(
-          "\u2713 STAC release '", release_tags$stac, "': ",
-          after_count, " assets confirmed."
-        )
-      }
     },
     deployment = "main"
   ),

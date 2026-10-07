@@ -18,6 +18,9 @@ logs/*
 .RData
 .Ruserdata
 
+# pak library cache used by GitHub Actions
+.r-lib/
+
 # RStudio files
 .Rproj.user/
 

@@ -286,30 +286,58 @@ upload_to_github_release <- function(
   
   # Upload each file using gh + httr directly (piggyback pb_upload fails when
   # its internal pb_list cannot find the release due to API schema changes).
-  uploaded <- character(0)
-  for (file in files_to_upload) {
-    if (!file.exists(file)) {
-      warning("File not found: ", file)
-      next
+  # Large batches throttle between requests to avoid tripping GitHub's
+  # secondary rate limit, which otherwise silently fails most of the batch.
+  throttle <- length(files_to_upload) > 50L
+  upload_batch <- function(file_list) {
+    ok <- character(0)
+    failed <- character(0)
+    for (file in file_list) {
+      if (!file.exists(file)) {
+        warning("File not found: ", file)
+        next
+      }
+      if (verbose) message("  Uploading: ", basename(file))
+      tryCatch({
+        .gh_upload_release_asset(
+          file        = file,
+          repo        = repo,
+          release_tag = release_tag,
+          token       = token,
+          overwrite   = overwrite
+        )
+        ok <- c(ok, file)
+        if (verbose) message("    \u2713 Uploaded")
+      }, error = function(e) {
+        failed <<- c(failed, file)
+        warning("Failed to upload: ", basename(file), " - ", e$message)
+      })
+      if (throttle) Sys.sleep(0.5)
     }
-    
-    if (verbose) message("  Uploading: ", basename(file))
-    
-    tryCatch({
-      .gh_upload_release_asset(
-        file        = file,
-        repo        = repo,
-        release_tag = release_tag,
-        token       = token,
-        overwrite   = overwrite
-      )
-      uploaded <- c(uploaded, file)
-      if (verbose) message("    \u2713 Uploaded")
-    }, error = function(e) {
-      warning("Failed to upload: ", basename(file), " - ", e$message)
-    })
+    list(ok = ok, failed = failed)
   }
-  
+
+  first_pass <- upload_batch(files_to_upload)
+  uploaded   <- first_pass$ok
+
+  # Retry once after a backoff — most first-pass failures are transient
+  # secondary-rate-limit hits rather than permanent errors.
+  if (length(first_pass$failed) > 0L) {
+    if (verbose) message(
+      "Retrying ", length(first_pass$failed),
+      " failed upload(s) after 30s backoff..."
+    )
+    Sys.sleep(30L)
+    retry_pass <- upload_batch(first_pass$failed)
+    uploaded   <- c(uploaded, retry_pass$ok)
+    if (length(retry_pass$failed) > 0L) {
+      warning(
+        length(retry_pass$failed), " file(s) still failed to upload after retry: ",
+        paste(basename(retry_pass$failed), collapse = ", ")
+      )
+    }
+  }
+
  
   # Verify uploaded files are now in the release.
   # Only poll for large files (> 1 MB) — small JSON/parquet files index near-instantly
@@ -350,12 +378,14 @@ upload_to_github_release <- function(
     # Write SHA-256 checksums for all uploaded files as a sidecar on the same release.
     # This allows downstream consumers to verify data integrity without re-downloading.
     tryCatch({
-      sha_lines <- vapply(uploaded, function(f)
+      sha_lines <- vapply(files, function(f)
         paste(digest::digest(f, algo = "sha256", file = TRUE), basename(f)),
         character(1L))
-      tmp_sha <- tempfile(fileext = ".txt")
-      writeLines(sha_lines, tmp_sha)
       sha_asset_name <- paste0(release_tag, "_SHA256SUMS.txt")
+      # basename(tmp_sha) is used as the uploaded asset name, so it must
+      # already be sha_asset_name (a bare tempfile() name was uploaded as-is before).
+      tmp_sha <- file.path(tempdir(), sha_asset_name)
+      writeLines(sha_lines, tmp_sha)
       if (verbose) message("Uploading checksum file: ", sha_asset_name)
       .gh_upload_release_asset(
         file        = tmp_sha,
@@ -364,7 +394,6 @@ upload_to_github_release <- function(
         token       = token,
         overwrite   = TRUE
       )
-      # Rename the uploaded asset to the friendly name via a re-upload with ?name=
       if (verbose) message("\u2713 Checksums uploaded as ", sha_asset_name)
     }, error = function(e) {
       if (verbose) message("  (checksum upload skipped: ", conditionMessage(e), ")")

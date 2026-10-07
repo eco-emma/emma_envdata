@@ -6,7 +6,7 @@
 #      ssh vortex.ccr.buffalo.edu
 # 2. On CCR, request an interactive node:
 #      salloc --cluster=faculty --qos=adamw --partition=adamw \
-#        --job-name=emma_interactive --nodes=1 --ntasks=4 --mem=24G \
+#              --job-name=emma_interactive --nodes=1 --ntasks=4 --mem=24G \
 #        -C INTEL --time=24:00:00
 # 3. On the allocated node, run one of:
 #      bash R/ccr_startup.sh rstudio
@@ -50,6 +50,12 @@ if [[ ! -f "${SIF}" ]]; then
 fi
 
 common_args=(
+       # DNS/network (e.g. GitHub uploads) works via Apptainer's built-in
+       # automatic /etc/resolv.conf passthrough — do not add an explicit
+       # --bind for it here. run_tar_make.sh relies on the same default
+       # behavior. An explicit bind fails hard because this image ships with
+       # no /etc/resolv.conf file, and user --bind mounts (unlike Apptainer's
+       # built-in host-file passthrough) cannot auto-create missing targets.
        --bind "${PROJECT_FOLDER}:${PROJECT_FOLDER}"
        --bind "${APPTAINER_TMPDIR}:/tmp"
        --bind "${APPTAINER_CACHEDIR}/run:/run"

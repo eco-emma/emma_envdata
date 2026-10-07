@@ -134,7 +134,7 @@ burn_viirs_items <- length(list.files("data/stac/burn", pattern = "^burn_viirs_\
 # Build inventory table
 inventory <- tribble(
   ~Dataset, ~Source, ~Type, ~Format, ~`Release Tag`, ~`Time Steps`, ~`Date Updated`,
-  "MODIS VI (Terra + Aqua)", "MOD13A1 + MYD13A1", "Dynamic", "COG GeoTIFF + Parquet", "vi_modis_raster", vi_items, 
+  "MODIS VI (Terra + Aqua)", "MOD13A1 + MYD13A1", "Dynamic", "COG GeoTIFF + Parquet", "vi_modis_terra_raster + vi_modis_aqua_raster", vi_items, 
     if(!is.null(vi_coll)) vi_coll$extent$temporal$interval[[1]][[2]] else NA,
   "VIIRS VI (S-NPP + NOAA-20)", "VNP13A1 + VJ113A1", "Dynamic", "COG GeoTIFF + Parquet", "vi_viirs_raster", vi_items,
     if(!is.null(vi_coll)) vi_coll$extent$temporal$interval[[1]][[2]] else NA,
