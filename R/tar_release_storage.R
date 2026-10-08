@@ -325,7 +325,7 @@ tar_download_github_release <- function(
 tar_upload_github_release <- function(
   repo          = NULL,
   tag           = NULL,
-  n_shards      = 4L,
+  n_shards      = 25L,
   format        = "rds",   # kept for API compat; not used
   cache_dir     = "_targets/cache",
   which_targets = NULL,
