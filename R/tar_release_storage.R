@@ -134,7 +134,7 @@
 tar_download_github_release <- function(
   repo          = NULL,
   tag           = NULL,
-  n_shards      = 4L,
+  n_shards      = 25L,
   cache_dir     = "_targets/user/cache",
   which_targets = NULL,
   verbose       = TRUE

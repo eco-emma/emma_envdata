@@ -3,6 +3,11 @@
 # Submit with:  sbatch --cluster=faculty run_tar_make.sh
 # Monitor with: squeue --cluster=faculty -u $USER
 # Cancel with:  scancel --cluster=faculty <JOBID>
+#
+# Upload the targets cache only (no tar_make):
+#   UPLOAD_ONLY=true sbatch --cluster=faculty run_tar_make.sh
+# Skip the upload after tar_make:
+#   SKIP_GH_UPLOAD=true sbatch --cluster=faculty run_tar_make.sh
 # =============================================================================
 
 #SBATCH --cluster=faculty
@@ -54,7 +59,13 @@ echo "Job ID   : ${SLURM_JOB_ID}"                                  | tee -a "${L
 echo "Node     : ${SLURM_NODELIST}"                                 | tee -a "${LOG}"
 echo "Started  : $(date)"                                           | tee -a "${LOG}"
 echo "Work dir : ${WORK_DIR}"                                       | tee -a "${LOG}"
+echo "Mode     : $([[ "${UPLOAD_ONLY}" == "true" ]] && echo "upload only" || echo "tar_make + upload")" | tee -a "${LOG}"
 echo "============================================================" | tee -a "${LOG}"
+
+if [[ "${UPLOAD_ONLY}" == "true" && "${SKIP_GH_UPLOAD}" == "true" ]]; then
+  echo "ERROR: UPLOAD_ONLY and SKIP_GH_UPLOAD are both set." | tee -a "${LOG}"
+  exit 1
+fi
 
 # =============================================================================
 # GitHub token (needed for piggyback uploads to GitHub Releases)
@@ -103,20 +114,26 @@ printf 'GITHUB_PAT=%s\n'          "${GITHUB_PAT}"          >> "${APPTAINER_ENV_F
 printf 'EARTHDATA_USER=%s\n'      "${EARTHDATA_USER}"      >> "${APPTAINER_ENV_FILE}"
 printf 'EARTHDATA_PASSWORD=%s\n'  "${EARTHDATA_PASSWORD}"  >> "${APPTAINER_ENV_FILE}"
 
-#    --bind "${APPTAINER_CACHEDIR}/run:/run" \
-apptainer run \
-    --bind "${PROJECT_FOLDER}:${PROJECT_FOLDER}" \
-    --bind "${APPTAINER_TMPDIR}:/tmp" \
-    --env-file "${APPTAINER_ENV_FILE}" \
-    --env TMPDIR=/tmp \
-    "${SIF_PATH}/${SIF_FILE}" \
-    Rscript -e "
-      setwd('${WORK_DIR}')
-      message('R working directory: ', getwd())
-      targets::tar_make()
-    " 2>&1 | tee -a "${LOG}"
+# UPLOAD_ONLY=true skips this step and runs only tar_upload_github_release().
+if [[ "${UPLOAD_ONLY}" == "true" ]]; then
+  echo "UPLOAD_ONLY=true — skipping tar_make" | tee -a "${LOG}"
+  EXIT_CODE=0
+else
+  #    --bind "${APPTAINER_CACHEDIR}/run:/run" \
+  apptainer run \
+      --bind "${PROJECT_FOLDER}:${PROJECT_FOLDER}" \
+      --bind "${APPTAINER_TMPDIR}:/tmp" \
+      --env-file "${APPTAINER_ENV_FILE}" \
+      --env TMPDIR=/tmp \
+      "${SIF_PATH}/${SIF_FILE}" \
+      Rscript -e "
+        setwd('${WORK_DIR}')
+        message('R working directory: ', getwd())
+        targets::tar_make()
+      " 2>&1 | tee -a "${LOG}"
 
-EXIT_CODE=${PIPESTATUS[0]}
+  EXIT_CODE=${PIPESTATUS[0]}
+fi
 
 # =============================================================================
 # Upload targets cache to GitHub release (runs even on partial tar_make failure
@@ -165,4 +182,9 @@ echo "tar_make exit : ${EXIT_CODE}"                                 | tee -a "${
 echo "upload exit   : ${UPLOAD_EXIT_CODE}"                          | tee -a "${LOG}"
 echo "============================================================" | tee -a "${LOG}"
 
+# An upload-only job should fail when the upload fails. A full run still
+# reports the tar_make status, matching the previous behavior.
+if [[ "${UPLOAD_ONLY}" == "true" ]]; then
+  exit ${UPLOAD_EXIT_CODE}
+fi
 exit ${EXIT_CODE}
