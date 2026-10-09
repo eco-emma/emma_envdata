@@ -6,7 +6,7 @@
   "links": [
     {
       "rel": "root",
-      "href": "catalog.json",
+      "href": "https://github.com/eco-emma/emma_envdata/releases/download/stac/catalog.json",
       "type": "application/json",
       "title": "EMMA Catalog"
     },
@@ -24,19 +24,19 @@
     },
     {
       "rel": "child",
-      "href": "vi_collection.json",
+      "href": "https://github.com/eco-emma/emma_envdata/releases/download/stac-vi/vi_collection.json",
       "type": "application/json",
       "title": "MODIS + VIIRS VI Rasters (Terra, Aqua, S-NPP, NOAA-20 — 16-day composites, 500m)"
     },
     {
       "rel": "child",
-      "href": "burn_collection.json",
+      "href": "https://github.com/eco-emma/emma_envdata/releases/download/stac-burn/burn_collection.json",
       "type": "application/json",
       "title": "Burned Area — MODIS MCD64A1 + VIIRS VNP64A1 (COG GeoTIFF rasters)"
     },
     {
       "rel": "child",
-      "href": "static_collection.json",
+      "href": "https://github.com/eco-emma/emma_envdata/releases/download/stac-static/static_collection.json",
       "type": "application/json",
       "title": "Static Environmental Layers (domain, vegetation, elevation, climate, clouds, soil, topography)"
     }

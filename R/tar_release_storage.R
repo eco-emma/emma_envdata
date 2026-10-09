@@ -488,10 +488,20 @@ tar_upload_github_release <- function(
                                      shard_releases[[1]]$id, .token)
       hit <- fresh$file_name == asset_name
       if (!any(hit)) return(invisible(TRUE))
-      gh::gh("DELETE /repos/{owner}/{repo}/releases/assets/{asset_id}",
-             owner = owner, repo = repo_name,
-             asset_id = fresh$id[hit][1], .token = .token)
-      Sys.sleep(1)
+      for (asset_id in fresh$id[hit]) {
+        tryCatch(
+          gh::gh("DELETE /repos/{owner}/{repo}/releases/assets/{asset_id}",
+                 owner = owner, repo = repo_name,
+                 asset_id = asset_id, .token = .token),
+          error = function(e) {
+            # The asset list can still show an id GitHub has already removed.
+            if (!grepl("404", conditionMessage(e))) stop(e)
+            if (verbose) message("[tar_github_release] ", asset_name,
+                                 " already gone (asset ", asset_id, ")")
+          }
+        )
+        Sys.sleep(1)
+      }
       invisible(TRUE)
     }
 
