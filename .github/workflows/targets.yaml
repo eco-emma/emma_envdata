@@ -50,6 +50,9 @@ jobs:
       EARTHDATA_PASSWORD: ${{ secrets.EARTHDATA_PASSWORD }}
       EARTHDATA_USER: ${{ secrets.EARTHDATA_USER }}
       ACTIONS_RUNNER_DEBUG: true
+      # Newest missing burn months per product per run. Full history is primed
+      # on CCR; set to 0 to disable the cap.
+      CI_APPEEARS_MAX_MONTHS: "24"
     steps:
       - uses: actions/checkout@v4
         with:

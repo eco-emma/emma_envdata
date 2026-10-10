@@ -74,6 +74,84 @@ product_branch_pattern <- paste0(
   paths[file.exists(paths) & !grepl("\\.skip$", paths)]
 }
 
+# Pattern stems keyed by the pending target they map over.
+.pending_stem_map <- list(
+  vi_modis_pending = c(
+    "vi_modis_task_ids", "vi_modis_geotiff", "vi_modis_grid", "vi_modis_parquet"
+  ),
+  vi_viirs_pending = c(
+    "vi_viirs_task_ids", "vi_viirs_geotiff", "vi_viirs_grid", "vi_viirs_parquet"
+  ),
+  burn_modis_pending = c(
+    "burn_modis_task_ids", "burn_modis_geotiff", "burn_modis_grid",
+    "burn_modis_parquet"
+  ),
+  burn_viirs_pending = c(
+    "burn_viirs_task_ids", "burn_viirs_geotiff", "burn_viirs_grid",
+    "burn_viirs_parquet"
+  )
+)
+
+.pending_is_empty <- function(pending_name) {
+  value <- tryCatch(
+    targets::tar_read(pending_name),
+    error = function(e) NULL
+  )
+  if (is.null(value)) return(TRUE)
+  if (is.data.frame(value)) return(nrow(value) == 0L)
+  length(value) == 0L
+}
+
+.drop_empty_pending_stems <- function(todo) {
+  drop <- character(0)
+  for (pending_name in names(.pending_stem_map)) {
+    if (!.pending_is_empty(pending_name)) next
+    stems <- intersect(todo, .pending_stem_map[[pending_name]])
+    if (length(stems)) {
+      message(
+        "[ci_appeears] Skipping ", paste(stems, collapse = ", "),
+        " — ", pending_name, " is empty"
+      )
+      drop <- c(drop, stems)
+    }
+  }
+  setdiff(todo, drop)
+}
+
+# Only branch-hash names are safe to skip. Pattern stems must stay when their
+# pending table gained new months after a code-driven invalidate.
+.drop_already_built_branches <- function(todo) {
+  branch_todo <- todo[grepl(product_branch_pattern, todo)]
+  if (!length(branch_todo)) return(todo)
+
+  built <- character(0)
+  meta <- tryCatch(
+    targets::tar_meta(targets_only = TRUE),
+    error = function(e) NULL
+  )
+  if (!is.null(meta) && nrow(meta)) {
+    err <- as.character(meta$error)
+    ok <- (is.na(err) | !nzchar(err)) & !is.na(meta$time)
+    built <- meta$name[ok]
+  }
+  progress <- tryCatch(
+    targets::tar_progress(),
+    error = function(e) NULL
+  )
+  if (!is.null(progress) && nrow(progress)) {
+    built <- union(built, progress$name[progress$progress == "built"])
+  }
+
+  skipped <- intersect(branch_todo, built)
+  if (length(skipped)) {
+    message(
+      "[ci_appeears] Leaving ", length(skipped),
+      " already-built branches in the cache"
+    )
+  }
+  setdiff(todo, skipped)
+}
+
 .upload_product_files <- function(paths) {
   if (!length(paths)) {
     message("[ci_appeears] No new COGs or parquets to publish")
@@ -161,17 +239,20 @@ ci_appeears_update <- function() {
     return(invisible(NULL))
   }
 
-  # A code change marks every historical branch outdated. Months that already
-  # finished must not be downloaded from AppEEARS again. Keep branches that
-  # have never built, or that failed, and leave the built ones in the cache.
-  progress <- targets::tar_progress(names = todo)
-  built <- progress$name[progress$progress == "built"]
-  skipped_built <- intersect(todo, built)
-  todo <- setdiff(todo, built)
-  if (length(skipped_built)) {
-    message("[ci_appeears] Leaving ", length(skipped_built),
-            " already-built branches in the cache")
+  # Drop product stems whose pending table is empty. Building them would hit
+  # targets' "cannot branch over empty target" error (seen 2026-10-05).
+  todo <- .drop_empty_pending_stems(todo)
+  if (!length(todo)) {
+    message("[ci_appeears] No new or unfinished AppEEARS months")
+    return(invisible(NULL))
   }
+
+  # A code change marks every historical branch outdated. Skip branch names
+  # that already finished successfully; leave them in the restored meta.
+  # Do not pass names= to tar_progress()/tar_meta() — after a pending-only
+  # tar_make those helpers only know the pending targets and tidyselect
+  # errors on the remaining stems (failure in run 38015827855).
+  todo <- .drop_already_built_branches(todo)
   if (!length(todo)) {
     message("[ci_appeears] No new or unfinished AppEEARS months")
     return(invisible(NULL))
@@ -186,7 +267,14 @@ ci_appeears_update <- function() {
     "burn_modis_task_ids", "burn_modis_geotiff", "burn_modis_grid", "burn_modis_parquet",
     "burn_viirs_task_ids", "burn_viirs_geotiff", "burn_viirs_grid", "burn_viirs_parquet"
   )
-  upstream <- setdiff(upstream, pattern_stems)
+  # Freshly rebuilt pending must not be overwritten by the CCR cache. Doing so
+  # resurrected full historical month lists after VI pending correctly returned
+  # 0 rows (cancelled run 38010433480).
+  pending_stems <- c(
+    "vi_modis_pending", "vi_viirs_pending",
+    "burn_modis_pending", "burn_viirs_pending"
+  )
+  upstream <- setdiff(upstream, c(pattern_stems, pending_stems))
   message("[ci_appeears] Upstream objects to restore: ", length(upstream))
   if (length(upstream)) {
     tar_download_github_release(
