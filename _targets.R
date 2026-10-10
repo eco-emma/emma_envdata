@@ -79,11 +79,13 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
     TAR_GH_RELEASE_CACHE_DIR = gh_repo_config$cache_dir
   )
 
-  # Download cached targets from GitHub release before tar_option_set() so the
-  # restored store is visible before any cue or format options are applied.
-  # Actions must not rebuild history: if the sharded cache has no meta, stop.
- if (Sys.getenv("GITHUB_ACTIONS") == "true") {
-    source('R/tar_release_storage.R')
+  # Download cached targets meta once per Actions job before tar_option_set()
+  # so the restored store is visible. Re-running this on every
+  # tar_outdated()/tar_make() parse overwrites freshly built pending meta with
+  # the CCR snapshot (false-green in run 38016708889).
+  if (Sys.getenv("GITHUB_ACTIONS") == "true" &&
+      !identical(Sys.getenv("TAR_GH_META_RESTORED"), "true")) {
+    source("R/tar_release_storage.R")
     tar_download_github_release(
       repo = gh_repo_config$repo,
       tag = gh_repo_config$tag,
@@ -100,7 +102,8 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
         call. = FALSE
       )
     }
- }
+    Sys.setenv(TAR_GH_META_RESTORED = "true")
+  }
 
   tar_option_set(
     #controller = if (Sys.getenv("GITHUB_ACTIONS") != "true") crew::crew_controller_local(workers = 16) else NULL,
