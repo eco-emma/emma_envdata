@@ -62,7 +62,7 @@ product_branch_pattern <- paste0(
   paths <- character(0)
   for (name in branch_names) {
     value <- tryCatch(
-      targets::tar_read(name),
+      targets::tar_read_raw(name),
       error = function(e) {
         message("[ci_appeears] No product from ", name, ": ", conditionMessage(e))
         NULL
@@ -93,8 +93,9 @@ product_branch_pattern <- paste0(
 )
 
 .pending_is_empty <- function(pending_name) {
+  # tar_read() uses NSE; character names need tar_read_raw().
   value <- tryCatch(
-    targets::tar_read(pending_name),
+    targets::tar_read_raw(pending_name),
     error = function(e) {
       stop(
         "[ci_appeears] Cannot read ", pending_name, ": ",
