@@ -95,9 +95,14 @@ product_branch_pattern <- paste0(
 .pending_is_empty <- function(pending_name) {
   value <- tryCatch(
     targets::tar_read(pending_name),
-    error = function(e) NULL
+    error = function(e) {
+      stop(
+        "[ci_appeears] Cannot read ", pending_name, ": ",
+        conditionMessage(e),
+        call. = FALSE
+      )
+    }
   )
-  if (is.null(value)) return(TRUE)
   if (is.data.frame(value)) return(nrow(value) == 0L)
   length(value) == 0L
 }
@@ -215,6 +220,9 @@ ci_appeears_update <- function() {
       call. = FALSE
     )
   }
+  # Prevent _targets.R from re-downloading CCR meta on later tar_outdated()/
+  # tar_make() parses and clobbering freshly built pending (run 38016708889).
+  Sys.setenv(TAR_GH_META_RESTORED = "true")
 
   outdated <- .appeears_outdated()
   if (!length(outdated)) {
