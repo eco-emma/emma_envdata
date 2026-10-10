@@ -24,7 +24,10 @@ r_source_files <- list.files(
   full.names = TRUE
 )
 r_source_files <- r_source_files[
-  basename(r_source_files) != "backfill_stac_release.R"
+  !basename(r_source_files) %in% c(
+    "backfill_stac_release.R",
+    "ci_appeears_update.R"
+  )
 ]
 tar_source(r_source_files)
 description_packages <- load_description_packages(verbose=TRUE)  # Load all packages from DESCRIPTION and get list
@@ -85,6 +88,7 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
       repo = gh_repo_config$repo,
       tag = gh_repo_config$tag,
       cache_dir = gh_repo_config$cache_dir,
+      meta_only = TRUE,
       verbose = TRUE
     )
     meta_path <- "_targets/meta/meta"

@@ -26,8 +26,9 @@
 
 
 on:
-  # Manual runs only until CCR has primed targets-cache-1..4 and the product
-  # releases. Then uncomment the Monday schedule.
+  # Manual runs only until one workflow_dispatch finishes. Then uncomment
+  # the Monday schedule. The job restores targets metadata and updates only
+  # new or unfinished AppEEARS months.
   workflow_dispatch:
   # schedule:
   #   - cron: '0 3 * * 1' # every Monday at 03:00 UTC
@@ -70,11 +71,11 @@ jobs:
           Rscript -e "dir.create(Sys.getenv('R_LIBS_USER'), recursive = TRUE, showWarnings = FALSE); .libPaths(c(Sys.getenv('R_LIBS_USER'), .libPaths())); if (!requireNamespace('pak', quietly = TRUE)) install.packages('pak', lib = Sys.getenv('R_LIBS_USER')); pak::pak(lib = Sys.getenv('R_LIBS_USER'))"
       - name: Parse _targets.R
         run: Rscript -e "parse('_targets.R')"
-      - name: Run targets pipeline
+      - name: Update new AppEEARS months
         id: targets
         run: |
           set -o pipefail
-          Rscript -e "options(error = function() { traceback(2) ; quit(status = 1)}); targets::tar_make()" 2>&1 | tee targets-output.log
+          Rscript R/ci_appeears_update.R 2>&1 | tee targets-output.log
         shell: bash
       - name: Upload targets cache to GitHub release
         if: success()

@@ -129,6 +129,8 @@
 #' @param n_shards   Number of shard releases to search (default 4).
 #' @param cache_dir  Local cache directory (default "_targets/user/cache").
 #' @param which_targets Optional vector of specific target names to download.
+#' @param meta_only  If TRUE, restore \code{_targets/meta/meta} and return
+#'   without downloading target objects.
 #' @param verbose    Print progress messages.
 #' @export
 tar_download_github_release <- function(
@@ -137,6 +139,7 @@ tar_download_github_release <- function(
   n_shards      = 25L,
   cache_dir     = "_targets/user/cache",
   which_targets = NULL,
+  meta_only     = FALSE,
   verbose       = TRUE
 ) {
   repo      <- repo      %||% Sys.getenv("TAR_GH_RELEASE_REPO") %||% "eco-emma/emma_envdata"
@@ -234,6 +237,11 @@ tar_download_github_release <- function(
     })
   } else {
     if (verbose) message("[tar_github_release] No targets meta found in any shard (first run?)")
+  }
+
+  if (isTRUE(meta_only)) {
+    if (verbose) message("[tar_github_release] meta_only: skipping object download")
+    return(invisible(NULL))
   }
 
   # Exclude _targets_meta from the object download loop
