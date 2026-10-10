@@ -160,6 +160,22 @@ ci_appeears_update <- function() {
     message("[ci_appeears] No new or unfinished AppEEARS months")
     return(invisible(NULL))
   }
+
+  # A code change marks every historical branch outdated. Months that already
+  # finished must not be downloaded from AppEEARS again. Keep branches that
+  # have never built, or that failed, and leave the built ones in the cache.
+  progress <- targets::tar_progress(names = todo)
+  built <- progress$name[progress$progress == "built"]
+  skipped_built <- intersect(todo, built)
+  todo <- setdiff(todo, built)
+  if (length(skipped_built)) {
+    message("[ci_appeears] Leaving ", length(skipped_built),
+            " already-built branches in the cache")
+  }
+  if (!length(todo)) {
+    message("[ci_appeears] No new or unfinished AppEEARS months")
+    return(invisible(NULL))
+  }
   message("[ci_appeears] Branches to build: ", length(todo))
 
   upstream <- .upstream_objects(todo)

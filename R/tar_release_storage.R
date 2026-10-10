@@ -698,35 +698,56 @@ gh_release_has_asset <- function(repo, release_tag, asset_name, verbose = FALSE)
     owner_repo <- strsplit(repo, "/")[[1]]
     # Named character vector: names = asset file names, values = asset IDs.
     # Stored as character to avoid integer overflow on large release IDs.
-    asset_lookup <- tryCatch({
-      if (verbose) message("[gh_release_has_asset] Fetching asset list for release: ", release_tag)
-      # Step 1: get release metadata (id, etc.)
-      rel <- gh::gh(
-        "GET /repos/{owner}/{repo}/releases/tags/{tag}",
-        owner  = owner_repo[1],
-        repo   = owner_repo[2],
-        tag    = release_tag,
-        .token = token
-      )
-      # Step 2: fetch ALL assets via the paginated assets endpoint.
-      # The releases-by-tag endpoint embeds only the first 30 assets in its
-      # JSON response; releases with >30 files (e.g. burn_viirs_raster) would
-      # silently miss older months, causing unnecessary AppEEARS re-submissions.
-      asset_list <- gh::gh(
-        "GET /repos/{owner}/{repo}/releases/{release_id}/assets",
-        owner      = owner_repo[1],
-        repo       = owner_repo[2],
-        release_id = rel$id,
-        .limit     = Inf,
-        .token     = token
-      )
-      nms <- vapply(asset_list, `[[`, character(1), "name")
-      ids <- vapply(asset_list, function(a) as.character(a[["id"]]), character(1))
-      setNames(ids, nms)
-    }, error = function(e) {
-      # Release doesn't exist yet — treat as empty
-      setNames(character(0), character(0))
-    })
+    asset_lookup <- NULL
+    last_error <- NULL
+    for (attempt in seq_len(5L)) {
+      asset_lookup <- tryCatch({
+        if (verbose) message("[gh_release_has_asset] Fetching asset list for release: ", release_tag)
+        rel <- gh::gh(
+          "GET /repos/{owner}/{repo}/releases/tags/{tag}",
+          owner  = owner_repo[1],
+          repo   = owner_repo[2],
+          tag    = release_tag,
+          .token = token
+        )
+        # The releases-by-tag endpoint embeds only the first 30 assets.
+        # A partial list makes existing months look missing and triggers
+        # AppEEARS re-downloads.
+        asset_list <- gh::gh(
+          "GET /repos/{owner}/{repo}/releases/{release_id}/assets",
+          owner      = owner_repo[1],
+          repo       = owner_repo[2],
+          release_id = rel$id,
+          .limit     = Inf,
+          .token     = token
+        )
+        if (length(asset_list) == 0L) {
+          setNames(character(0), character(0))
+        } else {
+          nms <- vapply(asset_list, `[[`, character(1), "name")
+          ids <- vapply(asset_list, function(a) as.character(a[["id"]]), character(1))
+          setNames(ids, nms)
+        }
+      }, error = function(e) {
+        last_error <<- e
+        NULL
+      })
+      if (!is.null(asset_lookup)) break
+      msg <- conditionMessage(last_error)
+      # A missing release is empty. A rate-limit or network error is not:
+      # caching it as empty makes every month look new.
+      if (grepl("404", msg) && grepl("Not Found", msg)) {
+        asset_lookup <- setNames(character(0), character(0))
+        break
+      }
+      if (attempt < 5L && grepl("rate limit|429|403", msg, ignore.case = TRUE)) {
+        message("[gh_release_has_asset] Rate limit listing ", release_tag,
+                " — sleeping 60s")
+        Sys.sleep(60)
+        next
+      }
+      stop(last_error)
+    }
     assign(release_tag, asset_lookup, envir = .gh_release_asset_cache)
   }
   asset_name %in% names(
