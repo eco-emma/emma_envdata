@@ -572,7 +572,17 @@ list(
 
   tar_target(
     burn_modis_pending,
-    generate_monthly_sequence(start_date = burn_start_date, end_date = modis_end_date)
+    {
+      months <- generate_monthly_sequence(
+        start_date = burn_start_date,
+        end_date = modis_end_date
+      )
+      filter_pending_months(
+        months,
+        gh_release_tag = release_tags$burn_modis_raster,
+        prefix = "burn_modis_"
+      )
+    }
   ),
 
   # Submit one AppEEARS task per missing month (branched)
@@ -643,7 +653,17 @@ list(
 
   tar_target(
     burn_viirs_pending,
-    generate_monthly_sequence(start_date = viirs_start_date, end_date = modis_end_date)
+    {
+      months <- generate_monthly_sequence(
+        start_date = viirs_start_date,
+        end_date = modis_end_date
+      )
+      filter_pending_months(
+        months,
+        gh_release_tag = release_tags$burn_viirs_raster,
+        prefix = "burn_viirs_"
+      )
+    }
   ),
 
   tar_target(

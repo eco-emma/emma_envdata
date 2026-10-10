@@ -122,6 +122,62 @@ filter_pending_composites <- function(composites, gh_release_tag, prefixes,
   pending
 }
 
+# Keep only calendar months whose burn COG is missing from a GitHub release.
+# Mirrors filter_pending_composites() for the monthly burn pipelines.
+filter_pending_months <- function(months, gh_release_tag, prefix,
+                                  repo = Sys.getenv(
+                                    "TAR_GH_RELEASE_REPO",
+                                    unset = "eco-emma/emma_envdata"
+                                  ),
+                                  verbose = TRUE) {
+  if (!nrow(months)) return(months)
+
+  yyyymm <- format(as.Date(months$month_start), "%Y%m")
+  missing_release_assets <- !vapply(
+    yyyymm,
+    function(ym) {
+      gh_release_has_asset(
+        repo, gh_release_tag, paste0(prefix, ym, ".tif"), verbose = FALSE
+      )
+    },
+    logical(1)
+  )
+
+  pending <- months[missing_release_assets, , drop = FALSE]
+
+  if (verbose) {
+    message(
+      "Months for release '", gh_release_tag, "': ",
+      nrow(months) - nrow(pending), " already complete, ",
+      nrow(pending), " pending"
+    )
+  }
+
+  # GitHub Actions cannot finish a multi-year AppEEARS backfill in one job.
+  # Keep the newest N missing months so weekly runs make forward progress;
+  # full history belongs on the CCR prime. Override with CI_APPEEARS_MAX_MONTHS
+  # (empty / 0 = no cap).
+  if (nrow(pending) && nzchar(Sys.getenv("GITHUB_ACTIONS"))) {
+    max_n <- Sys.getenv("CI_APPEEARS_MAX_MONTHS", unset = "24")
+    if (nzchar(max_n) && max_n != "0") {
+      max_n <- suppressWarnings(as.integer(max_n))
+      if (!is.na(max_n) && max_n > 0L && nrow(pending) > max_n) {
+        ord <- order(pending$month_start, decreasing = TRUE)
+        keep <- sort(ord[seq_len(max_n)])
+        if (verbose) {
+          message(
+            "[filter_pending_months] GITHUB_ACTIONS cap: newest ", max_n,
+            " of ", nrow(pending), " pending months for '", gh_release_tag, "'"
+          )
+        }
+        pending <- pending[keep, , drop = FALSE]
+      }
+    }
+  }
+
+  pending
+}
+
 # Generate a sequence of calendar months between two dates.
 # Returns a tibble with one row per month; month_start = first day of month,
 # month_end = last day of month.
