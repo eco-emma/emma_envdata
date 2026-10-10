@@ -26,12 +26,9 @@
 
 
 on:
-  # Manual runs only until one workflow_dispatch finishes. Then uncomment
-  # the Monday schedule. The job restores targets metadata and updates only
-  # new or unfinished AppEEARS months.
   workflow_dispatch:
-  # schedule:
-  #   - cron: '0 3 * * 1' # every Monday at 03:00 UTC
+   schedule:
+     - cron: '0 3 * * 1' # every Monday at 03:00 UTC
 
 name: targets
 
