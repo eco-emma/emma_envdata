@@ -14,7 +14,7 @@
 domain_rasterize <- function(domain_boundary, remnants, dx = 500, dy = 500) {
   # Generate raster template and rasterize domain with terra (touches = TRUE)
   # Use ext()+res= form for compatibility with older terra versions (<1.7-39)
-  domain_boundary <- sf::st_as_sf(domain_boundary) #convert to sf if SpatVector
+  domain_boundary <- sf::st_as_sf(domain_boundary) # convert to sf if SpatVector
 
   bb <- sf::st_bbox(sf::st_transform(domain_boundary, crs = sf::st_crs(domain_boundary)))
 
@@ -24,7 +24,7 @@ domain_rasterize <- function(domain_boundary, remnants, dx = 500, dy = 500) {
   # domain origin once guarantees every 500 m edge also falls on a 5 m edge,
   # so each 500 m pixel contains exactly (dx/5) * (dy/5) = 100 * 100 5 m pixels.
   snap_down <- function(x, res = 5, offset = 2.5) floor((x - offset) / res) * res + offset
-  snap_up   <- function(x, res = 5, offset = 2.5) ceiling((x - offset) / res) * res + offset
+  snap_up <- function(x, res = 5, offset = 2.5) ceiling((x - offset) / res) * res + offset
 
   domain_template <- terra::rast(
     xmin = snap_down(bb["xmin"]), xmax = snap_up(bb["xmax"]),
@@ -42,38 +42,39 @@ domain_rasterize <- function(domain_boundary, remnants, dx = 500, dy = 500) {
       field = "domain",
       touches = TRUE
     )
-  
+
   # Ensure pixels outside domain are NA (not 0)
   domain_raster[domain_raster == 0] <- NA
 
-## Process remnants to add fields related to whether the cell is in a remnant and distance to remnant
-  
-  sf::sf_use_s2(FALSE) # this crashes because of a invalid polygon in remnants shapefile
-message("Processing remnants...")
+  ## Process remnants to add fields related to whether the cell is in a remnant and distance to remnant
 
- remnants_geom <- remnants |>
-    sf::st_geometry() |>                          # geometry only — drop all attributes
-    sf::st_as_sf() |>                             # back to sf so st_transform works
-    sf::st_buffer(dist = 1) |>                          # fix invalid geometries (e.g. self-intersections)
+  sf::sf_use_s2(FALSE) # this crashes because of a invalid polygon in remnants shapefile
+  message("Processing remnants...")
+
+  remnants_geom <- remnants |>
+    sf::st_geometry() |> # geometry only — drop all attributes
+    sf::st_as_sf() |> # back to sf so st_transform works
+    sf::st_buffer(dist = 1) |> # fix invalid geometries (e.g. self-intersections)
     sf::st_transform(crs = terra::crs(domain_raster)) |>
-    sf::st_crop(sf::st_as_sfc(sf::st_bbox(domain_raster)))  # crop to domain box
+    sf::st_crop(sf::st_as_sfc(sf::st_bbox(domain_raster))) # crop to domain box
 
   # Free the original (potentially large) remnants object immediately
-rm(remnants); gc()
-message("Rasterizing remnants...")
+  rm(remnants)
+  gc()
+  message("Rasterizing remnants...")
 
   remnants_raster <- remnants_geom |>
     dplyr::mutate(remnant = 1L) |>
     terra::vect() |>
     terra::rasterize(
-      y      = domain_raster,
-      field  = "remnant",
+      y = domain_raster,
+      field = "remnant",
       touches = TRUE,
-      cover   = FALSE
+      cover = FALSE
     ) |>
-    terra::mask(mask = domain_raster) * 100  # set to NA outside domain and convert to integer
+    terra::mask(mask = domain_raster) * 100 # set to NA outside domain and convert to integer
 
-#  rm(remnants_geom); gc()
+  #  rm(remnants_geom); gc()
 
   # distance() computes distance from each NA cell to nearest non-NA cell.
   # Set remnant cells to 1 and non-remnant (but in-domain) cells to NA so
@@ -81,7 +82,7 @@ message("Rasterizing remnants...")
   message("Calculating distance to nearest remnant...")
   remnants_distance <- terra::ifel(!is.na(remnants_raster), 1, NA) |>
     terra::distance() |>
-    terra::mask(mask=domain_raster) #set to NA outside domain
+    terra::mask(mask = domain_raster) # set to NA outside domain
 
 
   # Create pixel ID raster: 1:ncell where domain=1, NA elsewhere

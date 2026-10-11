@@ -21,10 +21,10 @@
 #' @export
 get_vegmap <- function(repo, tag, file, local_dir, shapefile_name) {
   dir.create(local_dir, recursive = TRUE, showWarnings = FALSE)
-  
+
   # Check if shapefile already exists in the expected location (with shapefile subdirectory)
   shp_file_correct <- file.path(local_dir, "Shapefile", shapefile_name)
-  
+
   if (!file.exists(shp_file_correct)) {
     message("Downloading vegmap from GitHub release using piggyback...")
     piggyback::pb_download(
@@ -35,12 +35,12 @@ get_vegmap <- function(repo, tag, file, local_dir, shapefile_name) {
       overwrite = FALSE
     )
     message("Unzipping vegmap...")
-    list.files(local_dir,recursive = T)
+    list.files(local_dir, recursive = T)
     zip_file <- file.path(local_dir, file)
     utils::unzip(zip_file, exdir = local_dir)
     unlink(zip_file)
   }
-  
-  # Return the sf object 
+
+  # Return the sf object
   st_read(shp_file_correct)
 }

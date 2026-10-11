@@ -18,9 +18,9 @@
 #' @importFrom sf st_read
 #' @export
 get_remnants <- function(
-    repo      = "eco-emma/emma_envdata",
-    tag       = "manual-data",
-    local_dir = "data/manual_download/RLE_2021_Remnants"
+  repo = "eco-emma/emma_envdata",
+  tag = "manual-data",
+  local_dir = "data/manual_download/RLE_2021_Remnants"
 ) {
   shp_file <- file.path(local_dir, "RLE_Terr_2021_June2021_Remnants_ddw.shp")
 
@@ -28,7 +28,8 @@ get_remnants <- function(
     message("Downloading RLE 2021 remnants from GitHub release '", tag, "'...")
     dir.create(local_dir, recursive = TRUE, showWarnings = FALSE)
     download.file("https://github.com/eco-emma/emma_envdata/releases/download/manual-data/RLE_2021_Remnants.zip",
-      destfile= file.path(local_dir, "RLE_2021_Remnants.zip"), mode = "wb")
+      destfile = file.path(local_dir, "RLE_2021_Remnants.zip"), mode = "wb"
+    )
     zip_file <- file.path(local_dir, "RLE_2021_Remnants.zip")
     utils::unzip(zip_file, exdir = local_dir)
     unlink(zip_file)

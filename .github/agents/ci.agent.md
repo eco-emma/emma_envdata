@@ -9,7 +9,8 @@ collect results, and produce a single summary report.
 
 ## Steps
 
-1. **Lint** — check R/ directory files for tidyverse style issues:
+1. **Lint** — check `R/` (and changed `*.R`) against the
+   [tidyverse style guide](https://style.tidyverse.org/) / `styler` output:
 
 2. **Geospatial review** — invoke the `geo` agent on `data/` and any spatial
    processing scripts that changed since the last commit.

@@ -5,7 +5,7 @@
 # See https://books.ropensci.org/targets/hpc.html
 # to learn about your options.
 
-source('R/tar_release_storage.R')
+source("R/tar_release_storage.R")
 
 # Run pipeline; upload to GitHub release only if tar_make() succeeds (it errors on failure)
 targets::tar_make()

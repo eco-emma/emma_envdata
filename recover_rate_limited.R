@@ -67,16 +67,22 @@ suppressPackageStartupMessages({
     gh::gh("GET /rate_limit", .token = token),
     error = function(e) NULL
   )
-  if (is.null(rl)) return(invisible(NULL))
+  if (is.null(rl)) {
+    return(invisible(NULL))
+  }
   reset <- rl$resources$core$reset %||% (as.integer(Sys.time()) + 60L)
-  wait  <- max(0L, as.integer(reset) - as.integer(Sys.time()) + 5L)
+  wait <- max(0L, as.integer(reset) - as.integer(Sys.time()) + 5L)
   if (wait > max_sleep) {
     stop("Rate-limit reset is ", wait,
-         "s away, which exceeds the max_sleep cap of ", max_sleep,
-         "s. Aborting; re-run after the quota resets.", call. = FALSE)
+      "s away, which exceeds the max_sleep cap of ", max_sleep,
+      "s. Aborting; re-run after the quota resets.",
+      call. = FALSE
+    )
   }
-  message("[recover] Rate limit exhausted; sleeping ", wait,
-          "s until reset...")
+  message(
+    "[recover] Rate limit exhausted; sleeping ", wait,
+    "s until reset..."
+  )
   Sys.sleep(wait)
 }
 
@@ -87,11 +93,14 @@ gh_call <- function(..., token, max_retries = 2L) {
   repeat {
     attempt <- attempt + 1L
     res <- tryCatch(gh::gh(..., .token = token),
-                    error = function(e) e)
-    if (!inherits(res, "error")) return(res)
+      error = function(e) e
+    )
+    if (!inherits(res, "error")) {
+      return(res)
+    }
     msg <- conditionMessage(res)
     is_rate <- grepl("rate limit", msg, ignore.case = TRUE) ||
-               grepl("secondary rate", msg, ignore.case = TRUE)
+      grepl("secondary rate", msg, ignore.case = TRUE)
     if (!is_rate || attempt > max_retries) stop(res)
     .gh_rate_reset_wait(token)
   }
@@ -100,26 +109,37 @@ gh_call <- function(..., token, max_retries = 2L) {
 # Print current rate-limit status (does not count against the quota).
 gh_report_rate_limit <- function(token) {
   rl <- tryCatch(gh::gh("GET /rate_limit", .token = token),
-                 error = function(e) NULL)
-  if (is.null(rl)) return(invisible(NULL))
+    error = function(e) NULL
+  )
+  if (is.null(rl)) {
+    return(invisible(NULL))
+  }
   core <- rl$resources$core
-  reset_utc <- format(as.POSIXct(core$reset, origin = "1970-01-01",
-                                 tz = "UTC"),
-                      "%Y-%m-%d %H:%M:%S UTC")
-  message("[recover] GitHub API quota: ", core$remaining, " / ", core$limit,
-          " remaining (resets at ", reset_utc, ")")
+  reset_utc <- format(
+    as.POSIXct(core$reset,
+      origin = "1970-01-01",
+      tz = "UTC"
+    ),
+    "%Y-%m-%d %H:%M:%S UTC"
+  )
+  message(
+    "[recover] GitHub API quota: ", core$remaining, " / ", core$limit,
+    " remaining (resets at ", reset_utc, ")"
+  )
   invisible(core)
 }
 
-args           <- commandArgs(trailingOnly = TRUE)
-apply_changes  <- "--apply" %in% args
+args <- commandArgs(trailingOnly = TRUE)
+apply_changes <- "--apply" %in% args
 delete_release <- "--delete-release-assets" %in% args
-scan_releases  <- "--scan-releases" %in% args
+scan_releases <- "--scan-releases" %in% args
 delete_if_local_missing <- "--delete-if-local-missing" %in% args
 
 if (!apply_changes) {
-  message("[recover] Running in dry-run mode. Re-run with --apply to actually ",
-          "delete artifacts and invalidate branches.")
+  message(
+    "[recover] Running in dry-run mode. Re-run with --apply to actually ",
+    "delete artifacts and invalidate branches."
+  )
 }
 
 # ── 1. Target-specific artifact locations ──────────────────────────────────
@@ -130,50 +150,58 @@ if (!apply_changes) {
 # (so the corresponding branch can be invalidated after asset deletion).
 artifact_specs <- list(
   burn_modis_task_ids = list(
-    dir   = "data/target_outputs/burndates",
-    files = function(k) c(
-      paste0("burn_modis_", k, ".tif"),
-      paste0("burn_modis_", k, ".skip"),
-      paste0("burn_modis_", k, ".parquet")
-    ),
+    dir = "data/target_outputs/burndates",
+    files = function(k) {
+      c(
+        paste0("burn_modis_", k, ".tif"),
+        paste0("burn_modis_", k, ".skip"),
+        paste0("burn_modis_", k, ".parquet")
+      )
+    },
     release_tag = "burn_modis_raster",
     tif_pattern = "^burn_modis_(\\d{6})\\.tif$"
   ),
   burn_viirs_task_ids = list(
-    dir   = "data/target_outputs/burndates",
-    files = function(k) c(
-      paste0("burn_viirs_", k, ".tif"),
-      paste0("burn_viirs_", k, ".skip"),
-      paste0("burn_viirs_", k, ".parquet")
-    ),
+    dir = "data/target_outputs/burndates",
+    files = function(k) {
+      c(
+        paste0("burn_viirs_", k, ".tif"),
+        paste0("burn_viirs_", k, ".skip"),
+        paste0("burn_viirs_", k, ".parquet")
+      )
+    },
     release_tag = "burn_viirs_raster",
     tif_pattern = "^burn_viirs_(\\d{6})\\.tif$"
   ),
   vi_modis_task_ids = list(
-    dir   = "data/target_outputs/modis_vi",
-    files = function(k) c(
-      paste0("vi_modis_terra_", k, ".tif"),
-      paste0("vi_modis_aqua_",  k, ".tif"),
-      paste0("vi_modis_",       k, ".skip"),
-      paste0("vi_modis_",       k, ".parquet")
-    ),
+    dir = "data/target_outputs/modis_vi",
+    files = function(k) {
+      c(
+        paste0("vi_modis_terra_", k, ".tif"),
+        paste0("vi_modis_aqua_", k, ".tif"),
+        paste0("vi_modis_", k, ".skip"),
+        paste0("vi_modis_", k, ".parquet")
+      )
+    },
     release_tag = c("vi_modis_terra_raster", "vi_modis_aqua_raster"),
     tif_pattern = "^vi_modis_(?:terra|aqua)_(\\d{8})\\.tif$"
   ),
   vi_viirs_task_ids = list(
-    dir   = "data/target_outputs/viirs_vi",
-    files = function(k) c(
-      paste0("vi_viirs_snpp_",   k, ".tif"),
-      paste0("vi_viirs_noaa20_", k, ".tif"),
-      paste0("vi_viirs_",        k, ".skip"),
-      paste0("vi_viirs_",        k, ".parquet")
-    ),
+    dir = "data/target_outputs/viirs_vi",
+    files = function(k) {
+      c(
+        paste0("vi_viirs_snpp_", k, ".tif"),
+        paste0("vi_viirs_noaa20_", k, ".tif"),
+        paste0("vi_viirs_", k, ".skip"),
+        paste0("vi_viirs_", k, ".parquet")
+      )
+    },
     release_tag = "vi_viirs_raster",
     tif_pattern = "^vi_viirs_(?:snpp|noaa20)_(\\d{8})\\.tif$"
   ),
   elevation_task_id = list(
-    dir   = ".",
-    files = function(k) character(0),  # elevation.tif lives in _targets/objects; tar_invalidate handles it
+    dir = ".",
+    files = function(k) character(0), # elevation.tif lives in _targets/objects; tar_invalidate handles it
     release_tag = NA_character_,
     tif_pattern = NA_character_
   )
@@ -186,21 +214,27 @@ task_id_parents <- names(artifact_specs)
 # All rows whose parent (dynamic branching parent) is one of the task_ids
 # targets, plus the elevation_task_id target itself (not branched).
 branch_rows <- meta[!is.na(meta$parent) & meta$parent %in% task_id_parents, ]
-elev_row    <- meta[meta$name == "elevation_task_id" &
-                    (is.na(meta$parent) | meta$parent == ""), ]
+elev_row <- meta[meta$name == "elevation_task_id" &
+  (is.na(meta$parent) | meta$parent == ""), ]
 
-stuck <- list()   # parent -> list(branch_name, key, files)
+stuck <- list() # parent -> list(branch_name, key, files)
 
 check_branch <- function(branch_name, parent) {
   v <- tryCatch(targets::tar_read_raw(branch_name), error = function(e) NULL)
-  if (is.null(v) || !is.character(v) || length(v) != 1L) return(NULL)
-  if (!startsWith(v, "rate_limited:")) return(NULL)
+  if (is.null(v) || !is.character(v) || length(v) != 1L) {
+    return(NULL)
+  }
+  if (!startsWith(v, "rate_limited:")) {
+    return(NULL)
+  }
 
-  key   <- sub("^rate_limited:", "", v)
-  spec  <- artifact_specs[[parent]]
+  key <- sub("^rate_limited:", "", v)
+  spec <- artifact_specs[[parent]]
   files <- if (nchar(key) > 0) file.path(spec$dir, spec$files(key)) else character(0)
-  list(branch_name = branch_name, key = key, files = files,
-       release_tag = spec$release_tag)
+  list(
+    branch_name = branch_name, key = key, files = files,
+    release_tag = spec$release_tag
+  )
 }
 
 for (i in seq_len(nrow(branch_rows))) {
@@ -223,18 +257,24 @@ total_branches <- sum(vapply(stuck, length, integer(1)))
 if (total_branches == 0L) {
   message("[recover] No rate_limited task_ids branches found in tar_meta.")
   if (!scan_releases) {
-    message("[recover] Nothing to do. Re-run with --scan-releases to also ",
-            "check GitHub release assets.")
+    message(
+      "[recover] Nothing to do. Re-run with --scan-releases to also ",
+      "check GitHub release assets."
+    )
     quit(save = "no", status = 0)
   }
 } else {
-  message("[recover] Found ", total_branches,
-          " rate_limited task_ids branch(es):")
+  message(
+    "[recover] Found ", total_branches,
+    " rate_limited task_ids branch(es):"
+  )
   for (parent in names(stuck)) {
     keys <- vapply(stuck[[parent]], `[[`, character(1), "key")
-    message("  - ", parent, ": ", length(keys), " branch(es) [",
-            paste(utils::head(keys, 5), collapse = ", "),
-            if (length(keys) > 5) ", ..." else "", "]")
+    message(
+      "  - ", parent, ": ", length(keys), " branch(es) [",
+      paste(utils::head(keys, 5), collapse = ", "),
+      if (length(keys) > 5) ", ..." else "", "]"
+    )
   }
 }
 
@@ -263,7 +303,7 @@ if (total_branches == 0L) {
 # kB to several MB.  All-NA COGs written with SPARSE_OK=YES are only a few
 # kB.  Larger assets are skipped for speed (they are effectively guaranteed
 # to contain data).
-release_bad <- list()  # tag -> list(list(asset_name, asset_id, key, tag, local_path))
+release_bad <- list() # tag -> list(list(asset_name, asset_id, key, tag, local_path))
 if (scan_releases) {
   if (!requireNamespace("terra", quietly = TRUE)) {
     stop("--scan-releases requires the 'terra' package.")
@@ -272,9 +312,9 @@ if (scan_releases) {
     stop("--scan-releases requires the 'httr' package.")
   }
 
-  repo       <- Sys.getenv("TAR_GH_RELEASE_REPO", unset = "eco-emma/emma_envdata")
+  repo <- Sys.getenv("TAR_GH_RELEASE_REPO", unset = "eco-emma/emma_envdata")
   owner_repo <- strsplit(repo, "/")[[1]]
-  gh_token   <- Sys.getenv("GITHUB_PAT", unset = Sys.getenv("GITHUB_TOKEN"))
+  gh_token <- Sys.getenv("GITHUB_PAT", unset = Sys.getenv("GITHUB_TOKEN"))
   if (!nzchar(gh_token)) {
     stop("--scan-releases requires GITHUB_PAT or GITHUB_TOKEN to be set.")
   }
@@ -289,20 +329,29 @@ if (scan_releases) {
 
   # Any COG larger than this is assumed to hold real data and is skipped.
   # All-NA COGs written with SPARSE_OK=YES are typically ~1-3 kB per band.
-  size_probe_bytes <- 200 * 1024L  # 200 kB
+  size_probe_bytes <- 200 * 1024L # 200 kB
 
   # Helper: decide whether a COG looks like an all-NA placeholder.
   is_placeholder_cog <- function(path) {
     r <- tryCatch(terra::rast(path), error = function(e) NULL)
-    if (is.null(r)) return(TRUE)                       # (1a)
+    if (is.null(r)) {
+      return(TRUE)
+    } # (1a)
     tags <- tryCatch(terra::metags(r), error = function(e) character(0))
-    tag_hits <- if (length(tags) == 0L) character(0)
-                else if (is.character(tags)) tags
-                else unlist(tags, use.names = TRUE)
-    if (any(grepl("no_data", tag_hits, fixed = TRUE))) return(TRUE)  # (1b)
+    tag_hits <- if (length(tags) == 0L) {
+      character(0)
+    } else if (is.character(tags)) {
+      tags
+    } else {
+      unlist(tags, use.names = TRUE)
+    }
+    if (any(grepl("no_data", tag_hits, fixed = TRUE))) {
+      return(TRUE)
+    } # (1b)
     notna <- tryCatch(terra::global(r, "notNA")[, 1],
-                      error = function(e) NA_real_)
-    isTRUE(all(is.na(notna))) || isTRUE(sum(notna, na.rm = TRUE) == 0)  # (1c)
+      error = function(e) NA_real_
+    )
+    isTRUE(all(is.na(notna))) || isTRUE(sum(notna, na.rm = TRUE) == 0) # (1c)
   }
 
   # Helper: match an asset filename to (parent, key, local_path).
@@ -332,14 +381,17 @@ if (scan_releases) {
   # Running tallies for a summary report at the end of the scan.
   scan_stats <- list()
 
-  message("[recover] Scanning ", length(release_tags_to_scan),
-          " GitHub release(s) for stale placeholder COGs...")
+  message(
+    "[recover] Scanning ", length(release_tags_to_scan),
+    " GitHub release(s) for stale placeholder COGs..."
+  )
 
   for (tag in release_tags_to_scan) {
     rel <- tryCatch(
       gh_call("GET /repos/{owner}/{repo}/releases/tags/{tag}",
-              owner = owner_repo[1], repo = owner_repo[2],
-              tag = tag, token = gh_token),
+        owner = owner_repo[1], repo = owner_repo[2],
+        tag = tag, token = gh_token
+      ),
       error = function(e) NULL
     )
     if (is.null(rel)) {
@@ -352,17 +404,23 @@ if (scan_releases) {
       release_id = rel$id, .limit = Inf, token = gh_token
     )
     tif_assets <- Filter(function(a) grepl("\\.tif$", a$name), assets)
-    probe_assets <- Filter(function(a) isTRUE(a$size <= size_probe_bytes),
-                           tif_assets)
-    message("  - release '", tag, "': ", length(tif_assets),
-            " .tif asset(s), probing ", length(probe_assets),
-            " small candidate(s) (\u2264 ",
-            format(size_probe_bytes, big.mark = ","), " bytes)")
+    probe_assets <- Filter(
+      function(a) isTRUE(a$size <= size_probe_bytes),
+      tif_assets
+    )
+    message(
+      "  - release '", tag, "': ", length(tif_assets),
+      " .tif asset(s), probing ", length(probe_assets),
+      " small candidate(s) (\u2264 ",
+      format(size_probe_bytes, big.mark = ","), " bytes)"
+    )
 
-    stats <- list(placeholders_on_release = 0L,
-                  local_missing           = 0L,
-                  local_also_placeholder  = 0L,
-                  stale_flagged           = 0L)
+    stats <- list(
+      placeholders_on_release = 0L,
+      local_missing = 0L,
+      local_also_placeholder = 0L,
+      stale_flagged = 0L
+    )
 
     for (a in probe_assets) {
       dest <- file.path(tmp_dir, a$name)
@@ -375,16 +433,19 @@ if (scan_releases) {
       dl_url <- a$browser_download_url
       ok <- FALSE
       if (!is.null(dl_url) && nzchar(dl_url)) {
-        ok <- tryCatch({
-          r <- httr::GET(
-            dl_url,
-            # Public releases don't require auth here; the token is harmless
-            # if the repo is private and required if so.
-            httr::add_headers(Authorization = paste("Bearer", gh_token)),
-            httr::write_disk(dest, overwrite = TRUE)
-          )
-          !httr::http_error(r)
-        }, error = function(e) FALSE)
+        ok <- tryCatch(
+          {
+            r <- httr::GET(
+              dl_url,
+              # Public releases don't require auth here; the token is harmless
+              # if the repo is private and required if so.
+              httr::add_headers(Authorization = paste("Bearer", gh_token)),
+              httr::write_disk(dest, overwrite = TRUE)
+            )
+            !httr::http_error(r)
+          },
+          error = function(e) FALSE
+        )
       }
 
       if (!ok) {
@@ -433,25 +494,33 @@ if (scan_releases) {
     }
 
     scan_stats[[tag]] <- stats
-    message("      placeholders on release: ", stats$placeholders_on_release,
-            " | local missing: ",              stats$local_missing,
-            " | local also placeholder: ",     stats$local_also_placeholder,
-            " | flagged stale: ",              stats$stale_flagged)
+    message(
+      "      placeholders on release: ", stats$placeholders_on_release,
+      " | local missing: ", stats$local_missing,
+      " | local also placeholder: ", stats$local_also_placeholder,
+      " | flagged stale: ", stats$stale_flagged
+    )
   }
 
   n_bad <- sum(vapply(release_bad, length, integer(1)))
   if (n_bad == 0L) {
-    message("[recover] Release scan complete: no stale placeholder .tif ",
-            "assets found (all release placeholders match local placeholders ",
-            "and are therefore legitimate).")
+    message(
+      "[recover] Release scan complete: no stale placeholder .tif ",
+      "assets found (all release placeholders match local placeholders ",
+      "and are therefore legitimate)."
+    )
   } else {
-    message("[recover] Release scan complete: ", n_bad,
-            " stale .tif asset(s) flagged (release placeholder but local is real data):")
+    message(
+      "[recover] Release scan complete: ", n_bad,
+      " stale .tif asset(s) flagged (release placeholder but local is real data):"
+    )
     for (tag in names(release_bad)) {
       names_bad <- vapply(release_bad[[tag]], `[[`, character(1), "asset_name")
-      message("  - ", tag, ": ", length(names_bad), " asset(s) [",
-              paste(utils::head(names_bad, 5), collapse = ", "),
-              if (length(names_bad) > 5) ", ..." else "", "]")
+      message(
+        "  - ", tag, ": ", length(names_bad), " asset(s) [",
+        paste(utils::head(names_bad, 5), collapse = ", "),
+        if (length(names_bad) > 5) ", ..." else "", "]"
+      )
     }
   }
 }
@@ -464,13 +533,17 @@ if (is.null(all_files)) all_files <- character(0)
 existing_files <- unique(all_files[file.exists(all_files)])
 
 if (length(all_files) > 0L) {
-  message("[recover] Local artifacts to delete: ", length(existing_files),
-          " (of ", length(unique(all_files)), " candidate paths)")
+  message(
+    "[recover] Local artifacts to delete: ", length(existing_files),
+    " (of ", length(unique(all_files)), " candidate paths)"
+  )
   if (length(existing_files) > 0 && length(existing_files) <= 20) {
     message("  - ", paste(existing_files, collapse = "\n  - "))
   } else if (length(existing_files) > 20) {
-    message("  (showing first 5) - ",
-            paste(utils::head(existing_files, 5), collapse = "\n  - "))
+    message(
+      "  (showing first 5) - ",
+      paste(utils::head(existing_files, 5), collapse = "\n  - ")
+    )
   }
 }
 
@@ -481,9 +554,9 @@ if (length(all_files) > 0L) {
 #   (b) release scan (--scan-releases): the concrete asset IDs already
 #       confirmed as all-NA placeholders.  These come with `asset_id`, so we
 #       don't need a second name-lookup round trip against GitHub.
-release_assets_to_delete <- list()   # tag -> character() (names)
-release_asset_ids        <- list()   # tag -> integer()   (matching IDs)
-release_bad_tags         <- character(0)  # release tags with confirmed bad assets
+release_assets_to_delete <- list() # tag -> character() (names)
+release_asset_ids <- list() # tag -> integer()   (matching IDs)
+release_bad_tags <- character(0) # release tags with confirmed bad assets
 
 if (delete_release) {
   # Group release-asset names by release tag from tar_meta scan.
@@ -521,19 +594,23 @@ if (scan_releases) {
   # Fold results from release scan into the deletion list.  Use asset IDs
   # captured during scanning so we can DELETE without re-listing.
   for (tag in names(release_bad)) {
-    ids   <- vapply(release_bad[[tag]], `[[`, integer(1),   "asset_id")
+    ids <- vapply(release_bad[[tag]], `[[`, integer(1), "asset_id")
     names <- vapply(release_bad[[tag]], `[[`, character(1), "asset_name")
-    release_assets_to_delete[[tag]] <- unique(c(release_assets_to_delete[[tag]],
-                                                names))
-    release_asset_ids[[tag]]        <- unique(c(release_asset_ids[[tag]], ids))
+    release_assets_to_delete[[tag]] <- unique(c(
+      release_assets_to_delete[[tag]],
+      names
+    ))
+    release_asset_ids[[tag]] <- unique(c(release_asset_ids[[tag]], ids))
     if (length(ids) > 0L) release_bad_tags <- unique(c(release_bad_tags, tag))
   }
 }
 
 n_release <- sum(vapply(release_assets_to_delete, length, integer(1)))
 if (n_release > 0L) {
-  message("[recover] Release assets to delete: ", n_release,
-          " across ", length(release_assets_to_delete), " release(s)")
+  message(
+    "[recover] Release assets to delete: ", n_release,
+    " across ", length(release_assets_to_delete), " release(s)"
+  )
 }
 
 # Which upload_*_grid targets need re-running because their release assets
@@ -542,16 +619,20 @@ upload_targets_for_tag <- c(
   burn_modis_raster = "upload_burn_modis_grid",
   burn_viirs_raster = "upload_burn_viirs_grid",
   vi_modis_terra_raster = "upload_vi_modis_terra_grid",
-  vi_modis_aqua_raster  = "upload_vi_modis_aqua_grid",
-  vi_viirs_raster   = "upload_vi_viirs_grid"
+  vi_modis_aqua_raster = "upload_vi_modis_aqua_grid",
+  vi_viirs_raster = "upload_vi_viirs_grid"
 )
 upload_targets_to_invalidate <- unname(
-  upload_targets_for_tag[intersect(names(upload_targets_for_tag),
-                                   release_bad_tags)]
+  upload_targets_for_tag[intersect(
+    names(upload_targets_for_tag),
+    release_bad_tags
+  )]
 )
 if (length(upload_targets_to_invalidate) > 0L) {
-  message("[recover] Upload targets to invalidate: ",
-          paste(upload_targets_to_invalidate, collapse = ", "))
+  message(
+    "[recover] Upload targets to invalidate: ",
+    paste(upload_targets_to_invalidate, collapse = ", ")
+  )
 }
 
 # ── 6. Apply ───────────────────────────────────────────────────────────────
@@ -578,7 +659,8 @@ if (n_release > 0L) {
   gh_token <- Sys.getenv("GITHUB_PAT", unset = Sys.getenv("GITHUB_TOKEN"))
   if (!nzchar(gh_token)) {
     warning("No GITHUB_PAT / GITHUB_TOKEN found; skipping release-asset deletion.",
-            call. = FALSE)
+      call. = FALSE
+    )
   } else {
     for (tag in names(release_assets_to_delete)) {
       names_to_del <- release_assets_to_delete[[tag]]
@@ -588,18 +670,25 @@ if (n_release > 0L) {
       known_ids <- release_asset_ids[[tag]]
       hits_by_id <- if (length(known_ids) > 0L) {
         lapply(known_ids, function(id) list(id = id, name = NA_character_))
-      } else list()
+      } else {
+        list()
+      }
 
       # For names not covered by known_ids (i.e. from tar_meta path), resolve
       # via the release assets endpoint.
-      needs_lookup <- setdiff(names_to_del,
-                              vapply(release_bad[[tag]] %||% list(),
-                                     `[[`, character(1), "asset_name"))
+      needs_lookup <- setdiff(
+        names_to_del,
+        vapply(
+          release_bad[[tag]] %||% list(),
+          `[[`, character(1), "asset_name"
+        )
+      )
       if (length(needs_lookup) > 0L) {
         rel <- tryCatch(
           gh_call("GET /repos/{owner}/{repo}/releases/tags/{tag}",
-                  owner = owner_repo[1], repo = owner_repo[2],
-                  tag = tag, token = gh_token),
+            owner = owner_repo[1], repo = owner_repo[2],
+            tag = tag, token = gh_token
+          ),
           error = function(e) NULL
         )
         if (is.null(rel)) {
@@ -611,24 +700,36 @@ if (n_release > 0L) {
             release_id = rel$id, .limit = Inf, token = gh_token
           )
           extra <- Filter(function(a) a$name %in% needs_lookup, assets)
-          hits_by_id <- c(hits_by_id,
-                          lapply(extra, function(a) list(id = a$id,
-                                                         name = a$name)))
+          hits_by_id <- c(
+            hits_by_id,
+            lapply(extra, function(a) {
+              list(
+                id = a$id,
+                name = a$name
+              )
+            })
+          )
         }
       }
 
       deleted <- 0L
       for (h in hits_by_id) {
-        tryCatch({
-          gh_call("DELETE /repos/{owner}/{repo}/releases/assets/{asset_id}",
-                  owner = owner_repo[1], repo = owner_repo[2],
-                  asset_id = h$id, token = gh_token)
-          deleted <- deleted + 1L
-        }, error = function(e) {
-          message("  ! failed to delete release asset ",
-                  if (is.na(h$name)) as.character(h$id) else h$name,
-                  ": ", conditionMessage(e))
-        })
+        tryCatch(
+          {
+            gh_call("DELETE /repos/{owner}/{repo}/releases/assets/{asset_id}",
+              owner = owner_repo[1], repo = owner_repo[2],
+              asset_id = h$id, token = gh_token
+            )
+            deleted <- deleted + 1L
+          },
+          error = function(e) {
+            message(
+              "  ! failed to delete release asset ",
+              if (is.na(h$name)) as.character(h$id) else h$name,
+              ": ", conditionMessage(e)
+            )
+          }
+        )
       }
       message("  - release '", tag, "': deleted ", deleted, " asset(s)")
     }
@@ -641,8 +742,10 @@ all_branches <- unlist(lapply(stuck, function(bs) {
 }), use.names = FALSE)
 if (length(all_branches) > 0L) {
   targets::tar_invalidate(any_of(all_branches))
-  message("[recover] Invalidated ", length(all_branches),
-          " task_ids branch(es).")
+  message(
+    "[recover] Invalidated ", length(all_branches),
+    " task_ids branch(es)."
+  )
 }
 
 # 6d. Invalidate upload_*_grid targets so tar_make() re-uploads the
@@ -654,8 +757,10 @@ if (length(upload_targets_to_invalidate) > 0L) {
   to_hit <- intersect(upload_targets_to_invalidate, existing_targets)
   if (length(to_hit) > 0L) {
     targets::tar_invalidate(any_of(to_hit))
-    message("[recover] Invalidated ", length(to_hit),
-            " upload target(s): ", paste(to_hit, collapse = ", "))
+    message(
+      "[recover] Invalidated ", length(to_hit),
+      " upload target(s): ", paste(to_hit, collapse = ", ")
+    )
   }
 }
 

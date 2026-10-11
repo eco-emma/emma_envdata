@@ -8,15 +8,21 @@
 #' @keywords internal
 .gh_release_asset_names <- function(repo, release_tag, token) {
   parts <- strsplit(repo, "/")[[1]]
-  tryCatch({
-    rel <- gh::gh(
-      "GET /repos/{owner}/{repo}/releases/tags/{tag}",
-      owner = parts[1], repo = parts[2], tag = release_tag,
-      .token = token
-    )
-    if (length(rel$assets) == 0L) character(0)
-    else vapply(rel$assets, function(a) a$name, character(1L))
-  }, error = function(e) character(0))
+  tryCatch(
+    {
+      rel <- gh::gh(
+        "GET /repos/{owner}/{repo}/releases/tags/{tag}",
+        owner = parts[1], repo = parts[2], tag = release_tag,
+        .token = token
+      )
+      if (length(rel$assets) == 0L) {
+        character(0)
+      } else {
+        vapply(rel$assets, function(a) a$name, character(1L))
+      }
+    },
+    error = function(e) character(0)
+  )
 }
 
 #' @title Fetch remote SHA-256 checksums for a release's assets
@@ -33,29 +39,40 @@
 .gh_release_remote_checksums <- function(repo, release_tag, token) {
   parts <- strsplit(repo, "/")[[1]]
   sha_asset_name <- paste0(release_tag, "_SHA256SUMS.txt")
-  tryCatch({
-    rel <- gh::gh(
-      "GET /repos/{owner}/{repo}/releases/tags/{tag}",
-      owner = parts[1], repo = parts[2], tag = release_tag,
-      .token = token
-    )
-    asset <- Filter(function(a) identical(a$name, sha_asset_name), rel$assets)
-    if (length(asset) == 0L) return(character(0))
-    resp <- httr::GET(
-      url = asset[[1]]$url,
-      httr::add_headers(Authorization = paste("token", token),
-                        Accept = "application/octet-stream"),
-      httr::timeout(60)
-    )
-    if (httr::status_code(resp) != 200L) return(character(0))
-    lines <- strsplit(httr::content(resp, as = "text", encoding = "UTF-8"), "\n")[[1]]
-    lines <- trimws(lines[nzchar(trimws(lines))])
-    if (length(lines) == 0L) return(character(0))
-    fields <- strsplit(lines, "\\s+")
-    hashes <- vapply(fields, `[[`, character(1L), 1L)
-    fnames <- vapply(fields, function(x) x[length(x)], character(1L))
-    stats::setNames(hashes, fnames)
-  }, error = function(e) character(0))
+  tryCatch(
+    {
+      rel <- gh::gh(
+        "GET /repos/{owner}/{repo}/releases/tags/{tag}",
+        owner = parts[1], repo = parts[2], tag = release_tag,
+        .token = token
+      )
+      asset <- Filter(function(a) identical(a$name, sha_asset_name), rel$assets)
+      if (length(asset) == 0L) {
+        return(character(0))
+      }
+      resp <- httr::GET(
+        url = asset[[1]]$url,
+        httr::add_headers(
+          Authorization = paste("token", token),
+          Accept = "application/octet-stream"
+        ),
+        httr::timeout(60)
+      )
+      if (httr::status_code(resp) != 200L) {
+        return(character(0))
+      }
+      lines <- strsplit(httr::content(resp, as = "text", encoding = "UTF-8"), "\n")[[1]]
+      lines <- trimws(lines[nzchar(trimws(lines))])
+      if (length(lines) == 0L) {
+        return(character(0))
+      }
+      fields <- strsplit(lines, "\\s+")
+      hashes <- vapply(fields, `[[`, character(1L), 1L)
+      fnames <- vapply(fields, function(x) x[length(x)], character(1L))
+      stats::setNames(hashes, fnames)
+    },
+    error = function(e) character(0)
+  )
 }
 
 #' @title Upload a single file to a GitHub release via the REST API
@@ -70,7 +87,7 @@
 #' @return Invisible TRUE on success, stops on HTTP error
 #' @keywords internal
 .gh_upload_release_asset <- function(file, repo, release_tag, token,
-                                      overwrite = FALSE) {
+                                     overwrite = FALSE) {
   parts <- strsplit(repo, "/")[[1]]
   rel <- gh::gh(
     "GET /repos/{owner}/{repo}/releases/tags/{tag}",
@@ -93,35 +110,40 @@
     }
 
     if (!is.null(asset_id_to_delete)) {
-      delete_ok <- tryCatch({
-        gh::gh(
-          "DELETE /repos/{owner}/{repo}/releases/assets/{asset_id}",
-          owner = parts[1], repo = parts[2], asset_id = asset_id_to_delete,
-          .token = token
-        )
-        TRUE
-      }, error = function(e) {
-        # DELETE failed (token may lack write scope; GitHub returns 404 for
-        # unauthorized DELETE on public repos rather than 401/403).
-        # Fall back to gh CLI --clobber which uses its own stored credentials.
-        gh_bin <- Sys.which("gh")
-        if (nzchar(gh_bin)) {
-          exit_code <- system(
-            paste(
-              shQuote(gh_bin), "release", "upload", release_tag,
-              shQuote(normalizePath(file, mustWork = FALSE)),
-              "--repo", paste0(parts[1], "/", parts[2]),
-              "--clobber"
-            ),
-            ignore.stdout = TRUE, ignore.stderr = FALSE
+      delete_ok <- tryCatch(
+        {
+          gh::gh(
+            "DELETE /repos/{owner}/{repo}/releases/assets/{asset_id}",
+            owner = parts[1], repo = parts[2], asset_id = asset_id_to_delete,
+            .token = token
           )
-          if (exit_code == 0L) {
-            return("cli_uploaded")  # signal that gh CLI handled the upload
+          TRUE
+        },
+        error = function(e) {
+          # DELETE failed (token may lack write scope; GitHub returns 404 for
+          # unauthorized DELETE on public repos rather than 401/403).
+          # Fall back to gh CLI --clobber which uses its own stored credentials.
+          gh_bin <- Sys.which("gh")
+          if (nzchar(gh_bin)) {
+            exit_code <- system(
+              paste(
+                shQuote(gh_bin), "release", "upload", release_tag,
+                shQuote(normalizePath(file, mustWork = FALSE)),
+                "--repo", paste0(parts[1], "/", parts[2]),
+                "--clobber"
+              ),
+              ignore.stdout = TRUE, ignore.stderr = FALSE
+            )
+            if (exit_code == 0L) {
+              return("cli_uploaded") # signal that gh CLI handled the upload
+            }
           }
+          stop("DELETE failed and gh CLI fallback unavailable: ", conditionMessage(e))
         }
-        stop("DELETE failed and gh CLI fallback unavailable: ", conditionMessage(e))
-      })
-      if (identical(delete_ok, "cli_uploaded")) return(invisible(TRUE))
+      )
+      if (identical(delete_ok, "cli_uploaded")) {
+        return(invisible(TRUE))
+      }
     }
 
     # Re-fetch release so upload_url is fresh after any deletion
@@ -137,20 +159,23 @@
   # R/tar_release_storage.R so a burst of uploads doesn't exhaust the
   # installation token's REST rate limit.
   resp <- httr::RETRY(
-    verb  = "POST",
-    url   = paste0(upload_url, "?name=", utils::URLencode(basename(file), reserved = TRUE)),
-    httr::add_headers(Authorization = paste("token", token),
-                      `Content-Type` = "application/octet-stream"),
-    body    = httr::upload_file(file),
+    verb = "POST",
+    url = paste0(upload_url, "?name=", utils::URLencode(basename(file), reserved = TRUE)),
+    httr::add_headers(
+      Authorization = paste("token", token),
+      `Content-Type` = "application/octet-stream"
+    ),
+    body = httr::upload_file(file),
     httr::timeout(600),
     times = 3, terminate_on = c(400, 401, 404, 422)
   )
   status <- httr::status_code(resp)
   if (status == 429L ||
-      (status == 403L &&
-       grepl("rate limit",
-             tryCatch(httr::content(resp, "text", encoding = "UTF-8"), error = function(e) ""),
-             ignore.case = TRUE))) {
+    (status == 403L &&
+      grepl("rate limit",
+        tryCatch(httr::content(resp, "text", encoding = "UTF-8"), error = function(e) ""),
+        ignore.case = TRUE
+      ))) {
     message("  Secondary rate limit hit — sleeping 60s before continuing")
     Sys.sleep(60L)
     stop("Rate-limited uploading ", basename(file), " — will retry on next run")
@@ -180,25 +205,23 @@ upload_to_github_release <- function(
   release_name = release_tag,
   verbose = TRUE,
   overwrite = FALSE,
-  ...  #include to allow for targets dependencies without affecting function behavior
+  ... # include to allow for targets dependencies without affecting function behavior
 ) {
-  
-  
   # Handle NA or empty inputs
   if (length(files) == 0 || all(is.na(files))) {
     if (verbose) message("No files to upload")
     return(invisible(character(0)))
   }
-  
+
   # Remove NA values
   files <- files[!is.na(files)]
 
-  
+
   if (length(files) == 0) {
     if (verbose) message("No files to upload (all were NA)")
     return(invisible(character(0)))
   }
-  
+
   # Check for GitHub token (GITHUB_PAT preferred, GITHUB_TOKEN as fallback, then gh CLI)
   token <- Sys.getenv("GITHUB_PAT")
   if (token == "") token <- Sys.getenv("GITHUB_TOKEN")
@@ -222,37 +245,41 @@ upload_to_github_release <- function(
     message("No files found to upload")
     return(invisible(character(0)))
   }
-  
+
 
   # Ensure release exists (create it if needed) — use gh directly, not piggyback,
   # to avoid pb_new_release() API incompatibilities with newer GitHub response schemas.
   parts <- strsplit(repo, "/")[[1]]
-  tryCatch({
-    gh::gh(
-      "POST /repos/{owner}/{repo}/releases",
-      owner      = parts[1], repo = parts[2],
-      tag_name   = release_tag,
-      name       = release_name,
-      prerelease = TRUE,
-      .token     = token
-    )
-    if (verbose) message("\u2713 Created release '", release_tag, "'")
-  }, error = function(e) {
-    # Release already exists or commit doesn't exist yet — both are fine
-    if (verbose) message("Using existing release '", release_tag, "'")
-  })
-  
+  tryCatch(
+    {
+      gh::gh(
+        "POST /repos/{owner}/{repo}/releases",
+        owner = parts[1], repo = parts[2],
+        tag_name = release_tag,
+        name = release_name,
+        prerelease = TRUE,
+        .token = token
+      )
+      if (verbose) message("\u2713 Created release '", release_tag, "'")
+    },
+    error = function(e) {
+      # Release already exists or commit doesn't exist yet — both are fine
+      if (verbose) message("Using existing release '", release_tag, "'")
+    }
+  )
 
-  
 
   # List existing assets using gh package directly (piggyback pb_list has
   # incompatibilities with newer GitHub API response schemas).
-  existing_names <- tryCatch({
-    .gh_release_asset_names(repo, release_tag, token)
-  }, error = function(e) {
-    if (verbose) warning("Unable to list files in release: ", e$message)
-    character(0)
-  })
+  existing_names <- tryCatch(
+    {
+      .gh_release_asset_names(repo, release_tag, token)
+    },
+    error = function(e) {
+      if (verbose) warning("Unable to list files in release: ", e$message)
+      character(0)
+    }
+  )
 
   # Deduplicate files (branched targets may return same path from multiple branches)
   files <- files[!duplicated(basename(files))]
@@ -264,8 +291,10 @@ upload_to_github_release <- function(
   # the main driver of installation-level API rate-limit errors.
   if (overwrite) {
     remote_hashes <- .gh_release_remote_checksums(repo, release_tag, token)
-    local_hashes  <- vapply(files, function(f) digest::digest(f, algo = "sha256", file = TRUE),
-                            character(1L))
+    local_hashes <- vapply(
+      files, function(f) digest::digest(f, algo = "sha256", file = TRUE),
+      character(1L)
+    )
     names(local_hashes) <- basename(files)
     needs_upload <- vapply(names(local_hashes), function(nm) {
       is.na(remote_hashes[nm]) || !identical(unname(remote_hashes[nm]), unname(local_hashes[nm]))
@@ -279,11 +308,11 @@ upload_to_github_release <- function(
     if (verbose) message("All files already in release '", release_tag, "'")
     return(invisible(character(0)))
   }
-  
+
   if (verbose) {
     message("Uploading ", length(files_to_upload), " files to release '", release_tag, "'")
   }
-  
+
   # Upload each file using gh + httr directly (piggyback pb_upload fails when
   # its internal pb_list cannot find the release due to API schema changes).
   # Large batches throttle between requests to avoid tripping GitHub's
@@ -298,38 +327,43 @@ upload_to_github_release <- function(
         next
       }
       if (verbose) message("  Uploading: ", basename(file))
-      tryCatch({
-        .gh_upload_release_asset(
-          file        = file,
-          repo        = repo,
-          release_tag = release_tag,
-          token       = token,
-          overwrite   = overwrite
-        )
-        ok <- c(ok, file)
-        if (verbose) message("    \u2713 Uploaded")
-      }, error = function(e) {
-        failed <<- c(failed, file)
-        warning("Failed to upload: ", basename(file), " - ", e$message)
-      })
+      tryCatch(
+        {
+          .gh_upload_release_asset(
+            file        = file,
+            repo        = repo,
+            release_tag = release_tag,
+            token       = token,
+            overwrite   = overwrite
+          )
+          ok <- c(ok, file)
+          if (verbose) message("    \u2713 Uploaded")
+        },
+        error = function(e) {
+          failed <<- c(failed, file)
+          warning("Failed to upload: ", basename(file), " - ", e$message)
+        }
+      )
       if (throttle) Sys.sleep(0.5)
     }
     list(ok = ok, failed = failed)
   }
 
   first_pass <- upload_batch(files_to_upload)
-  uploaded   <- first_pass$ok
+  uploaded <- first_pass$ok
 
   # Retry once after a backoff — most first-pass failures are transient
   # secondary-rate-limit hits rather than permanent errors.
   if (length(first_pass$failed) > 0L) {
-    if (verbose) message(
-      "Retrying ", length(first_pass$failed),
-      " failed upload(s) after 30s backoff..."
-    )
+    if (verbose) {
+      message(
+        "Retrying ", length(first_pass$failed),
+        " failed upload(s) after 30s backoff..."
+      )
+    }
     Sys.sleep(30L)
     retry_pass <- upload_batch(first_pass$failed)
-    uploaded   <- c(uploaded, retry_pass$ok)
+    uploaded <- c(uploaded, retry_pass$ok)
     if (length(retry_pass$failed) > 0L) {
       warning(
         length(retry_pass$failed), " file(s) still failed to upload after retry: ",
@@ -338,7 +372,7 @@ upload_to_github_release <- function(
     }
   }
 
- 
+
   # Verify uploaded files are now in the release.
   # Only poll for large files (> 1 MB) — small JSON/parquet files index near-instantly
   # and the 275 s maximum wait was adding unnecessary wall-time for every upload call.
@@ -346,17 +380,17 @@ upload_to_github_release <- function(
     large_uploaded <- uploaded[file.size(uploaded) > 1e6]
     if (length(large_uploaded) > 0) {
       if (verbose) message("Verifying ", length(large_uploaded), " large file(s) in release...")
-      uploaded_names  <- basename(large_uploaded)
-      verified        <- FALSE
+      uploaded_names <- basename(large_uploaded)
+      verified <- FALSE
       release_asset_names <- NULL
       for (attempt in seq_len(10)) {
-        Sys.sleep(attempt * 5)  # 5s, 10s, … 50s
+        Sys.sleep(attempt * 5) # 5s, 10s, … 50s
         release_asset_names <- tryCatch(
           .gh_release_asset_names(repo, release_tag, token),
           error = function(e) NULL
         )
         if (!is.null(release_asset_names) &&
-            all(uploaded_names %in% release_asset_names)) {
+          all(uploaded_names %in% release_asset_names)) {
           verified <- TRUE
           break
         }
@@ -367,9 +401,11 @@ upload_to_github_release <- function(
       } else {
         existing_in_release <- if (!is.null(release_asset_names)) release_asset_names else character(0)
         not_found <- uploaded_names[!uploaded_names %in% existing_in_release]
-        warning("Verification incomplete after 10 attempts: ", length(not_found),
-                " file(s) not confirmed in release: ", paste(not_found, collapse = ", "),
-                "\nFiles may still be available after GitHub finishes indexing.")
+        warning(
+          "Verification incomplete after 10 attempts: ", length(not_found),
+          " file(s) not confirmed in release: ", paste(not_found, collapse = ", "),
+          "\nFiles may still be available after GitHub finishes indexing."
+        )
       }
     } else {
       if (verbose) message("\u2713 Uploaded ", length(uploaded), " small file(s) (no polling needed)")
@@ -377,27 +413,33 @@ upload_to_github_release <- function(
 
     # Write SHA-256 checksums for all uploaded files as a sidecar on the same release.
     # This allows downstream consumers to verify data integrity without re-downloading.
-    tryCatch({
-      sha_lines <- vapply(files, function(f)
-        paste(digest::digest(f, algo = "sha256", file = TRUE), basename(f)),
-        character(1L))
-      sha_asset_name <- paste0(release_tag, "_SHA256SUMS.txt")
-      # basename(tmp_sha) is used as the uploaded asset name, so it must
-      # already be sha_asset_name (a bare tempfile() name was uploaded as-is before).
-      tmp_sha <- file.path(tempdir(), sha_asset_name)
-      writeLines(sha_lines, tmp_sha)
-      if (verbose) message("Uploading checksum file: ", sha_asset_name)
-      .gh_upload_release_asset(
-        file        = tmp_sha,
-        repo        = repo,
-        release_tag = release_tag,
-        token       = token,
-        overwrite   = TRUE
-      )
-      if (verbose) message("\u2713 Checksums uploaded as ", sha_asset_name)
-    }, error = function(e) {
-      if (verbose) message("  (checksum upload skipped: ", conditionMessage(e), ")")
-    })
+    tryCatch(
+      {
+        sha_lines <- vapply(
+          files, function(f) {
+            paste(digest::digest(f, algo = "sha256", file = TRUE), basename(f))
+          },
+          character(1L)
+        )
+        sha_asset_name <- paste0(release_tag, "_SHA256SUMS.txt")
+        # basename(tmp_sha) is used as the uploaded asset name, so it must
+        # already be sha_asset_name (a bare tempfile() name was uploaded as-is before).
+        tmp_sha <- file.path(tempdir(), sha_asset_name)
+        writeLines(sha_lines, tmp_sha)
+        if (verbose) message("Uploading checksum file: ", sha_asset_name)
+        .gh_upload_release_asset(
+          file        = tmp_sha,
+          repo        = repo,
+          release_tag = release_tag,
+          token       = token,
+          overwrite   = TRUE
+        )
+        if (verbose) message("\u2713 Checksums uploaded as ", sha_asset_name)
+      },
+      error = function(e) {
+        if (verbose) message("  (checksum upload skipped: ", conditionMessage(e), ")")
+      }
+    )
   }
 
   invisible(uploaded)

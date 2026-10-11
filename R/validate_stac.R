@@ -15,10 +15,10 @@
 #' @return Character path to the written \code{report_file}.
 #' @export
 validate_stac_links <- function(
-    catalog_json = "data/stac/catalog.json",
-    report_file  = "data/stac/validation_report.json",
-    verbose      = TRUE) {
-
+  catalog_json = "data/stac/catalog.json",
+  report_file = "data/stac/validation_report.json",
+  verbose = TRUE
+) {
   results <- list()
 
   # Recursively walk the STAC tree; visit each JSON file once (track visited
@@ -28,21 +28,28 @@ validate_stac_links <- function(
   walk_item <- function(json_path) {
     # Normalise so we can de-duplicate regardless of ./relative prefix
     json_path <- normalizePath(json_path, mustWork = FALSE)
-    if (json_path %in% visited || !file.exists(json_path)) return()
+    if (json_path %in% visited || !file.exists(json_path)) {
+      return()
+    }
     visited <<- c(visited, json_path)
 
     obj <- tryCatch(jsonlite::read_json(json_path), error = function(e) NULL)
-    if (is.null(obj)) return()
+    if (is.null(obj)) {
+      return()
+    }
 
     # ── Check every asset href in this document ───────────────────────────
     if (!is.null(obj$assets)) {
       for (key in names(obj$assets)) {
         href <- obj$assets[[key]]$href
         if (!is.null(href) && grepl("^https://", href)) {
-          status <- tryCatch({
-            r <- httr::HEAD(href, httr::timeout(15))
-            httr::status_code(r)
-          }, error = function(e) NA_integer_)
+          status <- tryCatch(
+            {
+              r <- httr::HEAD(href, httr::timeout(15))
+              httr::status_code(r)
+            },
+            error = function(e) NA_integer_
+          )
 
           ok <- !is.na(status) && status == 200L
           results[[length(results) + 1L]] <<- list(
@@ -52,8 +59,9 @@ validate_stac_links <- function(
             status = status,
             ok     = ok
           )
-          if (verbose && !ok)
+          if (verbose && !ok) {
             message("  \u26a0 BROKEN [", status, "]: ", key, " -> ", href)
+          }
         }
       }
     }
@@ -70,7 +78,7 @@ validate_stac_links <- function(
   if (verbose) message("Validating STAC asset links from: ", catalog_json)
   walk_item(catalog_json)
 
-  n_total  <- length(results)
+  n_total <- length(results)
   n_broken <- sum(!vapply(results, `[[`, logical(1), "ok"))
 
   report <- list(

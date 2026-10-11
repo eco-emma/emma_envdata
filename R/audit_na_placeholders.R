@@ -27,18 +27,25 @@ NULL
 #' @keywords internal
 .gh_delete_release_asset_by_name <- function(repo, release_tag, asset_name, token) {
   parts <- strsplit(repo, "/")[[1]]
-  tryCatch({
-    rel <- gh::gh("GET /repos/{owner}/{repo}/releases/tags/{tag}",
-                  owner = parts[1], repo = parts[2], tag = release_tag, .token = token)
-    match_asset <- Filter(function(a) identical(a$name, asset_name), rel$assets)
-    if (length(match_asset) == 0L) return(invisible(FALSE))
-    gh::gh("DELETE /repos/{owner}/{repo}/releases/assets/{asset_id}",
-           owner = parts[1], repo = parts[2], asset_id = match_asset[[1]]$id, .token = token)
-    invisible(TRUE)
-  }, error = function(e) {
-    warning("Could not delete release asset ", asset_name, ": ", conditionMessage(e))
-    invisible(FALSE)
-  })
+  tryCatch(
+    {
+      rel <- gh::gh("GET /repos/{owner}/{repo}/releases/tags/{tag}",
+        owner = parts[1], repo = parts[2], tag = release_tag, .token = token
+      )
+      match_asset <- Filter(function(a) identical(a$name, asset_name), rel$assets)
+      if (length(match_asset) == 0L) {
+        return(invisible(FALSE))
+      }
+      gh::gh("DELETE /repos/{owner}/{repo}/releases/assets/{asset_id}",
+        owner = parts[1], repo = parts[2], asset_id = match_asset[[1]]$id, .token = token
+      )
+      invisible(TRUE)
+    },
+    error = function(e) {
+      warning("Could not delete release asset ", asset_name, ": ", conditionMessage(e))
+      invisible(FALSE)
+    }
+  )
 }
 
 #' @keywords internal
@@ -63,33 +70,35 @@ NULL
 #' @return Data frame of flagged (all-NA) months: yyyymm, file, all_na
 #' @export
 audit_burn_na_grids <- function(
-    dataset,
-    local_dir    = "data/target_outputs/burndates",
-    repo         = "eco-emma/emma_envdata",
-    release_tag  = paste0(dataset, "_raster"),
-    valid_start,
-    min_age_days = 45,
-    dry_run      = TRUE) {
-
+  dataset,
+  local_dir = "data/target_outputs/burndates",
+  repo = "eco-emma/emma_envdata",
+  release_tag = paste0(dataset, "_raster"),
+  valid_start,
+  min_age_days = 45,
+  dry_run = TRUE
+) {
   stopifnot(dataset %in% c("burn_modis", "burn_viirs"))
 
-  local_files <- list.files(local_dir, pattern = paste0("^", dataset, "_[0-9]{6}\\.tif$"),
-                            full.names = TRUE)
+  local_files <- list.files(local_dir,
+    pattern = paste0("^", dataset, "_[0-9]{6}\\.tif$"),
+    full.names = TRUE
+  )
   if (length(local_files) == 0L) {
     message("No local ", dataset, " grid files found in ", local_dir)
     return(invisible(data.frame()))
   }
 
   valid_start_date <- as.Date(valid_start)
-  cutoff_date       <- Sys.Date() - min_age_days
+  cutoff_date <- Sys.Date() - min_age_days
 
   results <- purrr::map_dfr(local_files, function(f) {
-    yyyymm      <- sub(paste0("^", dataset, "_"), "", tools::file_path_sans_ext(basename(f)))
+    yyyymm <- sub(paste0("^", dataset, "_"), "", tools::file_path_sans_ext(basename(f)))
     month_start <- as.Date(paste0(yyyymm, "01"), format = "%Y%m%d")
     if (is.na(month_start) || month_start < valid_start_date || month_start > cutoff_date) {
-      return(NULL)  # outside the audit window
+      return(NULL) # outside the audit window
     }
-    r       <- terra::rast(f)
+    r <- terra::rast(f)
     n_valid <- terra::global(r, fun = "notNA")[1, 1]
     data.frame(yyyymm = yyyymm, file = f, all_na = n_valid == 0, stringsAsFactors = FALSE)
   })
@@ -100,8 +109,10 @@ audit_burn_na_grids <- function(
     return(invisible(flagged))
   }
 
-  message(nrow(flagged), " suspicious all-NA ", dataset, " grid(s): ",
-          paste(flagged$yyyymm, collapse = ", "))
+  message(
+    nrow(flagged), " suspicious all-NA ", dataset, " grid(s): ",
+    paste(flagged$yyyymm, collapse = ", ")
+  )
   if (dry_run) {
     message("dry_run = TRUE \u2014 no files deleted. Re-run with dry_run = FALSE to reprocess.")
     return(flagged)
@@ -115,8 +126,10 @@ audit_burn_na_grids <- function(
       message("Deleted release asset: ", basename(f))
     }
   }
-  message("Run targets::tar_make() to resubmit AppEEARS tasks for: ",
-          paste(flagged$yyyymm, collapse = ", "))
+  message(
+    "Run targets::tar_make() to resubmit AppEEARS tasks for: ",
+    paste(flagged$yyyymm, collapse = ", ")
+  )
   invisible(flagged)
 }
 
@@ -137,42 +150,51 @@ audit_burn_na_grids <- function(
 #' @return Data frame of flagged (placeholder) composites: yyyymmdd, sensor, file
 #' @export
 audit_vi_na_grids <- function(
-    dataset,
-    sensors,
-    local_dir    = if (dataset == "vi_modis") "data/target_outputs/modis_vi"
-                  else "data/target_outputs/viirs_vi",
-    repo         = "eco-emma/emma_envdata",
-    release_tag  = paste0(dataset, "_raster"),
-    valid_start,
-    min_age_days = 45,
-    dry_run      = TRUE) {
-
+  dataset,
+  sensors,
+  local_dir = if (dataset == "vi_modis") {
+    "data/target_outputs/modis_vi"
+  } else {
+    "data/target_outputs/viirs_vi"
+  },
+  repo = "eco-emma/emma_envdata",
+  release_tag = paste0(dataset, "_raster"),
+  valid_start,
+  min_age_days = 45,
+  dry_run = TRUE
+) {
   stopifnot(dataset %in% c("vi_modis", "vi_viirs"))
 
   valid_start_date <- as.Date(valid_start)
-  cutoff_date       <- Sys.Date() - min_age_days
+  cutoff_date <- Sys.Date() - min_age_days
 
   results <- purrr::map_dfr(sensors, function(sensor) {
     pattern <- paste0("^", dataset, "_", sensor, "_[0-9]{8}\\.tif$")
-    files   <- list.files(local_dir, pattern = pattern, full.names = TRUE)
-    if (length(files) == 0L) return(NULL)
+    files <- list.files(local_dir, pattern = pattern, full.names = TRUE)
+    if (length(files) == 0L) {
+      return(NULL)
+    }
 
     purrr::map_dfr(files, function(f) {
-      yyyymmdd <- sub(paste0("^", dataset, "_", sensor, "_"), "",
-                      tools::file_path_sans_ext(basename(f)))
+      yyyymmdd <- sub(
+        paste0("^", dataset, "_", sensor, "_"), "",
+        tools::file_path_sans_ext(basename(f))
+      )
       composite_date <- as.Date(yyyymmdd, format = "%Y%m%d")
       if (is.na(composite_date) || composite_date < valid_start_date ||
-          composite_date > cutoff_date) {
+        composite_date > cutoff_date) {
         return(NULL)
       }
       # Placeholder COGs are tagged source = "no_data" in write_na_cog() —
       # a more reliable signal than an all-NA content check since this
       # metags value is only ever set by the placeholder path.
-      r         <- terra::rast(f)
-      src_tag   <- tryCatch(terra::metags(r)[["source"]], error = function(e) NA_character_)
+      r <- terra::rast(f)
+      src_tag <- tryCatch(terra::metags(r)[["source"]], error = function(e) NA_character_)
       is_marker <- !is.na(src_tag) && identical(src_tag, "no_data")
-      data.frame(yyyymmdd = yyyymmdd, sensor = sensor, file = f,
-                is_no_data = is_marker, stringsAsFactors = FALSE)
+      data.frame(
+        yyyymmdd = yyyymmdd, sensor = sensor, file = f,
+        is_no_data = is_marker, stringsAsFactors = FALSE
+      )
     })
   })
 
@@ -182,8 +204,10 @@ audit_vi_na_grids <- function(
     return(invisible(flagged))
   }
 
-  message(nrow(flagged), " suspicious no_data ", dataset, " grid(s): ",
-          paste(paste0(flagged$sensor, "/", flagged$yyyymmdd), collapse = ", "))
+  message(
+    nrow(flagged), " suspicious no_data ", dataset, " grid(s): ",
+    paste(paste0(flagged$sensor, "/", flagged$yyyymmdd), collapse = ", ")
+  )
   if (dry_run) {
     message("dry_run = TRUE \u2014 no files deleted. Re-run with dry_run = FALSE to reprocess.")
     return(flagged)
@@ -205,8 +229,10 @@ audit_vi_na_grids <- function(
       message("Deleted release asset: ", basename(f), " from ", tag)
     }
   }
-  message("Run targets::tar_make() to resubmit AppEEARS tasks for: ",
-          paste(paste0(flagged$sensor, "/", flagged$yyyymmdd), collapse = ", "))
+  message(
+    "Run targets::tar_make() to resubmit AppEEARS tasks for: ",
+    paste(paste0(flagged$sensor, "/", flagged$yyyymmdd), collapse = ", ")
+  )
   invisible(flagged)
 }
 
@@ -222,11 +248,11 @@ audit_vi_na_grids <- function(
 #' @return Character vector of flagged marker file paths
 #' @export
 audit_skip_markers <- function(
-    local_dir,
-    valid_start,
-    min_age_days = 45,
-    dry_run      = TRUE) {
-
+  local_dir,
+  valid_start,
+  min_age_days = 45,
+  dry_run = TRUE
+) {
   markers <- list.files(local_dir, pattern = "\\.skip$", full.names = TRUE)
   if (length(markers) == 0L) {
     message("No .skip markers found in ", local_dir)
@@ -234,16 +260,19 @@ audit_skip_markers <- function(
   }
 
   valid_start_date <- as.Date(valid_start)
-  cutoff_date       <- Sys.Date() - min_age_days
+  cutoff_date <- Sys.Date() - min_age_days
 
   # Extract the trailing 6- or 8-digit date token from the marker filename
   date_token <- regmatches(basename(markers), regexpr("[0-9]{6,8}(?=\\.skip$)",
-                                                       basename(markers), perl = TRUE))
+    basename(markers),
+    perl = TRUE
+  ))
   marker_date <- as.Date(ifelse(nchar(date_token) == 6, paste0(date_token, "01"), date_token),
-                         format = "%Y%m%d")
+    format = "%Y%m%d"
+  )
 
   in_window <- !is.na(marker_date) & marker_date >= valid_start_date & marker_date <= cutoff_date
-  flagged   <- markers[in_window]
+  flagged <- markers[in_window]
 
   if (length(flagged) == 0L) {
     message("No stale .skip markers found in audit window.")
@@ -257,7 +286,9 @@ audit_skip_markers <- function(
   }
 
   unlink(flagged)
-  message("Deleted ", length(flagged), " stale .skip marker(s). ",
-          "Run targets::tar_make() to reprocess.")
+  message(
+    "Deleted ", length(flagged), " stale .skip marker(s). ",
+    "Run targets::tar_make() to reprocess."
+  )
   invisible(flagged)
 }

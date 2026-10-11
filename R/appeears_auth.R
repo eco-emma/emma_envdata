@@ -7,7 +7,9 @@ library(appeears)
 # the AppEEARS API.
 ensure_appeears_auth <- function(verbose = FALSE) {
   # Idempotent: skip if already authenticated in this R session.
-  if (isTRUE(getOption("appeears_auth_done"))) return(invisible(NULL))
+  if (isTRUE(getOption("appeears_auth_done"))) {
+    return(invisible(NULL))
+  }
 
   # Load ~/.Renviron if it exists — R's own parser handles quoted values and
   # avoids the shell $-expansion that can corrupt passwords passed via --env.

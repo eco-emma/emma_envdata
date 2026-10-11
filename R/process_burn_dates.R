@@ -24,16 +24,18 @@
 # A single pixel does not burn twice within 6 months — multi-sensor detections
 # of the same fire are collapsed into one canonical event.
 .assign_fire_clusters <- function(dates_sorted) {
-  n       <- length(dates_sorted)
+  n <- length(dates_sorted)
   cluster <- integer(n)
-  if (n == 0L) return(cluster)
+  if (n == 0L) {
+    return(cluster)
+  }
   current_cluster <- 1L
-  anchor          <- dates_sorted[1L]
-  cluster[1L]     <- current_cluster
+  anchor <- dates_sorted[1L]
+  cluster[1L] <- current_cluster
   for (i in seq_len(n - 1L) + 1L) {
     if (dates_sorted[i] - anchor > 182L) {
       current_cluster <- current_cluster + 1L
-      anchor          <- dates_sorted[i]
+      anchor <- dates_sorted[i]
     }
     cluster[i] <- current_cluster
   }
@@ -44,18 +46,20 @@
 # Rasterize one reprojected CapeNature fire polygon against the domain grid,
 # returning a tibble of burned pixels (burn_fraction > 0.5 only).
 .rasterize_one_fire <- function(
-    poly_vect,
-    domain_r,
-    pid_vec,
-    burn_date_int,
-    date_uncertainty_days
+  poly_vect,
+  domain_r,
+  pid_vec,
+  burn_date_int,
+  date_uncertainty_days
 ) {
   cover_r <- terra::rasterize(poly_vect, domain_r, cover = TRUE)
   cover_v <- terra::values(cover_r)[, 1]
 
   # pixels within domain AND covered by this polygon
   valid <- !is.na(pid_vec) & !is.na(cover_v) & cover_v > 0
-  if (!any(valid)) return(NULL)
+  if (!any(valid)) {
+    return(NULL)
+  }
 
   tibble::tibble(
     pid                   = as.integer(pid_vec[valid]),
@@ -101,22 +105,24 @@
 #' @return Character path to the written parquet file.
 #' @export
 process_capenature_to_parquet <- function(
-    capenature_fires,
-    domain_raster,
-    date_fixes_csv     = "data/manual_download/capenature_date_fixes.csv",
-    out_file           = "data/target_outputs/burndates/capenature_burns.parquet",
-    max_corrupt_future = 0L,
-    max_corrupt_other  = 5L,
-    verbose            = TRUE
+  capenature_fires,
+  domain_raster,
+  date_fixes_csv = "data/manual_download/capenature_date_fixes.csv",
+  out_file = "data/target_outputs/burndates/capenature_burns.parquet",
+  max_corrupt_future = 0L,
+  max_corrupt_other = 5L,
+  verbose = TRUE
 ) {
   # parameters near the top for easy auditing (per R style guide)
   today <- Sys.Date()
-  epoch           <- as.Date("1970-01-01")
+  epoch <- as.Date("1970-01-01")
 
   # ── 1. Tidy the sf object ──────────────────────────────────────────────────
-  required_fields <- c("FIRE_CODE", "LOCAL_DESC", "DATE_START",
-                       "DATE_EXTIN", "MONTH", "YEAR")
-  missing_fields  <- setdiff(required_fields, names(capenature_fires))
+  required_fields <- c(
+    "FIRE_CODE", "LOCAL_DESC", "DATE_START",
+    "DATE_EXTIN", "MONTH", "YEAR"
+  )
+  missing_fields <- setdiff(required_fields, names(capenature_fires))
   if (length(missing_fields) > 0) {
     stop(
       "CapeNature shapefile missing expected fields: ",
@@ -141,7 +147,7 @@ process_capenature_to_parquet <- function(
   if (file.exists(date_fixes_csv)) {
     fixes <- readr::read_csv(
       date_fixes_csv,
-      col_types     = readr::cols(.default = readr::col_character()),
+      col_types = readr::cols(.default = readr::col_character()),
       show_col_types = FALSE
     )
     # fire_code-specific corrections: match on FIRE_CODE, set field value
@@ -149,7 +155,7 @@ process_capenature_to_parquet <- function(
       fixes, !is.na(.data$fire_code) & nchar(trimws(.data$fire_code)) > 0
     )
     for (i in seq_len(nrow(fc_fixes))) {
-      fc  <- trimws(fc_fixes$fire_code[i])
+      fc <- trimws(fc_fixes$fire_code[i])
       fld <- trimws(fc_fixes$field[i])
       val <- trimws(fc_fixes$corrected_value[i])
       idx <- which(fires_sf$FIRE_CODE == fc)
@@ -164,8 +170,8 @@ process_capenature_to_parquet <- function(
       )
       for (i in seq_len(nrow(global_fixes))) {
         fld <- trimws(global_fixes$field[i])
-        rv  <- trimws(global_fixes$raw_value[i])
-        cv  <- trimws(global_fixes$corrected_value[i])
+        rv <- trimws(global_fixes$raw_value[i])
+        cv <- trimws(global_fixes$corrected_value[i])
         if (!is.na(rv) && nchar(rv) > 0 && fld %in% names(fires_sf)) {
           idx <- which(fires_sf[[fld]] == rv)
           if (length(idx) > 0L) fires_sf[[fld]][idx] <- cv
@@ -175,9 +181,11 @@ process_capenature_to_parquet <- function(
     if (verbose) {
       message(
         "Applied ", nrow(fc_fixes), " fire-specific and ",
-        if ("raw_value" %in% names(fixes))
+        if ("raw_value" %in% names(fixes)) {
           sum(is.na(fixes$fire_code) | nchar(trimws(fixes$fire_code)) == 0)
-        else 0L,
+        } else {
+          0L
+        },
         " global date corrections from ", basename(date_fixes_csv)
       )
     }
@@ -205,7 +213,7 @@ process_capenature_to_parquet <- function(
   # ── 4. Parse dates safely ─────────────────────────────────────────────────
   .parse_date <- function(x) {
     d <- suppressWarnings(as.Date(trimws(x), format = "%Y-%m-%d"))
-    d[!is.na(d) & d > today + 365L] <- NA  # pre-filter obviously impossible
+    d[!is.na(d) & d > today + 365L] <- NA # pre-filter obviously impossible
     d
   }
 
@@ -279,18 +287,18 @@ process_capenature_to_parquet <- function(
       burn_date = dplyr::case_when(
         # 1. Exact DATE_START
         !is.na(.data$date_start_parsed) & .data$date_start_parsed < today
-          ~ .data$date_start_parsed,
+        ~ .data$date_start_parsed,
         # 2. Mid-month when only YEAR+MONTH known
         is.na(.data$date_start_parsed) &
           !is.na(.data$MONTH) & .data$MONTH > 0L
-          ~ as.Date(paste0(
-              .data$YEAR, "-",
-              formatC(.data$MONTH, width = 2L, flag = "0"), "-15"
-            )),
+        ~ as.Date(paste0(
+            .data$YEAR, "-",
+            formatC(.data$MONTH, width = 2L, flag = "0"), "-15"
+          )),
         # 3. Mid-year for pre-1996 year-only records
         is.na(.data$date_start_parsed) &
           (is.na(.data$MONTH) | .data$MONTH == 0L) & .data$YEAR < 1996L
-          ~ as.Date(paste0(.data$YEAR, "-01-01")),
+        ~ as.Date(paste0(.data$YEAR, "-01-01")),
         # 4. No derivable date — will be dropped
         TRUE ~ NA_Date_
       ),
@@ -299,16 +307,16 @@ process_capenature_to_parquet <- function(
         !is.na(.data$date_start_parsed) &
           !is.na(.data$date_extin_parsed) &
           .data$date_extin_parsed > .data$date_start_parsed
-          ~ as.integer(.data$date_extin_parsed - .data$date_start_parsed),
+        ~ as.integer(.data$date_extin_parsed - .data$date_start_parsed),
         # Exact date known
         !is.na(.data$date_start_parsed)
-          ~ 0L,
+        ~ 0L,
         # Only month known: mid-month assignment
         !is.na(.data$MONTH) & .data$MONTH > 0L
-          ~ 15L,
+        ~ 15L,
         # Only year known (pre-1996): ~half year
         .data$YEAR < 1996L
-          ~ 180L,
+        ~ 180L,
         TRUE ~ NA_integer_
       )
     )
@@ -373,15 +381,15 @@ process_capenature_to_parquet <- function(
 
   result_list <- vector("list", nrow(fires_sf))
   for (i in seq_len(nrow(fires_sf))) {
-    message(paste(i, "of", nrow(fires_sf))) #status update
+    message(paste(i, "of", nrow(fires_sf))) # status update
 
     # Crop domain raster to this fire's bounding box + one-cell buffer so that
     # terra::rasterize() only has to work on a small spatial subset rather than
     # the full domain grid — the dominant cost in the original implementation.
-    fire_ext    <- terra::ext(fires_vect[i, ])
-    fire_ext    <- terra::extend(fire_ext, cell_buf)
+    fire_ext <- terra::ext(fires_vect[i, ])
+    fire_ext <- terra::extend(fire_ext, cell_buf)
     domain_crop <- terra::crop(domain_r, fire_ext)
-    pid_crop    <- terra::values(domain_crop[["pid"]])[, 1]
+    pid_crop <- terra::values(domain_crop[["pid"]])[, 1]
 
     result_list[[i]] <- tryCatch(
       .rasterize_one_fire(
@@ -455,9 +463,9 @@ process_capenature_to_parquet <- function(
 #' @return Tibble of deduplicated fire events.
 #' @export
 merge_burn_dates <- function(
-    burn_dir           = "data/target_outputs/burndates/",
-    capenature_parquet = NULL,
-    verbose            = TRUE
+  burn_dir = "data/target_outputs/burndates/",
+  capenature_parquet = NULL,
+  verbose = TRUE
 ) {
   # Helper: read parquets matching pattern, add source column, standardise schema
   .read_burn_parquets <- function(pattern, source_label) {
@@ -483,11 +491,13 @@ merge_burn_dates <- function(
       dplyr::collect() |>
       dplyr::mutate(
         source                = source_label,
-        date_uncertainty_days = 8L,   # half of 16-day compositing window
+        date_uncertainty_days = 8L, # half of 16-day compositing window
         burn_fraction         = NA_real_
       ) |>
-      dplyr::select("pid", "date", "source", "date_uncertainty_days",
-                    "burn_fraction")
+      dplyr::select(
+        "pid", "date", "source", "date_uncertainty_days",
+        "burn_fraction"
+      )
   }
 
   modis_burns <- .read_burn_parquets("^burn_modis_.*\\.parquet$", "modis")
@@ -497,8 +507,10 @@ merge_burn_dates <- function(
   cn_burns <- if (!is.null(capenature_parquet) && file.exists(capenature_parquet)) {
     if (verbose) message("Reading CapeNature parquet: ", basename(capenature_parquet))
     arrow::read_parquet(capenature_parquet) |>
-      dplyr::select("pid", "date", "source", "date_uncertainty_days",
-                    "burn_fraction")
+      dplyr::select(
+        "pid", "date", "source", "date_uncertainty_days",
+        "burn_fraction"
+      )
   } else {
     tibble::tibble(
       pid                   = integer(0),
@@ -546,17 +558,17 @@ merge_burn_dates <- function(
   # Collapse each (pid, cluster_id) group into one canonical fire event
   deduplicated <- clustered |>
     dplyr::group_by(.data$pid, .data$cluster_id) |>
-    dplyr::group_modify(~{
+    dplyr::group_modify(~ {
       d <- .x
 
       cn_rows <- dplyr::filter(d, .data$source == "capenature")
 
       if (nrow(cn_rows) > 0L) {
         # CapeNature: ground truth — use its date regardless of satellite dates
-        canon_date    <- cn_rows$date[1L]
-        canon_source  <- "capenature"
-        canon_unc     <- as.integer(cn_rows$date_uncertainty_days[1L])
-        canon_frac    <- as.numeric(cn_rows$burn_fraction[1L])
+        canon_date <- cn_rows$date[1L]
+        canon_source <- "capenature"
+        canon_unc <- as.integer(cn_rows$date_uncertainty_days[1L])
+        canon_frac <- as.numeric(cn_rows$burn_fraction[1L])
       } else {
         # Satellites: use earliest detection; VIIRS preferred over MODIS for ties
         sat <- dplyr::arrange(
@@ -564,10 +576,10 @@ merge_burn_dates <- function(
           .data$date,
           dplyr::desc(.data$source == "viirs")
         )
-        canon_date   <- sat$date[1L]
+        canon_date <- sat$date[1L]
         canon_source <- sat$source[1L]
         # Cluster spread widens uncertainty beyond the 8-day base
-        spread    <- as.integer(max(d$date) - min(d$date))
+        spread <- as.integer(max(d$date) - min(d$date))
         canon_unc <- 8L + spread
         canon_frac <- NA_real_
       }
@@ -580,8 +592,10 @@ merge_burn_dates <- function(
       )
     }) |>
     dplyr::ungroup() |>
-    dplyr::select("pid", "date", "fire_source", "date_uncertainty_days",
-                  "burn_fraction") |>
+    dplyr::select(
+      "pid", "date", "fire_source", "date_uncertainty_days",
+      "burn_fraction"
+    ) |>
     dplyr::arrange(.data$pid, .data$date)
 
   if (verbose) {
@@ -636,9 +650,9 @@ merge_burn_dates <- function(
 #' @return Character path to the (updated) state parquet.
 #' @export
 compute_fire_state <- function(
-    burn_events,
-    state_file = "data/target_outputs/most_recent_burn_state.parquet",
-    verbose    = TRUE
+  burn_events,
+  state_file = "data/target_outputs/most_recent_burn_state.parquet",
+  verbose = TRUE
 ) {
   record_start <- as.integer(as.Date("2000-01-01") - as.Date("1970-01-01"))
 
@@ -650,7 +664,8 @@ compute_fire_state <- function(
         "Loaded state: ", nrow(state), " pixels, ",
         "last state_month = ",
         format(as.Date(max(state$state_month, record_start),
-                       origin = "1970-01-01"))
+          origin = "1970-01-01"
+        ))
       )
     }
   } else {
@@ -687,17 +702,17 @@ compute_fire_state <- function(
   )
 
   all_month_starts <- sort(unique(burn_month_starts))
-  
+
   # Check if burn_events contains sources not present in current state
   # (e.g., CapeNature added retrospectively after satellite-only state exists)
   sources_in_events <- unique(burn_events$fire_source)
-  sources_in_state  <- if (nrow(state) > 0L) {
+  sources_in_state <- if (nrow(state) > 0L) {
     unique(state$fire_source[!is.na(state$fire_source)])
   } else {
     character(0)
   }
   new_sources <- setdiff(sources_in_events, sources_in_state)
-  
+
   if (length(new_sources) > 0L) {
     if (verbose) {
       message(
@@ -868,11 +883,11 @@ compute_fire_state <- function(
 #'   existing files that were skipped).
 #' @export
 compute_fireage_for_vi <- function(
-    modis_vi_dir = "data/target_outputs/modis_vi",
-    viirs_vi_dir = "data/target_outputs/viirs_vi",
-    state_file,
-    out_dir      = "data/target_outputs/fireage/",
-    verbose      = TRUE
+  modis_vi_dir = "data/target_outputs/modis_vi",
+  viirs_vi_dir = "data/target_outputs/viirs_vi",
+  state_file,
+  out_dir = "data/target_outputs/fireage/",
+  verbose = TRUE
 ) {
   record_start <- as.integer(as.Date("2000-01-01") - as.Date("1970-01-01"))
 
@@ -880,10 +895,12 @@ compute_fireage_for_vi <- function(
 
   # ── List all VI parquets ───────────────────────────────────────────────────
   modis_vi_files <- list.files(
-    modis_vi_dir, pattern = "^vi_modis_.*\\.parquet$", full.names = TRUE
+    modis_vi_dir,
+    pattern = "^vi_modis_.*\\.parquet$", full.names = TRUE
   )
   viirs_vi_files <- list.files(
-    viirs_vi_dir, pattern = "^vi_viirs_.*\\.parquet$", full.names = TRUE
+    viirs_vi_dir,
+    pattern = "^vi_viirs_.*\\.parquet$", full.names = TRUE
   )
   all_vi_files <- c(modis_vi_files, viirs_vi_files)
 
@@ -905,12 +922,16 @@ compute_fireage_for_vi <- function(
     )
   }
 
-  if (!any(todo)) return(out_names)
+  if (!any(todo)) {
+    return(out_names)
+  }
 
   # ── Load state once (shared across all VI files) ───────────────────────────
   if (!file.exists(state_file)) {
-    stop("state_file not found: ", state_file,
-         ". Run compute_fire_state() first.")
+    stop(
+      "state_file not found: ", state_file,
+      ". Run compute_fire_state() first."
+    )
   }
   state <- arrow::read_parquet(state_file)
 
@@ -918,16 +939,17 @@ compute_fireage_for_vi <- function(
     message(
       "Loaded fire state: ", nrow(state), " pixels, state_month = ",
       format(as.Date(max(state$state_month, record_start),
-                     origin = "1970-01-01"))
+        origin = "1970-01-01"
+      ))
     )
   }
 
   # ── Process each VI parquet that needs a fire_age output ──────────────────
-  todo_vi   <- all_vi_files[todo]
-  todo_out  <- out_names[todo]
+  todo_vi <- all_vi_files[todo]
+  todo_out <- out_names[todo]
 
   for (j in seq_along(todo_vi)) {
-    vi_file  <- todo_vi[j]
+    vi_file <- todo_vi[j]
     out_file <- todo_out[j]
 
     if (verbose) message("Computing fire age: ", basename(vi_file))
@@ -944,10 +966,14 @@ compute_fireage_for_vi <- function(
       # Handles legacy YYYYMM-named parquets (old pipeline schema) or other
       # unreadable files; prevents targets from erroring on missing output paths.
       skip_file <- paste0(out_file, ".skip")
-      writeLines(c(paste("VI file:", basename(vi_file)),
-                   "Reason: Could not read parquet (wrong format or schema)",
-                   paste("Timestamp:", Sys.time())),
-                 skip_file)
+      writeLines(
+        c(
+          paste("VI file:", basename(vi_file)),
+          "Reason: Could not read parquet (wrong format or schema)",
+          paste("Timestamp:", Sys.time())
+        ),
+        skip_file
+      )
       todo_out[j] <- skip_file
       next
     }
@@ -964,12 +990,18 @@ compute_fireage_for_vi <- function(
       # Likely cause: legacy VI parquet from an older pipeline schema (YYYYMM
       # filenames) that lacks the pid/date/sensor columns expected by this function.
       skip_file <- paste0(out_file, ".skip")
-      writeLines(c(paste("VI file:", basename(vi_file)),
-                   paste("Reason: Missing required columns:",
-                         paste(missing_cols, collapse = ", ")),
-                   paste("Available columns:", paste(names(vi_df), collapse = ", ")),
-                   paste("Timestamp:", Sys.time())),
-                 skip_file)
+      writeLines(
+        c(
+          paste("VI file:", basename(vi_file)),
+          paste(
+            "Reason: Missing required columns:",
+            paste(missing_cols, collapse = ", ")
+          ),
+          paste("Available columns:", paste(names(vi_df), collapse = ", ")),
+          paste("Timestamp:", Sys.time())
+        ),
+        skip_file
+      )
       todo_out[j] <- skip_file
       next
     }
@@ -1000,10 +1032,10 @@ compute_fireage_for_vi <- function(
         fire_age_days = dplyr::case_when(
           # Known burn predating this observation
           !is.na(.data$last_burn_date_valid)
-            ~ as.integer(.data$date - .data$last_burn_date_valid),
+          ~ as.integer(.data$date - .data$last_burn_date_valid),
           # Right-censored: never burned — minimum age since record start
           is.na(.data$fire_count) | .data$fire_count == 0L
-            ~ as.integer(.data$date - record_start),
+          ~ as.integer(.data$date - record_start),
           # fire_count > 0 but last_burn_date is after vi_date (stale state):
           # treat as right-censored with record_start lower bound
           TRUE ~ as.integer(.data$date - record_start)
@@ -1068,9 +1100,9 @@ compute_fireage_for_vi <- function(
 #' @return Two-band SpatRaster (fire_age_days, last_burn_date).
 #' @export
 most_recent_burn_to_grid <- function(
-    state_file,
-    domain_raster,
-    verbose = TRUE
+  state_file,
+  domain_raster,
+  verbose = TRUE
 ) {
   domain_r <- if (is.character(domain_raster)) {
     terra::rast(domain_raster)
@@ -1094,8 +1126,8 @@ most_recent_burn_to_grid <- function(
     return(r_out)
   }
 
-  record_start  <- as.integer(as.Date("2000-01-01") - as.Date("1970-01-01"))
-  snapshot_int  <- max(state$state_month, record_start)
+  record_start <- as.integer(as.Date("2000-01-01") - as.Date("1970-01-01"))
+  snapshot_int <- max(state$state_month, record_start)
   snapshot_date <- as.Date(snapshot_int, origin = "1970-01-01")
 
   if (verbose) {
@@ -1113,14 +1145,14 @@ most_recent_burn_to_grid <- function(
       fire_age_days = dplyr::if_else(
         !is.na(.data$last_burn_date),
         as.integer(snapshot_int - .data$last_burn_date),
-        as.integer(snapshot_int - record_start)  # right-censored
+        as.integer(snapshot_int - record_start) # right-censored
       )
     )
 
-  fire_age_map  <- setNames(state_snap$fire_age_days,  as.character(state_snap$pid))
+  fire_age_map <- setNames(state_snap$fire_age_days, as.character(state_snap$pid))
   last_burn_map <- setNames(state_snap$last_burn_date, as.character(state_snap$pid))
 
-  fire_age_vec  <- as.integer(fire_age_map[as.character(pid_vec)])
+  fire_age_vec <- as.integer(fire_age_map[as.character(pid_vec)])
   last_burn_vec <- as.integer(last_burn_map[as.character(pid_vec)])
 
   # Fill unburned domain pixels (valid pid but not in state) with the
@@ -1129,14 +1161,14 @@ most_recent_burn_to_grid <- function(
   # from state_snap; pixels NEVER SEEN by the state loop (not yet burned) need the
   # same treatment here so the raster is fully populated.
   right_censored_age <- as.integer(snapshot_int - record_start)
-  unburned_valid     <- is.na(fire_age_vec) & !is.na(pid_vec)
+  unburned_valid <- is.na(fire_age_vec) & !is.na(pid_vec)
   fire_age_vec[unburned_valid] <- right_censored_age
 
-  fire_age_r  <- domain_r[[1L]]
+  fire_age_r <- domain_r[[1L]]
   last_burn_r <- domain_r[[1L]]
-  terra::values(fire_age_r)  <- fire_age_vec
+  terra::values(fire_age_r) <- fire_age_vec
   terra::values(last_burn_r) <- last_burn_vec
-  names(fire_age_r)  <- "fire_age_days"
+  names(fire_age_r) <- "fire_age_days"
   names(last_burn_r) <- "last_burn_date"
 
   r_out <- c(fire_age_r, last_burn_r)

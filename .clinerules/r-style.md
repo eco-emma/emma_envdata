@@ -2,6 +2,11 @@
 
 Applies to all `*.R` files in this project.
 
+**Authoritative formatting:** the
+[tidyverse style guide](https://style.tidyverse.org/). Restyle with
+[`styler`](https://styler.r-lib.org/) before committing. Do not invent
+formatting rules that conflict with that guide.
+
 ## Tidyverse
 
 - Use tidyverse idioms: `dplyr`, `tidyr`, `purrr`, `ggplot2`, `readr`, `tibble`.
@@ -14,7 +19,10 @@ Applies to all `*.R` files in this project.
 
 ## Formatting
 
-- 2-space indentation. Max line width 80 characters.
+- Match tidyverse / styler defaults: 2-space indentation, snake_case names,
+  spaces around `<-` / `=`, and styler line breaks.
+- Prefer a soft line width near 80 characters when editing by hand; accept
+  styler output when it wraps differently for clarity.
 - One expression per line; do not chain unrelated operations onto one line.
 
 ## Script Style

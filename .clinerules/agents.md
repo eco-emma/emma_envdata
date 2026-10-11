@@ -4,6 +4,12 @@ All agent personas for this project live in **`.github/agents/*.agent.md`** as t
 single source of truth. They are shared with GitHub Copilot and Claude Code — do
 not duplicate their content here.
 
+## R style
+
+All R authored or edited by agents must follow the
+[tidyverse style guide](https://style.tidyverse.org/) and
+`.clinerules/r-style.md`. Restyle with `styler` before finishing.
+
 ## How to invoke an agent
 
 When the user asks you to "act as the `<name>` agent" or invokes a slash command

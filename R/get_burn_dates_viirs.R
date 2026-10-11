@@ -31,13 +31,13 @@
 #' @return Character string: AppEEARS task ID.
 #' @export
 submit_burn_date_viirs_task <- function(
-    domain_vector,
-    month_start,
-    month_end,
-    out_dir        = NULL,
-    gh_release_tag = NULL,
-    verbose        = TRUE) {
-
+  domain_vector,
+  month_start,
+  month_end,
+  out_dir = NULL,
+  gh_release_tag = NULL,
+  verbose = TRUE
+) {
   yyyymm <- format(as.Date(month_start), "%Y%m")
 
   # Check local disk (fast — works on server after a completed run)
@@ -58,9 +58,9 @@ submit_burn_date_viirs_task <- function(
     }
   }
 
-  ensure_appeears_auth()  
+  ensure_appeears_auth()
   month_start <- as.Date(month_start)
-  month_end   <- as.Date(month_end)
+  month_end <- as.Date(month_end)
 
   if (verbose) {
     message(
@@ -86,7 +86,7 @@ submit_burn_date_viirs_task <- function(
     params = list(
       dates = list(list(
         startDate = format(month_start, "%m-%d-%Y"),
-        endDate   = format(month_end,   "%m-%d-%Y")
+        endDate   = format(month_end, "%m-%d-%Y")
       )),
       layers = list(
         list(product = "VNP64A1.002", layer = "Burn_Date"),
@@ -94,7 +94,7 @@ submit_burn_date_viirs_task <- function(
       ),
       output = list(
         format     = list(type = "geotiff", filename_date = "calendar"),
-        projection = "native"  # keep native VIIRS sinusoidal; reproject to EPSG:9221 during processing
+        projection = "native" # keep native VIIRS sinusoidal; reproject to EPSG:9221 during processing
       ),
       geo = domain_geojson
     )
@@ -110,7 +110,9 @@ submit_burn_date_viirs_task <- function(
     error = function(e) {
       msg <- conditionMessage(e)
       if (grepl("exceeded.*maximum.*requests|too many requests",
-                msg, ignore.case = TRUE)) {
+        msg,
+        ignore.case = TRUE
+      )) {
         # Rate limit hit — stop() so this branch is marked errored with
         # error = "continue", allowing the rest of the pipeline to proceed.
         # On the next tar_make() the errored branches will re-submit
@@ -121,7 +123,7 @@ submit_burn_date_viirs_task <- function(
           call. = FALSE
         )
       }
-      stop(e)  # re-throw non-rate-limit errors unchanged
+      stop(e) # re-throw non-rate-limit errors unchanged
     }
   )
 
@@ -150,15 +152,15 @@ submit_burn_date_viirs_task <- function(
 #' @return Character path to temp directory containing downloaded GeoTIFF files.
 #' @export
 download_burn_date_viirs_geotiff <- function(
-    task_id,
-    month_start,
-    domain_vector  = NULL,
-    month_end      = NULL,
-    temp_directory = "data/temp/appeears/burn_dates_viirs/",
-    gh_release_tag = NULL,
-    cleanup        = Sys.getenv("GITHUB_ACTIONS") == "true",
-    verbose        = TRUE) {
-
+  task_id,
+  month_start,
+  domain_vector = NULL,
+  month_end = NULL,
+  temp_directory = "data/temp/appeears/burn_dates_viirs/",
+  gh_release_tag = NULL,
+  cleanup = Sys.getenv("GITHUB_ACTIONS") == "true",
+  verbose = TRUE
+) {
   # Sentinel task_id means submit_burn_date_viirs_task() found the month already
   # complete — skip all AppEEARS polling and return the temp directory directly.
   if (startsWith(task_id, "cached:")) {
@@ -187,13 +189,13 @@ download_burn_date_viirs_geotiff <- function(
 
   ensure_appeears_auth()
   month_start <- as.Date(month_start)
-  yyyymm      <- format(month_start, "%Y%m")
+  yyyymm <- format(month_start, "%Y%m")
 
   # Skip if grid COG for this month already exists on local disk.
   # burn_viirs_geotiff_to_grid() writes burn_viirs_YYYYMM.tif when it completes.
-  marker_dir   <- "data/target_outputs/burndates"
-  dir.create(marker_dir,      recursive = TRUE, showWarnings = FALSE)
-  dir.create(temp_directory,  recursive = TRUE, showWarnings = FALSE)
+  marker_dir <- "data/target_outputs/burndates"
+  dir.create(marker_dir, recursive = TRUE, showWarnings = FALSE)
+  dir.create(temp_directory, recursive = TRUE, showWarnings = FALSE)
   grid_tif_done <- file.path(marker_dir, paste0("burn_viirs_", yyyymm, ".tif"))
 
   if (file.exists(grid_tif_done)) {
@@ -208,11 +210,16 @@ download_burn_date_viirs_geotiff <- function(
   if (!is.null(gh_release_tag)) {
     repo <- Sys.getenv("TAR_GH_RELEASE_REPO", unset = "eco-emma/emma_envdata")
     if (gh_release_has_asset(repo, gh_release_tag,
-                             paste0("burn_viirs_", yyyymm, ".tif"),
-                             verbose = verbose)) {
-      if (verbose) message("VIIRS grid COG for ", yyyymm,
-                           " already on GitHub release '", gh_release_tag,
-                           "' — skipping AppEEARS download")
+      paste0("burn_viirs_", yyyymm, ".tif"),
+      verbose = verbose
+    )) {
+      if (verbose) {
+        message(
+          "VIIRS grid COG for ", yyyymm,
+          " already on GitHub release '", gh_release_tag,
+          "' — skipping AppEEARS download"
+        )
+      }
       per_month_dir <- file.path(temp_directory, yyyymm)
       dir.create(per_month_dir, recursive = TRUE, showWarnings = FALSE)
       return(per_month_dir)
@@ -229,12 +236,12 @@ download_burn_date_viirs_geotiff <- function(
 
   max_retries <- 15
   retry_count <- 0
-  null_retries <- 0L  # consecutive null-status responses; AppEEARS may lag ~1-2 min after submission
+  null_retries <- 0L # consecutive null-status responses; AppEEARS may lag ~1-2 min after submission
 
   repeat {
     retry_count <- retry_count + 1
 
-    task_info   <- appeears::rs_list_task(task_id = task_id, user = Sys.getenv("EARTHDATA_USER"))
+    task_info <- appeears::rs_list_task(task_id = task_id, user = Sys.getenv("EARTHDATA_USER"))
     task_status <- task_info$status
 
     # AppEEARS returns no 'status' field when the task is not found.  Allow 3
@@ -243,8 +250,12 @@ download_burn_date_viirs_geotiff <- function(
     if (is.null(task_status) || length(task_status) == 0) {
       null_retries <- null_retries + 1L
       if (null_retries <= 10L) {
-        if (verbose) message("Task ", task_id, " not yet visible in AppEEARS (",
-                             null_retries, "/10) — retrying...")
+        if (verbose) {
+          message(
+            "Task ", task_id, " not yet visible in AppEEARS (",
+            null_retries, "/10) — retrying..."
+          )
+        }
         Sys.sleep(60)
         next
       }
@@ -255,7 +266,7 @@ download_burn_date_viirs_geotiff <- function(
             "[AppEEARS] Task ", task_id, " not found (likely expired) — re-submitting for ", yyyymm
           )
         }
-        task_id     <- submit_burn_date_viirs_task(
+        task_id <- submit_burn_date_viirs_task(
           domain_vector = domain_vector,
           month_start   = month_start,
           month_end     = as.Date(month_end),
@@ -297,16 +308,19 @@ download_burn_date_viirs_geotiff <- function(
   # with zero results" — that would permanently write an all-NA grid for a
   # month that actually has real burn data.  Fail loudly so error="continue"
   # retries this branch on the next run instead.
-  tryCatch({
-    appeears::rs_transfer(
-      task_id = task_id,
-      user    = Sys.getenv("EARTHDATA_USER"),
-      path    = temp_directory,
-      verbose = verbose
-    )
-  }, error = function(e) {
-    stop("rs_transfer() failed for task ", task_id, " (", yyyymm, "): ", conditionMessage(e))
-  })
+  tryCatch(
+    {
+      appeears::rs_transfer(
+        task_id = task_id,
+        user    = Sys.getenv("EARTHDATA_USER"),
+        path    = temp_directory,
+        verbose = verbose
+      )
+    },
+    error = function(e) {
+      stop("rs_transfer() failed for task ", task_id, " (", yyyymm, "): ", conditionMessage(e))
+    }
+  )
 
   tif_paths <- list.files(temp_directory, pattern = "\\.tif$", full.names = TRUE, recursive = TRUE)
   if (length(tif_paths) == 0) {
@@ -348,12 +362,12 @@ burn_viirs_geotiff_to_grid <- function(
   geotiff_directory,
   domain_raster,
   month_start,
-  out_dir  = "data/target_outputs/burndates/",
-  cleanup  = Sys.getenv("GITHUB_ACTIONS") == "true",
-  verbose  = TRUE
+  out_dir = "data/target_outputs/burndates/",
+  cleanup = Sys.getenv("GITHUB_ACTIONS") == "true",
+  verbose = TRUE
 ) {
   month_start <- as.Date(month_start)
-  yyyymm      <- format(month_start, "%Y%m")
+  yyyymm <- format(month_start, "%Y%m")
 
   terra_tmp <- file.path(getwd(), "data/temp/terra", yyyymm)
   dir.create(terra_tmp, recursive = TRUE, showWarnings = FALSE)
@@ -366,7 +380,7 @@ burn_viirs_geotiff_to_grid <- function(
   stopifnot("pid" %in% names(domain_template))
 
   write_empty_cog <- function() {
-    empty_r        <- terra::setValues(domain_template[[1L]], NA_real_)
+    empty_r <- terra::setValues(domain_template[[1L]], NA_real_)
     names(empty_r) <- "burn_doy"
     terra::metags(empty_r) <- c(
       month        = yyyymm,
@@ -374,17 +388,23 @@ burn_viirs_geotiff_to_grid <- function(
       date_created = as.character(Sys.Date())
     )
     unlink(out_tif)
-    terra::writeRaster(empty_r, out_tif, filetype = "COG", datatype = "INT2S",
-                       gdal = c("COMPRESS=DEFLATE", "PREDICTOR=2", "ZLEVEL=9",
-                                "SPARSE_OK=YES"),
-                       overwrite = TRUE)
+    terra::writeRaster(empty_r, out_tif,
+      filetype = "COG", datatype = "INT2S",
+      gdal = c(
+        "COMPRESS=DEFLATE", "PREDICTOR=2", "ZLEVEL=9",
+        "SPARSE_OK=YES"
+      ),
+      overwrite = TRUE
+    )
   }
 
   # Resolve source GeoTIFFs (AppEEARS also writes CSVs and JSONs)
   tif_paths <- character(0)
   if (!grepl("\\.skip$", geotiff_directory) && dir.exists(geotiff_directory)) {
-    tif_paths <- list.files(geotiff_directory, pattern = "\\.tif$",
-                            full.names = TRUE, recursive = TRUE)
+    tif_paths <- list.files(geotiff_directory,
+      pattern = "\\.tif$",
+      full.names = TRUE, recursive = TRUE
+    )
   }
 
   if (length(tif_paths) == 0L) {
@@ -393,9 +413,13 @@ burn_viirs_geotiff_to_grid <- function(
     # an all-NA placeholder.  This protects real data when submit_*() returns
     # a "cached:" sentinel and the temp dir is empty.
     if (file.exists(out_tif)) {
-      if (verbose) message("No fresh source TIFs for ", yyyymm,
-                           " and output COG already exists — preserving ",
-                           basename(out_tif))
+      if (verbose) {
+        message(
+          "No fresh source TIFs for ", yyyymm,
+          " and output COG already exists — preserving ",
+          basename(out_tif)
+        )
+      }
       return(out_tif)
     }
     if (verbose) message("No VIIRS burn GeoTIFFs for ", yyyymm, " — writing all-NA grid")
@@ -412,15 +436,18 @@ burn_viirs_geotiff_to_grid <- function(
 
   # Reproject each Burn_Date tile to domain (375m → 500m EPSG:9221 via nearest-neighbour)
   burn_tiles <- purrr::map(burn_tif_paths, function(burn_path) {
-    tryCatch({
-      burn_r    <- terra::rast(burn_path)
-      burn_proj <- terra::project(burn_r, domain_template, method = "near")
-      domain_mask <- !is.na(domain_template[["pid"]])
-      terra::mask(burn_proj, domain_mask, maskvalue = FALSE)
-    }, error = function(e) {
-      warning("Failed to process ", basename(burn_path), ": ", conditionMessage(e))
-      NULL
-    })
+    tryCatch(
+      {
+        burn_r <- terra::rast(burn_path)
+        burn_proj <- terra::project(burn_r, domain_template, method = "near")
+        domain_mask <- !is.na(domain_template[["pid"]])
+        terra::mask(burn_proj, domain_mask, maskvalue = FALSE)
+      },
+      error = function(e) {
+        warning("Failed to process ", basename(burn_path), ": ", conditionMessage(e))
+        NULL
+      }
+    )
   })
 
   burn_tiles <- purrr::compact(burn_tiles)
@@ -449,15 +476,23 @@ burn_viirs_geotiff_to_grid <- function(
     date_created = as.character(Sys.Date())
   )
   unlink(out_tif)
-  terra::writeRaster(burn_mosaic, out_tif, filetype = "COG", datatype = "INT2S",
-                     gdal = c("COMPRESS=DEFLATE", "PREDICTOR=2", "ZLEVEL=9",
-                              "SPARSE_OK=YES"),
-                     overwrite = TRUE)
+  terra::writeRaster(burn_mosaic, out_tif,
+    filetype = "COG", datatype = "INT2S",
+    gdal = c(
+      "COMPRESS=DEFLATE", "PREDICTOR=2", "ZLEVEL=9",
+      "SPARSE_OK=YES"
+    ),
+    overwrite = TRUE
+  )
 
   n_burned <- sum(!is.na(terra::values(burn_mosaic)[, 1]) &
-                    terra::values(burn_mosaic)[, 1] > 0L, na.rm = TRUE)
-  if (verbose) message("Wrote VIIRS burn grid COG: ", basename(out_tif),
-                       " (", n_burned, " burned pixels)")
+    terra::values(burn_mosaic)[, 1] > 0L, na.rm = TRUE)
+  if (verbose) {
+    message(
+      "Wrote VIIRS burn grid COG: ", basename(out_tif),
+      " (", n_burned, " burned pixels)"
+    )
+  }
 
   if (cleanup) {
     unlink(geotiff_directory, recursive = TRUE, force = TRUE)
@@ -485,29 +520,31 @@ burn_viirs_geotiff_to_grid <- function(
 #'   burned pixels are found.
 #' @export
 burn_date_viirs_geotiff_to_parquet <- function(
-    tif_file,
-    domain_raster,
-    month_start,
-    out_dir  = "data/target_outputs/burndates/",
-    verbose  = TRUE) {
-
+  tif_file,
+  domain_raster,
+  month_start,
+  out_dir = "data/target_outputs/burndates/",
+  verbose = TRUE
+) {
   month_start <- as.Date(month_start)
-  yyyymm      <- format(month_start, "%Y%m")
+  yyyymm <- format(month_start, "%Y%m")
 
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
   # Handle skip-file path from upstream burn_viirs_grid target
   if (grepl("\\.skip$", tif_file)) {
     skip_file <- file.path(out_dir, paste0("burn_viirs_", yyyymm, ".skip"))
-    writeLines(c(paste("Month:", yyyymm), "Reason: upstream grid target skipped",
-                 paste("Timestamp:", Sys.time())), skip_file)
+    writeLines(c(
+      paste("Month:", yyyymm), "Reason: upstream grid target skipped",
+      paste("Timestamp:", Sys.time())
+    ), skip_file)
     return(skip_file)
   }
 
-  domain_template  <- if (is.character(domain_raster)) terra::rast(domain_raster) else domain_raster
+  domain_template <- if (is.character(domain_raster)) terra::rast(domain_raster) else domain_raster
   stopifnot("pid" %in% names(domain_template))
-  pid_vec          <- terra::values(domain_template[["pid"]])[, 1]
-  ref_year         <- as.integer(format(month_start, "%Y"))
+  pid_vec <- terra::values(domain_template[["pid"]])[, 1]
+  ref_year <- as.integer(format(month_start, "%Y"))
   year_start_epoch <- as.integer(as.Date(paste0(ref_year, "-01-01")) - as.Date("1970-01-01"))
 
   # Read burn_doy band from the COG produced by burn_viirs_geotiff_to_grid()
@@ -521,8 +558,10 @@ burn_date_viirs_geotiff_to_parquet <- function(
 
   if (is.null(burn_r)) {
     skip_file <- file.path(out_dir, paste0("burn_viirs_", yyyymm, ".skip"))
-    writeLines(c(paste("Month:", yyyymm), "Reason: Could not read grid COG",
-                 paste("Timestamp:", Sys.time())), skip_file)
+    writeLines(c(
+      paste("Month:", yyyymm), "Reason: Could not read grid COG",
+      paste("Timestamp:", Sys.time())
+    ), skip_file)
     return(skip_file)
   }
 
@@ -533,8 +572,10 @@ burn_date_viirs_geotiff_to_parquet <- function(
   if (!any(valid)) {
     if (verbose) message("No burned pixels for ", yyyymm, " — writing skip marker")
     skip_file <- file.path(out_dir, paste0("burn_viirs_", yyyymm, ".skip"))
-    writeLines(c(paste("Month:", yyyymm), "Reason: No burned pixels (burn_doy = 0)",
-                 paste("Timestamp:", Sys.time())), skip_file)
+    writeLines(c(
+      paste("Month:", yyyymm), "Reason: No burned pixels (burn_doy = 0)",
+      paste("Timestamp:", Sys.time())
+    ), skip_file)
     return(skip_file)
   }
 
@@ -544,7 +585,7 @@ burn_date_viirs_geotiff_to_parquet <- function(
     pid      = as.integer(pid_vec[valid]),
     date     = epoch_dates,
     burn_doy = as.integer(doy_v[valid]),
-    qa       = 0L   # placeholder — no QA filtering applied; burn_doy > 0 is the fire indicator
+    qa       = 0L # placeholder — no QA filtering applied; burn_doy > 0 is the fire indicator
   )
 
   parquet_file <- file.path(out_dir, paste0("burn_viirs_", yyyymm, ".parquet"))
@@ -568,10 +609,10 @@ burn_date_viirs_geotiff_to_parquet <- function(
 #' @return Data frame with columns month_start, month_end, date_str.
 #' @export
 identify_missing_burn_dates_viirs <- function(
-    output_dir  = "data/target_outputs/burndates/",
-    start_date  = "2012-01-01",   # VNP64A1 first available data
-    end_date    = NULL) {
-
+  output_dir = "data/target_outputs/burndates/",
+  start_date = "2012-01-01", # VNP64A1 first available data
+  end_date = NULL
+) {
   missing <- find_missing_months(
     output_dir = output_dir,
     dataset    = "burn_viirs",
@@ -581,10 +622,10 @@ identify_missing_burn_dates_viirs <- function(
 
   # Always include the current month — VNP64A1 has ~2-month lag so the most
   # recent parquet may be stale even if the file exists.
-  today               <- Sys.Date()
+  today <- Sys.Date()
   current_month_start <- as.Date(paste0(format(today, "%Y-%m"), "-01"))
-  current_month_end   <- as.Date(paste0(format(today + 31, "%Y-%m"), "-01")) - 1
-  current_month_str   <- format(current_month_start, "%Y-%m")
+  current_month_end <- as.Date(paste0(format(today + 31, "%Y-%m"), "-01")) - 1
+  current_month_str <- format(current_month_start, "%Y-%m")
   if (!any(missing$date_str == current_month_str)) {
     missing <- rbind(missing, data.frame(
       month_start = current_month_start,

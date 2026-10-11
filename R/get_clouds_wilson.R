@@ -33,13 +33,12 @@
 #'   MODCF_meanannual, MODCF_seasonality_concentration, MODCF_seasonality_theta.
 #' @export
 get_clouds_wilson <- function(
-    domain,
-    domain_raster,
-    temp_directory = "data/temp/appeears/clouds_wilson/",
-    cleanup        = Sys.getenv("GITHUB_ACTIONS") == "true",
-    verbose        = TRUE) {
-
-
+  domain,
+  domain_raster,
+  temp_directory = "data/temp/appeears/clouds_wilson/",
+  cleanup = Sys.getenv("GITHUB_ACTIONS") == "true",
+  verbose = TRUE
+) {
   dir.create(temp_directory, recursive = TRUE, showWarnings = FALSE)
 
   # Extend timeout for large file downloads
@@ -51,19 +50,19 @@ get_clouds_wilson <- function(
   # Each layer is a publicly available GeoTIFF from EarthEnv.
   # long_name and units follow CF conventions for the output file
   cloud_layers <- tibble::tribble(
-    ~layer_name,                         ~long_name,                              ~units,  ~url,
+    ~layer_name, ~long_name, ~units, ~url,
     "MODCF_meanannual",
-      "Mean Annual Cloud Frequency",
-      "percent",
-      "https://data.earthenv.org/cloud/MODCF_meanannual.tif",
+    "Mean Annual Cloud Frequency",
+    "percent",
+    "https://data.earthenv.org/cloud/MODCF_meanannual.tif",
     "MODCF_seasonality_concentration",
-      "Cloud Seasonality Concentration",
-      "unitless",
-      "https://data.earthenv.org/cloud/MODCF_seasonality_concentration.tif",
+    "Cloud Seasonality Concentration",
+    "unitless",
+    "https://data.earthenv.org/cloud/MODCF_seasonality_concentration.tif",
     "MODCF_seasonality_theta",
-      "Direction of Peak Cloud Seasonality",
-      "degrees",
-      "https://data.earthenv.org/cloud/MODCF_seasonality_theta.tif"
+    "Direction of Peak Cloud Seasonality",
+    "degrees",
+    "https://data.earthenv.org/cloud/MODCF_seasonality_theta.tif"
   )
 
   # Load domain template for reprojection (EPSG:9221, 500m)
@@ -81,8 +80,8 @@ get_clouds_wilson <- function(
 
   raster_list <- purrr::map(seq_len(nrow(cloud_layers)), function(i) {
     layer_name <- cloud_layers$layer_name[[i]]
-    url        <- cloud_layers$url[[i]]
-    dest_file  <- file.path(temp_directory, paste0(layer_name, ".tif"))
+    url <- cloud_layers$url[[i]]
+    dest_file <- file.path(temp_directory, paste0(layer_name, ".tif"))
 
     if (!file.exists(dest_file)) {
       if (verbose) message("  Downloading: ", basename(url))
@@ -117,13 +116,13 @@ get_clouds_wilson <- function(
   # Per-layer long names and units — stored as GDAL band fields that survive
   # COG round-trips (unlike terra::metags at layer level)
   terra::longnames(cloud_stack) <- cloud_layers$long_name
-  terra::units(cloud_stack)     <- cloud_layers$units
+  terra::units(cloud_stack) <- cloud_layers$units
 
   # Scale factors: bands 1-2 stored as integer percent * 100, band 3 as
   # degrees * 10 (i.e. raw / scale = physical value)
   terra::scoff(cloud_stack) <- cbind(
     scale  = c(0.01, 0.01, 0.1),
-    offset = c(0,    0,    0)
+    offset = c(0, 0, 0)
   )
 
   if (cleanup) {
@@ -131,8 +130,10 @@ get_clouds_wilson <- function(
     if (verbose) message("Cleaned up temp directory: ", temp_directory)
   }
 
-  if (verbose) message(
-    "Cloud cover processing complete (", terra::nlyr(cloud_stack), " layers)."
-  )
+  if (verbose) {
+    message(
+      "Cloud cover processing complete (", terra::nlyr(cloud_stack), " layers)."
+    )
+  }
   cloud_stack
 }

@@ -11,10 +11,12 @@
 }
 
 .modis_vi_both_on_release <- function(yyyymmdd, tags, verbose = TRUE) {
-  if (is.null(tags$terra) || is.null(tags$aqua)) return(FALSE)
+  if (is.null(tags$terra) || is.null(tags$aqua)) {
+    return(FALSE)
+  }
   repo <- Sys.getenv("TAR_GH_RELEASE_REPO", unset = "eco-emma/emma_envdata")
   terra_name <- paste0("vi_modis_terra_", yyyymmdd, ".tif")
-  aqua_name  <- paste0("vi_modis_aqua_", yyyymmdd, ".tif")
+  aqua_name <- paste0("vi_modis_aqua_", yyyymmdd, ".tif")
   gh_release_has_asset(repo, tags$terra, terra_name, verbose = verbose) &&
     gh_release_has_asset(repo, tags$aqua, aqua_name, verbose = verbose)
 }
@@ -33,19 +35,18 @@ submit_modis_vi <- function(
   domain_vector,
   composite_date,
   composite_end,
-  out_dir               = NULL,
-  gh_release_tag        = NULL,
-  gh_release_tag_terra  = NULL,
-  gh_release_tag_aqua   = NULL,
-  verbose               = TRUE
+  out_dir = NULL,
+  gh_release_tag = NULL,
+  gh_release_tag_terra = NULL,
+  gh_release_tag_aqua = NULL,
+  verbose = TRUE
 ) {
-
   yyyymmdd <- format(as.Date(composite_date), "%Y%m%d")
 
   # Check local disk (fast — works on server after a completed run)
   if (!is.null(out_dir)) {
     terra_tif <- file.path(out_dir, paste0("vi_modis_terra_", yyyymmdd, ".tif"))
-    aqua_tif  <- file.path(out_dir, paste0("vi_modis_aqua_", yyyymmdd, ".tif"))
+    aqua_tif <- file.path(out_dir, paste0("vi_modis_aqua_", yyyymmdd, ".tif"))
     if (file.exists(terra_tif) && file.exists(aqua_tif)) {
       if (verbose) message("Grid COGs on disk for ", yyyymmdd, " — skipping AppEEARS submission")
       return(paste0("cached:", yyyymmdd))
@@ -58,9 +59,13 @@ submit_modis_vi <- function(
   # the grid step then writes all-NA placeholders.
   tags <- .modis_vi_release_tags(gh_release_tag, gh_release_tag_terra, gh_release_tag_aqua)
   if (.modis_vi_both_on_release(yyyymmdd, tags, verbose = verbose)) {
-    if (verbose) message("Composite ", yyyymmdd,
-                         " already on GitHub releases '", tags$terra,
-                         "' and '", tags$aqua, "' — skipping AppEEARS submission")
+    if (verbose) {
+      message(
+        "Composite ", yyyymmdd,
+        " already on GitHub releases '", tags$terra,
+        "' and '", tags$aqua, "' — skipping AppEEARS submission"
+      )
+    }
     return(paste0("cached:", yyyymmdd))
   }
 
@@ -76,31 +81,36 @@ submit_modis_vi <- function(
 
   # Validate dates
   composite_date <- as.Date(composite_date)
-  composite_end  <- as.Date(composite_end)
+  composite_end <- as.Date(composite_end)
 
   if (verbose) {
-    message("AppEEARS MODIS VI composite request: ", format(composite_date, "%Y-%m-%d"),
-            " to ", format(composite_end, "%Y-%m-%d"))
+    message(
+      "AppEEARS MODIS VI composite request: ", format(composite_date, "%Y-%m-%d"),
+      " to ", format(composite_end, "%Y-%m-%d")
+    )
   }
 
   # Resolve layer names dynamically (same as full-range version)
   evi_layer <- "_500m_16_days_EVI"
   qa_layer <- "_500m_16_days_VI_Quality"
   date_layer <- "_500m_16_days_composite_day_of_the_year"
-  
-  try({
-    lyr <- appeears::rs_layers("MOD13A1.061")
-    cand_cols <- intersect(c("Layer", "Name", "layer", "name"), names(lyr))
-    if (length(cand_cols)) {
-      vals <- unlist(lapply(cand_cols, function(cc) lyr[[cc]]))
-      evi_cand <- vals[grepl("EVI", vals, ignore.case = TRUE)][1]
-      qa_cand <- vals[grepl("VI.*Quality|Quality", vals, ignore.case = TRUE)][1]
-      date_cand <- vals[grepl("composite_day_of_the_year", vals, ignore.case = TRUE)][1]
-      if (!is.na(evi_cand)) evi_layer <- evi_cand
-      if (!is.na(qa_cand)) qa_layer <- qa_cand
-      if (!is.na(date_cand)) date_layer <- date_cand
-    }
-  }, silent = TRUE)
+
+  try(
+    {
+      lyr <- appeears::rs_layers("MOD13A1.061")
+      cand_cols <- intersect(c("Layer", "Name", "layer", "name"), names(lyr))
+      if (length(cand_cols)) {
+        vals <- unlist(lapply(cand_cols, function(cc) lyr[[cc]]))
+        evi_cand <- vals[grepl("EVI", vals, ignore.case = TRUE)][1]
+        qa_cand <- vals[grepl("VI.*Quality|Quality", vals, ignore.case = TRUE)][1]
+        date_cand <- vals[grepl("composite_day_of_the_year", vals, ignore.case = TRUE)][1]
+        if (!is.na(evi_cand)) evi_layer <- evi_cand
+        if (!is.na(qa_cand)) qa_layer <- qa_cand
+        if (!is.na(date_cand)) date_layer <- date_cand
+      }
+    },
+    silent = TRUE
+  )
 
   if (verbose) message("Using layers: ", evi_layer, ", ", qa_layer, ", ", date_layer)
 
@@ -111,7 +121,7 @@ submit_modis_vi <- function(
     params = list(
       dates = list(list(
         startDate = format(composite_date, "%m-%d-%Y"),
-        endDate   = format(composite_end,  "%m-%d-%Y")
+        endDate   = format(composite_end, "%m-%d-%Y")
       )),
       layers = list(
         # MOD13A1.061 (Terra)
@@ -143,7 +153,9 @@ submit_modis_vi <- function(
     error = function(e) {
       msg <- conditionMessage(e)
       if (grepl("exceeded.*maximum.*requests|too many requests",
-                msg, ignore.case = TRUE)) {
+        msg,
+        ignore.case = TRUE
+      )) {
         # Rate limit hit — stop() so this branch is marked errored with
         # error = "continue", allowing the rest of the pipeline to proceed.
         # On the next tar_make() the errored branches will re-submit
@@ -154,7 +166,7 @@ submit_modis_vi <- function(
           call. = FALSE
         )
       }
-      stop(e)  # re-throw non-rate-limit errors unchanged
+      stop(e) # re-throw non-rate-limit errors unchanged
     }
   )
 
@@ -163,8 +175,6 @@ submit_modis_vi <- function(
 
   task_id
 }
-
-
 
 
 #' @title Download MODIS VI GeoTIFF files from AppEEARS
@@ -189,17 +199,17 @@ submit_modis_vi <- function(
 #'   when AppEEARS returned no files.
 #' @export
 download_modis_vi_geotiff <- function(
-    task_id,
-    composite_date,
-    composite_end  = NULL,
-    domain_vector  = NULL,
-    temp_directory        = "data/temp/appeears/modis_vi/",
-    gh_release_tag        = NULL,
-    gh_release_tag_terra  = NULL,
-    gh_release_tag_aqua   = NULL,
-    cleanup               = Sys.getenv("GITHUB_ACTIONS") == "true",
-    verbose               = TRUE) {
-
+  task_id,
+  composite_date,
+  composite_end = NULL,
+  domain_vector = NULL,
+  temp_directory = "data/temp/appeears/modis_vi/",
+  gh_release_tag = NULL,
+  gh_release_tag_terra = NULL,
+  gh_release_tag_aqua = NULL,
+  cleanup = Sys.getenv("GITHUB_ACTIONS") == "true",
+  verbose = TRUE
+) {
   # Sentinel task_id means submit_modis_vi() found the composite already complete —
   # skip all AppEEARS polling and return the per-date subdirectory directly.
   # Must match the per-date subdir used by the non-cached path so that
@@ -208,8 +218,12 @@ download_modis_vi_geotiff <- function(
   # the base temp dir and recursively finding all raw TIFs from other composites.
   if (startsWith(task_id, "cached:")) {
     yyyymmdd_sentinel <- sub("^cached:", "", task_id)
-    if (verbose) message("Sentinel task_id for ", yyyymmdd_sentinel,
-                         " \u2014 skipping AppEEARS download")
+    if (verbose) {
+      message(
+        "Sentinel task_id for ", yyyymmdd_sentinel,
+        " \u2014 skipping AppEEARS download"
+      )
+    }
     per_date_dir <- file.path(temp_directory, yyyymmdd_sentinel)
     dir.create(per_date_dir, recursive = TRUE, showWarnings = FALSE)
     return(per_date_dir)
@@ -231,17 +245,21 @@ download_modis_vi_geotiff <- function(
 
   ensure_appeears_auth()
   composite_date <- as.Date(composite_date)
-  yyyymmdd       <- format(composite_date, "%Y%m%d")
+  yyyymmdd <- format(composite_date, "%Y%m%d")
 
   cache_dir <- "data/target_outputs/modis_vi"
   dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
 
   # Early-exit: Terra COG written by vi_modis_geotiff_to_grid() signals completion
   terra_tif_done <- file.path(cache_dir, paste0("vi_modis_terra_", yyyymmdd, ".tif"))
-  aqua_tif_done  <- file.path(cache_dir, paste0("vi_modis_aqua_", yyyymmdd, ".tif"))
+  aqua_tif_done <- file.path(cache_dir, paste0("vi_modis_aqua_", yyyymmdd, ".tif"))
   if (file.exists(terra_tif_done) && file.exists(aqua_tif_done)) {
-    if (verbose) message("Grid COG found for ", yyyymmdd,
-                         " \u2014 skipping AppEEARS download")
+    if (verbose) {
+      message(
+        "Grid COG found for ", yyyymmdd,
+        " \u2014 skipping AppEEARS download"
+      )
+    }
     per_date_dir2 <- file.path(temp_directory, yyyymmdd)
     dir.create(per_date_dir2, recursive = TRUE, showWarnings = FALSE)
     return(per_date_dir2)
@@ -251,9 +269,13 @@ download_modis_vi_geotiff <- function(
   # (CI: disk is empty but a previous server run published the grids).
   tags <- .modis_vi_release_tags(gh_release_tag, gh_release_tag_terra, gh_release_tag_aqua)
   if (.modis_vi_both_on_release(yyyymmdd, tags, verbose = verbose)) {
-    if (verbose) message("MODIS VI grid COGs for ", yyyymmdd,
-                         " already on GitHub releases '", tags$terra,
-                         "' and '", tags$aqua, "' \u2014 skipping AppEEARS download")
+    if (verbose) {
+      message(
+        "MODIS VI grid COGs for ", yyyymmdd,
+        " already on GitHub releases '", tags$terra,
+        "' and '", tags$aqua, "' \u2014 skipping AppEEARS download"
+      )
+    }
     per_date_dir2 <- file.path(temp_directory, yyyymmdd)
     dir.create(per_date_dir2, recursive = TRUE, showWarnings = FALSE)
     return(per_date_dir2)
@@ -264,29 +286,37 @@ download_modis_vi_geotiff <- function(
   dir.create(temp_directory, recursive = TRUE, showWarnings = FALSE)
 
   if (verbose) message("Polling task ", task_id, " for completion...")
-  max_retries  <- 15L
-  retry_count  <- 0L
+  max_retries <- 15L
+  retry_count <- 0L
   null_retries <- 0L
 
   repeat {
     retry_count <- retry_count + 1L
-    task_info   <- appeears::rs_list_task(task_id = task_id,
-                                          user     = Sys.getenv("EARTHDATA_USER"))
+    task_info <- appeears::rs_list_task(
+      task_id = task_id,
+      user = Sys.getenv("EARTHDATA_USER")
+    )
     task_status <- task_info$status
 
     if (is.null(task_status) || length(task_status) == 0) {
       null_retries <- null_retries + 1L
       if (null_retries <= 10L) {
-        if (verbose) message("Task ", task_id, " not yet visible in AppEEARS (",
-                             null_retries, "/10) \u2014 retrying...")
+        if (verbose) {
+          message(
+            "Task ", task_id, " not yet visible in AppEEARS (",
+            null_retries, "/10) \u2014 retrying..."
+          )
+        }
         Sys.sleep(60)
         next
       }
       null_retries <- 0L
       if (!is.null(domain_vector) && !is.null(composite_end)) {
         if (verbose) {
-          message("[AppEEARS] Task ", task_id,
-                  " not found (likely expired) \u2014 re-submitting for ", yyyymmdd)
+          message(
+            "[AppEEARS] Task ", task_id,
+            " not found (likely expired) \u2014 re-submitting for ", yyyymmdd
+          )
         }
         task_id <- submit_modis_vi(
           domain_vector         = domain_vector,
@@ -331,26 +361,33 @@ download_modis_vi_geotiff <- function(
   # with zero results" — that would permanently write a skip marker for a
   # composite that actually has real data.  Fail loudly so error="continue"
   # retries this branch on the next run instead.
-  tryCatch({
-    appeears::rs_transfer(
-      task_id = task_id,
-      user    = Sys.getenv("EARTHDATA_USER"),
-      path    = temp_directory,
-      verbose = verbose
-    )
-  }, error = function(e) {
-    stop("rs_transfer() failed for task ", task_id, " (", yyyymmdd, "): ", conditionMessage(e))
-  })
+  tryCatch(
+    {
+      appeears::rs_transfer(
+        task_id = task_id,
+        user    = Sys.getenv("EARTHDATA_USER"),
+        path    = temp_directory,
+        verbose = verbose
+      )
+    },
+    error = function(e) {
+      stop("rs_transfer() failed for task ", task_id, " (", yyyymmdd, "): ", conditionMessage(e))
+    }
+  )
 
-  tif_paths <- list.files(temp_directory, pattern = "\\.tif$",
-                          full.names = TRUE, recursive = TRUE)
+  tif_paths <- list.files(temp_directory,
+    pattern = "\\.tif$",
+    full.names = TRUE, recursive = TRUE
+  )
   if (length(tif_paths) == 0L) {
     if (verbose) message("No GeoTIFF files returned from AppEEARS for composite ", yyyymmdd)
     skip_file <- file.path(cache_dir, paste0("vi_modis_", yyyymmdd, ".skip"))
     writeLines(
-      c(paste("Composite:", yyyymmdd),
+      c(
+        paste("Composite:", yyyymmdd),
         "Reason: AppEEARS returned no GeoTIFF files",
-        paste("Timestamp:", Sys.time())),
+        paste("Timestamp:", Sys.time())
+      ),
       con = skip_file
     )
     if (verbose) message("Created skip marker: ", skip_file)
@@ -385,18 +422,18 @@ download_modis_vi_geotiff <- function(
 #'   \code{c("out_dir/vi_modis_terra_YYYYMMDD.tif", "out_dir/vi_modis_aqua_YYYYMMDD.tif")}.
 #' @export
 vi_modis_geotiff_to_grid <- function(
-    geotiff_directory,
-    domain_raster,
-    composite_date,
-    out_dir               = "data/target_outputs/modis_vi/",
-    gh_release_tag        = NULL,
-    gh_release_tag_terra  = NULL,
-    gh_release_tag_aqua   = NULL,
-    cleanup               = Sys.getenv("GITHUB_ACTIONS") == "true",
-    verbose               = TRUE) {
-
+  geotiff_directory,
+  domain_raster,
+  composite_date,
+  out_dir = "data/target_outputs/modis_vi/",
+  gh_release_tag = NULL,
+  gh_release_tag_terra = NULL,
+  gh_release_tag_aqua = NULL,
+  cleanup = Sys.getenv("GITHUB_ACTIONS") == "true",
+  verbose = TRUE
+) {
   composite_date <- as.Date(composite_date)
-  yyyymmdd       <- format(composite_date, "%Y%m%d")
+  yyyymmdd <- format(composite_date, "%Y%m%d")
 
   terra_tmp <- file.path(getwd(), "data/temp/terra", paste0(yyyymmdd, "_modis"))
   dir.create(terra_tmp, recursive = TRUE, showWarnings = FALSE)
@@ -404,20 +441,24 @@ vi_modis_geotiff_to_grid <- function(
 
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
   out_terra <- file.path(out_dir, paste0("vi_modis_terra_", yyyymmdd, ".tif"))
-  out_aqua  <- file.path(out_dir, paste0("vi_modis_aqua_",  yyyymmdd, ".tif"))
+  out_aqua <- file.path(out_dir, paste0("vi_modis_aqua_", yyyymmdd, ".tif"))
 
   domain_template <- if (is.character(domain_raster)) terra::rast(domain_raster) else domain_raster
   stopifnot("pid" %in% names(domain_template))
 
   # Helper: write all-NA placeholder 2-band COG aligned to domain
   write_na_cog <- function(out_path, sensor_label) {
-    if (verbose) message("No source data for ", sensor_label, " in ", yyyymmdd,
-                         " \u2014 writing all-NA placeholder COG")
-    na_r         <- domain_template[["pid"]]
-    na_r[]       <- NA_real_
-    names(na_r)  <- "evi"
-    doy_r        <- domain_template[["pid"]]
-    doy_r[]      <- NA_real_
+    if (verbose) {
+      message(
+        "No source data for ", sensor_label, " in ", yyyymmdd,
+        " \u2014 writing all-NA placeholder COG"
+      )
+    }
+    na_r <- domain_template[["pid"]]
+    na_r[] <- NA_real_
+    names(na_r) <- "evi"
+    doy_r <- domain_template[["pid"]]
+    doy_r[] <- NA_real_
     names(doy_r) <- "doy"
     r_out <- c(na_r, doy_r)
     terra::metags(r_out) <- c(
@@ -425,24 +466,34 @@ vi_modis_geotiff_to_grid <- function(
       sensor         = sensor_label,
       source         = "no_data"
     )
-    terra::writeRaster(r_out, out_path, filetype = "COG", datatype = "INT2S",
-                       gdal = c("COMPRESS=DEFLATE", "PREDICTOR=2", "ZLEVEL=9",
-                                "SPARSE_OK=YES"),
-                       overwrite = TRUE)
+    terra::writeRaster(r_out, out_path,
+      filetype = "COG", datatype = "INT2S",
+      gdal = c(
+        "COMPRESS=DEFLATE", "PREDICTOR=2", "ZLEVEL=9",
+        "SPARSE_OK=YES"
+      ),
+      overwrite = TRUE
+    )
   }
 
   # Collect available GeoTIFF files; handle skip marker and empty/missing directory
   tif_paths <- character(0L)
   if (!grepl("\\.skip$", geotiff_directory) && dir.exists(geotiff_directory)) {
-    tif_paths <- list.files(geotiff_directory, pattern = "\\.tif$",
-                            full.names = TRUE, recursive = TRUE)
+    tif_paths <- list.files(geotiff_directory,
+      pattern = "\\.tif$",
+      full.names = TRUE, recursive = TRUE
+    )
   }
 
   if (length(tif_paths) == 0L) {
     # Guard 1: COGs already on disk (server re-run after cleanup) — preserve them.
     if (file.exists(out_terra) && file.exists(out_aqua)) {
-      if (verbose) message("No fresh source TIFs for ", yyyymmdd,
-                           " and output COGs already exist — preserving them")
+      if (verbose) {
+        message(
+          "No fresh source TIFs for ", yyyymmdd,
+          " and output COGs already exist — preserving them"
+        )
+      }
       return(c(out_terra, out_aqua))
     }
 
@@ -455,9 +506,9 @@ vi_modis_geotiff_to_grid <- function(
     if (!is.null(tags$terra) && !is.null(tags$aqua)) {
       repo <- Sys.getenv("TAR_GH_RELEASE_REPO", unset = "eco-emma/emma_envdata")
       terra_name <- basename(out_terra)
-      aqua_name  <- basename(out_aqua)
+      aqua_name <- basename(out_aqua)
       terra_on_gh <- gh_release_has_asset(repo, tags$terra, terra_name, verbose = verbose)
-      aqua_on_gh  <- gh_release_has_asset(repo, tags$aqua, aqua_name, verbose = verbose)
+      aqua_on_gh <- gh_release_has_asset(repo, tags$aqua, aqua_name, verbose = verbose)
       if (terra_on_gh) {
         gh_release_download_asset(repo, tags$terra, terra_name, out_terra, verbose = verbose)
       }
@@ -465,17 +516,25 @@ vi_modis_geotiff_to_grid <- function(
         gh_release_download_asset(repo, tags$aqua, aqua_name, out_aqua, verbose = verbose)
       }
       if (file.exists(out_terra) && file.exists(out_aqua)) {
-        if (verbose) message("MODIS VI COGs for ", yyyymmdd,
-                             " restored from GitHub releases '", tags$terra,
-                             "' and '", tags$aqua, "'")
+        if (verbose) {
+          message(
+            "MODIS VI COGs for ", yyyymmdd,
+            " restored from GitHub releases '", tags$terra,
+            "' and '", tags$aqua, "'"
+          )
+        }
         return(c(out_terra, out_aqua))
       }
     }
 
-    if (verbose) message("No source GeoTIFFs for ", yyyymmdd,
-                         " \u2014 writing all-NA placeholder COGs for missing sensors")
+    if (verbose) {
+      message(
+        "No source GeoTIFFs for ", yyyymmdd,
+        " \u2014 writing all-NA placeholder COGs for missing sensors"
+      )
+    }
     if (!file.exists(out_terra)) write_na_cog(out_terra, "Terra/MOD13A1")
-    if (!file.exists(out_aqua))  write_na_cog(out_aqua,  "Aqua/MYD13A1")
+    if (!file.exists(out_aqua)) write_na_cog(out_aqua, "Aqua/MYD13A1")
     if (cleanup && !grepl("\\.skip$", geotiff_directory) && dir.exists(geotiff_directory)) {
       unlink(geotiff_directory, recursive = TRUE, force = TRUE)
     }
@@ -483,8 +542,10 @@ vi_modis_geotiff_to_grid <- function(
   }
 
   # Read QA lookup tables (AppEEARS includes VI-Quality CSV alongside GeoTIFFs)
-  qa_csv_paths <- list.files(geotiff_directory, pattern = "VI[-_]Quality.*\\.csv$",
-                              full.names = TRUE, recursive = TRUE)
+  qa_csv_paths <- list.files(geotiff_directory,
+    pattern = "VI[-_]Quality.*\\.csv$",
+    full.names = TRUE, recursive = TRUE
+  )
   if (!length(qa_csv_paths)) {
     stop("QA lookup table not found in geotiff_directory; cannot QA-mask VI data")
   }
@@ -492,19 +553,18 @@ vi_modis_geotiff_to_grid <- function(
   if (!length(keep_values)) stop("No good-quality QA entries found in lookup tables")
 
   if (verbose) {
-    message("Processing ", length(tif_paths), " GeoTIFF files for composite ", yyyymmdd,
-            " (", length(keep_values), " QA keep values)")
+    message(
+      "Processing ", length(tif_paths), " GeoTIFF files for composite ", yyyymmdd,
+      " (", length(keep_values), " QA keep values)"
+    )
   }
 
   # Classify TIFs by sensor and layer from AppEEARS filename.
   # Pattern: MOD13A1.061__500m_16_days_EVI_YYYYMMDDTHHMMSS_aid0001.tif
   classify_tif <- function(path) {
-    bn      <- basename(path)
-    product <- if (grepl("MOD13A1", bn)) "terra" else
-               if (grepl("MYD13A1", bn)) "aqua"  else NA_character_
-    layer   <- if (grepl("_EVI_", bn) && !grepl("Quality", bn)) "evi"  else
-               if (grepl("VI_Quality|VI-Quality", bn))           "qa"   else
-               if (grepl("composite_day_of_the_year", bn))       "doy"  else NA_character_
+    bn <- basename(path)
+    product <- if (grepl("MOD13A1", bn)) "terra" else if (grepl("MYD13A1", bn)) "aqua" else NA_character_
+    layer <- if (grepl("_EVI_", bn) && !grepl("Quality", bn)) "evi" else if (grepl("VI_Quality|VI-Quality", bn)) "qa" else if (grepl("composite_day_of_the_year", bn)) "doy" else NA_character_
     list(path = path, product = product, layer = layer)
   }
 
@@ -514,25 +574,29 @@ vi_modis_geotiff_to_grid <- function(
   # Process one sensor (terra or aqua) → 2-band COG (evi, doy) aligned to domain
   process_sensor <- function(sensor_label, product_code, source_label, out_path) {
     sensor_tifs <- Filter(function(x) x$product == product_code, tif_info)
-    evi_entry   <- Filter(function(x) x$layer == "evi", sensor_tifs)
-    qa_entry    <- Filter(function(x) x$layer == "qa",  sensor_tifs)
-    doy_entry   <- Filter(function(x) x$layer == "doy", sensor_tifs)
+    evi_entry <- Filter(function(x) x$layer == "evi", sensor_tifs)
+    qa_entry <- Filter(function(x) x$layer == "qa", sensor_tifs)
+    doy_entry <- Filter(function(x) x$layer == "doy", sensor_tifs)
 
     if (!length(evi_entry)) {
-      if (verbose) message("No EVI TIF for ", sensor_label, " in ", yyyymmdd,
-                           " \u2014 writing all-NA placeholder COG")
+      if (verbose) {
+        message(
+          "No EVI TIF for ", sensor_label, " in ", yyyymmdd,
+          " \u2014 writing all-NA placeholder COG"
+        )
+      }
       write_na_cog(out_path, sensor_label)
       return(invisible(NULL))
     }
 
     evi_r <- terra::rast(evi_entry[[1L]]$path)
-    qa_r  <- if (length(qa_entry))  terra::rast(qa_entry[[1L]]$path)  else NULL
+    qa_r <- if (length(qa_entry)) terra::rast(qa_entry[[1L]]$path) else NULL
     doy_r <- if (length(doy_entry)) terra::rast(doy_entry[[1L]]$path) else NULL
 
     # QA-mask EVI; scale to integer \u00d7 100 to match parquet schema
     if (!is.null(qa_r)) {
       keep_mask <- terra::app(qa_r, function(x) x %in% keep_values)
-      evi_r     <- terra::mask(evi_r, keep_mask, maskvalue = FALSE)
+      evi_r <- terra::mask(evi_r, keep_mask, maskvalue = FALSE)
       if (!is.null(doy_r)) {
         doy_r <- terra::mask(doy_r, keep_mask, maskvalue = FALSE)
       }
@@ -541,19 +605,19 @@ vi_modis_geotiff_to_grid <- function(
 
     # Reproject from native MODIS sinusoidal to domain CRS (EPSG:9221, metres)
     domain_mask <- !is.na(domain_template[["pid"]])
-    evi_proj    <- terra::project(evi_r, domain_template, method = "average")
-    evi_proj    <- terra::mask(evi_proj, domain_mask, maskvalue = FALSE)
+    evi_proj <- terra::project(evi_r, domain_template, method = "average")
+    evi_proj <- terra::mask(evi_proj, domain_mask, maskvalue = FALSE)
 
     if (!is.null(doy_r)) {
       doy_proj <- terra::project(doy_r, domain_template, method = "mode")
       doy_proj <- terra::mask(doy_proj, domain_mask, maskvalue = FALSE)
     } else {
-      doy_proj    <- domain_template[["pid"]]
-      doy_proj[]  <- NA_real_
+      doy_proj <- domain_template[["pid"]]
+      doy_proj[] <- NA_real_
     }
 
     # Stack EVI + DOY into 2-band COG with embedded metadata
-    r_out        <- c(evi_proj, doy_proj)
+    r_out <- c(evi_proj, doy_proj)
     names(r_out) <- c("evi", "doy")
     terra::metags(r_out) <- c(
       composite_date = as.character(composite_date),
@@ -562,15 +626,19 @@ vi_modis_geotiff_to_grid <- function(
       date_created   = as.character(Sys.Date())
     )
     unlink(out_path)
-    terra::writeRaster(r_out, out_path, filetype = "COG", datatype = "INT2S",
-                       gdal = c("COMPRESS=DEFLATE", "PREDICTOR=2", "ZLEVEL=9",
-                                "SPARSE_OK=YES"),
-                       overwrite = TRUE)
+    terra::writeRaster(r_out, out_path,
+      filetype = "COG", datatype = "INT2S",
+      gdal = c(
+        "COMPRESS=DEFLATE", "PREDICTOR=2", "ZLEVEL=9",
+        "SPARSE_OK=YES"
+      ),
+      overwrite = TRUE
+    )
     if (verbose) message("Wrote: ", basename(out_path))
   }
 
   process_sensor("Terra/MOD13A1", "terra", "MOD13A1.061", out_terra)
-  process_sensor("Aqua/MYD13A1",  "aqua",  "MYD13A1.061", out_aqua)
+  process_sensor("Aqua/MYD13A1", "aqua", "MYD13A1.061", out_aqua)
 
   if (cleanup) {
     unlink(geotiff_directory, recursive = TRUE, force = TRUE)
@@ -607,23 +675,23 @@ vi_modis_geotiff_to_grid <- function(
 #' }
 #' @export
 vi_modis_geotiff_to_parquet <- function(
-    tif_files,
-    domain_raster,
-    composite_date,
-    out_dir  = "data/target_outputs/modis_vi/",
-    verbose  = TRUE) {
-
+  tif_files,
+  domain_raster,
+  composite_date,
+  out_dir = "data/target_outputs/modis_vi/",
+  verbose = TRUE
+) {
   composite_date <- as.Date(composite_date)
-  yyyymmdd       <- format(composite_date, "%Y%m%d")
+  yyyymmdd <- format(composite_date, "%Y%m%d")
 
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
   parquet_file <- file.path(out_dir, paste0("vi_modis_", yyyymmdd, ".parquet"))
 
   # Load domain for pid values
-  domain_template  <- if (is.character(domain_raster)) terra::rast(domain_raster) else domain_raster
+  domain_template <- if (is.character(domain_raster)) terra::rast(domain_raster) else domain_raster
   stopifnot("pid" %in% names(domain_template))
-  pid_vec          <- terra::values(domain_template[["pid"]])[, 1]
-  ref_year         <- as.integer(format(composite_date, "%Y"))
+  pid_vec <- terra::values(domain_template[["pid"]])[, 1]
+  ref_year <- as.integer(format(composite_date, "%Y"))
   year_start_epoch <- as.integer(as.Date(paste0(ref_year, "-01-01")) - as.Date("1970-01-01"))
 
   # Detect sensor code from filename: _terra_ \u2192 1, _aqua_ \u2192 2
@@ -634,7 +702,7 @@ vi_modis_geotiff_to_parquet <- function(
   # Extract observations from one 2-band sensor COG (evi + doy bands)
   extract_sensor_obs <- function(tif_path) {
     s_id <- sensor_code(tif_path)
-    r    <- tryCatch(terra::rast(tif_path), error = function(e) NULL)
+    r <- tryCatch(terra::rast(tif_path), error = function(e) NULL)
     if (is.null(r)) {
       if (verbose) message("Could not read: ", basename(tif_path))
       return(NULL)
@@ -646,7 +714,9 @@ vi_modis_geotiff_to_parquet <- function(
     evi_v <- terra::values(r[["evi"]])[, 1]
     doy_v <- terra::values(r[["doy"]])[, 1]
     valid <- !is.na(evi_v) & !is.na(doy_v) & !is.na(pid_vec)
-    if (!any(valid)) return(NULL)
+    if (!any(valid)) {
+      return(NULL)
+    }
     # Convert day-of-year (1\u2013366) to days since 1970-01-01
     epoch_dates <- as.integer(year_start_epoch + as.integer(doy_v[valid]) - 1L)
     tibble::tibble(
@@ -659,10 +729,11 @@ vi_modis_geotiff_to_parquet <- function(
 
   all_obs <- purrr::map(tif_files, function(tf) {
     tryCatch(extract_sensor_obs(tf),
-             error = function(e) {
-               warning("Failed to process ", basename(tf), ": ", conditionMessage(e))
-               NULL
-             })
+      error = function(e) {
+        warning("Failed to process ", basename(tf), ": ", conditionMessage(e))
+        NULL
+      }
+    )
   })
 
   compact_obs <- purrr::compact(all_obs)
@@ -674,13 +745,19 @@ vi_modis_geotiff_to_parquet <- function(
   }
 
   if (nrow(df) == 0L) {
-    if (verbose) message("No valid MODIS VI observations for ", yyyymmdd,
-                         " \u2014 writing skip marker")
+    if (verbose) {
+      message(
+        "No valid MODIS VI observations for ", yyyymmdd,
+        " \u2014 writing skip marker"
+      )
+    }
     skip_file <- file.path(out_dir, paste0("vi_modis_", yyyymmdd, ".skip"))
     writeLines(
-      c(paste("Composite date:", yyyymmdd),
+      c(
+        paste("Composite date:", yyyymmdd),
         "Reason: All-NA after reading sensor grid COGs",
-        paste("Timestamp:", Sys.time())),
+        paste("Timestamp:", Sys.time())
+      ),
       skip_file
     )
     return(skip_file)
@@ -701,11 +778,12 @@ vi_modis_geotiff_to_parquet <- function(
 #' @return Integer vector of QA flag values that pass all quality filters
 #' @keywords internal
 parse_qa <- function(qa_lookup_files) {
-  
   extract_keep <- function(path) {
     tab <- tryCatch(read.csv(path, stringsAsFactors = FALSE), error = function(e) NULL)
-    if (is.null(tab)) return(NULL)
-    
+    if (is.null(tab)) {
+      return(NULL)
+    }
+
     # Find required columns (case-insensitive)
     value_col <- names(tab)[grepl("^value$", tolower(names(tab)))][1]
     modland_col <- names(tab)[grepl("modland", tolower(names(tab)))][1]
@@ -714,17 +792,19 @@ parse_qa <- function(qa_lookup_files) {
     shadow_col <- names(tab)[grepl("possible.*shadow", tolower(names(tab)))][1]
     land_col <- names(tab)[grepl("land/water|land.*water", tolower(names(tab)))][1]
     aerosol_col <- names(tab)[grepl("aerosol", tolower(names(tab)))][1]
-    
+
     # Check all required columns are present
     required_cols <- c(value_col, modland_col, adj_cloud_col, snow_col, shadow_col, land_col, aerosol_col)
     if (any(is.na(required_cols))) {
-      warning("QA lookup missing required columns. Found: value=", !is.na(value_col), 
-              ", modland=", !is.na(modland_col), ", adj_cloud=", !is.na(adj_cloud_col),
-              ", snow=", !is.na(snow_col), ", shadow=", !is.na(shadow_col),
-              ", land=", !is.na(land_col), ", aerosol=", !is.na(aerosol_col))
+      warning(
+        "QA lookup missing required columns. Found: value=", !is.na(value_col),
+        ", modland=", !is.na(modland_col), ", adj_cloud=", !is.na(adj_cloud_col),
+        ", snow=", !is.na(snow_col), ", shadow=", !is.na(shadow_col),
+        ", land=", !is.na(land_col), ", aerosol=", !is.na(aerosol_col)
+      )
       return(NULL)
     }
-    
+
     # Filter for pixels that meet ALL QA criteria:
     # 1. VI produced with good quality
     # 2. No adjacent cloud detected
@@ -733,15 +813,14 @@ parse_qa <- function(qa_lookup_files) {
     # 5. Over land (not ocean or water)
     # 6. Not high aerosol loading
     keep <- (grepl("vi produced", tolower(tab[[modland_col]]))) &
-            (grepl("^no$", tolower(tab[[adj_cloud_col]]))) &
-            (grepl("^no$", tolower(tab[[shadow_col]]))) &
-            (grepl("^no$", tolower(tab[[snow_col]]))) &
-            (grepl("land", tolower(tab[[land_col]]))) &
-            (!grepl("high", tolower(tab[[aerosol_col]])))
-    
+      (grepl("^no$", tolower(tab[[adj_cloud_col]]))) &
+      (grepl("^no$", tolower(tab[[shadow_col]]))) &
+      (grepl("^no$", tolower(tab[[snow_col]]))) &
+      (grepl("land", tolower(tab[[land_col]]))) &
+      (!grepl("high", tolower(tab[[aerosol_col]])))
+
     tab[[value_col]][keep & !is.na(tab[[value_col]])]
   }
-  
+
   unique(unlist(lapply(qa_lookup_files, extract_keep)))
 }
-

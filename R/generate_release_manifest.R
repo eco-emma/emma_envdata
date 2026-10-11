@@ -12,7 +12,6 @@
 generate_release_manifest <- function(
   out_file = "data/target_outputs/TARGET_MANIFEST.json"
 ) {
-
   meta <- targets::tar_meta(fields = c("name", "type", "format", "bytes", "time", "seconds", "error", "warnings"))
 
   # Keep only stem targets (exclude branches, patterns, and pipeline internals)
