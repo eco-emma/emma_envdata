@@ -49,7 +49,8 @@ Imports:
   memoise,
   htmlwidgets,
   patchwork,
-  webshot2
+  webshot2,
+  rinat
 Suggests:
   rgee,
   reticulate,

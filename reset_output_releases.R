@@ -38,6 +38,8 @@ output_tags <- c(
   "stac-vi-2000s",
   "stac-vi-2010s",
   "stac-vi-2020s",
+  "weather_data",
+  "inat_data",
   "readme-assets"
 )
 

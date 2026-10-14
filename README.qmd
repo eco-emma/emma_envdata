@@ -619,6 +619,18 @@ This pipeline requires:
 - **NASA EarthData credentials** (for AppEEARS API): Set `EARTHDATA_USER` and `EARTHDATA_PASSWORD` environment variables
 - **GitHub Personal Access Token** (for release uploads): Use `gitcreds::gitcreds_set()`
 
+### iNaturalist invasives (`inat_data`)
+
+Dedicated harvest (separate from AppEEARS / weather). AOI =
+`parks_buffer_10km.gpkg` on `static_data` (buffered parks only). Publishes
+`inat_invasives.gpkg` (WGS84) to the `inat_data` release. First publish is
+CCR after the parks buffer exists — see
+[`docs/INAT_DATA_PUBLISH.md`](docs/INAT_DATA_PUBLISH.md).
+
+```bash
+Rscript R/publish_inat_data.R
+```
+
 ### Running the Pipeline
 
 ```r
