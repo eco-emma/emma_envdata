@@ -1,0 +1,53 @@
+# Optional GHA path for park products → static_data.
+# First publish is CCR (Adam primes after merge). Use this workflow later if
+# CCR is unavailable or for refreshes when manual-data inputs change.
+#
+# Does NOT run on the nightly AppEEARS cron — workflow_dispatch only.
+
+name: publish-parks
+
+on:
+  workflow_dispatch:
+    inputs:
+      upload:
+        description: "Upload products to static_data release"
+        required: true
+        type: boolean
+        default: true
+
+concurrency:
+  group: emma-envdata-publish-parks
+  cancel-in-progress: false
+
+jobs:
+  publish-parks:
+    runs-on: ubuntu-latest
+    container: adamwilsonlab/emma:latest
+    permissions:
+      contents: write
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TAR_GH_RELEASE_REPO: eco-emma/emma_envdata
+    steps:
+      - uses: actions/checkout@v4
+      - name: Whitelist directory
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - name: Build (and optionally upload) park static products
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.upload }}" = "true" ]; then
+            Rscript R/publish_park_static.R
+          else
+            Rscript R/publish_park_static.R --no-upload
+          fi
+        shell: bash
+      - name: Upload local gpkg artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: park-static-gpkgs
+          path: |
+            data/target_outputs/protected_areas.gpkg
+            data/target_outputs/domain_outline.gpkg
+            data/target_outputs/parks_buffer_10km.gpkg
+          if-no-files-found: warn

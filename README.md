@@ -80,6 +80,9 @@ Status](https://github.com/eco-emma/emma_envdata/workflows/targets/badge.svg)](h
 | Cloud Frequency | MODCF (EarthEnv) | Static | COG GeoTIFF | static_data | 1 | 2026-06-18 13:48:11.14382 |
 | Soil Properties | SoilGrids v2 | Static | COG GeoTIFF | static_data | 1 | 2026-06-18 13:49:33.055107 |
 | Topographic Diversity | Derived from NASADEM | Static | COG GeoTIFF | static_data | 1 | 2026-06-19 05:19:37.36503 |
+| Protected areas (parks) | SACAD/SAPAD/CapeNature via manual-data | Static | GeoPackage | static_data | 1 | — |
+| Domain outline | domain.tif polygonize | Static | GeoPackage | static_data | 1 | — |
+| Parks 10 km buffer (iNat AOI) | Dissolved parks only | Static | GeoPackage | static_data | 1 | — |
 
 EMMA Environmental Data Inventory {.table .table-striped .table-hover
 .table-condensed quarto-postprocess="true"
@@ -170,6 +173,23 @@ df <- arrow::read_parquet(parquet_url)
 | Broken Links        | NULL       |
 | Validation Status   | ❌ FAIL \| |
 
+## Park / domain vector contract (`static_data`)
+
+Park inputs are **flat** assets on
+[`manual-data`](https://github.com/eco-emma/emma_envdata/releases/tag/manual-data)
+(download by asset name; **no** nested folders). Ecological rules:
+
+- SACAD/SAPAD: keep `SITE_TYPE` matching “national park” (case-insensitive)
+- CapeNature: `COMPLEX` → `name`, `RESERVECON` → `type`, `WMCM_TYPE = Provincial`
+- Intersect domain; **dissolve by `name` only**; attrs `name`, `type`, `area_ha`
+- CRS = domain template (**EPSG:9221** Albers)
+- iNat AOI product `parks_buffer_10km.gpkg` = 10 km buffer of parks **only** (no domain union)
+- `park_pids.parquet` deferred until domain/`pid` co-versioning
+
+**First publish is CCR** after merge (`Rscript R/publish_park_static.R` or
+`tar_make(c(park_static_products, upload_park_static))`). Nightly Actions is
+AppEEARS-only; optional `publish-parks` workflow is `workflow_dispatch` for later.
+
 ## Data Notes
 
 - **MODIS/VIIRS EVI values**: Stored as `integer × 10000`. To restore:
@@ -179,8 +199,8 @@ df <- arrow::read_parquet(parquet_url)
   (age ≥ time since 2000-01-01)
 - **Multi-sensor fire detection**: Priority order: CapeNature
   ground-truth \> VIIRS (375m) \> MODIS (500m)
-- **Coordinate Reference System**: All rasters are in EPSG:4326 (WGS84)
-  at 500m resolution
+- **Coordinate Reference System**: Domain / static rasters use **EPSG:9221**
+  (Albers) at 500m; see park contract above
 - **Cloud-Optimized GeoTIFFs**: All rasters use COG format for efficient
   cloud access via `/vsicurl/`
 
