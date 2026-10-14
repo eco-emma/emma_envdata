@@ -43,12 +43,12 @@ salloc --cluster=faculty --qos=adamw --partition=adamw \
   --job-name=emma_inat --nodes=1 --ntasks=4 --mem=24G \
   -C INTEL --time=04:00:00
 
-# 2. Repo + Apptainer
+# 2. Repo + Apptainer shell
 cd /projects/academic/adamw/projects/emma/emma_envdata
 git fetch origin && git checkout main && git pull --ff-only
-bash R/ccr_startup.sh R
+bash R/ccr_startup.sh shell
 
-# 3. Inside Apptainer at repo root — harvest + upload to inat_data
+# 3. Inside the Apptainer shell at repo root — harvest + upload to inat_data
 Rscript R/publish_inat_data.R
 ```
 

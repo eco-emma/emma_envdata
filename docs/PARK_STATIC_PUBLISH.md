@@ -28,12 +28,12 @@ salloc --cluster=faculty --qos=adamw --partition=adamw \
   --job-name=emma_parks --nodes=1 --ntasks=4 --mem=24G \
   -C INTEL --time=04:00:00
 
-# 2. Enter Apptainer (repo root)
+# 2. Enter Apptainer shell (repo root)
 cd /projects/academic/adamw/projects/emma/emma_envdata
-git fetch origin && git checkout main && git pull
-bash R/ccr_startup.sh R   # or: shell, then R
+git fetch origin && git checkout main && git pull --ff-only
+bash R/ccr_startup.sh shell
 
-# 3. Inside the container at the repo root — build + upload to static_data
+# 3. Inside the Apptainer shell at the repo root — build + upload to static_data
 Rscript R/publish_park_static.R
 
 # Equivalent targets path (uses local domain.tif from the CCR store):

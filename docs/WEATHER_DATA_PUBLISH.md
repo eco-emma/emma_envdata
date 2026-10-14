@@ -27,12 +27,12 @@ salloc --cluster=faculty --qos=adamw --partition=adamw \
   --job-name=emma_weather --nodes=1 --ntasks=4 --mem=16G \
   -C INTEL --time=04:00:00
 
-# 2. Enter Apptainer (repo root)
+# 2. Enter Apptainer shell (repo root)
 cd /projects/academic/adamw/projects/emma/emma_envdata
 git fetch origin && git checkout main && git pull --ff-only
-bash R/ccr_startup.sh R
+bash R/ccr_startup.sh shell
 
-# 3. Inside the container at the repo root — build + upload to weather_data
+# 3. Inside the Apptainer shell at the repo root — build + upload to weather_data
 Rscript R/publish_weather.R
 
 # Optional local parks override (if static_data parks not yet public):

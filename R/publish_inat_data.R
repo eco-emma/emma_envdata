@@ -8,7 +8,7 @@
 # GHA-capable later: workflow_dispatch job `publish-inat` runs this script.
 # Nightly cron is deferred — keep AppEEARS / weather / iNat as separate jobs.
 #
-# Usage:
+# Usage (inside Apptainer from `bash R/ccr_startup.sh shell`):
 #   Rscript R/publish_inat_data.R
 #   Rscript R/publish_inat_data.R --no-upload
 #   INAT_AOI_GPKG=/path/to/parks_buffer_10km.gpkg Rscript R/publish_inat_data.R
@@ -17,16 +17,10 @@
 args <- commandArgs(trailingOnly = TRUE)
 do_upload <- !("--no-upload" %in% args)
 
-r_files <- list.files("R", pattern = "^[^.].*\\.R$", full.names = TRUE)
-r_files <- r_files[
-  !basename(r_files) %in% c(
-    "backfill_stac_release.R",
-    "ci_appeears_update.R",
-    "publish_park_static.R",
-    "publish_inat_data.R"
-  )
-]
-for (f in r_files) source(f, local = FALSE)
+# Load helpers only — never source other publish_*.R CLI entries (recursion →
+# "node stack overflow" in library() on CCR/Apptainer).
+source("R/utils.R", local = FALSE)
+source_pipeline_r()
 
 if (file.exists("DESCRIPTION") && exists("load_description_packages")) {
   tryCatch(load_description_packages(verbose = FALSE), error = function(e) {
