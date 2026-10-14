@@ -26,7 +26,8 @@ r_source_files <- list.files(
 r_source_files <- r_source_files[
   !basename(r_source_files) %in% c(
     "backfill_stac_release.R",
-    "ci_appeears_update.R"
+    "ci_appeears_update.R",
+    "publish_park_static.R"
   )
 ]
 tar_source(r_source_files)
@@ -53,6 +54,7 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
   # from this list so renaming one tag cannot silently break another.
   release_tags <- list(
     static             = "static_data",
+    manual             = "manual-data",  # input only (flat park shapefiles, RLE zip, …)
     vi_modis_terra     = "vi_modis_terra_raster",
     vi_modis_aqua      = "vi_modis_aqua_raster",
     vi_viirs_raster    = "vi_viirs_raster",
@@ -230,6 +232,31 @@ list(
     ),
     cue = tar_cue(mode = "never"),  # Manual download: only run locally, never on CI,
     format = "file"
+  ),
+
+  # ── Park products for emma_report (static_data) ─────────────────────────────
+  # Inputs: flat assets from release_tags$manual (`manual-data`). Domain mask
+  # from domain.tif. Outputs: protected_areas / domain_outline /
+  # parks_buffer_10km (.gpkg). cue="never": CCR-prime first; re-run when
+  # manual-data park shapefiles change. park_pids.parquet deferred (v1).
+  # Standalone entry (CCR or GHA): Rscript R/publish_park_static.R
+  tar_target(
+    park_static_products,
+    {
+      domain_path <- terra::sources(domain.tif)[[1]]
+      build_park_static_products(
+        out_dir = "data/target_outputs",
+        work_dir = "data/temp/parks",
+        domain_tif = domain_path,
+        repo = gh_repo_config$repo,
+        manual_tag = release_tags$manual,
+        static_tag = release_tags$static,
+        verbose = TRUE
+      )
+    },
+    format = "file",
+    cue = tar_cue(mode = "never"),
+    deployment = "main"
   ),
 
 # Rasterize the vegetation map
@@ -860,6 +887,23 @@ list(
         terra::sources(soils.tif)[[1]],
         terra::sources(geodiversity.tif)[[1]]
       ),
+      repo         = gh_repo_config$repo,
+      release_tag  = release_tags$static,
+      release_name = "Static Environmental Data",
+      overwrite    = TRUE,
+      verbose      = TRUE
+    ),
+    deployment = "main"
+  ),
+
+  # Park gpkgs → static_data (CCR prime). Depends on park_static_products only
+  # so parks can be published without re-uploading the full static stack.
+  # First publish: CCR after merge (see docs / PR). GHA: workflow_dispatch
+  # publish-parks or Rscript R/publish_park_static.R
+  tar_target(
+    upload_park_static,
+    upload_to_github_release(
+      files        = park_static_products,
       repo         = gh_repo_config$repo,
       release_tag  = release_tags$static,
       release_name = "Static Environmental Data",

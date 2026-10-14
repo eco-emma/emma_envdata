@@ -26,6 +26,29 @@ reset must keep are `vegmap2024` and `manual-data`.
 Product COGs, Parquet files, and STAC JSON are separate releases. Their tag
 names are the `release_tags` list in `_targets.R`.
 
+## Park products on `static_data`
+
+Park boundary products for `emma_report` are written by
+`R/process_park_polygons.R` / targets `park_static_products` +
+`upload_park_static` (cue `never`).
+
+| Role | Tag | Assets |
+|------|-----|--------|
+| Inputs | `manual-data` | Flat SACAD / SAPAD / CapeNature shapefile sidecars (by name; no folders) |
+| Outputs | `static_data` | `protected_areas.gpkg`, `domain_outline.gpkg`, `parks_buffer_10km.gpkg` |
+
+**First publish is CCR** (not the nightly AppEEARS Actions job). After merge:
+
+```bash
+# On CCR interactive / batch node inside the emma Apptainer image, repo root:
+git pull
+Rscript R/publish_park_static.R
+# or: targets::tar_make(c(park_static_products, upload_park_static))
+```
+
+Optional later: Actions workflow `publish-parks` (`workflow_dispatch` only).
+Do not ship `park_pids.parquet` until domain/`pid` co-versioning exists.
+
 ## Clear a local copy
 
 ```r
