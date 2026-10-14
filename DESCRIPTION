@@ -45,6 +45,7 @@ Imports:
   stringr,
   gh,
   httr,
+  GSODR,
   memoise,
   htmlwidgets,
   patchwork,

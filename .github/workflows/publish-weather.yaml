@@ -1,0 +1,59 @@
+# Optional GHA path for GSOD weather + stations → weather_data.
+# First publish is CCR (Adam primes after parks static_data exists). Use this
+# workflow later for nightly / refresh — workflow_dispatch only for now.
+#
+# Does NOT run on the nightly AppEEARS cron — never stack with AppEEARS or iNat.
+
+name: publish-weather
+
+on:
+  workflow_dispatch:
+    inputs:
+      upload:
+        description: "Upload products to weather_data release"
+        required: true
+        type: boolean
+        default: true
+      min_year:
+        description: "First GSOD calendar year (default = last 5 years)"
+        required: false
+        type: string
+        default: ""
+
+concurrency:
+  group: emma-envdata-publish-weather
+  cancel-in-progress: false
+
+jobs:
+  publish-weather:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    container: adamwilsonlab/emma:latest
+    permissions:
+      contents: write
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TAR_GH_RELEASE_REPO: eco-emma/emma_envdata
+      WEATHER_MIN_YEAR: ${{ inputs.min_year }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Whitelist directory
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - name: Build (and optionally upload) weather products
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.upload }}" = "true" ]; then
+            Rscript R/publish_weather.R
+          else
+            Rscript R/publish_weather.R --no-upload
+          fi
+        shell: bash
+      - name: Upload local weather artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: weather-data-assets
+          path: |
+            data/target_outputs/weather.parquet
+            data/target_outputs/stations.gpkg
+          if-no-files-found: warn

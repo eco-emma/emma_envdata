@@ -27,7 +27,8 @@ r_source_files <- r_source_files[
   !basename(r_source_files) %in% c(
     "backfill_stac_release.R",
     "ci_appeears_update.R",
-    "publish_park_static.R"
+    "publish_park_static.R",
+    "publish_weather.R"  # CLI entry (E3); do not run on tar_source
   )
 ]
 tar_source(r_source_files)

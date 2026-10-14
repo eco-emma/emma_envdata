@@ -59,3 +59,26 @@ unlink("_targets/user/cache", recursive = TRUE)
 
 The next `tar_make()` on CCR recomputes. On Actions, the next run downloads
 the shards again.
+
+## Weather products on `weather_data`
+
+GSOD harvest + station metadata for `emma_report` are written by
+`R/process_weather_gsod.R` / CLI `R/publish_weather.R`.
+
+| Role | Tag | Assets |
+|------|-----|--------|
+| Input | `static_data` | `protected_areas.gpkg` (parks Phase B; 100 km station filter) |
+| Outputs | `weather_data` | `weather.parquet`, `stations.gpkg` |
+
+**First publish is CCR** (not the nightly AppEEARS Actions job). After parks
+`protected_areas.gpkg` exists on `static_data`:
+
+```bash
+# On CCR interactive / batch node inside the emma Apptainer image, repo root:
+git pull
+Rscript R/publish_weather.R
+```
+
+Default year window = last 5 calendar years (`WEATHER_MIN_YEAR` overrides).
+Optional later: Actions workflow `publish-weather` (`workflow_dispatch` only).
+See `docs/WEATHER_DATA_PUBLISH.md`.
