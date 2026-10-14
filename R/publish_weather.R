@@ -30,9 +30,13 @@ if (file.exists("DESCRIPTION") && exists("load_description_packages")) {
   })
 }
 
-# GSODR is in adamwilsonlab/emma but may not be listed in DESCRIPTION yet.
+# GSODR is optional now: harvest uses the NCEI CSV WAF directly. Keep the
+# package when present for the packaged isd_history.rda fallback only.
 if (!requireNamespace("GSODR", quietly = TRUE)) {
-  stop("Package GSODR is required (present in adamwilsonlab/emma image).", call. = FALSE)
+  message(
+    "Package GSODR not installed; ISD history refresh will require ",
+    "https://www.ncei.noaa.gov/pub/data/noaa/isd-history.csv"
+  )
 }
 
 repo <- Sys.getenv("TAR_GH_RELEASE_REPO", unset = "eco-emma/emma_envdata")

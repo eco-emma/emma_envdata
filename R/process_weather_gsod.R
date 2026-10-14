@@ -4,7 +4,9 @@
 # Contract (plan §0.1 / §0.2):
 #   Inputs:  protected_areas.gpkg from static_data (dissolved parks; EPSG:9221)
 #   Harvest: SOUTH AFRICA stations with recent END year; within 100 km of parks;
-#            GSOD years = last 5 calendar years (override via WEATHER_MIN_YEAR)
+#            GSOD years = last 5 calendar years (override via WEATHER_MIN_YEAR),
+#            capped to each station's END year (NCEI CSV WAF; GSOD retired
+#            2025-08-29 — do not call GSODR::get_GSOD() for the year window).
 #   Outputs (tag weather_data):
 #     weather.parquet — STNID, YEARMODA, TEMP (°C), PRCP (mm), NAME
 #     stations.gpkg   — STNID, NAME, BEGIN, END, start_year, end_year, LON, LAT,
@@ -175,7 +177,9 @@ resolve_weather_parks_gpkg <- function(
 .load_isd_history <- function(work_dir = "data/temp/weather") {
   dir.create(work_dir, recursive = TRUE, showWarnings = FALSE)
   csv_path <- file.path(work_dir, "isd-history.csv")
-  station_url <- "https://www1.ncdc.noaa.gov/pub/data/noaa/isd-history.csv"
+  # Prefer current NCEI host; www1.ncdc.noaa.gov redirects / 404s after the
+  # 2025 NCEI OS upgrade (GSOD/ISD retirement window).
+  station_url <- "https://www.ncei.noaa.gov/pub/data/noaa/isd-history.csv"
 
   freshened <- FALSE
   tryCatch({
@@ -286,88 +290,254 @@ get_weather_stations <- function(parks_sf, work_dir = "data/temp/weather") {
     sf::st_make_valid()
 }
 
-#' Robust GSOD download with year-window adjustment
+#' NCEI GSOD daily CSV URL for one station-year
+#'
+#' GSOD legacy `.op.gz` trees under `pub/data/gsod/` 404 after the 2025 NCEI
+#' upgrade. The surviving archive is the CSV WAF:
+#' `.../data/global-summary-of-the-day/access/{year}/{USAFWBAN}.csv`
+#' (hyphen stripped from STNID). GSOD itself was retired 2025-08-29; years
+#' after the station `END` / retirement simply 404 and are skipped.
+#'
+#' @param year Calendar year.
+#' @param station STNID like `684080-99999`.
+#' @return Character URL.
+#' @keywords internal
+.gsod_ncei_csv_url <- function(year, station) {
+  stn <- gsub("-", "", as.character(station), fixed = TRUE)
+  sprintf(
+    "https://www.ncei.noaa.gov/data/global-summary-of-the-day/access/%d/%s.csv",
+    as.integer(year),
+    stn
+  )
+}
+
+#' Download one station-year GSOD CSV from NCEI (NULL if missing)
+#'
+#' @param year Calendar year.
+#' @param station STNID.
+#' @param dest_dir Scratch directory.
+#' @param quiet Passed to \code{download.file}.
+#' @return Local path, or \code{NULL} when the year is absent / not a CSV.
+#' @keywords internal
+.download_gsod_year_csv <- function(year, station, dest_dir, quiet = TRUE) {
+  dir.create(dest_dir, recursive = TRUE, showWarnings = FALSE)
+  dest <- file.path(
+    dest_dir,
+    sprintf("%s_%d.csv", gsub("-", "", station, fixed = TRUE), as.integer(year))
+  )
+  url <- .gsod_ncei_csv_url(year, station)
+
+  # Suppress download.file warnings (404 → non-zero status); validate by content.
+  status <- tryCatch(
+    suppressWarnings(
+      utils::download.file(url, destfile = dest, mode = "wb", quiet = quiet)
+    ),
+    error = function(e) 1L
+  )
+
+  ok <- identical(as.integer(status), 0L) &&
+    file.exists(dest) &&
+    isTRUE(file.size(dest) >= 64)
+  if (ok) {
+    first <- tryCatch(
+      readLines(dest, n = 1L, warn = FALSE),
+      error = function(e) ""
+    )
+    # 404 HTML / XML error bodies are not GSOD CSVs.
+    ok <- grepl("STATION", first, fixed = TRUE)
+  }
+
+  if (!isTRUE(ok)) {
+    if (file.exists(dest)) {
+      unlink(dest)
+    }
+    return(NULL)
+  }
+  dest
+}
+
+#' Parse an NCEI GSOD daily CSV into the weather contract columns
+#'
+#' Converts TEMP °F→°C and PRCP inches→mm (NCEI CSV native units).
+#'
+#' @param path Local CSV path.
+#' @return Tibble with STNID, YEARMODA, TEMP, PRCP, NAME.
+#' @keywords internal
+.parse_gsod_ncei_csv <- function(path) {
+  raw <- utils::read.csv(
+    path,
+    stringsAsFactors = FALSE,
+    strip.white = TRUE,
+    check.names = FALSE
+  )
+  names(raw) <- toupper(names(raw))
+  needed <- c("STATION", "DATE", "TEMP", "PRCP", "NAME")
+  missing <- setdiff(needed, names(raw))
+  if (length(missing)) {
+    stop(
+      "GSOD CSV missing columns: ", paste(missing, collapse = ", "),
+      " in ", path,
+      call. = FALSE
+    )
+  }
+
+  temp_f <- suppressWarnings(as.numeric(raw$TEMP))
+  prcp_in <- suppressWarnings(as.numeric(raw$PRCP))
+  temp_f[is.finite(temp_f) & abs(temp_f - 9999.9) < 0.01] <- NA_real_
+  prcp_in[is.finite(prcp_in) & abs(prcp_in - 99.99) < 0.001] <- NA_real_
+
+  station_raw <- gsub("[^0-9]", "", as.character(raw$STATION))
+  stnid <- ifelse(
+    nchar(station_raw) >= 11L,
+    paste0(substr(station_raw, 1L, 6L), "-", substr(station_raw, 7L, 11L)),
+    as.character(raw$STATION)
+  )
+
+  tibble::tibble(
+    STNID = stnid,
+    YEARMODA = as.Date(raw$DATE),
+    TEMP = round(0.5556 * (temp_f - 32), 1L),
+    PRCP = round(prcp_in * 25.4, 2L),
+    NAME = as.character(raw$NAME)
+  )
+}
+
+#' Download GSOD for one station via NCEI CSV WAF (year-by-year)
+#'
+#' Prefer this over \code{GSODR::get_GSOD()}: GSODR validates the full year
+#' vector against its packaged \code{isd_history} and **drops the station**
+#' (warning → empty data.frame) when \code{max(years) > END}. Harvesting
+#' "last 5 calendar years" in 2026 with station END=2025 therefore returned
+#' empty frames and burned all retries ("Empty dataframe downloaded, retrying").
+#'
+#' Missing years (404, including post-retirement 2026+) are skipped — not
+#' retried. Network failures retry up to \code{max_attempts} per year.
 #'
 #' @param years Integer vector of years.
 #' @param station GSOD STNID.
-#' @param max_attempts Retry budget.
+#' @param max_attempts Retry budget **per year** on network/transfer failure.
 #' @param sleep_time Seconds between attempts.
-#' @return data.frame/data.table of GSOD rows, or an error object / NULL.
+#' @param work_dir Scratch directory for CSV downloads.
+#' @return data.frame/tibble of GSOD rows, or \code{NULL} when nothing landed.
 #' @export
 robust_get_GSOD <- function(
     years,
     station,
     max_attempts = 10L,
-    sleep_time = 1
+    sleep_time = 1,
+    work_dir = file.path(tempdir(), "emma_gsod")
 ) {
   years <- sort(unique(as.integer(years)))
   years <- years[!is.na(years)]
+  if (!length(years) || !nzchar(station)) {
+    return(NULL)
+  }
+
+  this_year <- as.integer(lubridate::year(Sys.Date()))
+  # Never request future years; GSOD retired 2025-08-29 so post-END years 404.
+  years <- years[years <= this_year]
   if (!length(years)) {
     return(NULL)
   }
 
-  n_attempts <- 1L
-  out_data <- NULL
+  dir.create(work_dir, recursive = TRUE, showWarnings = FALSE)
+  pieces <- list()
 
-  while (n_attempts <= max_attempts) {
-    message(
-      "attempt ", n_attempts, " of ", max_attempts,
-      " to download GSOD data for station ", station,
-      " years ", min(years), "-", max(years)
-    )
-
-    out_data <- tryCatch(
-      GSODR::get_GSOD(years = years, station = station),
-      error = function(e) e
-    )
-
-    if (inherits(out_data, c("data.table", "data.frame"))) {
-      if (nrow(out_data) > 0) {
-        return(out_data)
-      }
-      message("Empty dataframe downloaded, retrying")
-    }
-
-    # Permanent year-window mismatch: adjust once instead of burning retries.
-    # GSODR: "This station, …, only provides data for years 2024 to 2024."
-    if (inherits(out_data, "error")) {
-      msg <- conditionMessage(out_data)
-      m <- regexec("years ([0-9]{4}) to ([0-9]{4})", msg)
-      r <- regmatches(msg, m)[[1]]
-      if (length(r) == 3L) {
-        avail <- as.integer(r[2]):as.integer(r[3])
-        new_years <- intersect(years, avail)
-        if (!length(new_years)) {
-          message(
-            "No overlapping GSOD years for station ", station,
-            " (available ", min(avail), "-", max(avail), "); skipping"
-          )
-          return(out_data)
-        }
-        if (!identical(new_years, years)) {
-          message(
-            "Adjusting GSOD years for station ", station, " to ",
-            min(new_years), "-", max(new_years)
-          )
-          years <- new_years
-          n_attempts <- n_attempts + 1L
-          next
-        }
-      }
-    }
-
-    if (n_attempts == max_attempts) {
+  for (yr in years) {
+    path <- NULL
+    n_attempts <- 1L
+    while (n_attempts <= max_attempts) {
       message(
-        "Reached maximum download attempts for station ", station,
-        ", giving up."
+        "attempt ", n_attempts, " of ", max_attempts,
+        " to download GSOD CSV for station ", station,
+        " year ", yr
       )
+      path <- .download_gsod_year_csv(
+        year = yr,
+        station = station,
+        dest_dir = work_dir,
+        quiet = TRUE
+      )
+      if (!is.null(path)) {
+        break
+      }
+      # Distinguish hard-missing year (404) from flaky network: HEAD/GET once
+      # more with httr when available; otherwise treat first miss as missing
+      # after a single confirmation attempt.
+      missing_year <- TRUE
+      url <- .gsod_ncei_csv_url(yr, station)
+      if (requireNamespace("httr", quietly = TRUE)) {
+        resp <- tryCatch(
+          httr::HEAD(url, httr::timeout(30)),
+          error = function(e) NULL
+        )
+        if (!is.null(resp)) {
+          code <- httr::status_code(resp)
+          if (identical(code, 404L)) {
+            missing_year <- TRUE
+          } else if (code >= 500L || identical(code, 429L) || identical(code, 0L)) {
+            missing_year <- FALSE
+          } else if (identical(code, 200L)) {
+            # Exists but download.file failed — retry as network/transfer.
+            missing_year <- FALSE
+          }
+        } else {
+          missing_year <- FALSE
+        }
+      } else if (n_attempts < 2L) {
+        # Without httr, give the year one more try before calling it missing.
+        missing_year <- FALSE
+      }
+
+      if (isTRUE(missing_year)) {
+        message(
+          "No GSOD CSV for station ", station, " year ", yr,
+          " (skipping missing year)"
+        )
+        path <- NULL
+        break
+      }
+
+      if (n_attempts == max_attempts) {
+        message(
+          "Reached maximum download attempts for station ", station,
+          " year ", yr, ", giving up on this year."
+        )
+      }
+      n_attempts <- n_attempts + 1L
+      Sys.sleep(sleep_time)
     }
 
-    n_attempts <- n_attempts + 1L
-    Sys.sleep(sleep_time)
+    if (is.null(path)) {
+      next
+    }
+
+    piece <- tryCatch(
+      .parse_gsod_ncei_csv(path),
+      error = function(e) {
+        message(
+          "Failed to parse GSOD CSV for ", station, " ", yr, ": ",
+          conditionMessage(e)
+        )
+        NULL
+      }
+    )
+    if (!is.null(piece) && nrow(piece) > 0) {
+      pieces[[as.character(yr)]] <- piece
+    }
   }
 
-  out_data
+  if (!length(pieces)) {
+    message(
+      "No GSOD rows downloaded for station ", station,
+      " years ", min(years), "-", max(years)
+    )
+    return(NULL)
+  }
+
+  out <- dplyr::bind_rows(pieces)
+  # Keep GSODR-shaped column set for callers that inspect class/names.
+  as.data.frame(out)
 }
 
 #' Download GSOD for selected stations and bind to one tibble
@@ -422,19 +592,28 @@ harvest_gsod_weather <- function(
     )
 
     yr_start <- max(as.integer(stations$start_year[[i]]), min_year, na.rm = TRUE)
-    if (is.na(yr_start) || yr_start > this_year) {
+    # Cap at station END year — requesting past END makes GSODR drop the
+    # station entirely; NCEI CSV also 404s for those years (GSOD retired
+    # 2025-08-29, so END is often mid-2025 while Sys.Date() is already 2026).
+    yr_end <- min(
+      this_year,
+      as.integer(stations$end_year[[i]]),
+      na.rm = TRUE
+    )
+    if (is.na(yr_start) || is.na(yr_end) || yr_start > yr_end) {
       message(
         "Skipping station ", station_i, ": no years in [",
-        min_year, ", ", this_year, "]"
+        min_year, ", ", this_year, "] ∩ station END"
       )
       next
     }
 
     data_i <- robust_get_GSOD(
-      years = yr_start:this_year,
+      years = yr_start:yr_end,
       station = station_i,
       max_attempts = max_attempts,
-      sleep_time = sleep_time
+      sleep_time = sleep_time,
+      work_dir = file.path(work_dir, "csv")
     )
 
     if (!inherits(data_i, "data.frame") || nrow(data_i) < 1) {
