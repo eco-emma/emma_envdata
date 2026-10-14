@@ -7,7 +7,9 @@
 #' @return The buffered bounding box as an sf object.
 #' @details Builds the bounding box of the domain, converts to sf, buffers, and returns.
 make_domain_bbox <- function(domain, buffer_m = 50000) {
-  
-  domain |> sf::st_bbox() |> sf::st_as_sfc() |> sf::st_buffer(buffer_m) |> sf::st_as_sf()
-
+  domain |>
+    sf::st_bbox() |>
+    sf::st_as_sfc() |>
+    sf::st_buffer(buffer_m) |>
+    sf::st_as_sf()
 }

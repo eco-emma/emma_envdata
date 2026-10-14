@@ -17,11 +17,10 @@
 
 submit_elevation_task <- function(
   domain_vector,
-  targets_store  = "_targets/objects",
+  targets_store = "_targets/objects",
   temp_directory = "data/temp/appeears/elevation_nasadem/",
-  verbose        = TRUE
+  verbose = TRUE
 ) {
-
   # 1. Check targets store — elevation.tif already fully processed
   elev_obj <- file.path(targets_store, "elevation.tif")
   if (file.exists(elev_obj)) {
@@ -31,12 +30,18 @@ submit_elevation_task <- function(
 
   # 2. Check temp directory — raw AppEEARS download exists but not yet processed
   if (dir.exists(temp_directory)) {
-    raw_tifs <- list.files(temp_directory, pattern = "\\.tif$",
-                           full.names = TRUE, recursive = TRUE)
+    raw_tifs <- list.files(temp_directory,
+      pattern = "\\.tif$",
+      full.names = TRUE, recursive = TRUE
+    )
     srtm_tifs <- raw_tifs[grepl("SRTMGL3", raw_tifs)]
     if (length(srtm_tifs) > 0) {
-      if (verbose) message("Raw AppEEARS elevation data found in ", temp_directory,
-                           " — skipping submission, will reprocess")
+      if (verbose) {
+        message(
+          "Raw AppEEARS elevation data found in ", temp_directory,
+          " — skipping submission, will reprocess"
+        )
+      }
       return("cached_temp")
     }
   }
@@ -82,7 +87,9 @@ submit_elevation_task <- function(
     error = function(e) {
       msg <- conditionMessage(e)
       if (grepl("exceeded.*maximum.*requests|too many requests",
-                msg, ignore.case = TRUE)) {
+        msg,
+        ignore.case = TRUE
+      )) {
         # Rate limit hit — stop() so this target is marked errored with
         # error = "continue", allowing the rest of the pipeline to proceed.
         # On the next tar_make() the errored target will re-submit
@@ -93,7 +100,7 @@ submit_elevation_task <- function(
           call. = FALSE
         )
       }
-      stop(e)  # re-throw non-rate-limit errors unchanged
+      stop(e) # re-throw non-rate-limit errors unchanged
     }
   )
 
@@ -132,7 +139,6 @@ download_elevation_results <- function(
   cleanup = FALSE,
   verbose = TRUE
 ) {
-
   # Sentinel: elevation.tif already fully processed in targets store — nothing to do.
   # tar_cue(mode = "never") on the elevation.tif target means the existing cached
   # object in the store is returned without re-running this function.
@@ -176,7 +182,7 @@ download_elevation_results <- function(
 
     # Poll for task completion using rs_list_task
     if (verbose) message("Polling task ", task_id, " for completion...")
-    max_retries <- 120  # 2 hours at 60s intervals
+    max_retries <- 120 # 2 hours at 60s intervals
     retry_count <- 0
 
     repeat {
@@ -258,14 +264,14 @@ download_elevation_results <- function(
   # delete that directory first the returned SpatRaster would be file-backed
   # on a non-existent path, causing "raster has no values" in downstream
   # terra::extract() calls (e.g. in combine_static_layers_to_geoparquet).
- # elev_masked <- terra::readAll(elev_masked)
+  # elev_masked <- terra::readAll(elev_masked)
 
   # Cleanup temp downloads
-if (cleanup) {
-  unlink(temp_directory, recursive = TRUE, force = TRUE)
-  gc()
-  unlink(terra_tmp, recursive = TRUE, force = TRUE)
-}
+  if (cleanup) {
+    unlink(temp_directory, recursive = TRUE, force = TRUE)
+    gc()
+    unlink(terra_tmp, recursive = TRUE, force = TRUE)
+  }
 
   if (verbose) message("Elevation processing complete.")
   elev_masked

@@ -8,8 +8,9 @@ Chat in VS Code.
 ## Always-on instructions
 
 `instructions/r-style.instructions.md` — applied automatically to every `*.R` file.
-Enforces tidyverse idioms, script-style (top-to-bottom, minimal abstraction), and
-comment standards. No invocation needed.
+Requires the [tidyverse style guide](https://style.tidyverse.org/) (format with
+`styler`), tidyverse idioms, script-style (top-to-bottom, minimal abstraction),
+and comment standards. No invocation needed.
 
 ---
 

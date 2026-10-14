@@ -4,6 +4,11 @@ applyTo: "**/*.R"
 
 ## R Code Style
 
+Follow the [tidyverse style guide](https://style.tidyverse.org/) for all R.
+Restyle with [`styler`](https://styler.r-lib.org/) (`styler::style_file()` /
+`styler::style_dir()`) before committing. Do not invent project-specific
+formatting rules that conflict with that guide.
+
 ### Tidyverse
 - Use tidyverse idioms: `dplyr`, `tidyr`, `purrr`, `ggplot2`, `readr`, `tibble`.
 - Use the native pipe `|>` (not `%>%`).
@@ -14,7 +19,10 @@ applyTo: "**/*.R"
   on the result of the previous one); prefer `purrr::map*` variants otherwise.
 
 ### Formatting
-- 2-space indentation. Max line width 80 characters.
+- Match tidyverse / styler defaults: 2-space indentation, snake_case names,
+  spaces around `<-` / `=`, and line breaks as styler produces.
+- Prefer a soft line width near 80 characters when editing by hand; accept
+  styler output when it wraps differently for clarity.
 - One expression per line; do not chain unrelated operations onto one line.
 
 ### Script style

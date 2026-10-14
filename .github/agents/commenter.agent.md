@@ -9,6 +9,9 @@ biologist who is proficient in R but has not seen this specific codebase before.
 
 ## Standards to enforce
 
+Preserve [tidyverse](https://style.tidyverse.org/) / `styler` formatting when
+editing; do not restyle for personal preference.
+
 ### Section headers
 - Each logical block of a script should have a short `# ──── Section title ────`
   header that names what is happening and why (not just what).

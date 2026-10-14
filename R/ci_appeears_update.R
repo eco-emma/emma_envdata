@@ -25,15 +25,33 @@ product_branch_pattern <- paste0(
 # Filenames must stay aligned with release_tags in _targets.R.
 .product_release_tag <- function(path) {
   bn <- basename(path)
-  if (grepl("^vi_modis_terra_.*\\.tif$", bn)) return("vi_modis_terra_raster")
-  if (grepl("^vi_modis_aqua_.*\\.tif$", bn)) return("vi_modis_aqua_raster")
-  if (grepl("^vi_modis_.*\\.parquet$", bn)) return("vi_modis_parquet")
-  if (grepl("^vi_viirs_.*\\.tif$", bn)) return("vi_viirs_raster")
-  if (grepl("^vi_viirs_.*\\.parquet$", bn)) return("vi_viirs_parquet")
-  if (grepl("^burn_modis_.*\\.tif$", bn)) return("burn_modis_raster")
-  if (grepl("^burn_modis_.*\\.parquet$", bn)) return("burn_modis_parquet")
-  if (grepl("^burn_viirs_.*\\.tif$", bn)) return("burn_viirs_raster")
-  if (grepl("^burn_viirs_.*\\.parquet$", bn)) return("burn_viirs_parquet")
+  if (grepl("^vi_modis_terra_.*\\.tif$", bn)) {
+    return("vi_modis_terra_raster")
+  }
+  if (grepl("^vi_modis_aqua_.*\\.tif$", bn)) {
+    return("vi_modis_aqua_raster")
+  }
+  if (grepl("^vi_modis_.*\\.parquet$", bn)) {
+    return("vi_modis_parquet")
+  }
+  if (grepl("^vi_viirs_.*\\.tif$", bn)) {
+    return("vi_viirs_raster")
+  }
+  if (grepl("^vi_viirs_.*\\.parquet$", bn)) {
+    return("vi_viirs_parquet")
+  }
+  if (grepl("^burn_modis_.*\\.tif$", bn)) {
+    return("burn_modis_raster")
+  }
+  if (grepl("^burn_modis_.*\\.parquet$", bn)) {
+    return("burn_modis_parquet")
+  }
+  if (grepl("^burn_viirs_.*\\.tif$", bn)) {
+    return("burn_viirs_raster")
+  }
+  if (grepl("^burn_viirs_.*\\.parquet$", bn)) {
+    return("burn_viirs_parquet")
+  }
   NA_character_
 }
 
@@ -45,7 +63,9 @@ product_branch_pattern <- paste0(
 # Direct target dependencies of `names`. Edges point from the dependency
 # (and a self-loop) to the target. Sibling months are not included.
 .upstream_objects <- function(names) {
-  if (!length(names)) return(character(0))
+  if (!length(names)) {
+    return(character(0))
+  }
   net <- targets::tar_network(
     targets_only = TRUE,
     names = names,
@@ -53,7 +73,9 @@ product_branch_pattern <- paste0(
     callr_function = NULL
   )
   edges <- net$edges
-  if (!nrow(edges)) return(character(0))
+  if (!nrow(edges)) {
+    return(character(0))
+  }
   upstream <- edges$from[edges$to %in% names & edges$from != edges$to]
   unique(upstream)
 }
@@ -104,7 +126,9 @@ product_branch_pattern <- paste0(
       )
     }
   )
-  if (is.data.frame(value)) return(nrow(value) == 0L)
+  if (is.data.frame(value)) {
+    return(nrow(value) == 0L)
+  }
   length(value) == 0L
 }
 
@@ -128,7 +152,9 @@ product_branch_pattern <- paste0(
 # pending table gained new months after a code-driven invalidate.
 .drop_already_built_branches <- function(todo) {
   branch_todo <- todo[grepl(product_branch_pattern, todo)]
-  if (!length(branch_todo)) return(todo)
+  if (!length(branch_todo)) {
+    return(todo)
+  }
 
   built <- character(0)
   meta <- tryCatch(
@@ -186,7 +212,8 @@ product_branch_pattern <- paste0(
       ),
       warning = function(w) {
         if (grepl("failed to upload|still failed", conditionMessage(w),
-                  ignore.case = TRUE)) {
+          ignore.case = TRUE
+        )) {
           failed <<- TRUE
         }
       }
@@ -230,14 +257,18 @@ ci_appeears_update <- function() {
     message("[ci_appeears] No outdated AppEEARS targets")
     return(invisible(NULL))
   }
-  message("[ci_appeears] Outdated before pending check: ",
-          paste(utils::head(outdated, 20), collapse = ", "),
-          if (length(outdated) > 20) paste0(" ... (", length(outdated), ")") else "")
+  message(
+    "[ci_appeears] Outdated before pending check: ",
+    paste(utils::head(outdated, 20), collapse = ", "),
+    if (length(outdated) > 20) paste0(" ... (", length(outdated), ")") else ""
+  )
 
   pending <- outdated[grepl("_pending$", outdated)]
   if (length(pending)) {
-    message("[ci_appeears] Checking product releases via: ",
-            paste(pending, collapse = ", "))
+    message(
+      "[ci_appeears] Checking product releases via: ",
+      paste(pending, collapse = ", ")
+    )
     targets::tar_make(names = pending, callr_function = NULL)
   }
 

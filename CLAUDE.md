@@ -1,5 +1,11 @@
 # Claude Code — Project Instructions
 
+## R style (required)
+
+Follow the [tidyverse style guide](https://style.tidyverse.org/) for all R.
+Restyle with [`styler`](https://styler.r-lib.org/) before committing. See
+`AGENTS.md` and `.github/instructions/r-style.instructions.md`.
+
 ## Agent personas
 
 All agent personas live in **`.github/agents/*.agent.md`** as the single source

@@ -5,70 +5,75 @@
 # Skips files that already exist.  Errors are non-fatal: a message is printed and
 # execution continues so that a missing release does not abort unrelated targets.
 restore_static_data <- function(repo, out_dir = "data/target_outputs", skip_patterns = NULL, verbose = TRUE) {
-  tryCatch({
-    # Use .gh_token() to bypass gh package format validation for ghs_ tokens.
-    token      <- if (exists(".gh_token", mode = "function")) .gh_token() else Sys.getenv("GITHUB_TOKEN", unset = "")
-    owner_repo <- strsplit(repo, "/")[[1]]
-    rel <- gh::gh(
-      "GET /repos/{owner}/{repo}/releases/tags/{tag}",
-      owner  = owner_repo[1],
-      repo   = owner_repo[2],
-      tag    = "static_data",
-      .token = token
-    )
-    for (asset in rel[["assets"]]) {
-      dest <- file.path(out_dir, asset[["name"]])
-      if (file.exists(dest)) next  # skip files already present
-      if (!is.null(skip_patterns) && grepl(skip_patterns, asset[["name"]])) {
-        if (verbose) message("Skipping static file (cue=never target): ", asset[["name"]])
-        next
-      }
-      r <- httr::GET(
-        asset[["url"]],
-        httr::add_headers(
-          Authorization = paste("token", token),
-          Accept        = "application/octet-stream"
-        ),
-        httr::write_disk(dest, overwrite = TRUE)
+  tryCatch(
+    {
+      # Use .gh_token() to bypass gh package format validation for ghs_ tokens.
+      token <- if (exists(".gh_token", mode = "function")) .gh_token() else Sys.getenv("GITHUB_TOKEN", unset = "")
+      owner_repo <- strsplit(repo, "/")[[1]]
+      rel <- gh::gh(
+        "GET /repos/{owner}/{repo}/releases/tags/{tag}",
+        owner  = owner_repo[1],
+        repo   = owner_repo[2],
+        tag    = "static_data",
+        .token = token
       )
-      if (httr::http_error(r)) {
-        message("Failed to download static file: ", asset[["name"]])
-      } else if (verbose) {
-        message("Downloaded static file: ", asset[["name"]],
-                " (", file.size(dest), " bytes)")
+      for (asset in rel[["assets"]]) {
+        dest <- file.path(out_dir, asset[["name"]])
+        if (file.exists(dest)) next # skip files already present
+        if (!is.null(skip_patterns) && grepl(skip_patterns, asset[["name"]])) {
+          if (verbose) message("Skipping static file (cue=never target): ", asset[["name"]])
+          next
+        }
+        r <- httr::GET(
+          asset[["url"]],
+          httr::add_headers(
+            Authorization = paste("token", token),
+            Accept        = "application/octet-stream"
+          ),
+          httr::write_disk(dest, overwrite = TRUE)
+        )
+        if (httr::http_error(r)) {
+          message("Failed to download static file: ", asset[["name"]])
+        } else if (verbose) {
+          message(
+            "Downloaded static file: ", asset[["name"]],
+            " (", file.size(dest), " bytes)"
+          )
+        }
       }
+    },
+    error = function(e) {
+      message("Could not restore static data from release: ", conditionMessage(e))
     }
-  }, error = function(e) {
-    message("Could not restore static data from release: ", conditionMessage(e))
-  })
+  )
 }
 
 # Load all packages listed in DESCRIPTION file (quietly, suppressing startup messages)
 load_description_packages <- function(description_file = "DESCRIPTION", quietly = TRUE, verbose = FALSE) {
   # Read DESCRIPTION file
   dcf <- read.dcf(description_file)
-  
+
   # Extract Imports and Depends fields
   imports <- if ("Imports" %in% colnames(dcf)) dcf[1, "Imports"] else ""
   depends <- if ("Depends" %in% colnames(dcf)) dcf[1, "Depends"] else ""
-  
+
   # Combine, split, and clean
   all_text <- paste(imports, depends, sep = ",")
   packages <- trimws(strsplit(all_text, ",")[[1]])
-  
+
   # Remove version specifications (e.g., "ggplot2 (>= 3.0)" -> "ggplot2")
   packages <- sub("\\s*\\(.*\\).*", "", packages)
-  
+
   # Remove empty strings and R itself
   packages <- packages[nzchar(packages) & packages != "R"]
-  
+
   # Load each package with suppressed startup messages
   invisible(sapply(packages, function(pkg) {
     suppressPackageStartupMessages(
       library(pkg, character.only = TRUE, quietly = quietly)
     )
   }))
-  
+
   if (verbose) message(paste("Loaded", length(packages), "packages from DESCRIPTION"))
   invisible(packages)
 }
@@ -78,12 +83,12 @@ load_description_packages <- function(description_file = "DESCRIPTION", quietly 
 # Returns a tibble with one row per composite; composite_date = period start,
 # composite_end = period end (start + 15 days).
 generate_composite_sequence <- function(start_date, end_date) {
-  anchor     <- as.Date("2000-02-18")
+  anchor <- as.Date("2000-02-18")
   start_date <- as.Date(start_date)
-  end_date   <- as.Date(end_date)
-  n_steps    <- floor(as.numeric(end_date - anchor) / 16)
-  all_dates  <- anchor + (0:n_steps * 16L)
-  dates      <- all_dates[all_dates >= start_date & all_dates <= end_date]
+  end_date <- as.Date(end_date)
+  n_steps <- floor(as.numeric(end_date - anchor) / 16)
+  all_dates <- anchor + (0:n_steps * 16L)
+  dates <- all_dates[all_dates >= start_date & all_dates <= end_date]
   tibble::tibble(
     composite_date = dates,
     composite_end  = dates + 15L
@@ -99,7 +104,9 @@ filter_pending_composites <- function(composites, gh_release_tag, prefixes,
                                         unset = "eco-emma/emma_envdata"
                                       ),
                                       verbose = TRUE) {
-  if (!nrow(composites)) return(composites)
+  if (!nrow(composites)) {
+    return(composites)
+  }
 
   yyyymmdd <- format(as.Date(composites$composite_date), "%Y%m%d")
   missing_release_assets <- purrr::map_lgl(yyyymmdd, function(date_key) {
@@ -130,14 +137,17 @@ filter_pending_months <- function(months, gh_release_tag, prefix,
                                     unset = "eco-emma/emma_envdata"
                                   ),
                                   verbose = TRUE) {
-  if (!nrow(months)) return(months)
+  if (!nrow(months)) {
+    return(months)
+  }
 
   yyyymm <- format(as.Date(months$month_start), "%Y%m")
   missing_release_assets <- !vapply(
     yyyymm,
     function(ym) {
       gh_release_has_asset(
-        repo, gh_release_tag, paste0(prefix, ym, ".tif"), verbose = FALSE
+        repo, gh_release_tag, paste0(prefix, ym, ".tif"),
+        verbose = FALSE
       )
     },
     logical(1)
@@ -183,10 +193,10 @@ filter_pending_months <- function(months, gh_release_tag, prefix,
 # month_end = last day of month.
 generate_monthly_sequence <- function(start_date, end_date) {
   start_date <- as.Date(start_date)
-  end_date   <- as.Date(end_date)
+  end_date <- as.Date(end_date)
   month_starts <- seq(
     from = as.Date(format(start_date, "%Y-%m-01")),
-    to   = as.Date(format(end_date,   "%Y-%m-01")),
+    to   = as.Date(format(end_date, "%Y-%m-01")),
     by   = "month"
   )
   month_ends <- as.Date(format(month_starts + 31L, "%Y-%m-01")) - 1L

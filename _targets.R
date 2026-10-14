@@ -2,17 +2,18 @@
 # EMMA Environmental Data Pipeline
 # ============================================================================
 # This pipeline assembles environmental datasets for the EMMA project using
-# targets for workflow orchestration. 
+# targets for workflow orchestration.
 
 message("Starting tar_make()")
 
 # check what system we are on
-  sys_info <- Sys.info(); message(paste("System info:",paste(names(sys_info), sys_info, sep="=", collapse = "; ")))
-  # if nodename includes "ccr.buffalo.edu", set working directory to /gscratch/scrubbed/...
-  if (grepl("ccr.buffalo.edu", sys_info[["nodename"]])) {
-    setwd("~/project/projects/emma/emma_envdata")
-    message(paste("Set working directory to:", getwd()))  
-  }
+sys_info <- Sys.info()
+message(paste("System info:", paste(names(sys_info), sys_info, sep = "=", collapse = "; ")))
+# if nodename includes "ccr.buffalo.edu", set working directory to /gscratch/scrubbed/...
+if (grepl("ccr.buffalo.edu", sys_info[["nodename"]])) {
+  setwd("~/project/projects/emma/emma_envdata")
+  message(paste("Set working directory to:", getwd()))
+}
 
 
 library(targets)
@@ -30,126 +31,125 @@ r_source_files <- r_source_files[
   )
 ]
 tar_source(r_source_files)
-description_packages <- load_description_packages(verbose=TRUE)  # Load all packages from DESCRIPTION and get list
+description_packages <- load_description_packages(verbose = TRUE) # Load all packages from DESCRIPTION and get list
 
 
-#If running this locally, make sure to set up github credentials using gitcreds::gitcreds_set()
+# If running this locally, make sure to set up github credentials using gitcreds::gitcreds_set()
 
-  options(tidyverse.quiet = TRUE)
+options(tidyverse.quiet = TRUE)
 
-  # Ensure output directories exist early (before terra options)
-  dir.create("data/temp/terra", recursive = TRUE, showWarnings = FALSE)
-  dir.create("data/target_outputs", recursive = TRUE, showWarnings = FALSE)
+# Ensure output directories exist early (before terra options)
+dir.create("data/temp/terra", recursive = TRUE, showWarnings = FALSE)
+dir.create("data/target_outputs", recursive = TRUE, showWarnings = FALSE)
 
-  # GitHub release repository configuration — targets-cache stores the pipeline state
-  gh_repo_config <- list(
-    repo = "eco-emma/emma_envdata",
-    tag = "targets-cache",
-    cache_dir = "_targets/user/cache" #this is local cache for speed
+# GitHub release repository configuration — targets-cache stores the pipeline state
+gh_repo_config <- list(
+  repo = "eco-emma/emma_envdata",
+  tag = "targets-cache",
+  cache_dir = "_targets/user/cache" # this is local cache for speed
+)
+
+# ── Single source of truth for GitHub release tag names ──────────────────
+# Update tag strings here only; every upload target and STAC generator reads
+# from this list so renaming one tag cannot silently break another.
+release_tags <- list(
+  static             = "static_data",
+  vi_modis_terra     = "vi_modis_terra_raster",
+  vi_modis_aqua      = "vi_modis_aqua_raster",
+  vi_viirs_raster    = "vi_viirs_raster",
+  vi_modis_parquet   = "vi_modis_parquet",
+  vi_viirs_parquet   = "vi_viirs_parquet",
+  burn_modis_raster  = "burn_modis_raster",
+  burn_viirs_raster  = "burn_viirs_raster",
+  burn_modis_parquet = "burn_modis_parquet",
+  burn_viirs_parquet = "burn_viirs_parquet",
+  fireage            = "fireage",
+  stac               = "stac",
+  stac_vi            = "stac-vi",
+  stac_burn          = "stac-burn",
+  stac_static        = "stac-static",
+  cache              = "targets-cache",
+  readme_assets      = "readme-assets"
+)
+
+# Store config as environment variables for upload function to use
+Sys.setenv(
+  TAR_GH_RELEASE_REPO = gh_repo_config$repo,
+  TAR_GH_RELEASE_TAG = gh_repo_config$tag,
+  #    TAR_GH_RELEASE_FORMAT = gh_repo_config$format,
+  TAR_GH_RELEASE_CACHE_DIR = gh_repo_config$cache_dir
+)
+
+# Download cached targets meta once per Actions job before tar_option_set()
+# so the restored store is visible. Re-running this on every
+# tar_outdated()/tar_make() parse overwrites freshly built pending meta with
+# the CCR snapshot (false-green in run 38016708889).
+if (Sys.getenv("GITHUB_ACTIONS") == "true" &&
+  !identical(Sys.getenv("TAR_GH_META_RESTORED"), "true")) {
+  source("R/tar_release_storage.R")
+  tar_download_github_release(
+    repo = gh_repo_config$repo,
+    tag = gh_repo_config$tag,
+    cache_dir = gh_repo_config$cache_dir,
+    meta_only = TRUE,
+    verbose = TRUE
   )
-
-  # ── Single source of truth for GitHub release tag names ──────────────────
-  # Update tag strings here only; every upload target and STAC generator reads
-  # from this list so renaming one tag cannot silently break another.
-  release_tags <- list(
-    static             = "static_data",
-    vi_modis_terra     = "vi_modis_terra_raster",
-    vi_modis_aqua      = "vi_modis_aqua_raster",
-    vi_viirs_raster    = "vi_viirs_raster",
-    vi_modis_parquet   = "vi_modis_parquet",
-    vi_viirs_parquet   = "vi_viirs_parquet",
-    burn_modis_raster  = "burn_modis_raster",
-    burn_viirs_raster  = "burn_viirs_raster",
-    burn_modis_parquet = "burn_modis_parquet",
-    burn_viirs_parquet = "burn_viirs_parquet",
-    fireage            = "fireage",
-    stac               = "stac",
-    stac_vi            = "stac-vi",
-    stac_burn          = "stac-burn",
-    stac_static        = "stac-static",
-    cache              = "targets-cache",
-    readme_assets      = "readme-assets"
-  )
-
-  # Store config as environment variables for upload function to use
-  Sys.setenv(
-    TAR_GH_RELEASE_REPO = gh_repo_config$repo,
-    TAR_GH_RELEASE_TAG = gh_repo_config$tag,
-#    TAR_GH_RELEASE_FORMAT = gh_repo_config$format,
-    TAR_GH_RELEASE_CACHE_DIR = gh_repo_config$cache_dir
-  )
-
-  # Download cached targets meta once per Actions job before tar_option_set()
-  # so the restored store is visible. Re-running this on every
-  # tar_outdated()/tar_make() parse overwrites freshly built pending meta with
-  # the CCR snapshot (false-green in run 38016708889).
-  if (Sys.getenv("GITHUB_ACTIONS") == "true" &&
-      !identical(Sys.getenv("TAR_GH_META_RESTORED"), "true")) {
-    source("R/tar_release_storage.R")
-    tar_download_github_release(
-      repo = gh_repo_config$repo,
-      tag = gh_repo_config$tag,
-      cache_dir = gh_repo_config$cache_dir,
-      meta_only = TRUE,
-      verbose = TRUE
+  meta_path <- "_targets/meta/meta"
+  if (!file.exists(meta_path) || file.size(meta_path) == 0) {
+    stop(
+      "Refusing to backfill history on GitHub Actions: ",
+      "targets-cache meta was not restored. Prime on CCR with ",
+      "tar_upload_github_release(), then re-enable the weekly workflow.",
+      call. = FALSE
     )
-    meta_path <- "_targets/meta/meta"
-    if (!file.exists(meta_path) || file.size(meta_path) == 0) {
-      stop(
-        "Refusing to backfill history on GitHub Actions: ",
-        "targets-cache meta was not restored. Prime on CCR with ",
-        "tar_upload_github_release(), then re-enable the weekly workflow.",
-        call. = FALSE
-      )
-    }
-    Sys.setenv(TAR_GH_META_RESTORED = "true")
   }
+  Sys.setenv(TAR_GH_META_RESTORED = "true")
+}
 
-  tar_option_set(
-    #controller = if (Sys.getenv("GITHUB_ACTIONS") != "true") crew::crew_controller_local(workers = 16) else NULL,
-    memory = "transient", 
-    garbage_collection = TRUE,  # run gc() after each target to free memory
-    packages = description_packages,  # Use all packages from DESCRIPTION file
-    repository = "local",  # Store targets locally; upload to release after tar_make() completes
-    cue = tar_cue(mode = "thorough"),  # Recompute if any inputs change
-    format = "rds"  # rds is universally portable across R versions and platforms
-  )
+tar_option_set(
+  # controller = if (Sys.getenv("GITHUB_ACTIONS") != "true") crew::crew_controller_local(workers = 16) else NULL,
+  memory = "transient",
+  garbage_collection = TRUE, # run gc() after each target to free memory
+  packages = description_packages, # Use all packages from DESCRIPTION file
+  repository = "local", # Store targets locally; upload to release after tar_make() completes
+  cue = tar_cue(mode = "thorough"), # Recompute if any inputs change
+  format = "rds" # rds is universally portable across R versions and platforms
+)
 
-  terraOptions(tempdir = "data/temp/terra", memfrac = 0.8)
+terraOptions(tempdir = "data/temp/terra", memfrac = 0.8)
 
-  # All SpatRaster targets use COG-backed GeoTIFF storage via geotargets
-  geotargets::geotargets_option_set(gdal_raster_driver = "COG", gdal_vector_driver = "GPKG")
+# All SpatRaster targets use COG-backed GeoTIFF storage via geotargets
+geotargets::geotargets_option_set(gdal_raster_driver = "COG", gdal_vector_driver = "GPKG")
 
-  # Set cleanup behavior based on execution environment
-  # In GitHub Actions, we want to clean up temp files to avoid filling up disk space.  Locally, we may want to keep them for debugging or inspection.
-  cleanup_mode <- Sys.getenv("GITHUB_ACTIONS") == "true"
-  if (interactive()) {
-    message("Cleanup mode: ", if (cleanup_mode) "ENABLED (GitHub Actions)" else "DISABLED (Local server)")
-  }
-  vegmap_raster_path <- "data/target_outputs/vegmap.tif"
+# Set cleanup behavior based on execution environment
+# In GitHub Actions, we want to clean up temp files to avoid filling up disk space.  Locally, we may want to keep them for debugging or inspection.
+cleanup_mode <- Sys.getenv("GITHUB_ACTIONS") == "true"
+if (interactive()) {
+  message("Cleanup mode: ", if (cleanup_mode) "ENABLED (GitHub Actions)" else "DISABLED (Local server)")
+}
+vegmap_raster_path <- "data/target_outputs/vegmap.tif"
 
 # Ensure things are clean
 #  unlink(file.path("data/temp/"), recursive = TRUE, force = TRUE)
 #  unlink(file.path("data/raw_data/", recursive = TRUE, force = TRUE))
 #  message(paste("Objects:",ls(),collapse = "\n"))
 
-  # Set MODIS/VIIRS date range as variables
+# Set MODIS/VIIRS date range as variables
 #  modis_start_date <- "2000-02-18"  # MODIS Terra first available data
 #  viirs_start_date <- "2012-01-01"  # VIIRS first available data
 #  burn_start_date  <- "2000-11-01"  # MCD64A1 first available data
 #  modis_end_date   <- as.character(Sys.Date())
 
-  modis_start_date <- "2000-01-01"  # MODIS Terra first available data
-  viirs_start_date <- "2012-01-01"  # VIIRS first available data
-  burn_start_date  <- "2000-01-01"  # MCD64A1 first available data
-  
-  # Lag ~14 days past month end so both 16-day MODIS composites are published
-  # on AppEEARS before the month enters the pipeline (avoids partial data).
-  modis_end_date   <- as.character(as.Date(format(Sys.Date() - 14, "%Y-%m-01")) - 1)
+modis_start_date <- "2000-01-01" # MODIS Terra first available data
+viirs_start_date <- "2012-01-01" # VIIRS first available data
+burn_start_date <- "2000-01-01" # MCD64A1 first available data
+
+# Lag ~14 days past month end so both 16-day MODIS composites are published
+# on AppEEARS before the month enters the pipeline (avoids partial data).
+modis_end_date <- as.character(as.Date(format(Sys.Date() - 14, "%Y-%m-01")) - 1)
 
 
-
-list(  
+list(
   tar_target(
     vegmap,
     get_vegmap(
@@ -159,9 +159,8 @@ list(
       local_dir = "data/manual_download/NVM2024",
       shapefile_name = "NVM2024Final_IEM5_12_07012025.shp"
     ),
-    cue = tar_cue(mode = "never")  # Manual download: only run locally, never on CI
+    cue = tar_cue(mode = "never") # Manual download: only run locally, never on CI
   ),
-
   tar_target(
     remnants,
     get_remnants(
@@ -169,13 +168,12 @@ list(
       tag       = "manual-data",
       local_dir = "data/manual_download/RLE_2021_Remnants"
     ),
-    cue = tar_cue(mode = "never")  # Manual download: only run locally, never on CI
+    cue = tar_cue(mode = "never") # Manual download: only run locally, never on CI
   ),
-
   tar_target(
     capenature_fires,
     sf::st_read("data/manual_download/All_fires_23_24_gw/All_fires_23_24_gw.shp"),
-    cue = tar_cue(mode = "never")  # Manual download: only run locally, never on CI
+    cue = tar_cue(mode = "never") # Manual download: only run locally, never on CI
   ),
 
   # ── Static: rasterize CapeNature polygons to burned-pixel parquet ────────────
@@ -192,35 +190,35 @@ list(
       verbose          = TRUE
     ),
     format = "file",
-    cue    = tar_cue(mode = "never")  # Static manual data: only rerun locally
+    cue = tar_cue(mode = "never") # Static manual data: only rerun locally
   ),
 
-# Get country boundary
-  tar_target( 
+  # Get country boundary
+  tar_target(
     country,
     get_country(),
-    cue = tar_cue(mode = "never")  # Manual download: only run locally, never on CI
+    cue = tar_cue(mode = "never") # Manual download: only run locally, never on CI
   ),
 
   # Create domain file based on country boundary and vegmap
   geotargets::tar_terra_vect(
     domain_boundary.gpkg,
     domain_define(vegmap = vegmap, country = country),
-    cue = tar_cue(mode = "never")  # Manual update: this affects all RS downloads to be careful if modified!
+    cue = tar_cue(mode = "never") # Manual update: this affects all RS downloads to be careful if modified!
   ),
 
-# Domain raster with pixel IDs, remnants, and distance to remnants. This defines the model grid that is used for everything!
+  # Domain raster with pixel IDs, remnants, and distance to remnants. This defines the model grid that is used for everything!
   geotargets::tar_terra_rast(
     domain.tif,
     domain_rasterize(
       domain_boundary = domain_boundary.gpkg,
       remnants = remnants
     ),
-    cue = tar_cue(mode = "never")  # Manual download: only run locally, never on CI
+    cue = tar_cue(mode = "never") # Manual download: only run locally, never on CI
     #   targets::tar_invalidate(domain.tif) #run this to force regeneration of domain grid (e.g. if remnant layer is updated) which will restart everything below
   ),
 
-  # Export domain raster to GeoParquet format for easy distribution 
+  # Export domain raster to GeoParquet format for easy distribution
   tar_target(
     domain_geoparquet,
     domain_to_geoparquet(
@@ -228,30 +226,31 @@ list(
       out_file = "data/target_outputs/domain.parquet",
       verbose = TRUE
     ),
-    cue = tar_cue(mode = "never"),  # Manual download: only run locally, never on CI,
+    cue = tar_cue(mode = "never"), # Manual download: only run locally, never on CI,
     format = "file"
   ),
 
-# Rasterize the vegetation map
+  # Rasterize the vegetation map
   geotargets::tar_terra_rast(
     vegmap.tif,
     process_vegmap(
       domain_raster = domain.tif,
       vegmap_shp    = vegmap
     ),
-    cue = tar_cue(mode = "never")  # Manual download: only run locally, never on CI
+    cue = tar_cue(mode = "never") # Manual download: only run locally, never on CI
   ),
 
-# Climate CHELSA bioclimatic variables (BIO1-BIO19)
-    tar_target( 
-      climate_chelsa,
-      get_climate_chelsa(
-        domain = domain_boundary.gpkg,
-        cleanup = cleanup_mode,
-        verbose = TRUE),
-    cue = tar_cue(mode = "never"),  # Manual download: only run locally, never on CI
-      format = "file"
+  # Climate CHELSA bioclimatic variables (BIO1-BIO19)
+  tar_target(
+    climate_chelsa,
+    get_climate_chelsa(
+      domain = domain_boundary.gpkg,
+      cleanup = cleanup_mode,
+      verbose = TRUE
     ),
+    cue = tar_cue(mode = "never"), # Manual download: only run locally, never on CI
+    format = "file"
+  ),
 
   # Cloud cover: Wilson MODCF mean annual and seasonality (EarthEnv, ~1km → 500m domain grid)
   geotargets::tar_terra_rast(
@@ -263,7 +262,7 @@ list(
       cleanup        = cleanup_mode,
       verbose        = TRUE
     ),
-    cue = tar_cue(mode = "never")  # Manual download: only run locally, never on CI
+    cue = tar_cue(mode = "never") # Manual download: only run locally, never on CI
   ),
 
   ##################### AppEEARS Static Data Processing #########################
@@ -290,7 +289,6 @@ list(
     ),
     error = "continue"
   ),
-
   geotargets::tar_terra_rast(
     elevation.tif,
     download_elevation_results(
@@ -321,7 +319,7 @@ list(
       cleanup        = cleanup_mode,
       verbose        = TRUE
     ),
-    cue = tar_cue(mode = "never")  # Static data: only run locally, never on CI
+    cue = tar_cue(mode = "never") # Static data: only run locally, never on CI
   ),
 
   # Topographic diversity metrics derived from the NASADEM elevation.tif
@@ -334,7 +332,7 @@ list(
       focal_radius   = 1L,
       verbose        = TRUE
     ),
-    cue = tar_cue(mode = "never")  # Derived from elevation.tif: only run locally, never on CI
+    cue = tar_cue(mode = "never") # Derived from elevation.tif: only run locally, never on CI
   ),
 
   # Combine all static layers into a single geoparquet: one row per 500m pixel,
@@ -343,19 +341,19 @@ list(
   tar_target(
     static_geoparquet,
     combine_static_layers_to_geoparquet(
-      domain_parquet   = domain_geoparquet,
-      domain_raster  = domain.tif,
-      elevation      = elevation.tif,
-      climate_files  = climate_chelsa,
-      clouds         = clouds.tif,
-      soil           = soils.tif,
-      topo           = geodiversity.tif,
-      vegmap         = vegmap.tif,
-      out_file         = "data/target_outputs/static_covariates.parquet",
-      verbose          = TRUE
+      domain_parquet = domain_geoparquet,
+      domain_raster = domain.tif,
+      elevation = elevation.tif,
+      climate_files = climate_chelsa,
+      clouds = clouds.tif,
+      soil = soils.tif,
+      topo = geodiversity.tif,
+      vegmap = vegmap.tif,
+      out_file = "data/target_outputs/static_covariates.parquet",
+      verbose = TRUE
     ),
     format = "file",
-    cue = tar_cue(mode = "never")  # Static data: only run locally, never on CI
+    cue = tar_cue(mode = "never") # Static data: only run locally, never on CI
   ),
 
   # ============================================================================
@@ -399,16 +397,16 @@ list(
     {
       # Within this branch, vi_modis_pending is auto-sliced to one row
       submit_modis_vi(
-        domain_vector  = domain_boundary.gpkg,
+        domain_vector = domain_boundary.gpkg,
         composite_date = vi_modis_pending$composite_date,
-        composite_end  = vi_modis_pending$composite_end,
-        out_dir               = "data/target_outputs/modis_vi/",
-        gh_release_tag_terra  = release_tags$vi_modis_terra,
-        gh_release_tag_aqua   = release_tags$vi_modis_aqua
+        composite_end = vi_modis_pending$composite_end,
+        out_dir = "data/target_outputs/modis_vi/",
+        gh_release_tag_terra = release_tags$vi_modis_terra,
+        gh_release_tag_aqua = release_tags$vi_modis_aqua
       )
     },
     pattern = map(vi_modis_pending),
-    error   = "continue"
+    error = "continue"
   ),
 
   # Download GeoTIFF files from AppEEARS (I/O only).
@@ -419,19 +417,19 @@ list(
     vi_modis_geotiff,
     {
       download_modis_vi_geotiff(
-        task_id        = vi_modis_task_ids,
+        task_id = vi_modis_task_ids,
         composite_date = vi_modis_pending$composite_date,
-        composite_end  = vi_modis_pending$composite_end,
-        domain_vector  = domain_boundary.gpkg,
-        temp_directory        = "data/temp/appeears/modis_vi/",
-        gh_release_tag_terra  = release_tags$vi_modis_terra,
-        gh_release_tag_aqua   = release_tags$vi_modis_aqua,
-        cleanup        = cleanup_mode,
-        verbose        = TRUE
+        composite_end = vi_modis_pending$composite_end,
+        domain_vector = domain_boundary.gpkg,
+        temp_directory = "data/temp/appeears/modis_vi/",
+        gh_release_tag_terra = release_tags$vi_modis_terra,
+        gh_release_tag_aqua = release_tags$vi_modis_aqua,
+        cleanup = cleanup_mode,
+        verbose = TRUE
       )
     },
     pattern = map(vi_modis_task_ids, vi_modis_pending),
-    error   = "continue"
+    error = "continue"
   ),
 
   # Project raw AppEEARS downloads to domain-aligned COGs (one per sensor per composite).
@@ -440,13 +438,13 @@ list(
     vi_modis_grid,
     vi_modis_geotiff_to_grid(
       geotiff_directory = vi_modis_geotiff,
-      domain_raster     = domain.tif,
-      composite_date    = vi_modis_pending$composite_date,
-      out_dir               = "data/target_outputs/modis_vi/",
-      gh_release_tag_terra  = release_tags$vi_modis_terra,
-      gh_release_tag_aqua   = release_tags$vi_modis_aqua,
-      cleanup           = cleanup_mode,
-      verbose           = TRUE
+      domain_raster = domain.tif,
+      composite_date = vi_modis_pending$composite_date,
+      out_dir = "data/target_outputs/modis_vi/",
+      gh_release_tag_terra = release_tags$vi_modis_terra,
+      gh_release_tag_aqua = release_tags$vi_modis_aqua,
+      cleanup = cleanup_mode,
+      verbose = TRUE
     ),
     pattern = map(vi_modis_geotiff, vi_modis_pending)
     # format = "rds" (default): stored object is the path string, not the file
@@ -487,7 +485,6 @@ list(
       )
     }
   ),
-
   tar_target(
     vi_viirs_task_ids,
     submit_viirs_vi(
@@ -498,9 +495,8 @@ list(
       gh_release_tag = release_tags$vi_viirs_raster
     ),
     pattern = map(vi_viirs_pending),
-    error   = "continue"  # rate-limit errors retry on next tar_make()
+    error = "continue" # rate-limit errors retry on next tar_make()
   ),
-
   tar_target(
     vi_viirs_geotiff,
     download_viirs_vi_geotiff(
@@ -514,9 +510,8 @@ list(
       verbose        = TRUE
     ),
     pattern = map(vi_viirs_task_ids, vi_viirs_pending),
-    error   = "continue"
+    error = "continue"
   ),
-
   tar_target(
     vi_viirs_grid,
     vi_viirs_geotiff_to_grid(
@@ -531,7 +526,6 @@ list(
     pattern = map(vi_viirs_geotiff, vi_viirs_pending)
     # format = "rds" (default): same rationale as vi_modis_grid.
   ),
-
   tar_target(
     vi_viirs_parquet,
     vi_viirs_geotiff_to_parquet(
@@ -565,7 +559,7 @@ list(
       gh_release_tag_fireage          = release_tags$fireage,
       verbose                         = TRUE
     ),
-    format     = "file",
+    format = "file",
     deployment = "main"
   ),
 
@@ -600,7 +594,7 @@ list(
       verbose        = TRUE
     ),
     pattern = map(burn_modis_pending),
-    error   = "continue"  # rate-limit errors retry on next tar_make()
+    error = "continue" # rate-limit errors retry on next tar_make()
   ),
 
   # Download GeoTIFF results from AppEEARS (I/O only)
@@ -617,7 +611,7 @@ list(
       verbose        = TRUE
     ),
     pattern = map(burn_modis_task_ids, burn_modis_pending),
-    error   = "continue"
+    error = "continue"
   ),
 
   # Project raw downloads to domain-aligned grid COG (burn_modis_YYYYMM.tif)
@@ -668,7 +662,6 @@ list(
       )
     }
   ),
-
   tar_target(
     burn_viirs_task_ids,
     submit_burn_date_viirs_task(
@@ -680,9 +673,8 @@ list(
       verbose        = TRUE
     ),
     pattern = map(burn_viirs_pending),
-    error   = "continue"  # rate-limit errors retry on next tar_make()
+    error = "continue" # rate-limit errors retry on next tar_make()
   ),
-
   tar_target(
     burn_viirs_geotiff,
     download_burn_date_viirs_geotiff(
@@ -696,7 +688,7 @@ list(
       verbose        = TRUE
     ),
     pattern = map(burn_viirs_task_ids, burn_viirs_pending),
-    error   = "continue"
+    error = "continue"
   ),
 
   # Project raw downloads to domain-aligned grid COG (burn_viirs_YYYYMM.tif)
@@ -713,7 +705,6 @@ list(
     pattern = map(burn_viirs_geotiff, burn_viirs_pending)
     # format = "rds" (default): same rationale as vi_modis_grid.
   ),
-
   tar_target(
     burn_viirs_parquet,
     burn_date_viirs_geotiff_to_parquet(
@@ -740,7 +731,7 @@ list(
       # Explicit deps ensure all monthly parquets complete before merging
       force(burn_modis_parquet)
       force(burn_viirs_parquet)
-      force(capenature_burn_events)          # CapeNature ground-truth events
+      force(capenature_burn_events) # CapeNature ground-truth events
       merge_burn_dates(
         burn_dir           = "data/target_outputs/burndates/",
         capenature_parquet = capenature_burn_events,
@@ -769,7 +760,7 @@ list(
   tar_target(
     fireage_parquets,
     {
-      force(vi_modis_parquet)   # wait for all VI parquets
+      force(vi_modis_parquet) # wait for all VI parquets
       force(vi_viirs_parquet)
       compute_fireage_for_vi(
         modis_vi_dir = "data/target_outputs/modis_vi",
@@ -812,7 +803,7 @@ list(
       gh_root_stac_release_tag     = release_tags$stac,
       verbose                      = TRUE
     ),
-    format     = "file",
+    format = "file",
     deployment = "main"
   ),
 
@@ -836,7 +827,7 @@ list(
       static_covariates_parquet = static_geoparquet,
       verbose                   = TRUE
     ),
-    format     = "file",
+    format = "file",
     deployment = "main"
   ),
 
@@ -860,11 +851,11 @@ list(
         terra::sources(soils.tif)[[1]],
         terra::sources(geodiversity.tif)[[1]]
       ),
-      repo         = gh_repo_config$repo,
-      release_tag  = release_tags$static,
+      repo = gh_repo_config$repo,
+      release_tag = release_tags$static,
       release_name = "Static Environmental Data",
-      overwrite    = TRUE,
-      verbose      = TRUE
+      overwrite = TRUE,
+      verbose = TRUE
     ),
     deployment = "main"
   ),
@@ -914,27 +905,26 @@ list(
   tar_target(
     upload_vi_modis_terra_grid,
     upload_to_github_release(
-      files        = vi_modis_grid[
+      files = vi_modis_grid[
         grepl("vi_modis_terra_.*\\.tif$", vi_modis_grid)
       ],
-      repo         = gh_repo_config$repo,
-      release_tag  = release_tags$vi_modis_terra,
+      repo = gh_repo_config$repo,
+      release_tag = release_tags$vi_modis_terra,
       release_name = "Dynamic MODIS Terra VI Rasters (16-day composites)",
-      verbose      = TRUE
+      verbose = TRUE
     ),
     deployment = "main"
   ),
-
   tar_target(
     upload_vi_modis_aqua_grid,
     upload_to_github_release(
-      files        = vi_modis_grid[
+      files = vi_modis_grid[
         grepl("vi_modis_aqua_.*\\.tif$", vi_modis_grid)
       ],
-      repo         = gh_repo_config$repo,
-      release_tag  = release_tags$vi_modis_aqua,
+      repo = gh_repo_config$repo,
+      release_tag = release_tags$vi_modis_aqua,
       release_name = "Dynamic MODIS Aqua VI Rasters (16-day composites)",
-      verbose      = TRUE
+      verbose = TRUE
     ),
     deployment = "main"
   ),
@@ -988,15 +978,15 @@ list(
   tar_target(
     upload_fireage,
     upload_to_github_release(
-      files        = c(
+      files = c(
         terra::sources(fireage_current.tif)[[1]],
         fireage_parquets[!grepl("\\.skip$", fireage_parquets)]
       ),
-      repo         = gh_repo_config$repo,
-      release_tag  = release_tags$fireage,
+      repo = gh_repo_config$repo,
+      release_tag = release_tags$fireage,
       release_name = "Fire Age (snapshot raster + per-VI-date parquets)",
-      overwrite    = TRUE,
-      verbose      = TRUE
+      overwrite = TRUE,
+      verbose = TRUE
     ),
     deployment = "main"
   ),
@@ -1009,15 +999,15 @@ list(
   tar_target(
     emma_stac_catalog,
     {
-      force(vi_stac)      # wait for vi_collection.json to be written
-      force(burn_stac)    # wait for burn_collection.json to be written
-      force(static_stac)  # wait for static_collection.json to be written
+      force(vi_stac) # wait for vi_collection.json to be written
+      force(burn_stac) # wait for burn_collection.json to be written
+      force(static_stac) # wait for static_collection.json to be written
       generate_emma_stac_catalog(
-        stac_base_dir       = "data/stac",
+        stac_base_dir = "data/stac",
         dataset_collections = list(
-          vi     = "data/stac/vi",  # key "vi" → vi_collection.json
-          burn   = "data/stac/burn",      # key "burn" → burn_collection.json
-          static = "data/stac/static"     # key "static" → static_collection.json
+          vi     = "data/stac/vi", # key "vi" → vi_collection.json
+          burn   = "data/stac/burn", # key "burn" → burn_collection.json
+          static = "data/stac/static" # key "static" → static_collection.json
           # fire_history removed: recentburn item lives inside the burn collection
         ),
         dataset_release_tags = c(
@@ -1030,7 +1020,7 @@ list(
         verbose = TRUE
       )
     },
-    format     = "file",
+    format = "file",
     deployment = "main"
   ),
 
@@ -1073,7 +1063,6 @@ list(
     },
     deployment = "main"
   ),
-
   tar_target(
     upload_stac_burn,
     upload_to_github_release(
@@ -1086,7 +1075,6 @@ list(
     ),
     deployment = "main"
   ),
-
   tar_target(
     upload_stac_static,
     upload_to_github_release(
@@ -1099,7 +1087,6 @@ list(
     ),
     deployment = "main"
   ),
-
   tar_target(
     upload_stac_catalog,
     {
@@ -1128,7 +1115,7 @@ list(
       report_file  = "data/stac/validation_report.json",
       verbose      = TRUE
     ),
-    format     = "file",
+    format = "file",
     deployment = "main"
   ),
 
@@ -1153,7 +1140,7 @@ list(
   tar_target(
     upload_readme_assets,
     {
-      force(readme)  # ensure readme renders (and generates PNGs) before uploading
+      force(readme) # ensure readme renders (and generates PNGs) before uploading
       png_files <- list.files(
         "data/target_outputs/readme_img",
         pattern = "\\.png$",
@@ -1176,31 +1163,31 @@ list(
     deployment = "main"
   ),
 
-# ============================================================================
-# POST-PRIME: Upload completed targets cache to GitHub release
-# ============================================================================
-# Run this block manually after completing a full `tar_make()` on a local server
-# to push the cache to the `targets-cache` GitHub release. Subsequent GitHub
-# Actions runs will then restore from this release instead of recomputing from scratch.
-#
-# When to run:
-#   1. After first-time setup (full historical download)
-#   2. After changing the domain grid (tar_invalidate(domain.tif) was called)
-#   3. After adding a new multi-year dataset
-#
-# Usage: select this block and run it, or source() with chdir = TRUE.
-# Do NOT include this in a tar_make() call — it lives outside the list(...) above.
+  # ============================================================================
+  # POST-PRIME: Upload completed targets cache to GitHub release
+  # ============================================================================
+  # Run this block manually after completing a full `tar_make()` on a local server
+  # to push the cache to the `targets-cache` GitHub release. Subsequent GitHub
+  # Actions runs will then restore from this release instead of recomputing from scratch.
+  #
+  # When to run:
+  #   1. After first-time setup (full historical download)
+  #   2. After changing the domain grid (tar_invalidate(domain.tif) was called)
+  #   3. After adding a new multi-year dataset
+  #
+  # Usage: select this block and run it, or source() with chdir = TRUE.
+  # Do NOT include this in a tar_make() call — it lives outside the list(...) above.
 
-if (FALSE) {
-  source("R/tar_release_storage.R")
-  tar_upload_github_release(
-    repo      = gh_repo_config$repo,
-    tag       = "targets-cache",
-    cache_dir = "_targets/user/cache",
-    verbose   = TRUE
-  )
-}
+  if (FALSE) {
+    source("R/tar_release_storage.R")
+    tar_upload_github_release(
+      repo      = gh_repo_config$repo,
+      tag       = "targets-cache",
+      cache_dir = "_targets/user/cache",
+      verbose   = TRUE
+    )
+  }
 
-# NOTE: _targets.R must return the pipeline list as its final expression.
-# The if(FALSE) block above must stay BEFORE this closing ).
+  # NOTE: _targets.R must return the pipeline list as its final expression.
+  # The if(FALSE) block above must stay BEFORE this closing ).
 )

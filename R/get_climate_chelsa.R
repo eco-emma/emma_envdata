@@ -12,13 +12,12 @@
 #' @import ncdf4
 
 get_climate_chelsa <- function(
-    domain,
-    temp_directory = "data/temp/chelsa/",
-    out_dir = "data/target_outputs/",
-    cleanup = TRUE,
-    verbose = TRUE
+  domain,
+  temp_directory = "data/temp/chelsa/",
+  out_dir = "data/target_outputs/",
+  cleanup = TRUE,
+  verbose = TRUE
 ) {
-
   # Ensure temp directory exists, clean only if cleanup mode enabled
   if (cleanup && dir.exists(temp_directory)) {
     unlink(x = file.path(temp_directory), recursive = TRUE, force = TRUE)
@@ -27,7 +26,7 @@ get_climate_chelsa <- function(
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
   # Adjust download timeout
-  if (getOption('timeout') < 1000) {
+  if (getOption("timeout") < 1000) {
     options(timeout = 1000)
   }
 
@@ -59,7 +58,7 @@ get_climate_chelsa <- function(
     "bio18", "Precipitation of Warmest Quarter", "mm",
     "bio19", "Precipitation of Coldest Quarter", "mm"
   )
-  
+
   # Record download date
   download_date <- Sys.Date()
   output_files <- character()
@@ -70,22 +69,33 @@ get_climate_chelsa <- function(
     if (verbose) message("Processing ", i, " (", idx, "/", nrow(bio_metadata), ")")
 
     # Construct filename
-    tif_filename <- file.path(temp_directory, paste("CHELSA_bio", sprintf("%02d", idx), 
-                                                      "_1981-2010_V.2.1.tif", sep = ""))
-    
+    tif_filename <- file.path(temp_directory, paste("CHELSA_bio", sprintf("%02d", idx),
+      "_1981-2010_V.2.1.tif",
+      sep = ""
+    ))
+
     # Skip download if file already exists AND is readable (when cleanup = FALSE, running locally)
     cached_valid <- !cleanup && file.exists(tif_filename) &&
-      tryCatch({ terra::rast(tif_filename); TRUE }, error = function(e) FALSE)
+      tryCatch(
+        {
+          terra::rast(tif_filename)
+          TRUE
+        },
+        error = function(e) FALSE
+      )
     if (cached_valid) {
       if (verbose) message("  File already cached, skipping download: ", basename(tif_filename))
     } else {
-      if (!cleanup && file.exists(tif_filename))
+      if (!cleanup && file.exists(tif_filename)) {
         if (verbose) message("  Cached file invalid, re-downloading: ", basename(tif_filename))
+      }
       # Download the file
       if (verbose) message("  Downloading...")
       robust_download_file(
-        url = paste("https://os.unil.cloud.switch.ch/chelsa02/chelsa/global/bioclim/", i, 
-                    "/1981-2010/CHELSA_bio", sprintf("%02d", idx), "_1981-2010_V.2.1.tif", sep = ""),
+        url = paste("https://os.unil.cloud.switch.ch/chelsa02/chelsa/global/bioclim/", i,
+          "/1981-2010/CHELSA_bio", sprintf("%02d", idx), "_1981-2010_V.2.1.tif",
+          sep = ""
+        ),
         destfile = tif_filename,
         max_attempts = 10,
         sleep_time = 10
@@ -94,7 +104,7 @@ get_climate_chelsa <- function(
 
     # Load, crop, and mask
     rast_i <- terra::rast(tif_filename)
-    domain_tf2=st_transform(domain_tf, st_crs(rast_i))
+    domain_tf2 <- st_transform(domain_tf, st_crs(rast_i))
     rast_i <- terra::crop(x = rast_i, y = ext(domain_tf2))
     rast_i <- terra::mask(rast_i, mask = terra::vect(domain_tf2))
 
@@ -115,17 +125,21 @@ get_climate_chelsa <- function(
     local({
       tmp_tif <- tempfile(tmpdir = dirname(cog_filename), fileext = ".tif")
       on.exit(unlink(tmp_tif), add = TRUE)
-      terra::writeRaster(rast_i, filename = tmp_tif, filetype = "COG",
-                         gdal = c("COMPRESS=DEFLATE", "PREDICTOR=2", "ZLEVEL=9",
-                                  "SPARSE_OK=YES"),
-                         overwrite = TRUE)
+      terra::writeRaster(rast_i,
+        filename = tmp_tif, filetype = "COG",
+        gdal = c(
+          "COMPRESS=DEFLATE", "PREDICTOR=2", "ZLEVEL=9",
+          "SPARSE_OK=YES"
+        ),
+        overwrite = TRUE
+      )
       unlink(cog_filename)
       if (!file.rename(tmp_tif, cog_filename)) {
         stop("Could not rename ", tmp_tif, " -> ", cog_filename)
       }
     })
     output_files <- c(output_files, cog_filename)
-    
+
     rm(rast_i)
   }
 
@@ -135,9 +149,7 @@ get_climate_chelsa <- function(
   }
 
   if (verbose) message("CHELSA climate files processed to: ", out_dir)
-  
+
   # Return output file paths for targets to track
   output_files
-
 }
-

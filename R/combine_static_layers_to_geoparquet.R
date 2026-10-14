@@ -20,7 +20,7 @@
 #' @return Character path to the written geoparquet file.
 
 combine_static_layers_to_geoparquet <- function(
-  domain_parquet   = "data/target_outputs/domain.parquet",
+  domain_parquet = "data/target_outputs/domain.parquet",
   domain_raster,
   elevation,
   climate_files,
@@ -28,10 +28,9 @@ combine_static_layers_to_geoparquet <- function(
   soil,
   topo,
   vegmap,
-  out_file         = "data/target_outputs/static_covariates.parquet",
-  verbose          = TRUE
+  out_file = "data/target_outputs/static_covariates.parquet",
+  verbose = TRUE
 ) {
-
   # Load domain geoparquet: one row per 500m pixel; pid + point geometry
   # (Albers Equal Area projection, South Africa)
   if (verbose) message("Loading domain spatial reference: ", domain_parquet)
@@ -61,10 +60,12 @@ combine_static_layers_to_geoparquet <- function(
 
   # ── Climate: CHELSA BIO1–BIO19 (1981–2010 reference period) ───────────────
   # One NC file per bioclimatic variable; stacked here for a single extract pass
-  if (verbose) message(
-    "Extracting CHELSA climate (", length(climate_files), " variables) ..."
-  )
-  climate_vals <- terra::rast(climate_files) |> extract_vals() #need rast because of multiple files
+  if (verbose) {
+    message(
+      "Extracting CHELSA climate (", length(climate_files), " variables) ..."
+    )
+  }
+  climate_vals <- terra::rast(climate_files) |> extract_vals() # need rast because of multiple files
 
   # ── Cloud cover: Wilson MODCF (mean annual cloudiness + seasonality) ───────
   if (verbose) message("Extracting cloud cover ...")
@@ -87,9 +88,11 @@ combine_static_layers_to_geoparquet <- function(
   # ── Assemble all covariates and write geoparquet ───────────────────────────
   n_cov <- ncol(domain_vals) + ncol(elev_vals) + ncol(climate_vals) +
     ncol(cloud_vals) + ncol(soil_vals) + ncol(topo_vals) + ncol(veg_vals)
-  if (verbose) message(
-    "Assembling ", nrow(domain_sf), " pixels × ", n_cov, " covariates ..."
-  )
+  if (verbose) {
+    message(
+      "Assembling ", nrow(domain_sf), " pixels × ", n_cov, " covariates ..."
+    )
+  }
 
   static_sf <- domain_sf |>
     dplyr::bind_cols(

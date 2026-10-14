@@ -45,11 +45,11 @@ SOILGRIDS_WCS_BASE <- "https://maps.isric.org/mapserv?map=/map/{property}.map"
 #' @return A 5-band SpatRaster (EPSG:9221, 500m) with bands: soc, clay, sand, phh2o, bdod.
 #' @export
 get_soilgrid <- function(
-    domain_raster,
-    temp_directory = "data/temp/appeears/soilgrid/",
-    cleanup        = Sys.getenv("GITHUB_ACTIONS") == "true",
-    verbose        = TRUE) {
-
+  domain_raster,
+  temp_directory = "data/temp/appeears/soilgrid/",
+  cleanup = Sys.getenv("GITHUB_ACTIONS") == "true",
+  verbose = TRUE
+) {
   # Return cached file if already processed (avoids re-downloading on local runs)
   # Note: caching is now handled by targets (cue = "never"); this guard is kept
   # only for interactive use outside the pipeline.
@@ -64,8 +64,8 @@ get_soilgrid <- function(
   domain_template <- if (is.character(domain_raster)) terra::rast(domain_raster) else domain_raster
 
   # Compute WGS84 bounding box for the API query (SoilGrids requires WGS84 coords)
-  domain_wgs84    <- terra::project(domain_template[["pid"]], "EPSG:4326")
-  bbox            <- terra::ext(domain_wgs84)
+  domain_wgs84 <- terra::project(domain_template[["pid"]], "EPSG:4326")
+  bbox <- terra::ext(domain_wgs84)
 
   # ── SoilGrids property × depth layer definitions ────────────────────────
   # depth_range: SoilGrids uses "0-5cm", "5-15cm", "15-30cm" depth intervals.
@@ -73,11 +73,11 @@ get_soilgrid <- function(
   # quantile: "mean" is the expected value of the posterior distribution.
   soil_properties <- tibble::tribble(
     ~property, ~long_name,               ~units,    ~scale_factor,
-    "soc",     "Soil_Organic_Carbon",    "g_kg",    10,   # stored as dg/kg in SoilGrids → ÷10
+    "soc",     "Soil_Organic_Carbon",    "g_kg",    10, # stored as dg/kg in SoilGrids → ÷10
     "clay",    "Clay_Content",           "g_kg",    10,
     "sand",    "Sand_Content",           "g_kg",    10,
     "phh2o",   "pH_in_Water",            "pH",      10,
-    "bdod",    "Bulk_Density",           "kg_dm3",  100   # stored as cg/cm3 → ÷100
+    "bdod",    "Bulk_Density",           "kg_dm3",  100 # stored as cg/cm3 → ÷100
   )
 
   depth_intervals <- c("0-5cm", "5-15cm", "15-30cm")
@@ -112,7 +112,7 @@ get_soilgrid <- function(
       if (verbose) message("  Downloading: ", property, " ", depth)
       req <- httr2::request(wcs_url) |>
         httr2::req_timeout(300) |>
-        httr2::req_retry(max_tries = 3, backoff = ~ 30)
+        httr2::req_retry(max_tries = 3, backoff = ~30)
 
       resp <- httr2::req_perform(req)
       httr2::resp_check_status(resp)
@@ -150,19 +150,19 @@ get_soilgrid <- function(
   if (verbose) message("Averaging soil layers across 0–30cm depth interval ...")
 
   # Split the flat list back into property groups (3 depths each)
-  n_props    <- nrow(soil_properties)
+  n_props <- nrow(soil_properties)
   prop_names <- soil_properties$property
 
   depth_averaged_list <- purrr::map(seq_len(n_props), function(pi) {
     # Extract the 3 depth layers for this property
-    n_depths      <- length(depth_intervals)
+    n_depths <- length(depth_intervals)
     layer_indices <- ((pi - 1L) * n_depths + 1L):(pi * n_depths)
-    depth_stack   <- terra::rast(all_layers[layer_indices])
+    depth_stack <- terra::rast(all_layers[layer_indices])
 
     # Weighted average: 0-5cm=5, 5-15cm=10, 15-30cm=15 → sum weights = 30
     weights <- unname(depth_weights[depth_intervals])
     terra::app(depth_stack, fun = function(x) sum(x * weights, na.rm = TRUE)) |>
-      terra::mask(domain_template[["pid"]])  # mask per-layer so stack stays multi-source
+      terra::mask(domain_template[["pid"]]) # mask per-layer so stack stays multi-source
   })
 
   names(depth_averaged_list) <- prop_names
@@ -176,7 +176,7 @@ get_soilgrid <- function(
   # Per-layer long names and units — stored as GDAL band fields that survive
   # COG round-trips
   terra::longnames(soil_stack) <- soil_properties$long_name
-  terra::units(soil_stack)     <- soil_properties$units
+  terra::units(soil_stack) <- soil_properties$units
 
   # Dataset-level provenance (survives COG round-trip via GDAL metadata)
   terra::metags(soil_stack) <- c(

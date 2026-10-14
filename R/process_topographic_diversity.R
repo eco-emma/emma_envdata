@@ -42,11 +42,11 @@
 #' @return Character path to the output NetCDF file.
 #' @export
 process_topographic_diversity <- function(
-    elevation_file,
-    domain_raster,
-    focal_radius = 1L,
-    verbose      = TRUE) {
-
+  elevation_file,
+  domain_raster,
+  focal_radius = 1L,
+  verbose = TRUE
+) {
   # Load elevation (accepts SpatRaster or NetCDF file path)
   elev <- if (is.character(elevation_file)) {
     if (verbose) message("Loading elevation from: ", elevation_file)
@@ -59,7 +59,7 @@ process_topographic_diversity <- function(
 
   # Load domain for masking
   domain_template <- if (is.character(domain_raster)) terra::rast(domain_raster) else domain_raster
-  domain_mask     <- domain_template[["pid"]]
+  domain_mask <- domain_template[["pid"]]
 
   if (verbose) {
     message(
@@ -72,9 +72,9 @@ process_topographic_diversity <- function(
   # terra::terrain() computes slope, aspect, TPI, and TRI efficiently in C++
   terrain_stack <- terra::terrain(
     elev,
-    v       = c("slope", "aspect", "TRI", "TPI"),
-    unit    = "degrees",
-    neighbors = 8L     # use all 8 neighbours for better accuracy
+    v = c("slope", "aspect", "TRI", "TPI"),
+    unit = "degrees",
+    neighbors = 8L # use all 8 neighbours for better accuracy
   )
 
   # Rename layers for clarity
@@ -88,18 +88,20 @@ process_topographic_diversity <- function(
 
   if (verbose) message("Computing topographic diversity index ...")
 
-  tpi_layer  <- terrain_stack[["tpi"]]
-  tpi_sd     <- terra::global(tpi_layer, "sd", na.rm = TRUE)$sd
+  tpi_layer <- terrain_stack[["tpi"]]
+  tpi_sd <- terra::global(tpi_layer, "sd", na.rm = TRUE)$sd
 
   # Classify each pixel into a landform type (0=flat, 1=valley, 2=slope, 3=ridge)
   landform <- terra::classify(
     tpi_layer,
     rcl = matrix(
-      c(-Inf,        -tpi_sd, 1,   # valley
-        -tpi_sd,     -0.5,    2,   # gentle valley
-        -0.5,         0.5,    0,   # flat
-         0.5,         tpi_sd, 2,   # gentle ridge
-         tpi_sd,      Inf,    3),  # ridge
+      c(
+        -Inf, -tpi_sd, 1, # valley
+        -tpi_sd, -0.5, 2, # gentle valley
+        -0.5, 0.5, 0, # flat
+        0.5, tpi_sd, 2, # gentle ridge
+        tpi_sd, Inf, 3
+      ), # ridge
       ncol = 3, byrow = TRUE
     )
   )
@@ -120,7 +122,7 @@ process_topographic_diversity <- function(
   if (verbose) message("Stacking terrain layers and masking to domain ...")
 
   topo_stack <- c(terrain_stack, topodiv) |>
-    terra::mask(domain_mask)   # restrict to valid domain pixels
+    terra::mask(domain_mask) # restrict to valid domain pixels
 
   # Embed metadata in COG TIFF GDAL metadata (survives COG round-trip)
   terra::metags(topo_stack) <- c(
