@@ -27,6 +27,7 @@ r_source_files <- r_source_files[
   !basename(r_source_files) %in% c(
     "backfill_stac_release.R",
     "ci_appeears_update.R",
+    "publish_inat_data.R",
     "publish_park_static.R",
     "publish_weather.R"  # CLI entry (E3); do not run on tar_source
   )
@@ -56,6 +57,8 @@ description_packages <- load_description_packages(verbose=TRUE)  # Load all pack
   release_tags <- list(
     static             = "static_data",
     manual             = "manual-data",  # input only (flat park shapefiles, RLE zip, …)
+    weather            = "weather_data",
+    inat               = "inat_data",
     vi_modis_terra     = "vi_modis_terra_raster",
     vi_modis_aqua      = "vi_modis_aqua_raster",
     vi_viirs_raster    = "vi_viirs_raster",
@@ -1182,6 +1185,39 @@ list(
   # ============================================================================
   # Renders README.qmd to README.md with comprehensive data summary dashboard.
   # tar_load() calls inside the .qmd ensure this runs after all upstream targets.
+  # iNaturalist invasives → inat_data (CCR prime; dedicated publish-inat GHA).
+  # AOI = parks_buffer_10km.gpkg on static_data (buffered parks only).
+  # Not stacked with AppEEARS or weather. cue = never — run via
+  # Rscript R/publish_inat_data.R or tar_make(c(inat_invasives_product, upload_inat_data)).
+  tar_target(
+    inat_invasives_product,
+    {
+      build_inat_invasives_product(
+        out_dir = "data/target_outputs",
+        work_dir = "data/temp/inat",
+        repo = gh_repo_config$repo,
+        static_tag = release_tags$static,
+        verbose = TRUE
+      )
+    },
+    format = "file",
+    cue = tar_cue(mode = "never"),
+    deployment = "main"
+  ),
+
+  tar_target(
+    upload_inat_data,
+    upload_to_github_release(
+      files        = inat_invasives_product,
+      repo         = gh_repo_config$repo,
+      release_tag  = release_tags$inat,
+      release_name = "iNaturalist invasive observations",
+      overwrite    = TRUE,
+      verbose      = TRUE
+    ),
+    deployment = "main"
+  ),
+
   tarchetypes::tar_quarto(
     readme,
     path = "README.qmd",

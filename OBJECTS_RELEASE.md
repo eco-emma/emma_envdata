@@ -49,6 +49,22 @@ Rscript R/publish_park_static.R
 Optional later: Actions workflow `publish-parks` (`workflow_dispatch` only).
 Do not ship `park_pids.parquet` until domain/`pid` co-versioning exists.
 
+## iNaturalist invasives on `inat_data`
+
+Dedicated product (not AppEEARS). AOI = `parks_buffer_10km.gpkg` from
+`static_data` (buffered parks only; no domain union). Writers:
+`R/get_inat_invasives.R` / `R/publish_inat_data.R` and targets
+`inat_invasives_product` + `upload_inat_data` (cue `never`).
+
+| Role | Tag | Asset |
+|------|-----|--------|
+| AOI input | `static_data` | `parks_buffer_10km.gpkg` |
+| Output | `inat_data` | `inat_invasives.gpkg` (WGS84) |
+
+**First publish is CCR** after the parks buffer exists on `static_data`. See
+[`docs/INAT_DATA_PUBLISH.md`](docs/INAT_DATA_PUBLISH.md). Optional later:
+Actions workflow `publish-inat` (`workflow_dispatch` only).
+
 ## Clear a local copy
 
 ```r

@@ -1,0 +1,54 @@
+# Dedicated iNaturalist invasives job → inat_data release.
+# Separate from AppEEARS (targets.yaml) and weather — do not stack harvests.
+#
+# First publish is CCR (Adam primes after parks_buffer_10km.gpkg is on
+# static_data). This workflow is workflow_dispatch only for now; nightly
+# cron can be added later once the CCR prime is green.
+#
+# Prerequisite: eco-emma/emma_envdata@static_data asset parks_buffer_10km.gpkg
+
+name: publish-inat
+
+on:
+  workflow_dispatch:
+    inputs:
+      upload:
+        description: "Upload inat_invasives.gpkg to inat_data release"
+        required: true
+        type: boolean
+        default: true
+
+concurrency:
+  group: emma-envdata-publish-inat
+  cancel-in-progress: false
+
+jobs:
+  publish-inat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    container: adamwilsonlab/emma:latest
+    permissions:
+      contents: write
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TAR_GH_RELEASE_REPO: eco-emma/emma_envdata
+    steps:
+      - uses: actions/checkout@v4
+      - name: Whitelist directory
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - name: Build (and optionally upload) inat_invasives.gpkg
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.upload }}" = "true" ]; then
+            Rscript R/publish_inat_data.R
+          else
+            Rscript R/publish_inat_data.R --no-upload
+          fi
+        shell: bash
+      - name: Upload local gpkg artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: inat-invasives-gpkg
+          path: data/target_outputs/inat_invasives.gpkg
+          if-no-files-found: warn
