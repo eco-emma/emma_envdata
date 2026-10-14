@@ -1,3 +1,29 @@
+# CLI entry scripts under R/ must never be sourced by other R files or by
+# tar_source(). Each publish_*.R bootstraps by sourcing sibling helpers; if any
+# CLI entry is left in that list, they cross-source each other forever and R
+# dies with "node stack overflow" inside library() (seen on CCR/Apptainer).
+pipeline_cli_entry_basenames <- c(
+  "backfill_stac_release.R",
+  "ci_appeears_update.R",
+  "publish_inat_data.R",
+  "publish_park_static.R",
+  "publish_weather.R"
+)
+
+# Return paths of pipeline helper scripts (excludes CLI entry points above).
+list_pipeline_r_files <- function(dir = "R") {
+  r_files <- list.files(dir, pattern = "^[^.].*\\.R$", full.names = TRUE)
+  r_files[!basename(r_files) %in% pipeline_cli_entry_basenames]
+}
+
+# Source all pipeline helpers once. Used by R/publish_*.R CLI entries.
+source_pipeline_r <- function(dir = "R") {
+  for (f in list_pipeline_r_files(dir)) {
+    source(f, local = FALSE)
+  }
+  invisible(TRUE)
+}
+
 # Download all assets from the static_data GitHub release into data/target_outputs/.
 # Called at the top of _targets.R before tar_make() so that NC files written as
 # side-effects by cue="never" targets (domain.nc, vegmap.nc, CHELSA, clouds_wilson)

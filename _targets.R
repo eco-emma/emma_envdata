@@ -18,21 +18,11 @@ message("Starting tar_make()")
 library(targets)
 # tar_make()
 # tar_glimpse()
-r_source_files <- list.files(
-  "R",
-  pattern = "^[^.].*\\.R$",
-  full.names = TRUE
-)
-r_source_files <- r_source_files[
-  !basename(r_source_files) %in% c(
-    "backfill_stac_release.R",
-    "ci_appeears_update.R",
-    "publish_inat_data.R",
-    "publish_park_static.R",
-    "publish_weather.R"  # CLI entry (E3); do not run on tar_source
-  )
-]
-tar_source(r_source_files)
+# Shared CLI exclusion list lives in R/utils.R (pipeline_cli_entry_basenames).
+# Source utils first so list_pipeline_r_files() is available, then tar_source
+# the remaining helpers. Never tar_source publish_*.R CLI entries.
+source("R/utils.R", local = FALSE)
+tar_source(list_pipeline_r_files())
 description_packages <- load_description_packages(verbose=TRUE)  # Load all packages from DESCRIPTION and get list
 
 

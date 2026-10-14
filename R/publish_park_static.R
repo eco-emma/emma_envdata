@@ -3,12 +3,12 @@
 # Publish park products to eco-emma/emma_envdata@static_data
 #
 # Primary path (first publish): run on CCR after merging this branch.
-# See internal status / PR body for exact CCR steps.
+# See docs/PARK_STATIC_PUBLISH.md for exact CCR steps.
 #
 # GHA-capable fallback (later): workflow_dispatch job `publish-parks` runs this
 # script; it downloads domain.tif from static_data when no local path is set.
 #
-# Usage:
+# Usage (inside Apptainer from `bash R/ccr_startup.sh shell`):
 #   Rscript R/publish_park_static.R
 #   Rscript R/publish_park_static.R --no-upload
 #   PARK_DOMAIN_TIF=/path/to/domain.tif Rscript R/publish_park_static.R
@@ -17,15 +17,10 @@
 args <- commandArgs(trailingOnly = TRUE)
 do_upload <- !("--no-upload" %in% args)
 
-r_files <- list.files("R", pattern = "^[^.].*\\.R$", full.names = TRUE)
-r_files <- r_files[
-  !basename(r_files) %in% c(
-    "backfill_stac_release.R",
-    "ci_appeears_update.R",
-    "publish_park_static.R"
-  )
-]
-for (f in r_files) source(f, local = FALSE)
+# Load helpers only — never source other publish_*.R CLI entries (recursion →
+# "node stack overflow" in library() on CCR/Apptainer).
+source("R/utils.R", local = FALSE)
+source_pipeline_r()
 
 # Quiet package load when DESCRIPTION is present
 if (file.exists("DESCRIPTION") && exists("load_description_packages")) {
