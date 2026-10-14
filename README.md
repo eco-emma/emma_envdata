@@ -190,6 +190,19 @@ Park inputs are **flat** assets on
 `tar_make(c(park_static_products, upload_park_static))`). Nightly Actions is
 AppEEARS-only; optional `publish-parks` workflow is `workflow_dispatch` for later.
 
+## Weather / stations contract (`weather_data`)
+
+GSOD harvest for park reports lives on tag
+[`weather_data`](https://github.com/eco-emma/emma_envdata/releases/tag/weather_data)
+(`weather.parquet` + `stations.gpkg`). Stations are SOUTH AFRICA, recent END
+year, within **100 km** of dissolved parks from `static_data` /
+`protected_areas.gpkg`. Default harvest window = **last 5 calendar years**.
+
+**First publish is CCR** (`Rscript R/publish_weather.R`) after parks are on
+`static_data`. Nightly AppEEARS Actions stays separate; optional
+`publish-weather` workflow is `workflow_dispatch` for later. Details:
+[`docs/WEATHER_DATA_PUBLISH.md`](docs/WEATHER_DATA_PUBLISH.md).
+
 ## Data Notes
 
 - **MODIS/VIIRS EVI values**: Stored as `integer × 10000`. To restore:
