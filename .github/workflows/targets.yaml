@@ -39,14 +39,15 @@ concurrency:
 jobs:
   targets:
     runs-on: ubuntu-latest
-    # Pinned 2026-10-07 from adamwilsonlab/emma:latest.
-    container: adamwilsonlab/emma@sha256:a92aedd24769c12b8039130f3dd3f57afa83622f8b539c648a5af0c5fbbb5087
+    # Image-only CI (E0): packages from the site-library — no .r-lib / pak overlay.
+    # Same tag as emma_report GHA / laptop / CCR Singularity.
+    # Depends on emma_docker PR #6 baking sfarrow/geojsonsf/httr2/gh (+ httr/jsonlite/devtools).
+    container: adamwilsonlab/emma:latest
     permissions:
       contents: write
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
-      R_LIBS_USER: ${{ github.workspace }}/.r-lib
       EARTHDATA_PASSWORD: ${{ secrets.EARTHDATA_PASSWORD }}
       EARTHDATA_USER: ${{ secrets.EARTHDATA_USER }}
       ACTIONS_RUNNER_DEBUG: true
@@ -59,16 +60,6 @@ jobs:
           lfs: true
       - name: Whitelist directory
         run: git config --global --add safe.directory /__w/emma_envdata/emma_envdata
-      - name: Cache R packages
-        uses: actions/cache@v4
-        with:
-          path: .r-lib
-          key: r-lib-${{ hashFiles('DESCRIPTION') }}
-          restore-keys: r-lib-
-      - name: Install R Package Dependencies
-        run: |
-          mkdir -p "$R_LIBS_USER"
-          Rscript -e "dir.create(Sys.getenv('R_LIBS_USER'), recursive = TRUE, showWarnings = FALSE); .libPaths(c(Sys.getenv('R_LIBS_USER'), .libPaths())); if (!requireNamespace('pak', quietly = TRUE)) install.packages('pak', lib = Sys.getenv('R_LIBS_USER')); pak::pak(lib = Sys.getenv('R_LIBS_USER'))"
       - name: Parse _targets.R
         run: Rscript -e "parse('_targets.R')"
       - name: Update new AppEEARS months
