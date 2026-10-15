@@ -788,6 +788,10 @@ list(
   # ── Merge MODIS + VIIRS + CapeNature + TMNP into deduplicated fire events ────
   # 6-month per-pixel clustering collapses multi-sensor detections of the same
   # fire. Priority: CapeNature > TMNP > VIIRS > MODIS.
+  # WARNING: force(burn_*_parquet) means tar_make(burn_events_merged) (or any
+  # downstream fireage/upload target) walks the full AppEEARS burn graph.
+  # CapeNature/TMNP-only republish must NOT tar_make these — see
+  # docs/FIRE_HISTORY_PUBLISH.md (safe CCR bypass).
   tar_target(
     burn_events_merged,
     {
