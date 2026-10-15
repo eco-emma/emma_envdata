@@ -17,7 +17,15 @@ Park writers download by **asset name** into a temp work dir, for example:
 | `CapeNature_Reserves_gw` | `.shp` `.shx` `.dbf` `.prj` |
 
 Also on the same tag (non-park): `RLE_2021_Remnants.zip`, PDFs, optional
-legacy `protected_areas.gpkg` (inputs only — **not** the report SoT).
+legacy `protected_areas.gpkg` (inputs only — **not** the report SoT), and
+**TMNP fire history** (Table Mountain NP only):
+
+| Asset stem | Sidecars (required) |
+|---|---|
+| `tmnp_fire_1962_2021` | `.shp` `.shx` `.dbf` `.prj` |
+
+Not full SANParks — other national parks stay MODIS/VIIRS + censor. Refresh
+path: [`docs/FIRE_HISTORY_PUBLISH.md`](../../docs/FIRE_HISTORY_PUBLISH.md).
 
 Processed park products for `emma_report` are published to **`static_data`**:
 
@@ -36,7 +44,11 @@ Processed park products for `emma_report` are published to **`static_data`**:
   Also mirrored on release tag `vegmap2024`.
 - **RLE_2021_Remnants/** — Remaining natural vegetation remnants (Red List of Ecosystems 2021).
   Prefer `get_remnants()` which pulls `RLE_2021_Remnants.zip` from `manual-data`.
-- **All_fires_23_24_gw/** — Fire perimeter data for 2023–2024 (CapeNature fires).
+- **All_fires_23_24_gw/** — CapeNature fire perimeters (YEAR range ~1927–2024;
+  `DATE_START` is typically `DD/MM/YYYY`). Date fixes:
+  `capenature_date_fixes.csv`. Prefer CCR rebuild when updated
+  (`docs/FIRE_HISTORY_PUBLISH.md`).
+- **tmnp_fire_1962_2021/** — Downloaded flat from `manual-data` (TMNP only).
 - **VEGMAP2018_AEA_16082019Final/** — Legacy vegetation map (2018 release); retained for reference.
 
 ## Adding New Datasets

@@ -175,9 +175,9 @@ list(
   ),
 
   # ── Static: rasterize CapeNature polygons to burned-pixel parquet ────────────
-  # cue="never": manual data, only rerun locally when the shapefile is updated.
+  # cue="never": manual data, only rerun on CCR when the shapefile is updated.
   # Add new date corrections to data/manual_download/capenature_date_fixes.csv
-  # and re-run this target locally to apply them.
+  # and re-run this target on CCR (see docs/FIRE_HISTORY_PUBLISH.md).
   tar_target(
     capenature_burn_events,
     process_capenature_to_parquet(
@@ -188,7 +188,40 @@ list(
       verbose          = TRUE
     ),
     format = "file",
-    cue    = tar_cue(mode = "never")  # Static manual data: only rerun locally
+    cue    = tar_cue(mode = "never")  # Static manual data: only rerun on CCR
+  ),
+
+  # ── Static: TMNP historical fires (Table Mountain NP only — not full SANParks)
+  # Flat assets on manual-data: tmnp_fire_1962_2021.{shp,shx,dbf,prj}.
+  # cue="never": CCR rebuild when shapefile updates (docs/FIRE_HISTORY_PUBLISH.md).
+  tar_target(
+    tmnp_fire_shp,
+    download_tmnp_fire_shapefile(
+      dest_dir = "data/manual_download/tmnp_fire_1962_2021",
+      repo = gh_repo_config$repo,
+      tag = release_tags$manual,
+      overwrite = FALSE
+    ),
+    format = "file",
+    cue = tar_cue(mode = "never")
+  ),
+
+  tar_target(
+    tmnp_fires,
+    sf::st_read(tmnp_fire_shp, quiet = TRUE),
+    cue = tar_cue(mode = "never")
+  ),
+
+  tar_target(
+    tmnp_burn_events,
+    process_tmnp_to_parquet(
+      tmnp_fires = tmnp_fires,
+      domain_raster = domain.tif,
+      out_file = "data/target_outputs/burndates/tmnp_burns.parquet",
+      verbose = TRUE
+    ),
+    format = "file",
+    cue = tar_cue(mode = "never")
   ),
 
 # Get country boundary
@@ -752,20 +785,22 @@ list(
   # Derived fire covariates (aggregated; depend on all monthly parquets above)
   # ============================================================================
 
-  # ── Merge MODIS + VIIRS + CapeNature into deduplicated fire event table ──────
+  # ── Merge MODIS + VIIRS + CapeNature + TMNP into deduplicated fire events ────
   # 6-month per-pixel clustering collapses multi-sensor detections of the same
-  # fire. Priority: CapeNature > VIIRS > MODIS.
+  # fire. Priority: CapeNature > TMNP > VIIRS > MODIS.
   tar_target(
     burn_events_merged,
     {
       # Explicit deps ensure all monthly parquets complete before merging
       force(burn_modis_parquet)
       force(burn_viirs_parquet)
-      force(capenature_burn_events)          # CapeNature ground-truth events
+      force(capenature_burn_events) # CapeNature ground-truth events
+      force(tmnp_burn_events) # TMNP historical fires (TMNP only)
       merge_burn_dates(
-        burn_dir           = "data/target_outputs/burndates/",
+        burn_dir = "data/target_outputs/burndates/",
         capenature_parquet = capenature_burn_events,
-        verbose            = TRUE
+        tmnp_parquet = tmnp_burn_events,
+        verbose = TRUE
       )
     },
     format = "rds"
