@@ -801,7 +801,9 @@ generate_burn_stac <- function(
       "burn detection, QA=0 only). In the merged fire-history product, detections",
       "from both sensors are combined; where they overlap spatially, VIIRS is used",
       "in preference to MODIS given its finer spatial resolution (375m vs 500m).",
-      "Also includes most_recent_burn.tif: fire_age_days and last_burn_date per pixel."
+      "Also includes fireage_current.tif: fire_age_days, last_burn_date, and",
+      "is_censored (1 = never burned / unknown age; 0 = known burn). Ground",
+      "sources CapeNature and TMNP (Table Mountain NP only) outrank VIIRS/MODIS."
     ),
     license = "CC-BY-4.0",
     extent = list(

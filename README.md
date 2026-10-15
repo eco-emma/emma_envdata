@@ -208,10 +208,16 @@ year, within **100 km** of dissolved parks from `static_data` /
 - **MODIS/VIIRS EVI values**: Stored as `integer × 10000`. To restore:
   `EVI = value / 10000`
 - **Fire dates**: Stored as days since 1970-01-01 (Unix epoch)
-- **Time since fire**: Right-censored for pixels with no observed fire
-  (age ≥ time since 2000-01-01)
-- **Multi-sensor fire detection**: Priority order: CapeNature
-  ground-truth \> VIIRS (375m) \> MODIS (500m)
+- **Time since fire**: Never-burned pixels are **censored** —
+  `fire_age_days = NA`, `is_censored = TRUE` (parquet) / band `is_censored = 1`
+  (`fireage_current.tif`). Do not invent age 20. Optional model lower bound:
+  `censor_age_days` (= VI date − 2000-01-01). See
+  [`docs/FIRE_HISTORY_PUBLISH.md`](docs/FIRE_HISTORY_PUBLISH.md).
+- **Multi-sensor fire detection**: Priority order: CapeNature \>
+  TMNP (Table Mountain NP only) \> VIIRS (375m) \> MODIS (500m). Other
+  national parks stay satellite + censor until a source appears.
+- **CapeNature / TMNP refresh**: `cue = "never"` — CCR rebuild when shapefiles
+  update ([`docs/FIRE_HISTORY_PUBLISH.md`](docs/FIRE_HISTORY_PUBLISH.md)).
 - **Coordinate Reference System**: Domain / static rasters use **EPSG:9221**
   (Albers) at 500m; see park contract above
 - **Cloud-Optimized GeoTIFFs**: All rasters use COG format for efficient

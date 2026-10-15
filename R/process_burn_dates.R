@@ -1,16 +1,19 @@
 # ============================================================================
 # Burn Date Post-Processing
 # ============================================================================
-# Implements the EMMA burn pipeline redesign (BURNPLAN.md).  Three fire sources
-# are integrated into a single, deduplicated fire-event table, then consumed to
+# Implements the EMMA burn pipeline redesign (BURNPLAN.md).  Fire sources are
+# integrated into a single, deduplicated fire-event table, then consumed to
 # produce per-pixel fire-age parquets that mirror the VI parquet structure.
 #
-# Priority order: CapeNature  >  VIIRS (VNP64A1, 375 m)  >  MODIS (MCD64A1, 500 m)
+# Priority order:
+#   CapeNature  >  TMNP (Table Mountain NP only)  >  VIIRS  >  MODIS
 #
 # Functions (in pipeline order):
 #   process_capenature_to_parquet()  — QC-clean CapeNature polygons → burned-
 #                                       pixel parquet with fractional cover
-#   merge_burn_dates()               — merge 3 sources; 6-month cluster dedup
+#   download_tmnp_fire_shapefile()   — flat tmnp_fire_1962_2021.* from manual-data
+#   process_tmnp_to_parquet()        — TMNP polygons → burned-pixel parquet
+#   merge_burn_dates()               — merge sources; 6-month cluster dedup
 #   compute_fire_state()             — incremental per-pixel running state file
 #   compute_fireage_for_vi()         — join state to VI parquets → fireage_*.parquet
 #   most_recent_burn_to_grid()       — snapshot raster from state file
@@ -41,14 +44,33 @@
 }
 
 
-# Rasterize one reprojected CapeNature fire polygon against the domain grid,
+# Parse calendar dates from character vectors that may be ISO (`YYYY-MM-DD`)
+# or CapeNature-style day/month/year (`DD/MM/YYYY`). Returns Date; invalid → NA.
+.parse_flexible_date <- function(x, today = Sys.Date()) {
+  x <- trimws(as.character(x))
+  x[x == "" | is.na(x)] <- NA_character_
+  d <- suppressWarnings(as.Date(x, format = "%Y-%m-%d"))
+  need_dmy <- is.na(d) & !is.na(x)
+  if (any(need_dmy)) {
+    d[need_dmy] <- suppressWarnings(
+      as.Date(x[need_dmy], format = "%d/%m/%Y")
+    )
+  }
+  # Drop obviously impossible far-future values (corrupt strings)
+  d[!is.na(d) & d > today + 365L] <- NA
+  d
+}
+
+
+# Rasterize one reprojected fire polygon against the domain grid,
 # returning a tibble of burned pixels (burn_fraction > 0.5 only).
 .rasterize_one_fire <- function(
     poly_vect,
     domain_r,
     pid_vec,
     burn_date_int,
-    date_uncertainty_days
+    date_uncertainty_days,
+    source_label = "capenature"
 ) {
   cover_r <- terra::rasterize(poly_vect, domain_r, cover = TRUE)
   cover_v <- terra::values(cover_r)[, 1]
@@ -60,7 +82,7 @@
   tibble::tibble(
     pid                   = as.integer(pid_vec[valid]),
     date                  = burn_date_int,
-    source                = "capenature",
+    source                = source_label,
     date_uncertainty_days = as.integer(date_uncertainty_days),
     burn_fraction         = as.numeric(cover_v[valid])
   ) |>
@@ -202,17 +224,11 @@ process_capenature_to_parquet <- function(
     fires_sf$DATE_START[fake_idx] <- NA_character_
   }
 
-  # ── 4. Parse dates safely ─────────────────────────────────────────────────
-  .parse_date <- function(x) {
-    d <- suppressWarnings(as.Date(trimws(x), format = "%Y-%m-%d"))
-    d[!is.na(d) & d > today + 365L] <- NA  # pre-filter obviously impossible
-    d
-  }
-
+  # ── 4. Parse dates safely (ISO YYYY-MM-DD and CapeNature DD/MM/YYYY) ──────
   fires_sf <- fires_sf |>
     dplyr::mutate(
-      date_start_parsed = .parse_date(.data$DATE_START),
-      date_extin_parsed = .parse_date(.data$DATE_EXTIN)
+      date_start_parsed = .parse_flexible_date(.data$DATE_START, today = today),
+      date_extin_parsed = .parse_flexible_date(.data$DATE_EXTIN, today = today)
     )
 
   # ── 5. QC validation — flag records for capenature_date_fixes.csv ─────────
@@ -389,7 +405,8 @@ process_capenature_to_parquet <- function(
         domain_r              = domain_crop,
         pid_vec               = pid_crop,
         burn_date_int         = as.integer(fires_sf$burn_date[i] - epoch),
-        date_uncertainty_days = as.integer(fires_sf$date_uncertainty_days[i])
+        date_uncertainty_days = as.integer(fires_sf$date_uncertainty_days[i]),
+        source_label          = "capenature"
       ),
       error = function(e) {
         warning(
@@ -427,37 +444,317 @@ process_capenature_to_parquet <- function(
 }
 
 
+# ── 1b. TMNP (Table Mountain NP) historical fire ingest ───────────────────────
+
+#' @title Download TMNP fire shapefile sidecars from the manual-data release
+#'
+#' @description Pulls flat assets \code{tmnp_fire_1962_2021.{shp,shx,dbf,prj}}
+#'   from the \code{manual-data} GitHub release (TMNP only — not full SANParks).
+#'
+#' @param dest_dir Local directory for shapefile sidecars.
+#' @param repo GitHub owner/repo.
+#' @param tag Release tag (default \code{manual-data}).
+#' @param overwrite Re-download when files already exist?
+#' @return Absolute path to the \code{.shp} file.
+#' @export
+download_tmnp_fire_shapefile <- function(
+    dest_dir = "data/manual_download/tmnp_fire_1962_2021",
+    repo = "eco-emma/emma_envdata",
+    tag = "manual-data",
+    overwrite = FALSE
+) {
+  stem <- "tmnp_fire_1962_2021"
+  parts <- .shapefile_sidecar_names(stem)
+  dir.create(dest_dir, recursive = TRUE, showWarnings = FALSE)
+
+  for (asset in parts$required) {
+    download_release_asset_by_name(
+      file = asset,
+      dest_dir = dest_dir,
+      repo = repo,
+      tag = tag,
+      overwrite = overwrite
+    )
+  }
+  for (asset in parts$optional) {
+    tryCatch(
+      download_release_asset_by_name(
+        file = asset,
+        dest_dir = dest_dir,
+        repo = repo,
+        tag = tag,
+        overwrite = overwrite
+      ),
+      error = function(e) {
+        message("Optional sidecar skipped (", asset, "): ", conditionMessage(e))
+      }
+    )
+  }
+
+  normalizePath(
+    file.path(dest_dir, paste0(stem, ".shp")),
+    winslash = "/",
+    mustWork = TRUE
+  )
+}
+
+
+# Parse TMNP STARTDATE strings: YYYYMMDD, YYYYMM00 (month only), YYYY0000
+# (year only). Returns a list of burn_date (Date) and date_uncertainty_days.
+.parse_tmnp_startdate <- function(startdate, year, today = Sys.Date()) {
+  s <- trimws(as.character(startdate))
+  y <- suppressWarnings(as.integer(year))
+  n <- length(s)
+  burn_date <- rep(as.Date(NA), n)
+  unc <- rep(NA_integer_, n)
+
+  for (i in seq_len(n)) {
+    si <- s[i]
+    yi <- y[i]
+    if (is.na(si) || !nzchar(si) || identical(si, "0")) {
+      if (!is.na(yi) && yi >= 1900L && yi <= as.integer(format(today, "%Y"))) {
+        burn_date[i] <- as.Date(paste0(yi, "-07-01"))
+        unc[i] <- 180L
+      }
+      next
+    }
+    if (!grepl("^[0-9]{8}$", si)) next
+    yy <- as.integer(substr(si, 1L, 4L))
+    mm <- as.integer(substr(si, 5L, 6L))
+    dd <- as.integer(substr(si, 7L, 8L))
+    if (is.na(yy) || yy < 1900L) next
+
+    if (!is.na(mm) && mm > 0L && !is.na(dd) && dd > 0L) {
+      d <- suppressWarnings(as.Date(sprintf("%04d-%02d-%02d", yy, mm, dd)))
+      if (!is.na(d) && d < today) {
+        burn_date[i] <- d
+        unc[i] <- 0L
+      }
+    } else if (!is.na(mm) && mm > 0L) {
+      # Month known, day unknown → mid-month
+      d <- suppressWarnings(
+        as.Date(sprintf("%04d-%02d-15", yy, mm))
+      )
+      if (!is.na(d) && d < today) {
+        burn_date[i] <- d
+        unc[i] <- 15L
+      }
+    } else {
+      # Year only
+      d <- as.Date(paste0(yy, "-07-01"))
+      if (d < today) {
+        burn_date[i] <- d
+        unc[i] <- 180L
+      }
+    }
+  }
+
+  list(burn_date = burn_date, date_uncertainty_days = unc)
+}
+
+
+#' @title Rasterize TMNP fire polygons to burned-pixel parquet
+#'
+#' @description Table Mountain National Park historical fires only
+#'   (\code{tmnp_fire_1962_2021} from \code{manual-data}). Other national parks
+#'   are unchanged (MODIS/VIIRS + censor). Output schema matches CapeNature
+#'   burn events with \code{source = "tmnp"}.
+#'
+#' @param tmnp_fires sf object from the TMNP fire shapefile (or path to \code{.shp}).
+#' @param domain_raster SpatRaster (or path) carrying a \code{pid} layer.
+#' @param out_file Output parquet path.
+#' @param verbose Logical. Print progress messages?
+#'
+#' @return Character path to the written parquet file.
+#' @export
+process_tmnp_to_parquet <- function(
+    tmnp_fires,
+    domain_raster,
+    out_file = "data/target_outputs/burndates/tmnp_burns.parquet",
+    verbose = TRUE
+) {
+  today <- Sys.Date()
+  epoch <- as.Date("1970-01-01")
+
+  if (is.character(tmnp_fires)) {
+    tmnp_fires <- sf::st_read(tmnp_fires, quiet = !verbose)
+  }
+
+  required_fields <- c("STARTDATE", "YEAR")
+  missing_fields <- setdiff(required_fields, names(tmnp_fires))
+  if (length(missing_fields) > 0L) {
+    stop(
+      "TMNP shapefile missing expected fields: ",
+      paste(missing_fields, collapse = ", ")
+    )
+  }
+
+  fires_sf <- tmnp_fires |>
+    dplyr::mutate(
+      STARTDATE = as.character(.data$STARTDATE),
+      YEAR = as.integer(.data$YEAR),
+      ID = if ("ID" %in% names(tmnp_fires)) {
+        as.character(.data$ID)
+      } else {
+        as.character(dplyr::row_number())
+      },
+      .row_id = dplyr::row_number()
+    )
+
+  if (verbose) message("TMNP: ", nrow(fires_sf), " raw polygons")
+
+  parsed <- .parse_tmnp_startdate(
+    fires_sf$STARTDATE,
+    fires_sf$YEAR,
+    today = today
+  )
+  fires_sf$burn_date <- parsed$burn_date
+  fires_sf$date_uncertainty_days <- parsed$date_uncertainty_days
+
+  fires_sf <- dplyr::filter(
+    fires_sf,
+    !is.na(.data$burn_date),
+    .data$burn_date < today
+  )
+
+  if (verbose) {
+    message(
+      "TMNP: ", nrow(fires_sf),
+      " polygons after date cleaning (of ", nrow(tmnp_fires), " raw)"
+    )
+  }
+
+  if (nrow(fires_sf) == 0L) {
+    if (verbose) message("No valid TMNP records — writing empty parquet")
+    empty <- tibble::tibble(
+      pid = integer(0),
+      date = integer(0),
+      source = character(0),
+      date_uncertainty_days = integer(0),
+      burn_fraction = double(0)
+    )
+    dir.create(dirname(out_file), recursive = TRUE, showWarnings = FALSE)
+    arrow::write_parquet(empty, out_file)
+    return(out_file)
+  }
+
+  domain_r <- if (is.character(domain_raster)) {
+    terra::rast(domain_raster)
+  } else {
+    domain_raster
+  }
+  stopifnot("pid" %in% names(domain_r))
+
+  fires_vect <- terra::project(
+    terra::vect(fires_sf),
+    terra::crs(domain_r)
+  )
+  cell_buf <- max(terra::res(domain_r))
+
+  if (verbose) {
+    message(
+      "Rasterizing ", nrow(fires_sf),
+      " TMNP polygons with fractional cover ..."
+    )
+  }
+
+  result_list <- vector("list", nrow(fires_sf))
+  for (i in seq_len(nrow(fires_sf))) {
+    if (verbose && (i == 1L || i %% 50L == 0L || i == nrow(fires_sf))) {
+      message(paste(i, "of", nrow(fires_sf)))
+    }
+
+    fire_ext <- terra::ext(fires_vect[i, ])
+    fire_ext <- terra::extend(fire_ext, cell_buf)
+    domain_crop <- tryCatch(
+      terra::crop(domain_r, fire_ext),
+      error = function(e) NULL
+    )
+    if (is.null(domain_crop)) {
+      result_list[[i]] <- NULL
+      next
+    }
+    pid_crop <- terra::values(domain_crop[["pid"]])[, 1]
+
+    result_list[[i]] <- tryCatch(
+      .rasterize_one_fire(
+        poly_vect = fires_vect[i, ],
+        domain_r = domain_crop,
+        pid_vec = pid_crop,
+        burn_date_int = as.integer(fires_sf$burn_date[i] - epoch),
+        date_uncertainty_days = as.integer(fires_sf$date_uncertainty_days[i]),
+        source_label = "tmnp"
+      ),
+      error = function(e) {
+        warning(
+          "Skipping TMNP polygon ", i,
+          " (ID=", fires_sf$ID[i], "): ", conditionMessage(e)
+        )
+        NULL
+      }
+    )
+  }
+
+  burn_events <- dplyr::bind_rows(result_list)
+
+  if (verbose) {
+    if (nrow(burn_events) == 0L) {
+      message("No TMNP pixels burned within domain after rasterization")
+    } else {
+      message(
+        "TMNP rasterized: ", nrow(burn_events),
+        " burned pixel × fire-event rows (",
+        length(unique(burn_events$pid)), " unique pixels)"
+      )
+    }
+  }
+
+  dir.create(dirname(out_file), recursive = TRUE, showWarnings = FALSE)
+  unlink(out_file)
+  arrow::write_parquet(
+    burn_events,
+    sink = out_file,
+    compression = "gzip"
+  )
+  if (verbose) message("Wrote TMNP burn events: ", basename(out_file))
+  out_file
+}
+
+
 # ── 2. Merge burn sources ─────────────────────────────────────────────────────
 
-#' @title Merge MODIS, VIIRS, and CapeNature burn events into one dedup table
+#' @title Merge MODIS, VIIRS, CapeNature, and TMNP burn events
 #'
 #' @description Reads all monthly parquet files from the burn directory plus the
-#'   CapeNature parquet, unifies them to a common schema, then applies a greedy
-#'   6-month per-pixel clustering to collapse multi-sensor detections of the
-#'   same fire into one canonical event. Source priority:
-#'   CapeNature > VIIRS > MODIS.
+#'   CapeNature and TMNP parquets, unifies them to a common schema, then applies
+#'   a greedy 6-month per-pixel clustering to collapse multi-sensor detections
+#'   of the same fire into one canonical event. Source priority:
+#'   CapeNature > TMNP > VIIRS > MODIS.
 #'
 #'   The returned tibble has one row per pixel × distinct fire:
 #'   \describe{
 #'     \item{pid}{int32}
 #'     \item{date}{int32 — canonical date, days since 1970-01-01}
-#'     \item{fire_source}{chr — "capenature" | "viirs" | "modis"}
+#'     \item{fire_source}{chr — "capenature" | "tmnp" | "viirs" | "modis"}
 #'     \item{date_uncertainty_days}{int16 — base uncertainty + cluster spread}
-#'     \item{burn_fraction}{float32 — CapeNature fractional cover; NA otherwise}
+#'     \item{burn_fraction}{float32 — polygon fractional cover; NA for satellite}
 #'   }
 #'
 #' @param burn_dir           Directory containing \code{burn_modis_*.parquet}
 #'   and \code{burn_viirs_*.parquet} files.
 #' @param capenature_parquet Path to the CapeNature burned-pixel parquet
 #'   (from \code{process_capenature_to_parquet()}). NULL to skip.
+#' @param tmnp_parquet       Path to the TMNP burned-pixel parquet
+#'   (from \code{process_tmnp_to_parquet()}). NULL to skip.
 #' @param verbose            Logical. Print progress messages?
 #'
 #' @return Tibble of deduplicated fire events.
 #' @export
 merge_burn_dates <- function(
-    burn_dir           = "data/target_outputs/burndates/",
+    burn_dir = "data/target_outputs/burndates/",
     capenature_parquet = NULL,
-    verbose            = TRUE
+    tmnp_parquet = NULL,
+    verbose = TRUE
 ) {
   # Helper: read parquets matching pattern, add source column, standardise schema
   .read_burn_parquets <- function(pattern, source_label) {
@@ -467,11 +764,11 @@ merge_burn_dates <- function(
         message("No parquets in ", burn_dir, " matching ", pattern)
       }
       return(tibble::tibble(
-        pid                   = integer(0),
-        date                  = integer(0),
-        source                = character(0),
+        pid = integer(0),
+        date = integer(0),
+        source = character(0),
         date_uncertainty_days = integer(0),
-        burn_fraction         = double(0)
+        burn_fraction = double(0)
       ))
     }
     if (verbose) {
@@ -482,43 +779,48 @@ merge_burn_dates <- function(
       dplyr::filter(!is.na(.data$date), .data$burn_doy > 0L) |>
       dplyr::collect() |>
       dplyr::mutate(
-        source                = source_label,
-        date_uncertainty_days = 8L,   # half of 16-day compositing window
-        burn_fraction         = NA_real_
+        source = source_label,
+        date_uncertainty_days = 8L, # half of 16-day compositing window
+        burn_fraction = NA_real_
       ) |>
-      dplyr::select("pid", "date", "source", "date_uncertainty_days",
-                    "burn_fraction")
+      dplyr::select(
+        "pid", "date", "source", "date_uncertainty_days", "burn_fraction"
+      )
+  }
+
+  .read_ground_parquet <- function(path, label) {
+    if (!is.null(path) && file.exists(path)) {
+      if (verbose) message("Reading ", label, " parquet: ", basename(path))
+      arrow::read_parquet(path) |>
+        dplyr::select(
+          "pid", "date", "source", "date_uncertainty_days", "burn_fraction"
+        )
+    } else {
+      tibble::tibble(
+        pid = integer(0),
+        date = integer(0),
+        source = character(0),
+        date_uncertainty_days = integer(0),
+        burn_fraction = double(0)
+      )
+    }
   }
 
   modis_burns <- .read_burn_parquets("^burn_modis_.*\\.parquet$", "modis")
   viirs_burns <- .read_burn_parquets("^burn_viirs_.*\\.parquet$", "viirs")
+  cn_burns <- .read_ground_parquet(capenature_parquet, "CapeNature")
+  tmnp_burns <- .read_ground_parquet(tmnp_parquet, "TMNP")
 
-  # CapeNature burns have exact dates and fractional cover
-  cn_burns <- if (!is.null(capenature_parquet) && file.exists(capenature_parquet)) {
-    if (verbose) message("Reading CapeNature parquet: ", basename(capenature_parquet))
-    arrow::read_parquet(capenature_parquet) |>
-      dplyr::select("pid", "date", "source", "date_uncertainty_days",
-                    "burn_fraction")
-  } else {
-    tibble::tibble(
-      pid                   = integer(0),
-      date                  = integer(0),
-      source                = character(0),
-      date_uncertainty_days = integer(0),
-      burn_fraction         = double(0)
-    )
-  }
-
-  all_burns <- dplyr::bind_rows(modis_burns, viirs_burns, cn_burns)
+  all_burns <- dplyr::bind_rows(modis_burns, viirs_burns, cn_burns, tmnp_burns)
 
   if (nrow(all_burns) == 0L) {
     if (verbose) message("No burn events found — returning empty table")
     return(tibble::tibble(
-      pid                   = integer(0),
-      date                  = integer(0),
-      fire_source           = character(0),
+      pid = integer(0),
+      date = integer(0),
+      fire_source = character(0),
       date_uncertainty_days = integer(0),
-      burn_fraction         = double(0)
+      burn_fraction = double(0)
     ))
   }
 
@@ -526,12 +828,12 @@ merge_burn_dates <- function(
     message(
       "Combining ", nrow(modis_burns), " MODIS + ",
       nrow(viirs_burns), " VIIRS + ",
-      nrow(cn_burns), " CapeNature raw detections"
+      nrow(cn_burns), " CapeNature + ",
+      nrow(tmnp_burns), " TMNP raw detections"
     )
   }
 
   # ── Greedy 6-month per-pixel cluster deduplication ─────────────────────────
-  # Sort by pid then date so .assign_fire_clusters receives a sorted date vector
   all_burns_sorted <- all_burns |>
     dplyr::filter(!is.na(.data$pid), !is.na(.data$date)) |>
     dplyr::arrange(.data$pid, .data$date)
@@ -550,38 +852,45 @@ merge_burn_dates <- function(
       d <- .x
 
       cn_rows <- dplyr::filter(d, .data$source == "capenature")
+      tmnp_rows <- dplyr::filter(d, .data$source == "tmnp")
 
       if (nrow(cn_rows) > 0L) {
-        # CapeNature: ground truth — use its date regardless of satellite dates
-        canon_date    <- cn_rows$date[1L]
-        canon_source  <- "capenature"
-        canon_unc     <- as.integer(cn_rows$date_uncertainty_days[1L])
-        canon_frac    <- as.numeric(cn_rows$burn_fraction[1L])
+        # CapeNature ground truth wins over TMNP and satellites
+        canon_date <- cn_rows$date[1L]
+        canon_source <- "capenature"
+        canon_unc <- as.integer(cn_rows$date_uncertainty_days[1L])
+        canon_frac <- as.numeric(cn_rows$burn_fraction[1L])
+      } else if (nrow(tmnp_rows) > 0L) {
+        # TMNP ground truth (Table Mountain NP only)
+        canon_date <- tmnp_rows$date[1L]
+        canon_source <- "tmnp"
+        canon_unc <- as.integer(tmnp_rows$date_uncertainty_days[1L])
+        canon_frac <- as.numeric(tmnp_rows$burn_fraction[1L])
       } else {
-        # Satellites: use earliest detection; VIIRS preferred over MODIS for ties
+        # Satellites: earliest detection; VIIRS preferred over MODIS for ties
         sat <- dplyr::arrange(
           d,
           .data$date,
           dplyr::desc(.data$source == "viirs")
         )
-        canon_date   <- sat$date[1L]
+        canon_date <- sat$date[1L]
         canon_source <- sat$source[1L]
-        # Cluster spread widens uncertainty beyond the 8-day base
-        spread    <- as.integer(max(d$date) - min(d$date))
+        spread <- as.integer(max(d$date) - min(d$date))
         canon_unc <- 8L + spread
         canon_frac <- NA_real_
       }
 
       tibble::tibble(
-        date                  = as.integer(canon_date),
-        fire_source           = as.character(canon_source),
+        date = as.integer(canon_date),
+        fire_source = as.character(canon_source),
         date_uncertainty_days = as.integer(canon_unc),
-        burn_fraction         = as.numeric(canon_frac)
+        burn_fraction = as.numeric(canon_frac)
       )
     }) |>
     dplyr::ungroup() |>
-    dplyr::select("pid", "date", "fire_source", "date_uncertainty_days",
-                  "burn_fraction") |>
+    dplyr::select(
+      "pid", "date", "fire_source", "date_uncertainty_days", "burn_fraction"
+    ) |>
     dplyr::arrange(.data$pid, .data$date)
 
   if (verbose) {
@@ -589,6 +898,8 @@ merge_burn_dates <- function(
       "Merged burn record: ", nrow(deduplicated), " unique pixel × fire events ",
       "(CapeNature: ",
       sum(deduplicated$fire_source == "capenature", na.rm = TRUE),
+      ", TMNP: ",
+      sum(deduplicated$fire_source == "tmnp", na.rm = TRUE),
       ", VIIRS: ",
       sum(deduplicated$fire_source == "viirs", na.rm = TRUE),
       ", MODIS: ",
@@ -843,19 +1154,24 @@ compute_fire_state <- function(
 #'     \item{date}{int32 — VI observation date, days since 1970-01-01}
 #'     \item{sensor}{int32 — 1=Terra MOD13A1, 2=Aqua MYD13A1,
 #'       3=VIIRS S-NPP, 4=NOAA-20}
-#'     \item{last_burn_date}{int32 — most recent fire before this VI date (NA = never)}
-#'     \item{fire_age_days}{int32 — date − last_burn_date; right-censored for
-#'       unburned pixels}
-#'     \item{fire_source}{chr — "capenature" | "viirs" | "modis" | NA}
+#'     \item{last_burn_date}{int32 — most recent fire before this VI date
+#'       (\code{NA} = never burned / unknown)}
+#'     \item{fire_age_days}{int32 — date − last_burn_date when known;
+#'       \code{NA} when \code{is_censored} (do not invent an age)}
+#'     \item{fire_source}{chr — "capenature" | "tmnp" | "viirs" | "modis" | NA}
 #'     \item{date_uncertainty_days}{int16}
-#'     \item{fire_count}{int32 — total fires since 2000-01-01; 0 = right-censored}
-#'     \item{burn_fraction}{float32 — CapeNature fractional cover; NA if satellite}
+#'     \item{fire_count}{int32 — total fires observed; 0 = never burned}
+#'     \item{burn_fraction}{float32 — polygon fractional cover; NA if satellite}
+#'     \item{is_censored}{logical — TRUE when never burned / no known burn
+#'       before this VI date (report must label separately; do not map to age 20)}
+#'     \item{censor_age_days}{int32 — lower-bound age \code{vi_date − 2000-01-01}
+#'       when censored; \code{NA} when a true burn age is known (model use)}
 #'   }
 #'
-#'   Right-censored pixels (\code{fire_count = 0}): \code{fire_age_days =
-#'   vi_date − 2000-01-01} (minimum age lower bound), \code{last_burn_date = NA}.
-#'   Join to VI parquets via \code{arrow::open_dataset() |> left_join(by =
-#'   c("pid", "date", "sensor"))}.
+#'   Never-burned / right-censored pixels: \code{last_burn_date = NA},
+#'   \code{fire_age_days = NA}, \code{is_censored = TRUE}, and
+#'   \code{censor_age_days = vi_date − 2000-01-01} (optional lower bound for
+#'   survival models). Report UIs must not collapse censored → age 20.
 #'
 #' @param modis_vi_dir Directory containing MODIS VI parquets.
 #' @param viirs_vi_dir Directory containing VIIRS VI parquets.
@@ -997,24 +1313,26 @@ compute_fireage_for_vi <- function(
           .data$last_burn_date,
           NA_integer_
         ),
-        fire_age_days = dplyr::case_when(
-          # Known burn predating this observation
-          !is.na(.data$last_burn_date_valid)
-            ~ as.integer(.data$date - .data$last_burn_date_valid),
-          # Right-censored: never burned — minimum age since record start
-          is.na(.data$fire_count) | .data$fire_count == 0L
-            ~ as.integer(.data$date - record_start),
-          # fire_count > 0 but last_burn_date is after vi_date (stale state):
-          # treat as right-censored with record_start lower bound
-          TRUE ~ as.integer(.data$date - record_start)
+        is_censored = is.na(.data$last_burn_date_valid),
+        # True age only when a burn is known; NA when censored (W3.3 / W0.4)
+        fire_age_days = dplyr::if_else(
+          .data$is_censored,
+          NA_integer_,
+          as.integer(.data$date - .data$last_burn_date_valid)
+        ),
+        # Lower-bound age for models that need right-censoring semantics
+        censor_age_days = dplyr::if_else(
+          .data$is_censored,
+          as.integer(.data$date - record_start),
+          NA_integer_
         ),
         fire_source = dplyr::if_else(
-          !is.na(.data$last_burn_date_valid),
+          !.data$is_censored,
           .data$fire_source,
           NA_character_
         ),
         date_uncertainty_days = dplyr::if_else(
-          !is.na(.data$last_burn_date_valid),
+          !.data$is_censored,
           as.integer(.data$date_uncertainty_days),
           NA_integer_
         ),
@@ -1024,7 +1342,8 @@ compute_fireage_for_vi <- function(
       dplyr::select(
         "pid", "date", "sensor",
         "last_burn_date", "fire_age_days", "fire_source",
-        "date_uncertainty_days", "fire_count", "burn_fraction"
+        "date_uncertainty_days", "fire_count", "burn_fraction",
+        "is_censored", "censor_age_days"
       )
 
     unlink(out_file)
@@ -1051,21 +1370,26 @@ compute_fireage_for_vi <- function(
 #' @title Rasterize the most-recent-burn state parquet to a domain-aligned raster
 #'
 #' @description Reads \code{most_recent_burn_state.parquet} (written by
-#'   \code{compute_fire_state()}) and returns a two-band SpatRaster snapshot
+#'   \code{compute_fire_state()}) and returns a three-band SpatRaster snapshot
 #'   at \code{state_month} for storage by \code{geotargets::tar_terra_rast()}:
 #'   \describe{
-#'     \item{fire_age_days}{Band 1: days since last fire at state_month}
-#'     \item{last_burn_date}{Band 2: days since 1970-01-01 of most recent burn}
+#'     \item{fire_age_days}{Band 1: days since last fire; \code{NA} if never
+#'       burned (censored — do not invent age 20)}
+#'     \item{last_burn_date}{Band 2: days since 1970-01-01 of most recent burn;
+#'       \code{NA} if never burned}
+#'     \item{is_censored}{Band 3: 1 = never burned / unknown; 0 = known burn}
 #'   }
-#'   Pixels never burned have \code{fire_age_days = state_month - 2000-01-01}
-#'   (right-censored lower bound; \code{fire_count = 0}) and
-#'   \code{last_burn_date = NA}.
+#'   Never-burned pixels keep \code{fire_age_days = NA} and
+#'   \code{is_censored = 1} so report UIs can label them without collapsing to
+#'   a fake age. The MODIS-era lower bound
+#'   (\code{state_month − 2000-01-01}) is available in fireage parquets as
+#'   \code{censor_age_days}, not as a filled raster age.
 #'
 #' @param state_file   Character path to \code{most_recent_burn_state.parquet}.
 #' @param domain_raster SpatRaster or path with a \code{pid} layer.
 #' @param verbose      Logical. Print progress messages?
 #'
-#' @return Two-band SpatRaster (fire_age_days, last_burn_date).
+#' @return Three-band SpatRaster (fire_age_days, last_burn_date, is_censored).
 #' @export
 most_recent_burn_to_grid <- function(
     state_file,
@@ -1080,22 +1404,25 @@ most_recent_burn_to_grid <- function(
 
   state <- arrow::read_parquet(state_file)
 
-  # For empty state, return all-NA raster
+  # For empty state, return all-NA / all-censored raster
   if (nrow(state) == 0L) {
-    if (verbose) message("State is empty — returning all-NA raster")
+    if (verbose) message("State is empty — returning all-NA / censored raster")
     empty <- domain_r[[1L]]
     terra::values(empty) <- NA_integer_
-    r_out <- c(empty, empty)
-    names(r_out) <- c("fire_age_days", "last_burn_date")
+    censored <- domain_r[[1L]]
+    pid_vec <- terra::values(domain_r[["pid"]])[, 1]
+    terra::values(censored) <- as.integer(!is.na(pid_vec))
+    r_out <- c(empty, empty, censored)
+    names(r_out) <- c("fire_age_days", "last_burn_date", "is_censored")
     terra::metags(r_out) <- c(
       snapshot_date = as.character(Sys.Date()),
-      source        = "most_recent_burn_state"
+      source = "most_recent_burn_state"
     )
     return(r_out)
   }
 
-  record_start  <- as.integer(as.Date("2000-01-01") - as.Date("1970-01-01"))
-  snapshot_int  <- max(state$state_month, record_start)
+  record_start <- as.integer(as.Date("2000-01-01") - as.Date("1970-01-01"))
+  snapshot_int <- max(state$state_month, record_start)
   snapshot_date <- as.Date(snapshot_int, origin = "1970-01-01")
 
   if (verbose) {
@@ -1107,44 +1434,58 @@ most_recent_burn_to_grid <- function(
 
   pid_vec <- terra::values(domain_r[["pid"]])[, 1]
 
-  # Right-censored pixels: fire_count = 0, use record_start lower bound
+  # Known burns only — never-burned stay NA (W3.3); flag via is_censored
   state_snap <- state |>
     dplyr::mutate(
+      is_censored = as.integer(is.na(.data$last_burn_date)),
       fire_age_days = dplyr::if_else(
         !is.na(.data$last_burn_date),
         as.integer(snapshot_int - .data$last_burn_date),
-        as.integer(snapshot_int - record_start)  # right-censored
+        NA_integer_
       )
     )
 
-  fire_age_map  <- setNames(state_snap$fire_age_days,  as.character(state_snap$pid))
-  last_burn_map <- setNames(state_snap$last_burn_date, as.character(state_snap$pid))
-
-  fire_age_vec  <- as.integer(fire_age_map[as.character(pid_vec)])
-  last_burn_vec <- as.integer(last_burn_map[as.character(pid_vec)])
-
-  # Fill unburned domain pixels (valid pid but not in state) with the
-  # right-censored lower bound documented in the function description.
-  # Pixels in the state but with fire_count = 0 already carry the censored value
-  # from state_snap; pixels NEVER SEEN by the state loop (not yet burned) need the
-  # same treatment here so the raster is fully populated.
-  right_censored_age <- as.integer(snapshot_int - record_start)
-  unburned_valid     <- is.na(fire_age_vec) & !is.na(pid_vec)
-  fire_age_vec[unburned_valid] <- right_censored_age
-
-  fire_age_r  <- domain_r[[1L]]
-  last_burn_r <- domain_r[[1L]]
-  terra::values(fire_age_r)  <- fire_age_vec
-  terra::values(last_burn_r) <- last_burn_vec
-  names(fire_age_r)  <- "fire_age_days"
-  names(last_burn_r) <- "last_burn_date"
-
-  r_out <- c(fire_age_r, last_burn_r)
-  terra::metags(r_out) <- c(
-    snapshot_date = as.character(snapshot_date),
-    source        = "most_recent_burn_state"
+  fire_age_map <- setNames(
+    state_snap$fire_age_days, as.character(state_snap$pid)
+  )
+  last_burn_map <- setNames(
+    state_snap$last_burn_date, as.character(state_snap$pid)
+  )
+  censored_map <- setNames(
+    state_snap$is_censored, as.character(state_snap$pid)
   )
 
-  if (verbose) message("Built most_recent_burn raster for ", format(snapshot_date))
+  fire_age_vec <- as.integer(fire_age_map[as.character(pid_vec)])
+  last_burn_vec <- as.integer(last_burn_map[as.character(pid_vec)])
+  censored_vec <- as.integer(censored_map[as.character(pid_vec)])
+
+  # Domain pixels with a valid pid but absent from state = never burned
+  unburned_valid <- !is.na(pid_vec) & is.na(censored_vec)
+  censored_vec[unburned_valid] <- 1L
+  # Known burns already have is_censored = 0; leave fire_age NA where censored
+  censored_vec[is.na(censored_vec)] <- NA_integer_
+
+  fire_age_r <- domain_r[[1L]]
+  last_burn_r <- domain_r[[1L]]
+  censored_r <- domain_r[[1L]]
+  terra::values(fire_age_r) <- fire_age_vec
+  terra::values(last_burn_r) <- last_burn_vec
+  terra::values(censored_r) <- censored_vec
+  names(fire_age_r) <- "fire_age_days"
+  names(last_burn_r) <- "last_burn_date"
+  names(censored_r) <- "is_censored"
+
+  r_out <- c(fire_age_r, last_burn_r, censored_r)
+  terra::metags(r_out) <- c(
+    snapshot_date = as.character(snapshot_date),
+    source = "most_recent_burn_state"
+  )
+
+  if (verbose) {
+    message(
+      "Built most_recent_burn raster for ", format(snapshot_date),
+      " (is_censored band: never-burned = 1, known burn = 0)"
+    )
+  }
   r_out
 }
