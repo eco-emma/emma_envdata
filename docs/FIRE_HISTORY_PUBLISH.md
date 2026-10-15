@@ -70,10 +70,19 @@ if (n_modis < 10L) {
   stop("Too few local MODIS burn parquets — fix disk products before republish; do not tar_make burn_events_merged")
 }
 
-targets::tar_invalidate(c(
+# Invalidate only names already in metadata. Optional on a first build:
+# tar_invalidate() errors (e.g. Column `capenature_burn_events` doesn't exist)
+# when a cue=never name was never recorded — skip those via intersect.
+cue_never <- c(
   "capenature_fires", "capenature_burn_events",
   "tmnp_fire_shp", "tmnp_fires", "tmnp_burn_events"
-))
+)
+known <- intersect(cue_never, targets::tar_manifest()$name)
+if (length(known)) {
+  targets::tar_invalidate(known)
+} else {
+  message("No cue=never names in metadata yet — skip invalidate (first build OK)")
+}
 # ONLY cue=never targets — never burn_events_merged / fireage_* / upload_fireage
 targets::tar_make(c("capenature_burn_events", "tmnp_burn_events"))
 
@@ -127,7 +136,7 @@ upload_to_github_release(
 '
 ```
 
-If only TMNP changed (CapeNature already current), invalidate/make only the `tmnp_*` targets, then run the same merge → fireage → upload block (still **do not** `tar_make` `burn_events_merged` / `fireage_*`).
+If only TMNP changed (CapeNature already current), invalidate/make only the `tmnp_*` targets (still `intersect` with `tar_manifest()$name`), then run the same merge → fireage → upload block (still **do not** `tar_make` `burn_events_merged` / `fireage_*`).
 
 `compute_fire_state()` rebuilds from scratch when a **new** `fire_source` (e.g. `tmnp`) appears in events — expect a longer first run after TMNP is introduced.
 
