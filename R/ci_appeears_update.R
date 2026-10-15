@@ -1,7 +1,9 @@
 # GitHub Actions entry point. Restores targets metadata, rebuilds only
 # outdated MODIS/VIIRS VI and burned-area branches, and uploads the new
-# COGs and parquets. Aggregate upload, STAC, and README targets stay on
-# the CCR run because they read every historical branch.
+# COGs and parquets. After product upload, refreshes stac-vi (+ decade
+# item releases) from GitHub release asset names so report latest-date
+# advances without a CCR pass. Aggregate burn/static STAC and fireage
+# still belong on CCR (they need the full historical branch set).
 #
 # Run with: Rscript R/ci_appeears_update.R
 # Not sourced by _targets.R.
@@ -20,6 +22,11 @@ appeears_name_pattern <- paste0(
 product_branch_pattern <- paste0(
   "^(vi_modis|vi_viirs|burn_modis|burn_viirs)_",
   "(grid|parquet)_[0-9a-f]+$"
+)
+
+product_stem_pattern <- paste0(
+  "^(vi_modis|vi_viirs|burn_modis|burn_viirs)_",
+  "(grid|parquet)$"
 )
 
 # Filenames must stay aligned with release_tags in _targets.R.
@@ -58,20 +65,104 @@ product_branch_pattern <- paste0(
   unique(upstream)
 }
 
-.product_paths <- function(branch_names) {
+# Flatten tar_read_raw() values (character paths, or list of those from a
+# pattern stem) into a character vector of file paths.
+.flatten_product_paths <- function(value) {
+  if (is.null(value)) return(character(0))
+  if (is.character(value)) return(value)
+  if (is.list(value)) {
+    return(unlist(lapply(value, .flatten_product_paths), use.names = FALSE))
+  }
+  character(0)
+}
+
+.product_paths <- function(target_names) {
   paths <- character(0)
-  for (name in branch_names) {
+  for (name in target_names) {
     value <- tryCatch(
       targets::tar_read_raw(name),
       error = function(e) {
-        message("[ci_appeears] No product from ", name, ": ", conditionMessage(e))
+        message(
+          "[ci_appeears] No product from ", name, ": ",
+          conditionMessage(e)
+        )
         NULL
       }
     )
-    if (is.character(value)) paths <- c(paths, value)
+    paths <- c(paths, .flatten_product_paths(value))
   }
   paths <- unique(paths)
   paths[file.exists(paths) & !grepl("\\.skip$", paths)]
+}
+
+# After tar_make(), `todo` is often pattern stems (vi_modis_grid, …), not
+# branch-hash names. Prefer freshly built product branches from progress;
+# also resolve any pattern stems still listed in `todo`.
+.product_target_names_for_upload <- function(todo) {
+  names <- character(0)
+
+  progress <- tryCatch(
+    targets::tar_progress(),
+    error = function(e) NULL
+  )
+  if (!is.null(progress) && nrow(progress)) {
+    built <- progress$name[progress$progress == "built"]
+    names <- c(names, built[grepl(product_branch_pattern, built)])
+  }
+
+  # Defensive: keep any branch-hash names still present in todo.
+  names <- c(names, todo[grepl(product_branch_pattern, todo)])
+
+  # Pattern stems must be read as wholes; tar_read_raw() returns every
+  # child that is in the local store. file.exists() later keeps only
+  # products written on this runner.
+  stems <- todo[grepl(product_stem_pattern, todo)]
+  names <- c(names, stems)
+
+  unique(names)
+}
+
+# COGs/parquets written under data/target_outputs/ this session. Used when
+# todo is pattern stems and tar_read_raw(stem) cannot load historical
+# children missing from the Actions store (meta-only restore).
+.local_product_files <- function() {
+  specs <- list(
+    list(
+      dir = "data/target_outputs/modis_vi",
+      pattern = paste0(
+        "^vi_modis_(terra|aqua)_[0-9]{8}\\.tif$",
+        "|^vi_modis_[0-9]{8}\\.parquet$"
+      )
+    ),
+    list(
+      dir = "data/target_outputs/viirs_vi",
+      pattern = paste0(
+        "^vi_viirs_(snpp|noaa20)_[0-9]{8}\\.tif$",
+        "|^vi_viirs_[0-9]{8}\\.parquet$"
+      )
+    ),
+    list(
+      dir = "data/target_outputs/burndates",
+      pattern = paste0(
+        "^burn_(modis|viirs)_[0-9]{6}\\.(tif|parquet)$"
+      )
+    )
+  )
+  paths <- character(0)
+  for (spec in specs) {
+    if (!dir.exists(spec$dir)) next
+    paths <- c(
+      paths,
+      list.files(spec$dir, pattern = spec$pattern, full.names = TRUE)
+    )
+  }
+  unique(paths)
+}
+
+.collect_product_paths <- function(todo) {
+  from_targets <- .product_paths(.product_target_names_for_upload(todo))
+  from_disk <- .local_product_files()
+  unique(c(from_targets, from_disk))
 }
 
 # Pattern stems keyed by the pending target they map over.
@@ -161,7 +252,7 @@ product_branch_pattern <- paste0(
 .upload_product_files <- function(paths) {
   if (!length(paths)) {
     message("[ci_appeears] No new COGs or parquets to publish")
-    return(invisible(NULL))
+    return(invisible(character(0)))
   }
   tags <- vapply(paths, .product_release_tag, character(1))
   unknown <- paths[is.na(tags)]
@@ -173,17 +264,21 @@ product_branch_pattern <- paste0(
     )
   }
   failed <- FALSE
+  uploaded <- character(0)
   for (tag in unique(tags)) {
     tag_paths <- paths[tags == tag]
     withCallingHandlers(
-      upload_to_github_release(
-        files = tag_paths,
-        repo = "eco-emma/emma_envdata",
-        release_tag = tag,
-        release_name = tag,
-        overwrite = TRUE,
-        verbose = TRUE
-      ),
+      {
+        result <- upload_to_github_release(
+          files = tag_paths,
+          repo = "eco-emma/emma_envdata",
+          release_tag = tag,
+          release_name = tag,
+          overwrite = TRUE,
+          verbose = TRUE
+        )
+        uploaded <- c(uploaded, result)
+      },
       warning = function(w) {
         if (grepl("failed to upload|still failed", conditionMessage(w),
                   ignore.case = TRUE)) {
@@ -198,6 +293,135 @@ product_branch_pattern <- paste0(
       call. = FALSE
     )
   }
+  invisible(unique(uploaded))
+}
+
+# Composite YYYYMMDD strings for VI COGs that landed in `paths`.
+.vi_dates_from_paths <- function(paths) {
+  bn <- basename(paths)
+  vi_bn <- bn[grepl(
+    "^vi_(modis_(terra|aqua)|viirs_(snpp|noaa20))_[0-9]{8}\\.tif$",
+    bn
+  )]
+  if (!length(vi_bn)) return(character(0))
+  unique(regmatches(vi_bn, regexpr("[0-9]{8}", vi_bn)))
+}
+
+# Rebuild stac-vi (+ decade items) from release asset names so Actions can
+# advance the report's latest STAC date after COGs publish. Only uploads the
+# collection JSON plus items for `new_dates` (historical item JSONs stay).
+.refresh_vi_stac <- function(new_dates, repo = "eco-emma/emma_envdata") {
+  if (!length(new_dates)) {
+    message("[ci_appeears] No new VI composite dates for STAC refresh")
+    return(invisible(NULL))
+  }
+
+  source("R/stac_functions.R")
+
+  token <- Sys.getenv("GITHUB_PAT")
+  if (!nzchar(token)) token <- Sys.getenv("GITHUB_TOKEN")
+  if (!nzchar(token)) {
+    warning(
+      "[ci_appeears] No GitHub token; skipping STAC refresh. ",
+      "Run generate_modis_vi_stac + upload_stac_vi on CCR.",
+      call. = FALSE
+    )
+    return(invisible(NULL))
+  }
+
+  terra_assets <- .gh_release_asset_names(
+    repo, "vi_modis_terra_raster", token
+  )
+  aqua_assets <- .gh_release_asset_names(
+    repo, "vi_modis_aqua_raster", token
+  )
+  viirs_assets <- .gh_release_asset_names(
+    repo, "vi_viirs_raster", token
+  )
+
+  terra_tifs <- grep(
+    "^vi_modis_terra_[0-9]{8}\\.tif$", terra_assets, value = TRUE
+  )
+  aqua_tifs <- grep(
+    "^vi_modis_aqua_[0-9]{8}\\.tif$", aqua_assets, value = TRUE
+  )
+  viirs_tifs <- grep(
+    "^vi_viirs_(snpp|noaa20)_[0-9]{8}\\.tif$", viirs_assets, value = TRUE
+  )
+
+  if (!length(terra_tifs) || !length(aqua_tifs)) {
+    warning(
+      "[ci_appeears] STAC refresh skipped: terra/aqua release assets missing",
+      call. = FALSE
+    )
+    return(invisible(NULL))
+  }
+
+  # Synthetic paths — generate_modis_vi_stac() only needs basenames for HREFs.
+  modis_paths <- file.path(
+    "data/target_outputs/modis_vi",
+    c(terra_tifs, aqua_tifs)
+  )
+  viirs_paths <- file.path("data/target_outputs/viirs_vi", viirs_tifs)
+
+  message(
+    "[ci_appeears] Refreshing stac-vi from release assets (",
+    length(terra_tifs), " terra, ", length(aqua_tifs), " aqua, ",
+    length(viirs_tifs), " viirs); new dates: ",
+    paste(sort(new_dates), collapse = ", ")
+  )
+
+  stac_files <- generate_modis_vi_stac(
+    tif_files = modis_paths,
+    viirs_tif_files = viirs_paths,
+    stac_dir = "data/stac/vi",
+    parent_catalog_path = "data/stac",
+    gh_repo = repo,
+    gh_release_tag_modis_terra = "vi_modis_terra_raster",
+    gh_release_tag_modis_aqua = "vi_modis_aqua_raster",
+    gh_release_tag_viirs = "vi_viirs_raster",
+    gh_stac_release_tag = "stac-vi",
+    gh_stac_item_release_prefix = "stac-vi",
+    gh_root_stac_release_tag = "stac",
+    verbose = TRUE
+  )
+
+  collection_file <- stac_files[basename(stac_files) == "vi_collection.json"]
+  new_item_files <- stac_files[
+    basename(stac_files) %in% paste0("vi_", new_dates, ".json")
+  ]
+  new_item_files <- new_item_files[file.exists(new_item_files)]
+
+  if (length(collection_file) && file.exists(collection_file)) {
+    upload_to_github_release(
+      files = collection_file,
+      repo = repo,
+      release_tag = "stac-vi",
+      release_name = "STAC - Vegetation Indices",
+      overwrite = TRUE,
+      verbose = TRUE
+    )
+  }
+
+  if (length(new_item_files)) {
+    item_years <- substr(basename(new_item_files), 4L, 7L)
+    item_decades <- paste0(substr(item_years, 1L, 3L), "0s")
+    purrr::iwalk(
+      split(new_item_files, item_decades),
+      function(files, decade) {
+        upload_to_github_release(
+          files = files,
+          repo = repo,
+          release_tag = paste0("stac-vi-", decade),
+          release_name = paste("STAC - Vegetation Indices", decade),
+          overwrite = TRUE,
+          verbose = TRUE
+        )
+      }
+    )
+  }
+
+  message("[ci_appeears] stac-vi refresh finished")
   invisible(NULL)
 }
 
@@ -297,10 +521,42 @@ ci_appeears_update <- function() {
 
   targets::tar_make(names = todo, callr_function = NULL)
 
-  product_branches <- todo[grepl(product_branch_pattern, todo)]
-  .upload_product_files(.product_paths(product_branches))
+  # todo is often pattern stems after pending rebuild; resolve via progress
+  # branch-hashes, tar_read_raw on stems, and a local output-dir scan
+  # (W1.1 / W1.3 / W1.4). upload_to_github_release() checksum-skips
+  # unchanged assets, so scanning locals is safe.
+  product_names <- .product_target_names_for_upload(todo)
+  message(
+    "[ci_appeears] Product targets for upload: ",
+    if (length(product_names)) {
+      paste(product_names, collapse = ", ")
+    } else {
+      "(none)"
+    }
+  )
+  product_paths <- .collect_product_paths(todo)
+  if (length(product_paths)) {
+    message(
+      "[ci_appeears] Local product files to publish: ",
+      paste(basename(product_paths), collapse = ", ")
+    )
+  }
+  uploaded_paths <- .upload_product_files(product_paths)
+
+  # W1.2: advance stac-vi after VI COGs land. Uses release asset listing so
+  # Actions does not need every historical COG on disk.
+  vi_dates <- .vi_dates_from_paths(product_paths)
+  if (length(vi_dates)) {
+    .refresh_vi_stac(vi_dates)
+  } else {
+    message(
+      "[ci_appeears] No VI COGs in this publish set; stac-vi unchanged. ",
+      "Burn/static STAC remain CCR (tar_make upload_stac_*)."
+    )
+  }
+
   message("[ci_appeears] AppEEARS update finished")
-  invisible(NULL)
+  invisible(uploaded_paths)
 }
 
 if (sys.nframe() == 0L) {
