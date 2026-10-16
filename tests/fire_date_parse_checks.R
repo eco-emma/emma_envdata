@@ -27,8 +27,14 @@ check("invalid → NA", is.na(dmy[6]))
 
 # ── W3.2 TMNP STARTDATE patterns ─────────────────────────────────────────────
 tmnp <- .parse_tmnp_startdate(
-  startdate = c("19620101", "20100500", "19650000", "0", "bad"),
-  year = c(1962, 2010, 1965, 1970, 1980),
+  startdate = c(
+    "19620101", "20100500", "19650000", "0", "bad",
+    # Real shapefile row ID 1993_18: month 93 — previously threw
+    # "character string is not in a standard unambiguous format"
+    "19939315",
+    "2017-02-15", "28/05/1927"
+  ),
+  year = c(1962, 2010, 1965, 1970, 1980, 1993, 2017, 1927),
   today = today
 )
 check(
@@ -51,7 +57,37 @@ check(
   identical(tmnp$burn_date[4], as.Date("1970-07-01")) &&
     identical(tmnp$date_uncertainty_days[4], 180L)
 )
-check("bad STARTDATE → NA", is.na(tmnp$burn_date[5]))
+check("bad STARTDATE → YEAR fallback", {
+  identical(tmnp$burn_date[5], as.Date("1980-07-01")) &&
+    identical(tmnp$date_uncertainty_days[5], 180L)
+})
+check(
+  "corrupt YYYYMMDD (month 93) → YEAR mid-year, no error",
+  identical(tmnp$burn_date[6], as.Date("1993-07-01")) &&
+    identical(tmnp$date_uncertainty_days[6], 180L)
+)
+check(
+  "TMNP ISO STARTDATE",
+  identical(tmnp$burn_date[7], as.Date("2017-02-15")) &&
+    identical(tmnp$date_uncertainty_days[7], 0L)
+)
+check(
+  "TMNP DD/MM/YYYY STARTDATE",
+  identical(tmnp$burn_date[8], as.Date("1927-05-28")) &&
+    identical(tmnp$date_uncertainty_days[8], 0L)
+)
+
+# Regression: as.Date without format= must not be used on invalid calendars
+check(
+  "parse_ymd_safe month 93 → NA (no throw)",
+  {
+    d <- tryCatch(
+      .parse_ymd_safe(1993L, 93L, 15L),
+      error = function(e) structure("threw", class = "error-marker")
+    )
+    inherits(d, "Date") && is.na(d)
+  }
+)
 
 # ── Cluster helper still works ───────────────────────────────────────────────
 cl <- .assign_fire_clusters(c(0L, 10L, 200L, 210L))

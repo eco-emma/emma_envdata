@@ -499,11 +499,36 @@ download_tmnp_fire_shapefile <- function(
 }
 
 
+# Safe ISO calendar parse. Always pass format= so invalid components
+# (e.g. month 93) return NA instead of erroring via charToDate():
+#   Error: character string is not in a standard unambiguous format
+.parse_ymd_safe <- function(yyyy, mm, dd) {
+  suppressWarnings(
+    as.Date(sprintf("%04d-%02d-%02d", yyyy, mm, dd), format = "%Y-%m-%d")
+  )
+}
+
+# Mid-year fallback from YEAR when STARTDATE is missing/unparseable.
+# Uncertainty 180 days — uses the YEAR attribute; does not invent ages.
+.tmnp_year_fallback <- function(yi, today) {
+  if (is.na(yi) || yi < 1900L || yi > as.integer(format(today, "%Y"))) {
+    return(list(burn_date = as.Date(NA), date_uncertainty_days = NA_integer_))
+  }
+  d <- .parse_ymd_safe(yi, 7L, 1L)
+  if (is.na(d) || d >= today) {
+    return(list(burn_date = as.Date(NA), date_uncertainty_days = NA_integer_))
+  }
+  list(burn_date = d, date_uncertainty_days = 180L)
+}
+
 # Parse TMNP STARTDATE strings: YYYYMMDD, YYYYMM00 (month only), YYYY0000
-# (year only). Returns a list of burn_date (Date) and date_uncertainty_days.
+# (year only); also ISO / DD/MM/YYYY via .parse_flexible_date. Invalid
+# calendars (e.g. 19939315) → YEAR mid-year fallback or NA.
+# Returns a list of burn_date (Date) and date_uncertainty_days.
 .parse_tmnp_startdate <- function(startdate, year, today = Sys.Date()) {
   s <- trimws(as.character(startdate))
-  y <- suppressWarnings(as.integer(year))
+  # DBF YEAR is often numeric with decimals ("2015.000..."); as.integer is fine
+  y <- suppressWarnings(as.integer(as.numeric(year)))
   n <- length(s)
   burn_date <- rep(as.Date(NA), n)
   unc <- rep(NA_integer_, n)
@@ -512,41 +537,68 @@ download_tmnp_fire_shapefile <- function(
     si <- s[i]
     yi <- y[i]
     if (is.na(si) || !nzchar(si) || identical(si, "0")) {
-      if (!is.na(yi) && yi >= 1900L && yi <= as.integer(format(today, "%Y"))) {
-        burn_date[i] <- as.Date(paste0(yi, "-07-01"))
-        unc[i] <- 180L
-      }
+      fb <- .tmnp_year_fallback(yi, today)
+      burn_date[i] <- fb$burn_date
+      unc[i] <- fb$date_uncertainty_days
       next
     }
-    if (!grepl("^[0-9]{8}$", si)) next
-    yy <- as.integer(substr(si, 1L, 4L))
-    mm <- as.integer(substr(si, 5L, 6L))
-    dd <- as.integer(substr(si, 7L, 8L))
-    if (is.na(yy) || yy < 1900L) next
 
-    if (!is.na(mm) && mm > 0L && !is.na(dd) && dd > 0L) {
-      d <- suppressWarnings(as.Date(sprintf("%04d-%02d-%02d", yy, mm, dd)))
-      if (!is.na(d) && d < today) {
-        burn_date[i] <- d
-        unc[i] <- 0L
+    if (grepl("^[0-9]{8}$", si)) {
+      yy <- as.integer(substr(si, 1L, 4L))
+      mm <- as.integer(substr(si, 5L, 6L))
+      dd <- as.integer(substr(si, 7L, 8L))
+      if (is.na(yy) || yy < 1900L) {
+        fb <- .tmnp_year_fallback(yi, today)
+        burn_date[i] <- fb$burn_date
+        unc[i] <- fb$date_uncertainty_days
+        next
       }
-    } else if (!is.na(mm) && mm > 0L) {
-      # Month known, day unknown → mid-month
-      d <- suppressWarnings(
-        as.Date(sprintf("%04d-%02d-15", yy, mm))
-      )
-      if (!is.na(d) && d < today) {
-        burn_date[i] <- d
-        unc[i] <- 15L
+
+      if (!is.na(mm) && mm >= 1L && mm <= 12L &&
+          !is.na(dd) && dd >= 1L && dd <= 31L) {
+        d <- .parse_ymd_safe(yy, mm, dd)
+        if (!is.na(d) && d < today) {
+          burn_date[i] <- d
+          unc[i] <- 0L
+          next
+        }
+        # Invalid day-of-month (e.g. Feb 31) or future — fall through
+      } else if (!is.na(mm) && mm >= 1L && mm <= 12L &&
+                 !is.na(dd) && dd == 0L) {
+        # Month known, day unknown → mid-month
+        d <- .parse_ymd_safe(yy, mm, 15L)
+        if (!is.na(d) && d < today) {
+          burn_date[i] <- d
+          unc[i] <- 15L
+          next
+        }
+      } else if (!is.na(mm) && mm == 0L && !is.na(dd) && dd == 0L) {
+        # Year only (YYYY0000)
+        d <- .parse_ymd_safe(yy, 7L, 1L)
+        if (!is.na(d) && d < today) {
+          burn_date[i] <- d
+          unc[i] <- 180L
+          next
+        }
       }
-    } else {
-      # Year only
-      d <- as.Date(paste0(yy, "-07-01"))
-      if (d < today) {
-        burn_date[i] <- d
-        unc[i] <- 180L
-      }
+      # Corrupt compact date (e.g. month 93 in 19939315) → YEAR fallback
+      fb <- .tmnp_year_fallback(yi, today)
+      burn_date[i] <- fb$burn_date
+      unc[i] <- fb$date_uncertainty_days
+      next
     }
+
+    # Non-compact: ISO YYYY-MM-DD or DD/MM/YYYY (CapeNature-style)
+    d_flex <- .parse_flexible_date(si, today = today)
+    if (!is.na(d_flex) && d_flex < today) {
+      burn_date[i] <- d_flex
+      unc[i] <- 0L
+      next
+    }
+
+    fb <- .tmnp_year_fallback(yi, today)
+    burn_date[i] <- fb$burn_date
+    unc[i] <- fb$date_uncertainty_days
   }
 
   list(burn_date = burn_date, date_uncertainty_days = unc)
