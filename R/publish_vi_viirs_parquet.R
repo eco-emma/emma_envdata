@@ -32,13 +32,14 @@ if (file.exists("DESCRIPTION") && exists("load_description_packages")) {
 repo <- Sys.getenv("TAR_GH_RELEASE_REPO", unset = "eco-emma/emma_envdata")
 tag <- "vi_viirs_parquet"
 out_dir <- "data/target_outputs/viirs_vi"
+pattern <- "^vi_viirs_[0-9]{8}\\.parquet$"
 
-files <- list.files(
-  out_dir,
-  pattern = "^vi_viirs_[0-9]{8}\\.parquet$",
-  full.names = TRUE
+# Same inventory helper used by upload_vi_viirs in _targets.R
+files <- list_release_inventory(
+  dir = out_dir,
+  pattern = pattern,
+  verbose = TRUE
 )
-files <- sort(files)
 
 message(
   "publish_vi_viirs_parquet: repo=", repo,

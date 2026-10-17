@@ -946,13 +946,23 @@ list(
     deployment = "main"
   ),
 
+  # Upload dynamic product files from the *full on-disk inventory*, not only
+  # the current *_pending dynamic-branch slice. Branch values are passed as
+  # `also=` so targets still waits for new composites; list_release_inventory()
+  # unions them with every matching file already under the data dir.
+  # upload_to_github_release() then skips assets already on the release
+  # (or checksum-diffs when overwrite = TRUE).
+
   # Upload dynamic MODIS VI parquet files
-  # Pass vi_modis_parquet directly — targets aggregates the branched vector automatically,
-  # so this target re-runs whenever a new month is added.
   tar_target(
     upload_vi_modis,
     upload_to_github_release(
-      files        = vi_modis_parquet[!is.na(vi_modis_parquet) & !grepl("\\.skip$", vi_modis_parquet)],
+      files = list_release_inventory(
+        dir     = "data/target_outputs/modis_vi",
+        pattern = "^vi_modis_[0-9]{8}\\.parquet$",
+        also    = vi_modis_parquet,
+        verbose = TRUE
+      ),
       repo         = gh_repo_config$repo,
       release_tag  = release_tags$vi_modis_parquet,
       release_name = "Dynamic MODIS Vegetation Index",
@@ -961,12 +971,17 @@ list(
     deployment = "main"
   ),
 
-  # Upload dynamic VIIRS VI parquet files (same pattern as upload_vi_modis).
+  # Upload dynamic VIIRS VI parquet files.
   # Creates release tag vi_viirs_parquet on first upload if missing.
   tar_target(
     upload_vi_viirs,
     upload_to_github_release(
-      files        = vi_viirs_parquet[!is.na(vi_viirs_parquet) & !grepl("\\.skip$", vi_viirs_parquet)],
+      files = list_release_inventory(
+        dir     = "data/target_outputs/viirs_vi",
+        pattern = "^vi_viirs_[0-9]{8}\\.parquet$",
+        also    = vi_viirs_parquet,
+        verbose = TRUE
+      ),
       repo         = gh_repo_config$repo,
       release_tag  = release_tags$vi_viirs_parquet,
       release_name = "Dynamic VIIRS Vegetation Index",
@@ -979,7 +994,12 @@ list(
   tar_target(
     upload_burn_modis,
     upload_to_github_release(
-      files        = burn_modis_parquet[!grepl("\\.skip$", burn_modis_parquet)],
+      files = list_release_inventory(
+        dir     = "data/target_outputs/burndates",
+        pattern = "^burn_modis_[0-9]{6}\\.parquet$",
+        also    = burn_modis_parquet,
+        verbose = TRUE
+      ),
       repo         = gh_repo_config$repo,
       release_tag  = release_tags$burn_modis_parquet,
       release_name = "Dynamic MODIS Burned Area (MCD64A1)",
@@ -992,7 +1012,12 @@ list(
   tar_target(
     upload_burn_viirs_data,
     upload_to_github_release(
-      files        = burn_viirs_parquet[!grepl("\\.skip$", burn_viirs_parquet)],
+      files = list_release_inventory(
+        dir     = "data/target_outputs/burndates",
+        pattern = "^burn_viirs_[0-9]{6}\\.parquet$",
+        also    = burn_viirs_parquet,
+        verbose = TRUE
+      ),
       repo         = gh_repo_config$repo,
       release_tag  = release_tags$burn_viirs_parquet,
       release_name = "Dynamic VIIRS Burned Area (VNP64A1)",
@@ -1005,9 +1030,12 @@ list(
   tar_target(
     upload_vi_modis_terra_grid,
     upload_to_github_release(
-      files        = vi_modis_grid[
-        grepl("vi_modis_terra_.*\\.tif$", vi_modis_grid)
-      ],
+      files = list_release_inventory(
+        dir     = "data/target_outputs/modis_vi",
+        pattern = "^vi_modis_terra_[0-9]{8}\\.tif$",
+        also    = vi_modis_grid,
+        verbose = TRUE
+      ),
       repo         = gh_repo_config$repo,
       release_tag  = release_tags$vi_modis_terra,
       release_name = "Dynamic MODIS Terra VI Rasters (16-day composites)",
@@ -1019,9 +1047,12 @@ list(
   tar_target(
     upload_vi_modis_aqua_grid,
     upload_to_github_release(
-      files        = vi_modis_grid[
-        grepl("vi_modis_aqua_.*\\.tif$", vi_modis_grid)
-      ],
+      files = list_release_inventory(
+        dir     = "data/target_outputs/modis_vi",
+        pattern = "^vi_modis_aqua_[0-9]{8}\\.tif$",
+        also    = vi_modis_grid,
+        verbose = TRUE
+      ),
       repo         = gh_repo_config$repo,
       release_tag  = release_tags$vi_modis_aqua,
       release_name = "Dynamic MODIS Aqua VI Rasters (16-day composites)",
@@ -1030,11 +1061,16 @@ list(
     deployment = "main"
   ),
 
-  # Upload VIIRS VI sensor raster grids (S-NPP + NOAA-20 NC files)
+  # Upload VIIRS VI sensor raster grids (S-NPP + NOAA-20 COGs)
   tar_target(
     upload_vi_viirs_grid,
     upload_to_github_release(
-      files        = vi_viirs_grid[!grepl("\\.skip$", vi_viirs_grid)],
+      files = list_release_inventory(
+        dir     = "data/target_outputs/viirs_vi",
+        pattern = "^vi_viirs_(snpp|noaa20)_[0-9]{8}\\.tif$",
+        also    = vi_viirs_grid,
+        verbose = TRUE
+      ),
       repo         = gh_repo_config$repo,
       release_tag  = release_tags$vi_viirs_raster,
       release_name = "Dynamic VIIRS VI Rasters (S-NPP + NOAA-20, 16-day composites)",
@@ -1049,7 +1085,12 @@ list(
   tar_target(
     upload_burn_modis_grid,
     upload_to_github_release(
-      files        = burn_modis_grid[!grepl("\\.skip$", burn_modis_grid)],
+      files = list_release_inventory(
+        dir     = "data/target_outputs/burndates",
+        pattern = "^burn_modis_[0-9]{6}\\.tif$",
+        also    = burn_modis_grid,
+        verbose = TRUE
+      ),
       repo         = gh_repo_config$repo,
       release_tag  = release_tags$burn_modis_raster,
       release_name = "Dynamic MODIS Burned Area Rasters (MCD64A1)",
@@ -1064,7 +1105,12 @@ list(
   tar_target(
     upload_burn_viirs_grid,
     upload_to_github_release(
-      files        = burn_viirs_grid[!grepl("\\.skip$", burn_viirs_grid)],
+      files = list_release_inventory(
+        dir     = "data/target_outputs/burndates",
+        pattern = "^burn_viirs_[0-9]{6}\\.tif$",
+        also    = burn_viirs_grid,
+        verbose = TRUE
+      ),
       repo         = gh_repo_config$repo,
       release_tag  = release_tags$burn_viirs_raster,
       release_name = "Dynamic VIIRS Burned Area Rasters (VNP64A1)",
@@ -1079,9 +1125,14 @@ list(
   tar_target(
     upload_fireage,
     upload_to_github_release(
-      files        = c(
+      files = c(
         terra::sources(fireage_current.tif)[[1]],
-        fireage_parquets[!grepl("\\.skip$", fireage_parquets)]
+        list_release_inventory(
+          dir     = "data/target_outputs/fireage",
+          pattern = "^fireage_.*\\.parquet$",
+          also    = fireage_parquets,
+          verbose = TRUE
+        )
       ),
       repo         = gh_repo_config$repo,
       release_tag  = release_tags$fireage,

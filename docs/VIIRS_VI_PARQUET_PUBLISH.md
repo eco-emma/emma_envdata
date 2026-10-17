@@ -36,43 +36,32 @@ GHA cannot reconstruct the full historical parquet archive from release COGs
 without re-running `vi_viirs_geotiff_to_parquet` for every composite. Prefer
 CCR upload of existing local files.
 
-## One-shot CCR publish (Adam)
+## Fill / refresh release on CCR (Adam)
 
-After this branch is on `main`:
+After inventory-based `upload_vi_viirs` is on `main`, prefer the canonical
+targets path (full on-disk `vi_viirs_*.parquet` inventory, skip-if-present):
 
 ```bash
 ssh vortex.ccr.buffalo.edu
-salloc --cluster=faculty --qos=adamw --partition=adamw \
-  --job-name=emma_viirs_pq --nodes=1 --ntasks=2 --mem=16G \
-  -C INTEL --time=04:00:00
-
+# salloc … then:
 cd /projects/academic/adamw/projects/emma/emma_envdata
 git fetch origin && git checkout main && git pull --ff-only
 
-# Preflight (host or inside Apptainer)
 ls data/target_outputs/viirs_vi/vi_viirs_*.parquet | wc -l
 # Expect hundreds; names like vi_viirs_20120407.parquet … vi_viirs_20260921.parquet
 test -n "${GITHUB_PAT:-}" || export GITHUB_PAT="$(gh auth token)"
-gh api user -q .login   # must succeed; needs contents:write on eco-emma
 
 bash R/ccr_startup.sh shell
-
-# Inside Apptainer — creates tag vi_viirs_parquet if missing, uploads all locals
-# Must end with "Success: all N vi_viirs_*.parquet assets confirmed"
-# Must NOT print "Uploaded/confirmed 0" or exit 0 after warnings-only.
-Rscript R/publish_vi_viirs_parquet.R
+# Inside Apptainer — upload-only is enough if parquets already exist:
+R -e 'targets::tar_make(upload_vi_viirs)'
+# Or full pipeline: bash run_tar_make.sh
 ```
 
-Dry-run count only:
+Legacy CLI (same inventory helper; not required after merge):
 
 ```bash
 Rscript R/publish_vi_viirs_parquet.R --dry-run
-```
-
-Equivalent targets path (after merge; needs local store + all parquet paths):
-
-```r
-targets::tar_make(upload_vi_viirs)
+Rscript R/publish_vi_viirs_parquet.R
 ```
 
 Verify on GitHub (host, after script exits 0):
@@ -97,8 +86,11 @@ count ≈ local `wc -l`, and Sep 2026 files `vi_viirs_20260905.parquet` /
 
 ## Ongoing path
 
-- **CCR full `tar_make`**: `upload_vi_viirs` publishes new months (mirrors
-  `upload_vi_modis`).
+- **CCR `tar_make` / `upload_vi_viirs`**: lists every local
+  `vi_viirs_YYYYMMDD.parquet`, diffs against release assets, uploads only
+  missing/changed files (same pattern as peer `upload_*` products). Safe for
+  incremental runs over years; does not rely on the current `*_pending` branch
+  slice alone.
 - **Nightly Actions** (`R/ci_appeears_update.R`): already maps
   `vi_viirs_*.parquet` → tag `vi_viirs_parquet` and creates the release on
   first upload; no GHA workflow change required for *new* months.
