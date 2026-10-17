@@ -570,3 +570,46 @@ upload_to_github_release <- function(
 #' Helper operator
 #' @keywords internal
 `%not_in%` <- Negate(`%in%`)
+
+#' @title List local files belonging to a product release
+#' @description Scans \code{dir} for files matching \code{pattern} and unions
+#'   them with optional target-returned paths in \code{also}. Upload targets
+#'   must use this (not only dynamic-branch outputs): \code{*_pending} filters
+#'   to composites/months missing from the *raster* release, so branched
+#'   parquet/grid targets only return the current slice. Historical files that
+#'   already exist on disk would otherwise never be offered to
+#'   \code{upload_to_github_release()}, which then diffs against release assets
+#'   and uploads only missing/changed files.
+#' @param dir Directory to scan (relative or absolute)
+#' @param pattern Regex matched against basenames (\code{list.files} pattern)
+#' @param also Optional character vector of additional paths (e.g. from a
+#'   branched target). Establishes the targets dependency when passed through
+#'   from \code{_targets.R}. NA, empty, missing, and \code{*.skip} paths are
+#'   dropped; remaining paths must match \code{pattern} on the basename.
+#' @param verbose Logical; message inventory size when TRUE
+#' @return Sorted unique character vector of existing file paths
+#' @export
+list_release_inventory <- function(dir, pattern, also = character(0),
+                                   verbose = FALSE) {
+  on_disk <- character(0)
+  if (length(dir) == 1L && is.character(dir) && nzchar(dir) && dir.exists(dir)) {
+    on_disk <- list.files(dir, pattern = pattern, full.names = TRUE)
+  }
+
+  also <- as.character(also)
+  also <- also[!is.na(also) & nzchar(also) & !grepl("\\.skip$", also)]
+  also <- also[file.exists(also)]
+  if (length(also) > 0L && length(pattern) == 1L && nzchar(pattern)) {
+    also <- also[grepl(pattern, basename(also))]
+  }
+
+  files <- sort(unique(c(on_disk, also)))
+  if (isTRUE(verbose)) {
+    message(
+      "list_release_inventory: ", length(files), " file(s) under ",
+      if (length(dir) == 1L) dir else "?",
+      " matching /", pattern, "/"
+    )
+  }
+  files
+}
