@@ -85,6 +85,9 @@ Tag names live in `release_tags` in `_targets.R`. The current product tags are
 separate releases. Input files that the pipeline downloads, and that a release
 reset must keep, are `vegmap2024` and `manual-data`.
 
+If `vi_viirs_parquet` is missing on GitHub, publish existing local files from CCR
+(see [VIIRS_VI_PARQUET_PUBLISH.md](VIIRS_VI_PARQUET_PUBLISH.md)).
+
 VIIRS burned area is AppEEARS product `VNP64A1.002`.
 
 ## Troubleshooting

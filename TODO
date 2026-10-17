@@ -55,6 +55,7 @@ Here is the full release inventory cross-referenced against the current `release
 | `vi_modis_raster` | `vi_modis_dynamic_raster` | MODIS VI COG GeoTIFFs (Terra + Aqua) |
 | `vi_viirs_raster` | `vi_viirs_dynamic_raster` | VIIRS VI COG GeoTIFFs (S-NPP + NOAA-20) |
 | `vi_modis_parquet` | `vi_modis_dynamic` | MODIS VI parquet files |
+| `vi_viirs_parquet` | *(never had a stale tag — upload target was missing)* | VIIRS VI parquet files |
 | `burn_modis_raster` | `burn_dates_modis_raster` | MODIS burn area COG GeoTIFFs |
 | `burn_viirs_raster` | `burn_dates_viirs_raster` | VIIRS burn area COG GeoTIFFs |
 | `burn_modis_parquet` | *(was `burndate_modis_dynamic`, never existed)* | MODIS burn parquets |

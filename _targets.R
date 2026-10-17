@@ -961,6 +961,20 @@ list(
     deployment = "main"
   ),
 
+  # Upload dynamic VIIRS VI parquet files (same pattern as upload_vi_modis).
+  # Creates release tag vi_viirs_parquet on first upload if missing.
+  tar_target(
+    upload_vi_viirs,
+    upload_to_github_release(
+      files        = vi_viirs_parquet[!is.na(vi_viirs_parquet) & !grepl("\\.skip$", vi_viirs_parquet)],
+      repo         = gh_repo_config$repo,
+      release_tag  = release_tags$vi_viirs_parquet,
+      release_name = "Dynamic VIIRS Vegetation Index",
+      verbose      = TRUE
+    ),
+    deployment = "main"
+  ),
+
   # Upload MODIS burned area parquets
   tar_target(
     upload_burn_modis,
