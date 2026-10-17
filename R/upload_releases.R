@@ -1,12 +1,16 @@
 #' @title List asset names in a GitHub release
 #' @description Retrieves asset filenames for a release tag using the gh package
-#'   directly (avoids piggyback API incompatibilities).
+#'   directly (avoids piggyback API incompatibilities). Pages the release
+#'   assets endpoint — \code{GET .../releases/tags/\{tag\}} embeds at most ~30
+#'   assets, which is wrong for large parquet releases.
 #' @param repo Repository in format "owner/repo"
 #' @param release_tag Release tag string
 #' @param token GitHub token
-#' @return Character vector of asset file names, or character(0) on error
+#' @param strict If TRUE, errors propagate; if FALSE (default), return
+#'   \code{character(0)} on failure (missing tag, network, etc.).
+#' @return Character vector of asset file names
 #' @keywords internal
-.gh_release_asset_names <- function(repo, release_tag, token) {
+.gh_release_asset_names <- function(repo, release_tag, token, strict = FALSE) {
   parts <- strsplit(repo, "/")[[1]]
   tryCatch({
     rel <- gh::gh(
@@ -14,9 +18,27 @@
       owner = parts[1], repo = parts[2], tag = release_tag,
       .token = token
     )
-    if (length(rel$assets) == 0L) character(0)
-    else vapply(rel$assets, function(a) a$name, character(1L))
-  }, error = function(e) character(0))
+    assets <- gh::gh(
+      "GET /repos/{owner}/{repo}/releases/{release_id}/assets",
+      owner = parts[1], repo = parts[2], release_id = rel$id,
+      per_page = 100,
+      .token = token,
+      .limit = Inf
+    )
+    if (length(assets) == 0L) {
+      return(character(0))
+    }
+    # gh::gh may return a single asset as an unnamed list, or a list of assets.
+    if (!is.null(assets$name) && is.character(assets$name)) {
+      return(assets$name)
+    }
+    vapply(assets, function(a) a$name, character(1L))
+  }, error = function(e) {
+    if (isTRUE(strict)) {
+      stop(conditionMessage(e), call. = FALSE)
+    }
+    character(0)
+  })
 }
 
 #' @title Fetch remote SHA-256 checksums for a release's assets
@@ -39,7 +61,19 @@
       owner = parts[1], repo = parts[2], tag = release_tag,
       .token = token
     )
-    asset <- Filter(function(a) identical(a$name, sha_asset_name), rel$assets)
+    # Page assets — embedded rel$assets is capped at ~30 names.
+    assets <- gh::gh(
+      "GET /repos/{owner}/{repo}/releases/{release_id}/assets",
+      owner = parts[1], repo = parts[2], release_id = rel$id,
+      per_page = 100,
+      .token = token,
+      .limit = Inf
+    )
+    if (length(assets) == 0L) return(character(0))
+    if (!is.null(assets$name) && is.character(assets$name)) {
+      assets <- list(assets)
+    }
+    asset <- Filter(function(a) identical(a$name, sha_asset_name), assets)
     if (length(asset) == 0L) return(character(0))
     resp <- httr::GET(
       url = asset[[1]]$url,
@@ -58,10 +92,121 @@
   }, error = function(e) character(0))
 }
 
+#' @title Resolve a GitHub token for release uploads
+#' @return Non-empty token string, or stops if none is available
+#' @keywords internal
+.gh_upload_token <- function(verbose = TRUE) {
+  token <- Sys.getenv("GITHUB_PAT")
+  if (!nzchar(token)) token <- Sys.getenv("GITHUB_TOKEN")
+  if (!nzchar(token)) {
+    token <- tryCatch(
+      trimws(system("gh auth token", intern = TRUE, ignore.stderr = TRUE)[[1]]),
+      error = function(e) ""
+    )
+    if (is.na(token)) token <- ""
+    if (nzchar(token) && verbose) {
+      message("Using GitHub token from 'gh auth token'")
+    }
+  }
+  if (!nzchar(token)) {
+    stop(
+      "No GitHub token found (GITHUB_PAT, GITHUB_TOKEN, or gh CLI). ",
+      "On CCR: export GITHUB_PAT from ~/.Renviron or run `gh auth login`, ",
+      "then re-run inside Apptainer.",
+      call. = FALSE
+    )
+  }
+  token
+}
+
+#' @title True if a release tag exists and is readable with the token
+#' @keywords internal
+.gh_release_exists <- function(repo, release_tag, token) {
+  parts <- strsplit(repo, "/")[[1]]
+  tryCatch({
+    gh::gh(
+      "GET /repos/{owner}/{repo}/releases/tags/{tag}",
+      owner = parts[1], repo = parts[2], tag = release_tag,
+      .token = token
+    )
+    TRUE
+  }, error = function(e) FALSE)
+}
+
+#' @title Ensure a GitHub release tag exists (create if missing)
+#' @description GET first; POST create on miss; gh CLI fallback; hard-stop if
+#'   the tag is still missing. Never treats create failure as "already exists".
+#' @keywords internal
+.ensure_github_release <- function(repo, release_tag, release_name, token,
+                                   verbose = TRUE) {
+  parts <- strsplit(repo, "/")[[1]]
+  if (.gh_release_exists(repo, release_tag, token)) {
+    if (verbose) message("Using existing release '", release_tag, "'")
+    return(invisible(TRUE))
+  }
+
+  create_err <- NULL
+  tryCatch({
+    gh::gh(
+      "POST /repos/{owner}/{repo}/releases",
+      owner      = parts[1], repo = parts[2],
+      tag_name   = release_tag,
+      name       = release_name,
+      prerelease = TRUE,
+      .token     = token
+    )
+    if (verbose) message("\u2713 Created release '", release_tag, "'")
+  }, error = function(e) {
+    create_err <<- conditionMessage(e)
+  })
+
+  if (.gh_release_exists(repo, release_tag, token)) {
+    return(invisible(TRUE))
+  }
+
+  # API create failed and tag still missing — try gh CLI (often has org SSO /
+  # write scope when a stale GITHUB_PAT in the environment does not).
+  gh_bin <- Sys.which("gh")
+  if (nzchar(gh_bin)) {
+    if (verbose) {
+      message(
+        "API create failed for '", release_tag, "'",
+        if (!is.null(create_err)) paste0(" (", create_err, ")"),
+        "; trying `gh release create`..."
+      )
+    }
+    args <- c(
+      "release", "create", release_tag,
+      "--repo", repo,
+      "--title", release_name,
+      "--notes", paste("Release", release_tag),
+      "--prerelease"
+    )
+    exit_code <- system2(gh_bin, args, stdout = TRUE, stderr = TRUE)
+    status <- attr(exit_code, "status")
+    if (is.null(status)) status <- 0L
+    if (status == 0L && .gh_release_exists(repo, release_tag, token)) {
+      if (verbose) message("\u2713 Created release '", release_tag, "' via gh CLI")
+      return(invisible(TRUE))
+    }
+  }
+
+  stop(
+    "Could not create or read GitHub release '", release_tag, "' on ", repo, ". ",
+    "Tag is still missing after API",
+    if (nzchar(gh_bin)) "/gh-CLI",
+    " create. ",
+    if (!is.null(create_err)) paste0("API error: ", create_err, " "),
+    "Check token scopes (contents:write) and org SSO authorization for eco-emma.",
+    call. = FALSE
+  )
+}
+
 #' @title Upload a single file to a GitHub release via the REST API
 #' @description Posts a file to a release upload URL using httr, bypassing
 #'   piggyback which has known column-selection errors against newer GitHub
-#'   API response schemas.
+#'   API response schemas. Falls back to `gh release upload` when the REST
+#'   upload fails (same pattern as the DELETE/clobber path).
 #' @param file  Absolute or relative path to the file to upload
 #' @param repo  Repository in format "owner/repo"
 #' @param release_tag Release tag string
@@ -155,6 +300,39 @@
     Sys.sleep(60L)
     stop("Rate-limited uploading ", basename(file), " — will retry on next run")
   }
+  if (status >= 200L && status < 300L) {
+    return(invisible(TRUE))
+  }
+
+  # REST upload failed (auth/scope/404). Fall back to gh CLI, which often has
+  # working credentials when GITHUB_PAT is stale or lacks org SSO.
+  api_err <- tryCatch(
+    paste0(status, " ", httr::content(resp, "text", encoding = "UTF-8")),
+    error = function(e) as.character(status)
+  )
+  gh_bin <- Sys.which("gh")
+  if (nzchar(gh_bin)) {
+    clobber <- if (isTRUE(overwrite)) "--clobber" else NULL
+    exit_code <- system2(
+      gh_bin,
+      c(
+        "release", "upload", release_tag,
+        normalizePath(file, mustWork = TRUE),
+        "--repo", repo,
+        clobber
+      ),
+      stdout = TRUE,
+      stderr = TRUE
+    )
+    status_cli <- attr(exit_code, "status")
+    if (is.null(status_cli)) status_cli <- 0L
+    if (status_cli == 0L) return(invisible(TRUE))
+    stop(
+      "REST upload failed (", api_err, ") and gh CLI upload failed for ",
+      basename(file), ": ", paste(exit_code, collapse = " "),
+      call. = FALSE
+    )
+  }
   httr::stop_for_status(resp)
   invisible(TRUE)
 }
@@ -199,22 +377,7 @@ upload_to_github_release <- function(
     return(invisible(character(0)))
   }
   
-  # Check for GitHub token (GITHUB_PAT preferred, GITHUB_TOKEN as fallback, then gh CLI)
-  token <- Sys.getenv("GITHUB_PAT")
-  if (token == "") token <- Sys.getenv("GITHUB_TOKEN")
-  if (token == "") {
-    token <- tryCatch(
-      trimws(system("gh auth token", intern = TRUE, ignore.stderr = TRUE)[[1]]),
-      error = function(e) ""
-    )
-    if (!is.na(token) && nchar(token) > 0) {
-      if (verbose) message("Using GitHub token from 'gh auth token'")
-    } else {
-      token <- ""
-      warning("No GitHub token found (GITHUB_PAT, GITHUB_TOKEN, or gh CLI). Upload will likely fail.")
-    }
-  }
-
+  token <- .gh_upload_token(verbose = verbose)
 
   # Filter to files that exist
   files <- files[file.exists(files)]
@@ -222,37 +385,23 @@ upload_to_github_release <- function(
     message("No files found to upload")
     return(invisible(character(0)))
   }
-  
 
-  # Ensure release exists (create it if needed) — use gh directly, not piggyback,
-  # to avoid pb_new_release() API incompatibilities with newer GitHub response schemas.
-  parts <- strsplit(repo, "/")[[1]]
-  tryCatch({
-    gh::gh(
-      "POST /repos/{owner}/{repo}/releases",
-      owner      = parts[1], repo = parts[2],
-      tag_name   = release_tag,
-      name       = release_name,
-      prerelease = TRUE,
-      .token     = token
-    )
-    if (verbose) message("\u2713 Created release '", release_tag, "'")
-  }, error = function(e) {
-    # Release already exists or commit doesn't exist yet — both are fine
-    if (verbose) message("Using existing release '", release_tag, "'")
-  })
-  
-
-  
+  # Ensure release exists — hard-fail if create/read fails (do not swallow as
+  # "Using existing release"; that caused CCR publish to exit 0 with 0 assets
+  # while vi_viirs_parquet stayed 404).
+  .ensure_github_release(
+    repo = repo,
+    release_tag = release_tag,
+    release_name = release_name,
+    token = token,
+    verbose = verbose
+  )
 
   # List existing assets using gh package directly (piggyback pb_list has
   # incompatibilities with newer GitHub API response schemas).
-  existing_names <- tryCatch({
-    .gh_release_asset_names(repo, release_tag, token)
-  }, error = function(e) {
-    if (verbose) warning("Unable to list files in release: ", e$message)
-    character(0)
-  })
+  existing_names <- .gh_release_asset_names(
+    repo, release_tag, token, strict = TRUE
+  )
 
   # Deduplicate files (branched targets may return same path from multiple branches)
   files <- files[!duplicated(basename(files))]
@@ -322,20 +471,35 @@ upload_to_github_release <- function(
 
   # Retry once after a backoff — most first-pass failures are transient
   # secondary-rate-limit hits rather than permanent errors.
-  if (length(first_pass$failed) > 0L) {
+  still_failed <- first_pass$failed
+  if (length(still_failed) > 0L) {
     if (verbose) message(
-      "Retrying ", length(first_pass$failed),
+      "Retrying ", length(still_failed),
       " failed upload(s) after 30s backoff..."
     )
     Sys.sleep(30L)
-    retry_pass <- upload_batch(first_pass$failed)
+    retry_pass <- upload_batch(still_failed)
     uploaded   <- c(uploaded, retry_pass$ok)
-    if (length(retry_pass$failed) > 0L) {
-      warning(
-        length(retry_pass$failed), " file(s) still failed to upload after retry: ",
-        paste(basename(retry_pass$failed), collapse = ", ")
-      )
-    }
+    still_failed <- retry_pass$failed
+  }
+
+  if (length(still_failed) > 0L) {
+    stop(
+      length(still_failed), " file(s) failed to upload to '", release_tag,
+      "' after retry: ",
+      paste(basename(utils::head(still_failed, 20L)), collapse = ", "),
+      if (length(still_failed) > 20L) " ..." else "",
+      ". Succeeded: ", length(uploaded), "/", length(files_to_upload), ".",
+      call. = FALSE
+    )
+  }
+
+  if (length(files_to_upload) > 0L && length(uploaded) == 0L) {
+    stop(
+      "Upload to '", release_tag, "' reported 0 successes for ",
+      length(files_to_upload), " file(s). Check token scopes and release tag.",
+      call. = FALSE
+    )
   }
 
  

@@ -44,7 +44,8 @@ message(
   "publish_vi_viirs_parquet: repo=", repo,
   " tag=", tag,
   " n_files=", length(files),
-  " dry_run=", dry_run
+  " dry_run=", dry_run,
+  " cwd=", getwd()
 )
 
 if (!length(files)) {
@@ -66,6 +67,13 @@ if (dry_run) {
   quit(status = 0)
 }
 
+# Fail fast on missing auth before spending time in the upload loop.
+token <- .gh_upload_token(verbose = TRUE)
+message(
+  "Auth ok (token length=", nchar(token),
+  "). Creating/updating release '", tag, "'..."
+)
+
 uploaded <- upload_to_github_release(
   files = files,
   repo = repo,
@@ -74,7 +82,36 @@ uploaded <- upload_to_github_release(
   verbose = TRUE
 )
 
+# Hard verify: release must exist and hold the local parquet basenames.
+remote_names <- .gh_release_asset_names(repo, tag, token, strict = TRUE)
+local_names <- basename(files)
+missing <- setdiff(local_names, remote_names)
+
 message(
-  "Done. Uploaded/confirmed ", length(uploaded),
-  " asset path(s) on tag ", tag, "."
+  "Done. Newly uploaded this run: ", length(uploaded),
+  "; remote assets on '", tag, "': ", length(remote_names),
+  "; local parquets: ", length(local_names),
+  "; missing on remote: ", length(missing)
+)
+
+if (!.gh_release_exists(repo, tag, token)) {
+  stop(
+    "Release '", tag, "' still missing on ", repo,
+    " after upload_to_github_release().",
+    call. = FALSE
+  )
+}
+
+if (length(missing) > 0L) {
+  stop(
+    length(missing), " local parquet(s) still absent from '", tag, "': ",
+    paste(utils::head(missing, 15L), collapse = ", "),
+    if (length(missing) > 15L) " ..." else "",
+    call. = FALSE
+  )
+}
+
+message(
+  "Success: all ", length(local_names),
+  " vi_viirs_*.parquet assets confirmed on ", repo, "@", tag
 )
