@@ -23,6 +23,14 @@ exists; without it, emma_report falls back to **MODIS-only** means.
    while the upload filter only accepted `*_grid_<hex>` names (fixed later in
    [#36](https://github.com/eco-emma/emma_envdata/pull/36)). Those runner files
    were discarded; later nights saw empty pending and never re-uploaded.
+3. **CCR one-shot publish (2026-10)**: `Rscript R/publish_vi_viirs_parquet.R`
+   listed hundreds of `Uploading: vi_viirs_….parquet` lines, then
+   `There were 50 or more warnings` and
+   `Done. Uploaded/confirmed 0 asset path(s)` while the tag stayed 404.
+   Root cause: `upload_to_github_release()` swallowed release-create failures as
+   “Using existing release”, caught every upload error as a warning, and
+   returned success with zero paths. Fixed: hard-fail on missing token / create
+   / upload; `gh` CLI fallback; paginated asset listing.
 
 GHA cannot reconstruct the full historical parquet archive from release COGs
 without re-running `vi_viirs_geotiff_to_parquet` for every composite. Prefer
@@ -40,9 +48,18 @@ salloc --cluster=faculty --qos=adamw --partition=adamw \
 
 cd /projects/academic/adamw/projects/emma/emma_envdata
 git fetch origin && git checkout main && git pull --ff-only
+
+# Preflight (host or inside Apptainer)
+ls data/target_outputs/viirs_vi/vi_viirs_*.parquet | wc -l
+# Expect hundreds; names like vi_viirs_20120407.parquet … vi_viirs_20260921.parquet
+test -n "${GITHUB_PAT:-}" || export GITHUB_PAT="$(gh auth token)"
+gh api user -q .login   # must succeed; needs contents:write on eco-emma
+
 bash R/ccr_startup.sh shell
 
 # Inside Apptainer — creates tag vi_viirs_parquet if missing, uploads all locals
+# Must end with "Success: all N vi_viirs_*.parquet assets confirmed"
+# Must NOT print "Uploaded/confirmed 0" or exit 0 after warnings-only.
 Rscript R/publish_vi_viirs_parquet.R
 ```
 
@@ -58,15 +75,25 @@ Equivalent targets path (after merge; needs local store + all parquet paths):
 targets::tar_make(upload_vi_viirs)
 ```
 
-Verify:
+Verify on GitHub (host, after script exits 0):
 
 ```bash
+gh release view vi_viirs_parquet --repo eco-emma/emma_envdata
 gh release view vi_viirs_parquet --repo eco-emma/emma_envdata \
   --json assets --jq '.assets | length'
 # Expect hundreds (one per VIIRS composite since ~2012), including:
-gh release view vi_viirs_parquet --repo eco-emma/emma_envdata \
-  --json assets --jq '.assets[].name' | grep -E 'vi_viirs_202609(05|21)\.parquet'
+gh api repos/eco-emma/emma_envdata/releases/tags/vi_viirs_parquet \
+  --jq '.assets[].name' 2>/dev/null | head
+# Prefer paginated asset list for full count:
+gh api --paginate \
+  repos/eco-emma/emma_envdata/releases/$(
+    gh api repos/eco-emma/emma_envdata/releases/tags/vi_viirs_parquet -q .id
+  )/assets -q '.[].name' | grep -E 'vi_viirs_202609(05|21)\.parquet'
 ```
+
+Success looks like: release tag `vi_viirs_parquet` exists (not 404), asset
+count ≈ local `wc -l`, and Sep 2026 files `vi_viirs_20260905.parquet` /
+`vi_viirs_20260921.parquet` are present.
 
 ## Ongoing path
 

@@ -49,6 +49,21 @@ if [[ ! -f "${SIF}" ]]; then
        exit 1
 fi
 
+# Mirror run_tar_make.sh: inject GITHUB_PAT into the container so release
+# uploads work even when Rscript does not see a host ~/.Renviron.
+if [[ -z "${GITHUB_PAT:-}" ]]; then
+       GITHUB_PAT="$(grep -E '^GITHUB_PAT=' "${HOME}/.Renviron" 2>/dev/null | head -1 | cut -d'=' -f2- | tr -d '"'"'"' ' || true)"
+fi
+if [[ -z "${GITHUB_PAT:-}" ]]; then
+       GITHUB_PAT="$(gh auth token 2>/dev/null || true)"
+fi
+if [[ -z "${GITHUB_PAT:-}" ]]; then
+       echo "WARNING: GITHUB_PAT unset and gh auth token empty — GitHub uploads will fail." >&2
+else
+       echo "GITHUB_PAT: set (${GITHUB_PAT:0:4}...)" >&2
+       export GITHUB_PAT
+fi
+
 common_args=(
        # DNS/network (e.g. GitHub uploads) works via Apptainer's built-in
        # automatic /etc/resolv.conf passthrough — do not add an explicit
@@ -61,6 +76,9 @@ common_args=(
        --bind "${APPTAINER_CACHEDIR}/run:/run"
        --env "TMPDIR=/tmp"
 )
+if [[ -n "${GITHUB_PAT:-}" ]]; then
+       common_args+=(--env "GITHUB_PAT=${GITHUB_PAT}")
+fi
 
 case "${MODE}" in
        rstudio)
