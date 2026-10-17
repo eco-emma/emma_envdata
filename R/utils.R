@@ -7,6 +7,7 @@ pipeline_cli_entry_basenames <- c(
   "ci_appeears_update.R",
   "publish_inat_data.R",
   "publish_park_static.R",
+  "publish_vi_viirs_parquet.R",
   "publish_weather.R"
 )
 
