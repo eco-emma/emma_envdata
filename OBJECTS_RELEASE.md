@@ -95,7 +95,7 @@ git pull
 Rscript R/publish_weather.R
 ```
 
-Default year window = last 5 calendar years (`WEATHER_MIN_YEAR` overrides),
+Default year window starts at **2000** (`WEATHER_MIN_YEAR` overrides),
 capped to each station’s `END` year via the NCEI GSOD CSV WAF (GSOD retired
 2025-08-29; do not rely on `GSODR::get_GSOD()` for that window).
 Optional later: Actions workflow `publish-weather` (`workflow_dispatch` only).

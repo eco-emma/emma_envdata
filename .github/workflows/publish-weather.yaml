@@ -15,10 +15,10 @@ on:
         type: boolean
         default: true
       min_year:
-        description: "First GSOD calendar year (default = last 5 years)"
+        description: "First GSOD calendar year (default 2000; leave blank to use R default)"
         required: false
         type: string
-        default: ""
+        default: "2000"
 
 concurrency:
   group: emma-envdata-publish-weather

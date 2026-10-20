@@ -575,7 +575,7 @@ GSOD harvest for park reports publishes to tag
 [`weather_data`](https://github.com/eco-emma/emma_envdata/releases/tag/weather_data)
 (`weather.parquet` + `stations.gpkg`). Stations: SOUTH AFRICA, recent END year,
 within **100 km** of dissolved parks (`static_data` / `protected_areas.gpkg`).
-Default year window = **last 5 calendar years**.
+Default year window = **from 2000**.
 
 **First publish is CCR** (`Rscript R/publish_weather.R`) after parks exist on
 `static_data`. AppEEARS Actions stays separate; optional `publish-weather`

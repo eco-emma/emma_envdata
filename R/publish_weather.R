@@ -13,7 +13,7 @@
 #   Rscript R/publish_weather.R
 #   Rscript R/publish_weather.R --no-upload
 #   WEATHER_PARKS_GPKG=/path/to/protected_areas.gpkg Rscript R/publish_weather.R
-#   WEATHER_MIN_YEAR=1970 Rscript R/publish_weather.R   # full history override
+#   WEATHER_MIN_YEAR=1970 Rscript R/publish_weather.R   # full history (default is 2000)
 # =============================================================================
 
 args <- commandArgs(trailingOnly = TRUE)

@@ -4,7 +4,7 @@
 # Contract (plan §0.1 / §0.2):
 #   Inputs:  protected_areas.gpkg from static_data (dissolved parks; EPSG:9221)
 #   Harvest: SOUTH AFRICA stations with recent END year; within 100 km of parks;
-#            GSOD years = last 5 calendar years (override via WEATHER_MIN_YEAR),
+#            GSOD years = from 2000 (override via WEATHER_MIN_YEAR),
 #            capped to each station's END year (NCEI CSV WAF; GSOD retired
 #            2025-08-29 — do not call GSODR::get_GSOD() for the year window).
 #   Outputs (tag weather_data):
@@ -22,10 +22,10 @@
   "weather_data"
 }
 
-#' Last-N calendar years window for GSOD harvest
+#' First calendar year for GSOD harvest
 #'
-#' Default is five calendar years including the current year
-#' (e.g. 2022–2026 when run in 2026). Override with env `WEATHER_MIN_YEAR`.
+#' Default is 2000 so park climatologies keep a deep daily record across
+#' refreshes. Override with env `WEATHER_MIN_YEAR` (e.g. 1970 for full history).
 #'
 #' @return Integer start year.
 #' @keywords internal
@@ -34,7 +34,7 @@
   if (nzchar(env)) {
     return(as.integer(env))
   }
-  as.integer(lubridate::year(Sys.Date()) - 4L)
+  2000L
 }
 
 #' Download one flat release asset by name
@@ -407,8 +407,9 @@ get_weather_stations <- function(parks_sf, work_dir = "data/temp/weather") {
 #' Prefer this over \code{GSODR::get_GSOD()}: GSODR validates the full year
 #' vector against its packaged \code{isd_history} and **drops the station**
 #' (warning → empty data.frame) when \code{max(years) > END}. Harvesting
-#' "last 5 calendar years" in 2026 with station END=2025 therefore returned
-#' empty frames and burned all retries ("Empty dataframe downloaded, retrying").
+#' a window ending after station END (e.g. requesting 2026 when END=2025)
+#' therefore returned empty frames and burned all retries
+#' ("Empty dataframe downloaded, retrying").
 #'
 #' Missing years (404, including post-retirement 2026+) are skipped — not
 #' retried. Network failures retry up to \code{max_attempts} per year.
@@ -718,7 +719,7 @@ write_weather_parquet <- function(
 #' @param parks_gpkg Optional local parks path; else download from static_data.
 #' @param repo Owner/repo.
 #' @param static_tag Tag for protected_areas.gpkg.
-#' @param min_year First GSOD year (default last 5 calendar years).
+#' @param min_year First GSOD year (default 2000; see \code{.weather_min_year()}).
 #' @param overwrite_inputs Re-download parks gpkg?
 #' @param verbose Progress messages?
 #' @return Named character vector of product paths.

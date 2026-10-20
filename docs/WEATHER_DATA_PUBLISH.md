@@ -10,7 +10,7 @@
 Ecological / harvest rules (plan §0.1 + E3 assignment):
 
 - Stations: country **SOUTH AFRICA**; recent `END` year (≥ previous calendar year); within **100 km** of dissolved parks (`st_buffer(dist = 100000)` then filter)
-- GSOD years: **last 5 calendar years** by default (override with `WEATHER_MIN_YEAR`, e.g. `1970` for full history), **capped to each station's `END` year**
+- GSOD years: **from 2000** by default (override with `WEATHER_MIN_YEAR`, e.g. `1970` for full history), **capped to each station's `END` year**
 - Download path: NCEI GSOD **daily CSV WAF** (`.../global-summary-of-the-day/access/{year}/{USAFWBAN}.csv`). NCEI retired GSOD on **2025-08-29**; legacy `.op.gz` / `GSODR::get_GSOD()` year-window validation against packaged `isd_history` returns empty frames when the request includes years after `END` (e.g. 2026).
 - `weather.parquet` columns: `STNID`, `YEARMODA`, `TEMP` (°C), `PRCP` (mm), `NAME`
 - `stations.gpkg`: `STNID`, `NAME`, begin/end fields, `LON`/`LAT`, geometry **WGS84**
@@ -61,4 +61,4 @@ Actions → **publish-weather** → Run workflow (`upload: true`). Downloads
 `protected_areas.gpkg` from `static_data`, harvests GSOD, uploads
 `weather.parquet` + `stations.gpkg` to `weather_data`.
 
-Optional `min_year` input overrides the default last-5-years window.
+Optional `min_year` input overrides the default 2000 start year.
