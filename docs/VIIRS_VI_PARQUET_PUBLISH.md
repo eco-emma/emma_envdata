@@ -90,7 +90,11 @@ count ≈ local `wc -l`, and Sep 2026 files `vi_viirs_20260905.parquet` /
   `vi_viirs_YYYYMMDD.parquet`, diffs against release assets, uploads only
   missing/changed files (same pattern as peer `upload_*` products). Safe for
   incremental runs over years; does not rely on the current `*_pending` branch
-  slice alone.
+  slice alone. Upload now runs
+  `filter_vi_parquets_for_upload()` (skip misaligned content; see
+  `docs/VI_PARQUET_REALIGN.md`).
+- **Historical misalignment cleanup**: `docs/VI_PARQUET_REALIGN.md` (audit →
+  delete → regenerate on CCR → republish).
 - **Nightly Actions** (`R/ci_appeears_update.R`): already maps
   `vi_viirs_*.parquet` → tag `vi_viirs_parquet` and creates the release on
   first upload; no GHA workflow change required for *new* months.

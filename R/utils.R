@@ -3,6 +3,7 @@
 # CLI entry is left in that list, they cross-source each other forever and R
 # dies with "node stack overflow" inside library() (seen on CCR/Apptainer).
 pipeline_cli_entry_basenames <- c(
+  "audit_vi_parquet_dates.R",
   "backfill_stac_release.R",
   "ci_appeears_update.R",
   "publish_inat_data.R",
