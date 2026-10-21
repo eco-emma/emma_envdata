@@ -34,10 +34,14 @@ tag <- "vi_viirs_parquet"
 out_dir <- "data/target_outputs/viirs_vi"
 pattern <- "^vi_viirs_[0-9]{8}\\.parquet$"
 
-# Same inventory helper used by upload_vi_viirs in _targets.R
-files <- list_release_inventory(
-  dir = out_dir,
-  pattern = pattern,
+# Same inventory helper used by upload_vi_viirs in _targets.R, plus the
+# date/filename alignment guard (skip misaligned; EMMA_VI_PARQUET_STRICT=1 stops).
+files <- filter_vi_parquets_for_upload(
+  list_release_inventory(
+    dir = out_dir,
+    pattern = pattern,
+    verbose = TRUE
+  ),
   verbose = TRUE
 )
 

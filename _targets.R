@@ -953,14 +953,20 @@ list(
   # upload_to_github_release() then skips assets already on the release
   # (or checksum-diffs when overwrite = TRUE).
 
-  # Upload dynamic MODIS VI parquet files
+  # Upload dynamic MODIS VI parquet files.
+  # filter_vi_parquets_for_upload() skips (or stops when
+  # EMMA_VI_PARQUET_STRICT=1) files whose row dates do not match the
+  # filename composite — see docs/VI_PARQUET_REALIGN.md.
   tar_target(
     upload_vi_modis,
     upload_to_github_release(
-      files = list_release_inventory(
-        dir     = "data/target_outputs/modis_vi",
-        pattern = "^vi_modis_[0-9]{8}\\.parquet$",
-        also    = vi_modis_parquet,
+      files = filter_vi_parquets_for_upload(
+        list_release_inventory(
+          dir     = "data/target_outputs/modis_vi",
+          pattern = "^vi_modis_[0-9]{8}\\.parquet$",
+          also    = vi_modis_parquet,
+          verbose = TRUE
+        ),
         verbose = TRUE
       ),
       repo         = gh_repo_config$repo,
@@ -976,10 +982,13 @@ list(
   tar_target(
     upload_vi_viirs,
     upload_to_github_release(
-      files = list_release_inventory(
-        dir     = "data/target_outputs/viirs_vi",
-        pattern = "^vi_viirs_[0-9]{8}\\.parquet$",
-        also    = vi_viirs_parquet,
+      files = filter_vi_parquets_for_upload(
+        list_release_inventory(
+          dir     = "data/target_outputs/viirs_vi",
+          pattern = "^vi_viirs_[0-9]{8}\\.parquet$",
+          also    = vi_viirs_parquet,
+          verbose = TRUE
+        ),
         verbose = TRUE
       ),
       repo         = gh_repo_config$repo,
@@ -987,6 +996,23 @@ list(
       release_name = "Dynamic VIIRS Vegetation Index",
       verbose      = TRUE
     ),
+    deployment = "main"
+  ),
+
+  # Optional CCR report: filename vs content-date audit for local VI parquets.
+  # cue=never so full tar_make() does not re-scan hundreds of files nightly.
+  # Run explicitly:
+  #   targets::tar_invalidate(audit_vi_parquet_dates_report)
+  #   targets::tar_make(audit_vi_parquet_dates_report)
+  # or: Rscript R/audit_vi_parquet_dates.R
+  tar_target(
+    audit_vi_parquet_dates_report,
+    audit_vi_parquet_dirs(
+      out_csv = "data/target_outputs/vi_parquet_date_audit.csv",
+      hash_values = TRUE,
+      verbose = TRUE
+    ),
+    cue = tar_cue(mode = "never"),
     deployment = "main"
   ),
 
