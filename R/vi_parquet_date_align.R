@@ -131,7 +131,7 @@ vi_parquet_date_summary <- function(path,
 
   cols <- if (isTRUE(hash_values)) c("date", "value") else "date"
   df <- tryCatch(
-    arrow::read_parquet(path, col_select = cols),
+    arrow::read_parquet(path, col_select = tidyselect::all_of(cols)),
     error = function(e) e
   )
   if (inherits(df, "error")) {
@@ -456,6 +456,34 @@ filter_vi_parquets_for_upload <- function(files,
   c(other, vi_files[keep])
 }
 
+#' Retry a GitHub API call on transient DNS / connection errors.
+#' @keywords internal
+.gh_retry <- function(expr, tries = 6L, base_sleep = 2, verbose = TRUE) {
+  last_err <- NULL
+  for (i in seq_len(as.integer(tries))) {
+    out <- tryCatch(force(expr), error = function(e) e)
+    if (!inherits(out, "error")) {
+      return(out)
+    }
+    last_err <- out
+    msg <- conditionMessage(out)
+    transient <- grepl(
+      "resolve host|Could not resolve|Timeout|timed out|Connection|HTTP 5|SSL|TLS|Temporary failure",
+      msg,
+      ignore.case = TRUE
+    )
+    if (!transient || i >= tries) {
+      stop(last_err)
+    }
+    wait <- base_sleep * (2^(i - 1L))
+    if (isTRUE(verbose)) {
+      message("GitHub API retry ", i, "/", tries, " in ", wait, "s: ", msg)
+    }
+    Sys.sleep(wait)
+  }
+  stop(last_err)
+}
+
 #' @title Delete named assets from a GitHub release (paginated)
 #' @description Unlike the embedded \code{rel$assets} list (capped ~30), this
 #'   pages the assets API so large VI parquet releases can be cleaned.
@@ -479,17 +507,23 @@ gh_delete_release_assets_by_name <- function(repo,
     token <- .gh_upload_token(verbose = verbose)
   }
   parts <- strsplit(repo, "/")[[1]]
-  rel <- gh::gh(
-    "GET /repos/{owner}/{repo}/releases/tags/{tag}",
-    owner = parts[[1]], repo = parts[[2]], tag = release_tag,
-    .token = token
+  rel <- .gh_retry(
+    gh::gh(
+      "GET /repos/{owner}/{repo}/releases/tags/{tag}",
+      owner = parts[[1]], repo = parts[[2]], tag = release_tag,
+      .token = token
+    ),
+    verbose = verbose
   )
-  assets <- gh::gh(
-    "GET /repos/{owner}/{repo}/releases/{release_id}/assets",
-    owner = parts[[1]], repo = parts[[2]], release_id = rel$id,
-    per_page = 100,
-    .token = token,
-    .limit = Inf
+  assets <- .gh_retry(
+    gh::gh(
+      "GET /repos/{owner}/{repo}/releases/{release_id}/assets",
+      owner = parts[[1]], repo = parts[[2]], release_id = rel$id,
+      per_page = 100,
+      .token = token,
+      .limit = Inf
+    ),
+    verbose = verbose
   )
   if (length(assets) == 0L) {
     return(invisible(character(0)))
@@ -504,10 +538,14 @@ gh_delete_release_assets_by_name <- function(repo,
       next
     }
     tryCatch({
-      gh::gh(
-        "DELETE /repos/{owner}/{repo}/releases/assets/{asset_id}",
-        owner = parts[[1]], repo = parts[[2]], asset_id = a$id,
-        .token = token
+      .gh_retry(
+        gh::gh(
+          "DELETE /repos/{owner}/{repo}/releases/assets/{asset_id}",
+          owner = parts[[1]], repo = parts[[2]], asset_id = a$id,
+          .token = token
+        ),
+        tries = 4L,
+        verbose = verbose
       )
       deleted <- c(deleted, a$name)
       if (verbose) message("Deleted release asset: ", a$name, " @ ", release_tag)

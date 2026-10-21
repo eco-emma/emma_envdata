@@ -185,6 +185,27 @@ check(
   )
 )
 
+check(".gh_retry returns on first success", identical(.gh_retry(1L + 1L, verbose = FALSE), 2L))
+check(
+  ".gh_retry retries then succeeds",
+  {
+    n <- 0L
+    identical(
+      .gh_retry(
+        {
+          n <<- n + 1L
+          if (n < 2L) stop("Could not resolve host: api.github.com")
+          "ok"
+        },
+        tries = 3L,
+        base_sleep = 0,
+        verbose = FALSE
+      ),
+      "ok"
+    ) && identical(n, 2L)
+  }
+)
+
 if (fail > 0L) {
   stop(fail, " VI parquet date-align check(s) failed", call. = FALSE)
 }

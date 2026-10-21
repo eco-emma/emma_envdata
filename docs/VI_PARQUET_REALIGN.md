@@ -75,11 +75,48 @@ Only after inspecting the CSV:
 ```bash
 Rscript R/audit_vi_parquet_dates.R \
   --out data/target_outputs/vi_parquet_date_audit.csv \
-  --delete-local --delete-remote
+  --delete-remote --delete-local
 ```
 
-`--delete-remote` pages the GitHub assets API (safe for 600+ files).
+Remote runs **before** local so a DNS/API abort does not leave orphans on the
+release while locals are already gone.
+
+`--delete-remote` pages the GitHub assets API (safe for 600+ files) with
+retries on transient DNS/connection errors.
 `--dry-run` (default when no `--delete-*`) only reports.
+
+**Resume after a failed remote delete** (CSV already written; locals may already
+be gone — do **not** re-audit without `--from-csv`, or flagged rows disappear):
+
+```bash
+# Prefer this branch / main after the resume helper lands.
+Rscript R/audit_vi_parquet_dates.R \
+  --from-csv data/target_outputs/vi_parquet_date_audit.csv \
+  --delete-remote
+
+# Or one-shot from the existing CSV (works on older main too):
+R -e '
+source("R/utils.R"); source_pipeline_r()
+report <- read.csv("data/target_outputs/vi_parquet_date_audit.csv",
+                   stringsAsFactors = FALSE)
+flagged <- report[report$status != "ok", , drop = FALSE]
+token <- .gh_upload_token(verbose = TRUE)
+by_tag <- split(flagged$file, vi_parquet_release_tag(flagged$file))
+for (tag in names(by_tag)) {
+  message("tag ", tag, ": ", length(by_tag[[tag]]), " assets")
+  gh_delete_release_assets_by_name(
+    repo = "eco-emma/emma_envdata",
+    release_tag = tag,
+    asset_names = by_tag[[tag]],
+    token = token,
+    verbose = TRUE
+  )
+}
+'
+```
+
+Confirm DNS before a long delete: `getent hosts api.github.com` or
+`curl -I https://api.github.com`.
 
 ### 3. Check whether grid COGs are also wrong
 
