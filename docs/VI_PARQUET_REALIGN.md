@@ -83,6 +83,10 @@ Rscript R/audit_vi_parquet_dates.R \
 
 ### 3. Check whether grid COGs are also wrong
 
+Build + upload now gate AppEEARS source dates and COG DOY
+(`R/vi_geotiff_date_match.R`). Still delete any **already published** bad
+grids before regenerate — pending filters are name-only for existing assets.
+
 If parquet was built from a duplicated Jul–Aug COG, regenerating parquet
 alone will recreate the same junk. Spot-check a few flagged dates:
 
@@ -173,11 +177,13 @@ this repo.
 
 ```bash
 Rscript tests/vi_parquet_date_align_checks.R
+Rscript tests/vi_geotiff_date_match_checks.R
 Rscript tests/upload_inventory_checks.R
 ```
 
 ## Related
 
 - `docs/VIIRS_VI_PARQUET_PUBLISH.md` — first VIIRS parquet publish
-- `R/vi_parquet_date_align.R` — shared audit + upload filter
+- `R/vi_parquet_date_align.R` — shared parquet audit + upload filter
+- `R/vi_geotiff_date_match.R` — AppEEARS basename date filter + COG DOY upload gate
 - `R/audit_vi_parquet_dates.R` — CCR CLI
