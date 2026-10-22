@@ -6,6 +6,7 @@ pipeline_cli_entry_basenames <- c(
   "audit_vi_parquet_dates.R",
   "backfill_stac_release.R",
   "ci_appeears_update.R",
+  "delete_vi_grids_from_audit.R",
   "publish_inat_data.R",
   "publish_park_static.R",
   "publish_vi_viirs_parquet.R",

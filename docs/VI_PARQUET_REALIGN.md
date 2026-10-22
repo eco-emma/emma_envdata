@@ -81,33 +81,43 @@ Rscript R/audit_vi_parquet_dates.R \
 `--delete-remote` pages the GitHub assets API (safe for 600+ files).
 `--dry-run` (default when no `--delete-*`) only reports.
 
-### 3. Check whether grid COGs are also wrong
+### 3. Delete bad grid COGs (required after Jul–Aug template)
 
 Build + upload now gate AppEEARS source dates and COG DOY
-(`R/vi_geotiff_date_match.R`). Still delete any **already published** bad
-grids before regenerate — pending filters are name-only for existing assets.
+(`R/vi_geotiff_date_match.R`). **Already published** bad grids must still be
+deleted — `filter_pending_composites()` is name-only, so poisoned release
+assets never re-queue AppEEARS.
 
-If parquet was built from a duplicated Jul–Aug COG, regenerating parquet
-alone will recreate the same junk. Spot-check a few flagged dates:
+Map flagged parquet basenames → sensor COGs:
 
-```r
-# Inside Apptainer
-library(terra)
-d <- as.Date("2000-09-13")  # example flagged basename
-yyyymmdd <- format(d, "%Y%m%d")
-terra <- rast(sprintf("data/target_outputs/modis_vi/vi_modis_terra_%s.tif", yyyymmdd))
-# DOY band should cluster near the composite window, not a fixed Jul–Aug
-# template for every year.
-summary(values(terra[["doy"]]))
+| Parquet | Sensor assets | Release tags |
+|---------|---------------|--------------|
+| `vi_modis_YYYYMMDD.parquet` | `vi_modis_terra_YYYYMMDD.tif`, `vi_modis_aqua_YYYYMMDD.tif` | `vi_modis_terra_raster`, `vi_modis_aqua_raster` |
+| `vi_viirs_YYYYMMDD.parquet` | `vi_viirs_snpp_YYYYMMDD.tif`, `vi_viirs_noaa20_YYYYMMDD.tif` | `vi_viirs_raster` |
+
+**CSV caveat:** after local-only parquet deletes, a re-audit may overwrite
+`vi_parquet_date_audit.csv` with only the ~262 `status=ok` survivors. Prefer
+the **pre-delete** CSV that still has the ~683 flagged rows. If that file is
+gone, use `--from-local-doy` (scan local COGs that fail the DOY guard).
+
+```bash
+getent hosts api.github.com   # confirm DNS before remote deletes
+
+# Dry-run (auto-picks best CSV; aborts if CSV is survivor-only)
+Rscript R/delete_vi_grids_from_audit.R --dry-run
+
+# Or explicit sources:
+Rscript R/delete_vi_grids_from_audit.R \
+  --from-csv data/target_outputs/vi_parquet_date_audit.csv --dry-run
+Rscript R/delete_vi_grids_from_audit.R --from-local-doy --dry-run
+
+# Real delete (remote first via helper, then local COGs)
+Rscript R/delete_vi_grids_from_audit.R \
+  --from-csv data/target_outputs/vi_parquet_date_audit.csv \
+  --delete-remote --delete-local
 ```
 
-If COGs are wrong or missing after parquet delete:
-
-```r
-# Delete bad sensor grids locally + from raster releases, then tar_make
-# will treat those composites as pending (filter_pending_composites).
-# Reuse audit_na_placeholders helpers or manual unlink + gh_delete…
-```
+Plan CSV: `data/target_outputs/vi_grid_cog_delete_plan.csv`.
 
 If COGs look good, only the parquet step needs a rebuild:
 
@@ -186,4 +196,6 @@ Rscript tests/upload_inventory_checks.R
 - `docs/VIIRS_VI_PARQUET_PUBLISH.md` — first VIIRS parquet publish
 - `R/vi_parquet_date_align.R` — shared parquet audit + upload filter
 - `R/vi_geotiff_date_match.R` — AppEEARS basename date filter + COG DOY upload gate
-- `R/audit_vi_parquet_dates.R` — CCR CLI
+- `R/vi_grid_cog_delete.R` — parquet→sensor-COG map + release/local delete
+- `R/audit_vi_parquet_dates.R` — CCR parquet audit CLI
+- `R/delete_vi_grids_from_audit.R` — CCR grid COG delete CLI
