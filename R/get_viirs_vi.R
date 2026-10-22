@@ -424,11 +424,22 @@ vi_viirs_geotiff_to_grid <- function(
   }
 
   if (length(tif_paths) == 0L) {
-    # Guard 1: COGs already on disk (server re-run after cleanup) — preserve them.
-    if (file.exists(out_snpp) && file.exists(out_noaa20)) {
+    # Guard 1: COGs already on disk — preserve only if DOY matches composite.
+    if (file.exists(out_snpp) && file.exists(out_noaa20) &&
+        isTRUE(vi_cog_doy_matches_composite(out_snpp, composite_date)) &&
+        isTRUE(vi_cog_doy_matches_composite(out_noaa20, composite_date))) {
       if (verbose) message("No fresh source TIFs for ", yyyymmdd,
                            " and output COGs already exist — preserving them")
       return(c(out_snpp, out_noaa20))
+    }
+    if (file.exists(out_snpp) || file.exists(out_noaa20)) {
+      if (verbose) {
+        message(
+          "Existing VIIRS COGs for ", yyyymmdd,
+          " fail DOY/composite check — not preserving; rewriting"
+        )
+      }
+      unlink(c(out_snpp, out_noaa20))
     }
 
     # Guard 2: COGs on GitHub release but not yet on disk (CI runner after
@@ -449,7 +460,17 @@ vi_viirs_geotiff_to_grid <- function(
                                   out_snpp, verbose = verbose)
         gh_release_download_asset(repo, gh_release_tag, basename(out_noaa20),
                                   out_noaa20, verbose = verbose)
-        return(c(out_snpp, out_noaa20))
+        if (isTRUE(vi_cog_doy_matches_composite(out_snpp, composite_date)) &&
+            isTRUE(vi_cog_doy_matches_composite(out_noaa20, composite_date))) {
+          return(c(out_snpp, out_noaa20))
+        }
+        if (verbose) {
+          message(
+            "Restored VIIRS COGs for ", yyyymmdd,
+            " fail DOY check — discarding; will write NA placeholders"
+          )
+        }
+        unlink(c(out_snpp, out_noaa20))
       }
     }
 
@@ -491,24 +512,36 @@ vi_viirs_geotiff_to_grid <- function(
 
   tif_info <- lapply(tif_paths, classify_tif)
   tif_info <- Filter(function(x) !is.na(x$product) && !is.na(x$layer), tif_info)
+  tif_info <- filter_appeears_tif_info_for_composite(
+    tif_info,
+    composite_date = composite_date,
+    composite_end = composite_date + 15L,
+    margin_days = 0L,
+    verbose = verbose
+  )
 
   # Process one sensor (snpp or noaa20) → 2-band COG (evi, doy) aligned to domain
   process_sensor <- function(sensor_label, product_code, source_label, out_path) {
-    sensor_tifs <- Filter(function(x) x$product == product_code, tif_info)
-    evi_entry   <- Filter(function(x) x$layer == "evi", sensor_tifs)
-    qa_entry    <- Filter(function(x) x$layer == "qa",  sensor_tifs)
-    doy_entry   <- Filter(function(x) x$layer == "doy", sensor_tifs)
+    evi_entry <- pick_appeears_tif_layer(
+      tif_info, product_code, "evi", composite_date = composite_date
+    )
+    qa_entry <- pick_appeears_tif_layer(
+      tif_info, product_code, "qa", composite_date = composite_date
+    )
+    doy_entry <- pick_appeears_tif_layer(
+      tif_info, product_code, "doy", composite_date = composite_date
+    )
 
-    if (!length(evi_entry)) {
+    if (is.null(evi_entry)) {
       if (verbose) message("No EVI TIF for ", sensor_label, " in ", yyyymmdd,
                            " \u2014 writing all-NA placeholder COG")
       write_na_cog(out_path, sensor_label)
       return(invisible(NULL))
     }
 
-    evi_r <- terra::rast(evi_entry[[1L]]$path)
-    qa_r  <- if (length(qa_entry))  terra::rast(qa_entry[[1L]]$path)  else NULL
-    doy_r <- if (length(doy_entry)) terra::rast(doy_entry[[1L]]$path) else NULL
+    evi_r <- terra::rast(evi_entry$path)
+    qa_r  <- if (!is.null(qa_entry))  terra::rast(qa_entry$path)  else NULL
+    doy_r <- if (!is.null(doy_entry)) terra::rast(doy_entry$path) else NULL
 
     # QA-mask EVI; scale to integer × 100 to match parquet schema
     if (!is.null(qa_r)) {
@@ -532,6 +565,13 @@ vi_viirs_geotiff_to_grid <- function(
       doy_proj    <- domain_template[["pid"]]
       doy_proj[]  <- NA_real_
     }
+
+    assert_vi_doy_in_composite_window(
+      doy_proj,
+      composite_date = composite_date,
+      composite_end = composite_date + 15L,
+      sensor_label = sensor_label
+    )
 
     # Stack EVI + DOY into 2-band COG with embedded metadata
     r_out        <- c(evi_proj, doy_proj)

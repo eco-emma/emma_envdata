@@ -439,11 +439,23 @@ vi_modis_geotiff_to_grid <- function(
   }
 
   if (length(tif_paths) == 0L) {
-    # Guard 1: COGs already on disk (server re-run after cleanup) — preserve them.
-    if (file.exists(out_terra) && file.exists(out_aqua)) {
+    # Guard 1: COGs already on disk — preserve only if DOY matches composite
+    # (do not keep Jul–Aug template poison under the wrong basename).
+    if (file.exists(out_terra) && file.exists(out_aqua) &&
+        isTRUE(vi_cog_doy_matches_composite(out_terra, composite_date)) &&
+        isTRUE(vi_cog_doy_matches_composite(out_aqua, composite_date))) {
       if (verbose) message("No fresh source TIFs for ", yyyymmdd,
                            " and output COGs already exist — preserving them")
       return(c(out_terra, out_aqua))
+    }
+    if (file.exists(out_terra) || file.exists(out_aqua)) {
+      if (verbose) {
+        message(
+          "Existing MODIS COGs for ", yyyymmdd,
+          " fail DOY/composite check — not preserving; rewriting"
+        )
+      }
+      unlink(c(out_terra, out_aqua))
     }
 
     # Guard 2: COGs on the sensor releases but not yet on disk (CI runner
@@ -464,11 +476,22 @@ vi_modis_geotiff_to_grid <- function(
       if (aqua_on_gh) {
         gh_release_download_asset(repo, tags$aqua, aqua_name, out_aqua, verbose = verbose)
       }
-      if (file.exists(out_terra) && file.exists(out_aqua)) {
+      if (file.exists(out_terra) && file.exists(out_aqua) &&
+          isTRUE(vi_cog_doy_matches_composite(out_terra, composite_date)) &&
+          isTRUE(vi_cog_doy_matches_composite(out_aqua, composite_date))) {
         if (verbose) message("MODIS VI COGs for ", yyyymmdd,
                              " restored from GitHub releases '", tags$terra,
                              "' and '", tags$aqua, "'")
         return(c(out_terra, out_aqua))
+      }
+      if (file.exists(out_terra) || file.exists(out_aqua)) {
+        if (verbose) {
+          message(
+            "Restored MODIS COGs for ", yyyymmdd,
+            " fail DOY check — discarding; will write NA placeholders"
+          )
+        }
+        unlink(c(out_terra, out_aqua))
       }
     }
 
@@ -510,24 +533,38 @@ vi_modis_geotiff_to_grid <- function(
 
   tif_info <- lapply(tif_paths, classify_tif)
   tif_info <- Filter(function(x) !is.na(x$product) && !is.na(x$layer), tif_info)
+  # Keep only AppEEARS layers whose basename date is in this composite window
+  # (never take [[1]] from a mixed recursive temp pile).
+  tif_info <- filter_appeears_tif_info_for_composite(
+    tif_info,
+    composite_date = composite_date,
+    composite_end = composite_date + 15L,
+    margin_days = 0L,
+    verbose = verbose
+  )
 
   # Process one sensor (terra or aqua) → 2-band COG (evi, doy) aligned to domain
   process_sensor <- function(sensor_label, product_code, source_label, out_path) {
-    sensor_tifs <- Filter(function(x) x$product == product_code, tif_info)
-    evi_entry   <- Filter(function(x) x$layer == "evi", sensor_tifs)
-    qa_entry    <- Filter(function(x) x$layer == "qa",  sensor_tifs)
-    doy_entry   <- Filter(function(x) x$layer == "doy", sensor_tifs)
+    evi_entry <- pick_appeears_tif_layer(
+      tif_info, product_code, "evi", composite_date = composite_date
+    )
+    qa_entry <- pick_appeears_tif_layer(
+      tif_info, product_code, "qa", composite_date = composite_date
+    )
+    doy_entry <- pick_appeears_tif_layer(
+      tif_info, product_code, "doy", composite_date = composite_date
+    )
 
-    if (!length(evi_entry)) {
+    if (is.null(evi_entry)) {
       if (verbose) message("No EVI TIF for ", sensor_label, " in ", yyyymmdd,
                            " \u2014 writing all-NA placeholder COG")
       write_na_cog(out_path, sensor_label)
       return(invisible(NULL))
     }
 
-    evi_r <- terra::rast(evi_entry[[1L]]$path)
-    qa_r  <- if (length(qa_entry))  terra::rast(qa_entry[[1L]]$path)  else NULL
-    doy_r <- if (length(doy_entry)) terra::rast(doy_entry[[1L]]$path) else NULL
+    evi_r <- terra::rast(evi_entry$path)
+    qa_r  <- if (!is.null(qa_entry))  terra::rast(qa_entry$path)  else NULL
+    doy_r <- if (!is.null(doy_entry)) terra::rast(doy_entry$path) else NULL
 
     # QA-mask EVI; scale to integer \u00d7 100 to match parquet schema
     if (!is.null(qa_r)) {
@@ -551,6 +588,13 @@ vi_modis_geotiff_to_grid <- function(
       doy_proj    <- domain_template[["pid"]]
       doy_proj[]  <- NA_real_
     }
+
+    assert_vi_doy_in_composite_window(
+      doy_proj,
+      composite_date = composite_date,
+      composite_end = composite_date + 15L,
+      sensor_label = sensor_label
+    )
 
     # Stack EVI + DOY into 2-band COG with embedded metadata
     r_out        <- c(evi_proj, doy_proj)

@@ -1053,13 +1053,18 @@ list(
   ),
 
   # Separate releases keep each MODIS sensor below GitHub's 1,000-asset limit.
+  # filter_vi_grid_cogs_for_upload() skips (or stops when EMMA_VI_GRID_STRICT=1)
+  # COGs whose DOY band does not match the basename composite window.
   tar_target(
     upload_vi_modis_terra_grid,
     upload_to_github_release(
-      files = list_release_inventory(
-        dir     = "data/target_outputs/modis_vi",
-        pattern = "^vi_modis_terra_[0-9]{8}\\.tif$",
-        also    = vi_modis_grid,
+      files = filter_vi_grid_cogs_for_upload(
+        list_release_inventory(
+          dir     = "data/target_outputs/modis_vi",
+          pattern = "^vi_modis_terra_[0-9]{8}\\.tif$",
+          also    = vi_modis_grid,
+          verbose = TRUE
+        ),
         verbose = TRUE
       ),
       repo         = gh_repo_config$repo,
@@ -1073,10 +1078,13 @@ list(
   tar_target(
     upload_vi_modis_aqua_grid,
     upload_to_github_release(
-      files = list_release_inventory(
-        dir     = "data/target_outputs/modis_vi",
-        pattern = "^vi_modis_aqua_[0-9]{8}\\.tif$",
-        also    = vi_modis_grid,
+      files = filter_vi_grid_cogs_for_upload(
+        list_release_inventory(
+          dir     = "data/target_outputs/modis_vi",
+          pattern = "^vi_modis_aqua_[0-9]{8}\\.tif$",
+          also    = vi_modis_grid,
+          verbose = TRUE
+        ),
         verbose = TRUE
       ),
       repo         = gh_repo_config$repo,
@@ -1091,10 +1099,13 @@ list(
   tar_target(
     upload_vi_viirs_grid,
     upload_to_github_release(
-      files = list_release_inventory(
-        dir     = "data/target_outputs/viirs_vi",
-        pattern = "^vi_viirs_(snpp|noaa20)_[0-9]{8}\\.tif$",
-        also    = vi_viirs_grid,
+      files = filter_vi_grid_cogs_for_upload(
+        list_release_inventory(
+          dir     = "data/target_outputs/viirs_vi",
+          pattern = "^vi_viirs_(snpp|noaa20)_[0-9]{8}\\.tif$",
+          also    = vi_viirs_grid,
+          verbose = TRUE
+        ),
         verbose = TRUE
       ),
       repo         = gh_repo_config$repo,
