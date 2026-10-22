@@ -83,6 +83,42 @@ check("dates helper MODIS-only", nrow(dates) == 2L && all(dates$dataset == "vi_m
 plan <- delete_vi_grid_assets(modis, dry_run = TRUE, verbose = FALSE)
 check("dry-run deletes nothing", length(plan$remote_deleted) == 0L)
 
+# Release-orphan filter (no GitHub): keep grids whose date lacks a parquet.
+orphans <- vi_grid_assets_from_release_asset_lists(
+  parquet_modis = c("vi_modis_20000727.parquet", "vi_modis_parquet_SHA256SUMS.txt"),
+  parquet_viirs = c("vi_viirs_20120407.parquet"),
+  grid_terra = c(
+    "vi_modis_terra_20000727.tif",  # kept (has parquet)
+    "vi_modis_terra_20000218.tif"   # orphan
+  ),
+  grid_aqua = c("vi_modis_aqua_20000218.tif"),
+  grid_viirs = c(
+    "vi_viirs_snpp_20120407.tif",   # kept
+    "vi_viirs_noaa20_20120101.tif"  # orphan
+  ),
+  verbose = FALSE
+)
+check("orphan count", nrow(orphans) == 3L)
+check(
+  "orphan assets",
+  identical(
+    sort(orphans$asset),
+    c(
+      "vi_modis_aqua_20000218.tif",
+      "vi_modis_terra_20000218.tif",
+      "vi_viirs_noaa20_20120101.tif"
+    )
+  )
+)
+check(
+  "kept dates not in orphan plan",
+  !any(orphans$yyyymmdd %in% c("20000727", "20120407"))
+)
+check(
+  "orphan reason",
+  all(orphans$reason == "release_orphan")
+)
+
 if (fail > 0L) {
   stop(fail, " vi_grid_cog_delete check(s) failed", call. = FALSE)
 }

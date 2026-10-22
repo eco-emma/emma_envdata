@@ -3,15 +3,20 @@
 # Delete bad VI sensor grid COGs (local + GitHub Releases) so
 # filter_pending_composites() re-queues AppEEARS for those dates.
 #
-# Prefer the pre-delete parquet audit CSV (683 flagged). If the current CSV
-# was overwritten by a survivor-only re-scan (~262 ok), use --from-local-doy
-# or --dates-file.
+# Preferred when parquet remotes were already cleaned (survivor CSV / few
+# locals): --from-release-orphans (grid COGs whose YYYYMMDD is missing from
+# the matching parquet release).
+#
+# Other sources:
+#   --from-csv PATH          flagged parquet audit rows → sensor COGs
+#   --from-local-doy         local COGs failing DOY guard
+#   --dates-file PATH        bare YYYYMMDD / basenames
 #
 # Usage (inside Apptainer from `bash R/ccr_startup.sh shell`):
-#   Rscript R/delete_vi_grids_from_audit.R --dry-run
-#   Rscript R/delete_vi_grids_from_audit.R --from-csv data/target_outputs/vi_parquet_date_audit.csv --dry-run
+#   Rscript R/delete_vi_grids_from_audit.R --from-release-orphans --dry-run
+#   Rscript R/delete_vi_grids_from_audit.R --from-release-orphans --delete-remote
+#   Rscript R/delete_vi_grids_from_audit.R --from-csv … --dry-run
 #   Rscript R/delete_vi_grids_from_audit.R --from-local-doy --dry-run
-#   Rscript R/delete_vi_grids_from_audit.R --from-csv … --delete-remote --delete-local
 #
 # See docs/VI_PARQUET_REALIGN.md § "Delete bad grid COGs".
 # =============================================================================
@@ -29,6 +34,7 @@ flag_value <- function(flag, default = NULL) {
 
 from_csv <- flag_value("--from-csv", NULL)
 from_local_doy <- has_flag("--from-local-doy")
+from_release_orphans <- has_flag("--from-release-orphans")
 dates_file <- flag_value("--dates-file", NULL)
 out_csv <- flag_value(
   "--out",
@@ -52,39 +58,52 @@ message(
   "delete_vi_grids_from_audit: dry_run=", dry_run,
   " delete_remote=", delete_remote,
   " delete_local=", delete_local,
+  " from_release_orphans=", from_release_orphans,
   " repo=", repo
 )
 
 assets <- NULL
 source_label <- NULL
+explicit_source <- from_release_orphans ||
+  (!is.null(from_csv) && nzchar(from_csv)) ||
+  from_local_doy ||
+  (!is.null(dates_file) && nzchar(dates_file))
 
-# Default: auto-resolve best audit CSV unless another source was requested.
-if (is.null(from_csv) && !from_local_doy && is.null(dates_file)) {
-  resolved <- resolve_vi_parquet_audit_csv()
-  if (!is.na(resolved)) {
-    from_csv <- resolved
-    message("Auto-selected audit CSV: ", from_csv)
-  } else {
-    message(
-      "No parquet audit CSV found; falling back to --from-local-doy ",
-      "(scan local COGs that fail the DOY guard)."
-    )
-    from_local_doy <- TRUE
-  }
+# Default with no flags: prefer release orphans (post-parquet-cleanup path).
+# Mention any leftover flagged CSVs for optional --from-csv use.
+if (!explicit_source) {
+  message(
+    "No source flag — using --from-release-orphans ",
+    "(grid COGs whose date is missing from parquet releases)."
+  )
+  message(
+    "Optional: ls data/target_outputs/vi_parquet_date_audit*.csv* ",
+    "if a pre-delete flagged CSV still exists."
+  )
+  from_release_orphans <- TRUE
 }
 
-if (!is.null(from_csv) && nzchar(from_csv)) {
+if (from_release_orphans) {
+  source_label <- "release_orphans"
+  assets <- vi_grid_assets_from_release_orphans(repo = repo, verbose = TRUE)
+  message("Release-orphan plan: ", nrow(assets), " sensor COG asset name(s)")
+}
+
+if (is.null(assets) && !is.null(from_csv) && nzchar(from_csv)) {
   source_label <- paste0("parquet_audit:", from_csv)
   assets <- vi_grid_assets_from_parquet_audit(from_csv)
   warn <- attr(assets, "csv_warning")
   if (!is.null(warn) && nzchar(warn)) {
     message("WARNING: ", warn)
     assets <- NULL
-    if (!from_local_doy && is.null(dates_file)) {
+    if (!from_local_doy && is.null(dates_file) && !from_release_orphans) {
       message(
-        "Falling back to --from-local-doy (local COGs failing DOY guard)."
+        "Falling back to --from-release-orphans ",
+        "(survivor CSV cannot map deletes)."
       )
-      from_local_doy <- TRUE
+      from_release_orphans <- TRUE
+      source_label <- "release_orphans"
+      assets <- vi_grid_assets_from_release_orphans(repo = repo, verbose = TRUE)
     }
   } else {
     message(
@@ -94,7 +113,8 @@ if (!is.null(from_csv) && nzchar(from_csv)) {
   }
 }
 
-if (is.null(assets) && !is.null(dates_file) && nzchar(dates_file)) {
+if ((is.null(assets) || !nrow(assets)) &&
+      !is.null(dates_file) && nzchar(dates_file)) {
   if (!file.exists(dates_file)) {
     stop("Missing --dates-file: ", dates_file, call. = FALSE)
   }
@@ -113,9 +133,16 @@ if (is.null(assets) && !is.null(dates_file) && nzchar(dates_file)) {
           nrow(assets), " sensor COG asset name(s)")
 }
 
-if (is.null(assets) && from_local_doy) {
+if ((is.null(assets) || !nrow(assets)) && from_local_doy) {
   source_label <- "local_doy_scan"
   assets <- vi_flag_local_grids_by_doy(verbose = TRUE)
+  if (!nrow(assets) && !from_release_orphans) {
+    message(
+      "Local DOY scan found nothing. Trying --from-release-orphans…"
+    )
+    source_label <- "release_orphans"
+    assets <- vi_grid_assets_from_release_orphans(repo = repo, verbose = TRUE)
+  }
 }
 
 if (is.null(assets) || !nrow(assets)) {
@@ -141,8 +168,7 @@ if (dry_run) {
   message(
     "Next (real delete):\n",
     "  Rscript R/delete_vi_grids_from_audit.R \\\n",
-    "    --from-csv ", if (!is.null(from_csv)) from_csv else "<csv>", " \\\n",
-    "    --delete-remote --delete-local\n",
+    "    --from-release-orphans --delete-remote\n",
     "Then: sbatch --cluster=faculty run_tar_make.sh"
   )
 } else {

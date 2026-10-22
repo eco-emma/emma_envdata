@@ -95,26 +95,31 @@ Map flagged parquet basenames → sensor COGs:
 | `vi_modis_YYYYMMDD.parquet` | `vi_modis_terra_YYYYMMDD.tif`, `vi_modis_aqua_YYYYMMDD.tif` | `vi_modis_terra_raster`, `vi_modis_aqua_raster` |
 | `vi_viirs_YYYYMMDD.parquet` | `vi_viirs_snpp_YYYYMMDD.tif`, `vi_viirs_noaa20_YYYYMMDD.tif` | `vi_viirs_raster` |
 
-**CSV caveat:** after local-only parquet deletes, a re-audit may overwrite
-`vi_parquet_date_audit.csv` with only the ~262 `status=ok` survivors. Prefer
-the **pre-delete** CSV that still has the ~683 flagged rows. If that file is
-gone, use `--from-local-doy` (scan local COGs that fail the DOY guard).
+**Preferred after remote parquet cleanup:** `--from-release-orphans` — list
+remaining `vi_*_parquet` dates, then delete any sensor COG on
+`vi_modis_*_raster` / `vi_viirs_raster` whose YYYYMMDD is **not** in that set.
+Needs neither the 683-flagged CSV nor bad locals (survivor CSV + ~8 local
+COGs is the usual post-cleanup state).
 
 ```bash
 getent hosts api.github.com   # confirm DNS before remote deletes
 
-# Dry-run (auto-picks best CSV; aborts if CSV is survivor-only)
-Rscript R/delete_vi_grids_from_audit.R --dry-run
+# Optional: a pre-delete flagged CSV may still exist under another name
+ls data/target_outputs/vi_parquet_date_audit*.csv*
 
-# Or explicit sources:
+# Dry-run → data/target_outputs/vi_grid_cog_delete_plan.csv
+Rscript R/delete_vi_grids_from_audit.R --from-release-orphans --dry-run
+
+# Real delete (remote; add --delete-local if any matching locals remain)
+Rscript R/delete_vi_grids_from_audit.R --from-release-orphans --delete-remote
+```
+
+Other sources (usually unnecessary once remotes are cleaned):
+
+```bash
 Rscript R/delete_vi_grids_from_audit.R \
   --from-csv data/target_outputs/vi_parquet_date_audit.csv --dry-run
 Rscript R/delete_vi_grids_from_audit.R --from-local-doy --dry-run
-
-# Real delete (remote first via helper, then local COGs)
-Rscript R/delete_vi_grids_from_audit.R \
-  --from-csv data/target_outputs/vi_parquet_date_audit.csv \
-  --delete-remote --delete-local
 ```
 
 Plan CSV: `data/target_outputs/vi_grid_cog_delete_plan.csv`.

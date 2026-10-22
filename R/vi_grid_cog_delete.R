@@ -278,6 +278,195 @@ vi_grid_assets_from_dates <- function(yyyymmdd,
   vi_parquet_to_grid_assets(paths)
 }
 
+#' Extract YYYYMMDD tokens from VI parquet release asset names.
+#' @param names Character vector of release asset basenames
+#' @param sensor \code{"modis"} or \code{"viirs"}
+#' @return Character vector of unique YYYYMMDD strings
+#' @keywords internal
+.vi_parquet_yyyymmdd_from_names <- function(names, sensor) {
+  names <- basename(as.character(names))
+  pat <- paste0("^vi_", sensor, "_([0-9]{8})\\.parquet$")
+  out <- character(0)
+  for (bn in names) {
+    m <- regexec(pat, bn, perl = TRUE)
+    hit <- regmatches(bn, m)[[1]]
+    if (length(hit) >= 2L) {
+      out <- c(out, hit[[2]])
+    }
+  }
+  unique(out)
+}
+
+#' Parse one sensor-grid COG basename into an asset row (or NULL).
+#' @keywords internal
+.vi_grid_row_from_basename <- function(bn) {
+  bn <- basename(as.character(bn)[[1L]])
+  m <- regexec(
+    "^vi_(modis|viirs)_(terra|aqua|snpp|noaa20)_([0-9]{8})\\.tif$",
+    bn,
+    perl = TRUE
+  )
+  hit <- regmatches(bn, m)[[1]]
+  if (length(hit) < 4L) {
+    return(NULL)
+  }
+  dataset <- paste0("vi_", hit[[2]])
+  sensor <- hit[[3]]
+  yyyymmdd <- hit[[4]]
+  tag <- if (identical(dataset, "vi_modis") && identical(sensor, "terra")) {
+    "vi_modis_terra_raster"
+  } else if (identical(dataset, "vi_modis") && identical(sensor, "aqua")) {
+    "vi_modis_aqua_raster"
+  } else {
+    "vi_viirs_raster"
+  }
+  local_dir <- if (identical(hit[[2]], "modis")) {
+    .vi_grid_local_dirs()$modis
+  } else {
+    .vi_grid_local_dirs()$viirs
+  }
+  data.frame(
+    yyyymmdd = yyyymmdd,
+    sensor = sensor,
+    dataset = dataset,
+    asset = bn,
+    release_tag = tag,
+    local_path = file.path(local_dir, bn),
+    parquet_file = NA_character_,
+    reason = "release_orphan",
+    stringsAsFactors = FALSE
+  )
+}
+
+#' @title Plan delete for grid COGs orphaned from parquet releases
+#' @description Pure helper: given asset name lists, keep sensor COGs whose
+#'   YYYYMMDD is not present on the matching parquet release
+#'   (MODIS grids ↔ \code{vi_modis_parquet}; VIIRS grids ↔ \code{vi_viirs_parquet}).
+#' @param parquet_modis Character vector of \code{vi_modis_*.parquet} names
+#' @param parquet_viirs Character vector of \code{vi_viirs_*.parquet} names
+#' @param grid_terra Character vector of \code{vi_modis_terra_*.tif} names
+#' @param grid_aqua Character vector of \code{vi_modis_aqua_*.tif} names
+#' @param grid_viirs Character vector of \code{vi_viirs_{snpp,noaa20}_*.tif} names
+#' @param verbose Messages
+#' @return data.frame of orphan grid assets (may be empty)
+#' @export
+vi_grid_assets_from_release_asset_lists <- function(parquet_modis,
+                                                    parquet_viirs,
+                                                    grid_terra,
+                                                    grid_aqua,
+                                                    grid_viirs,
+                                                    verbose = TRUE) {
+  keep_modis <- .vi_parquet_yyyymmdd_from_names(parquet_modis, "modis")
+  keep_viirs <- .vi_parquet_yyyymmdd_from_names(parquet_viirs, "viirs")
+  if (verbose) {
+    message(
+      "Parquet release dates kept: modis=", length(keep_modis),
+      " viirs=", length(keep_viirs)
+    )
+  }
+
+  grid_names <- c(
+    as.character(grid_terra),
+    as.character(grid_aqua),
+    as.character(grid_viirs)
+  )
+  grid_names <- unique(grid_names[!is.na(grid_names) & nzchar(grid_names)])
+
+  rows <- list()
+  for (bn in grid_names) {
+    row <- .vi_grid_row_from_basename(bn)
+    if (is.null(row)) {
+      next
+    }
+    keep <- if (identical(row$dataset, "vi_modis")) keep_modis else keep_viirs
+    if (row$yyyymmdd %in% keep) {
+      next
+    }
+    rows[[length(rows) + 1L]] <- row
+  }
+
+  if (!length(rows)) {
+    if (verbose) {
+      message("No orphan grid COGs (every grid date has a matching parquet).")
+    }
+    return(data.frame(
+      yyyymmdd = character(0),
+      sensor = character(0),
+      dataset = character(0),
+      asset = character(0),
+      release_tag = character(0),
+      local_path = character(0),
+      parquet_file = character(0),
+      reason = character(0),
+      stringsAsFactors = FALSE
+    ))
+  }
+
+  out <- do.call(rbind, rows)
+  rownames(out) <- NULL
+  if (verbose) {
+    message(
+      "Orphan grid COGs (no matching parquet date): ", nrow(out),
+      "  (modis=", sum(out$dataset == "vi_modis"),
+      " viirs=", sum(out$dataset == "vi_viirs"), ")"
+    )
+  }
+  out
+}
+
+#' @title List GitHub release VI grids orphaned from parquet dates
+#' @description After flagged remote parquets were deleted, remaining sensor
+#'   COGs for those dates block \code{filter_pending_composites()}. This mode
+#'   needs neither the 683-flagged CSV nor local bad files.
+#' @param repo GitHub owner/repo
+#' @param token Optional token (uses upload token helper when empty)
+#' @param verbose Messages
+#' @return data.frame for [delete_vi_grid_assets()]
+#' @export
+vi_grid_assets_from_release_orphans <- function(
+    repo = "eco-emma/emma_envdata",
+    token = NULL,
+    verbose = TRUE) {
+  if (is.null(token) || !nzchar(token)) {
+    token <- .gh_upload_token(verbose = verbose)
+  }
+  if (verbose) {
+    message("Listing VI parquet + grid release assets from ", repo, " …")
+  }
+  parquet_modis <- .gh_release_asset_names(
+    repo, "vi_modis_parquet", token, strict = TRUE
+  )
+  parquet_viirs <- .gh_release_asset_names(
+    repo, "vi_viirs_parquet", token, strict = TRUE
+  )
+  grid_terra <- .gh_release_asset_names(
+    repo, "vi_modis_terra_raster", token, strict = TRUE
+  )
+  grid_aqua <- .gh_release_asset_names(
+    repo, "vi_modis_aqua_raster", token, strict = TRUE
+  )
+  grid_viirs <- .gh_release_asset_names(
+    repo, "vi_viirs_raster", token, strict = TRUE
+  )
+  if (verbose) {
+    message(
+      "Release asset counts: modis_parquet=", length(parquet_modis),
+      " viirs_parquet=", length(parquet_viirs),
+      " terra_raster=", length(grid_terra),
+      " aqua_raster=", length(grid_aqua),
+      " viirs_raster=", length(grid_viirs)
+    )
+  }
+  vi_grid_assets_from_release_asset_lists(
+    parquet_modis = parquet_modis,
+    parquet_viirs = parquet_viirs,
+    grid_terra = grid_terra,
+    grid_aqua = grid_aqua,
+    grid_viirs = grid_viirs,
+    verbose = verbose
+  )
+}
+
 #' @title Dry-run or delete VI grid assets (remote + optional local)
 #' @param assets data.frame from the helpers above (\code{asset},
 #'   \code{release_tag}, \code{local_path})
