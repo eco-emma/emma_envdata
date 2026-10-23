@@ -135,14 +135,18 @@ raster releases is **not** enough by itself: `vi_modis_pending` /
 external side effect, so `tar_make` **skips** pending and still declares
 `[2 branches]`.
 
-After remote COG deletes (on `main` or this branch):
+After remote COG deletes (on `main` or this branch), invalidate **pending +
+grid + parquet only**. Keep `task_ids` / `geotiff` so AppEEARS is not
+resubmitted or re-downloaded when those branches still hold real task IDs
+and temp TIFs. Grid must be invalidated because `format=rds` stores path
+strings and will skip even when COG files are gone.
 
 ```bash
 # Inside Apptainer
 R -e 'targets::tar_invalidate(any_of(c(
   "vi_modis_pending", "vi_viirs_pending",
-  "vi_modis_task_ids", "vi_modis_geotiff", "vi_modis_grid", "vi_modis_parquet",
-  "vi_viirs_task_ids", "vi_viirs_geotiff", "vi_viirs_grid", "vi_viirs_parquet"
+  "vi_modis_grid", "vi_modis_parquet",
+  "vi_viirs_grid", "vi_viirs_parquet"
 )))'
 
 # Sanity: pending should print hundreds, not 2
@@ -154,10 +158,10 @@ R -e 'targets::tar_make(c("vi_modis_pending","vi_viirs_pending"));
 Then host: `sbatch --cluster=faculty run_tar_make.sh`. Expect logs like
 `vi_modis_* declared [~600 branches]`, not `[2 branches]`.
 
-Local COGs: `submit_*_vi()` returns `cached:YYYYMMDD` if both sensor TIFs
-exist on disk — delete leftover locals for dates you want re-pulled
-(`rm data/target_outputs/modis_vi/vi_modis_{terra,aqua}_*.tif` etc.) before
-remake if any remain beyond the ~8 good survivors you intend to keep.
+Caveat: branches stored as `cached:YYYYMMDD` (AppEEARS was skipped because
+release/local already had COGs) cannot rebuild content without raw TIFs under
+`data/temp/appeears/...` — grid falls through to NA placeholders. Only
+invalidate `task_ids`/`geotiff` for dates that truly need a new AppEEARS pull.
 
 If COGs look good, only the parquet step needs a rebuild:
 
