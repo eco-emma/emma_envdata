@@ -81,33 +81,87 @@ Rscript R/audit_vi_parquet_dates.R \
 `--delete-remote` pages the GitHub assets API (safe for 600+ files).
 `--dry-run` (default when no `--delete-*`) only reports.
 
-### 3. Check whether grid COGs are also wrong
+### 3. Delete bad grid COGs (required after Jul–Aug template)
 
 Build + upload now gate AppEEARS source dates and COG DOY
-(`R/vi_geotiff_date_match.R`). Still delete any **already published** bad
-grids before regenerate — pending filters are name-only for existing assets.
+(`R/vi_geotiff_date_match.R`). **Already published** bad grids must still be
+deleted — `filter_pending_composites()` is name-only, so poisoned release
+assets never re-queue AppEEARS.
 
-If parquet was built from a duplicated Jul–Aug COG, regenerating parquet
-alone will recreate the same junk. Spot-check a few flagged dates:
+Map flagged parquet basenames → sensor COGs:
 
-```r
+| Parquet | Sensor assets | Release tags |
+|---------|---------------|--------------|
+| `vi_modis_YYYYMMDD.parquet` | `vi_modis_terra_YYYYMMDD.tif`, `vi_modis_aqua_YYYYMMDD.tif` | `vi_modis_terra_raster`, `vi_modis_aqua_raster` |
+| `vi_viirs_YYYYMMDD.parquet` | `vi_viirs_snpp_YYYYMMDD.tif`, `vi_viirs_noaa20_YYYYMMDD.tif` | `vi_viirs_raster` |
+
+**Preferred after remote parquet cleanup:** `--from-release-orphans` — list
+remaining `vi_*_parquet` dates, then delete any sensor COG on
+`vi_modis_*_raster` / `vi_viirs_raster` whose YYYYMMDD is **not** in that set.
+Needs neither the 683-flagged CSV nor bad locals (survivor CSV + ~8 local
+COGs is the usual post-cleanup state).
+
+```bash
+getent hosts api.github.com   # confirm DNS before remote deletes
+
+# Optional: a pre-delete flagged CSV may still exist under another name
+ls data/target_outputs/vi_parquet_date_audit*.csv*
+
+# Dry-run → data/target_outputs/vi_grid_cog_delete_plan.csv
+Rscript R/delete_vi_grids_from_audit.R --from-release-orphans --dry-run
+
+# Real delete (remote; add --delete-local if any matching locals remain)
+Rscript R/delete_vi_grids_from_audit.R --from-release-orphans --delete-remote
+```
+
+Other sources (usually unnecessary once remotes are cleaned):
+
+```bash
+Rscript R/delete_vi_grids_from_audit.R \
+  --from-csv data/target_outputs/vi_parquet_date_audit.csv --dry-run
+Rscript R/delete_vi_grids_from_audit.R --from-local-doy --dry-run
+```
+
+Plan CSV: `data/target_outputs/vi_grid_cog_delete_plan.csv`.
+
+### 3b. Invalidate `vi_*_pending` (required after release deletes)
+
+`filter_pending_composites()` **does** look at the raster releases (not
+parquet) and the date window is full history (`modis_start_date` 2000-01-01 /
+`viirs_start_date` 2012-01-01 → ~608 / ~337 composites). Emptying the three
+raster releases is **not** enough by itself: `vi_modis_pending` /
+`vi_viirs_pending` are ordinary `tar_target`s whose stored value is the old
+2-row “only recent dates missing” table. GitHub release mutations are an
+external side effect, so `tar_make` **skips** pending and still declares
+`[2 branches]`.
+
+After remote COG deletes (on `main` or this branch), invalidate **pending +
+grid + parquet only**. Keep `task_ids` / `geotiff` so AppEEARS is not
+resubmitted or re-downloaded when those branches still hold real task IDs
+and temp TIFs. Grid must be invalidated because `format=rds` stores path
+strings and will skip even when COG files are gone.
+
+```bash
 # Inside Apptainer
-library(terra)
-d <- as.Date("2000-09-13")  # example flagged basename
-yyyymmdd <- format(d, "%Y%m%d")
-terra <- rast(sprintf("data/target_outputs/modis_vi/vi_modis_terra_%s.tif", yyyymmdd))
-# DOY band should cluster near the composite window, not a fixed Jul–Aug
-# template for every year.
-summary(values(terra[["doy"]]))
+R -e 'targets::tar_invalidate(any_of(c(
+  "vi_modis_pending", "vi_viirs_pending",
+  "vi_modis_grid", "vi_modis_parquet",
+  "vi_viirs_grid", "vi_viirs_parquet"
+)))'
+
+# Sanity: pending should print hundreds, not 2
+R -e 'targets::tar_make(c("vi_modis_pending","vi_viirs_pending"));
+      print(nrow(targets::tar_read(vi_modis_pending)));
+      print(nrow(targets::tar_read(vi_viirs_pending)))'
 ```
 
-If COGs are wrong or missing after parquet delete:
+Then host: `sbatch --cluster=faculty run_tar_make.sh`. Expect logs like
+`vi_modis_* declared [~600 branches]`, not `[2 branches]`.
 
-```r
-# Delete bad sensor grids locally + from raster releases, then tar_make
-# will treat those composites as pending (filter_pending_composites).
-# Reuse audit_na_placeholders helpers or manual unlink + gh_delete…
-```
+Caveat: branches stored as `cached:YYYYMMDD` (AppEEARS was skipped because
+release/local already had COGs) cannot rebuild content without raw TIFs under
+`data/temp/appeears/...` — grid falls through to NA placeholders. Only
+invalidate `task_ids`/`geotiff` for dates that truly need a new AppEEARS pull.
 
 If COGs look good, only the parquet step needs a rebuild:
 
@@ -186,4 +240,6 @@ Rscript tests/upload_inventory_checks.R
 - `docs/VIIRS_VI_PARQUET_PUBLISH.md` — first VIIRS parquet publish
 - `R/vi_parquet_date_align.R` — shared parquet audit + upload filter
 - `R/vi_geotiff_date_match.R` — AppEEARS basename date filter + COG DOY upload gate
-- `R/audit_vi_parquet_dates.R` — CCR CLI
+- `R/vi_grid_cog_delete.R` — parquet→sensor-COG map + release/local delete
+- `R/audit_vi_parquet_dates.R` — CCR parquet audit CLI
+- `R/delete_vi_grids_from_audit.R` — CCR grid COG delete CLI
