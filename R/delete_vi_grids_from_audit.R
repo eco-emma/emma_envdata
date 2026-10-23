@@ -169,13 +169,24 @@ if (dry_run) {
     "Next (real delete):\n",
     "  Rscript R/delete_vi_grids_from_audit.R \\\n",
     "    --from-release-orphans --delete-remote\n",
+    "Then invalidate pending (GitHub release changes are invisible to targets):\n",
+    "  R -e 'targets::tar_invalidate(any_of(c(\n",
+    "    \"vi_modis_pending\",\"vi_viirs_pending\",\n",
+    "    \"vi_modis_task_ids\",\"vi_modis_geotiff\",\"vi_modis_grid\",\"vi_modis_parquet\",\n",
+    "    \"vi_viirs_task_ids\",\"vi_viirs_geotiff\",\"vi_viirs_grid\",\"vi_viirs_parquet\")))'\n",
     "Then: sbatch --cluster=faculty run_tar_make.sh"
   )
 } else {
   message(
     "Deleted remote=", length(result$remote_deleted),
     " local=", length(result$local_deleted),
-    ". Next: sbatch --cluster=faculty run_tar_make.sh ",
-    "so filter_pending_composites re-queues AppEEARS."
+    ".\n",
+    "IMPORTANT: empty raster releases do NOT auto-expand pending — ",
+    "vi_*_pending is cached in _targets. Invalidate then remake:\n",
+    "  R -e 'targets::tar_invalidate(any_of(c(\n",
+    "    \"vi_modis_pending\",\"vi_viirs_pending\",\n",
+    "    \"vi_modis_task_ids\",\"vi_modis_geotiff\",\"vi_modis_grid\",\"vi_modis_parquet\",\n",
+    "    \"vi_viirs_task_ids\",\"vi_viirs_geotiff\",\"vi_viirs_grid\",\"vi_viirs_parquet\")))'\n",
+    "  sbatch --cluster=faculty run_tar_make.sh"
   )
 }

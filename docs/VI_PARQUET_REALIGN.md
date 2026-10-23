@@ -124,6 +124,41 @@ Rscript R/delete_vi_grids_from_audit.R --from-local-doy --dry-run
 
 Plan CSV: `data/target_outputs/vi_grid_cog_delete_plan.csv`.
 
+### 3b. Invalidate `vi_*_pending` (required after release deletes)
+
+`filter_pending_composites()` **does** look at the raster releases (not
+parquet) and the date window is full history (`modis_start_date` 2000-01-01 /
+`viirs_start_date` 2012-01-01 → ~608 / ~337 composites). Emptying the three
+raster releases is **not** enough by itself: `vi_modis_pending` /
+`vi_viirs_pending` are ordinary `tar_target`s whose stored value is the old
+2-row “only recent dates missing” table. GitHub release mutations are an
+external side effect, so `tar_make` **skips** pending and still declares
+`[2 branches]`.
+
+After remote COG deletes (on `main` or this branch):
+
+```bash
+# Inside Apptainer
+R -e 'targets::tar_invalidate(any_of(c(
+  "vi_modis_pending", "vi_viirs_pending",
+  "vi_modis_task_ids", "vi_modis_geotiff", "vi_modis_grid", "vi_modis_parquet",
+  "vi_viirs_task_ids", "vi_viirs_geotiff", "vi_viirs_grid", "vi_viirs_parquet"
+)))'
+
+# Sanity: pending should print hundreds, not 2
+R -e 'targets::tar_make(c("vi_modis_pending","vi_viirs_pending"));
+      print(nrow(targets::tar_read(vi_modis_pending)));
+      print(nrow(targets::tar_read(vi_viirs_pending)))'
+```
+
+Then host: `sbatch --cluster=faculty run_tar_make.sh`. Expect logs like
+`vi_modis_* declared [~600 branches]`, not `[2 branches]`.
+
+Local COGs: `submit_*_vi()` returns `cached:YYYYMMDD` if both sensor TIFs
+exist on disk — delete leftover locals for dates you want re-pulled
+(`rm data/target_outputs/modis_vi/vi_modis_{terra,aqua}_*.tif` etc.) before
+remake if any remain beyond the ~8 good survivors you intend to keep.
+
 If COGs look good, only the parquet step needs a rebuild:
 
 ```r
